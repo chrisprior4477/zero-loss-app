@@ -11,11 +11,14 @@ import {PurchaseOptionEmailPreference} from './PurchaseOptionEmailPreference';
 import {FavoriteAlertEmailPreference} from './FavoriteAlertEmailPreference';
 import {CrewWinEmailPreference} from './CrewWinEmailPreference';
 import {PreferenceSnapshotProvider} from './useServerPreference';
-const controls=[['outcome',EntryOutcomeEmailPreference],['purchase',PurchaseOptionEmailPreference],['Favorites',FavoriteAlertEmailPreference],['Crew',CrewWinEmailPreference]] as const;
+const controls=[['outcome',EntryOutcomeEmailPreference],['purchase',PurchaseOptionEmailPreference],['favorites',FavoriteAlertEmailPreference],['crew',CrewWinEmailPreference]] as const;
 beforeEach(() => {
   vi.resetAllMocks();
   save.mockResolvedValue({ status: "succeeded", ok: true, message: "Saved on" });
-  read.mockImplementation(async () => save.mock.lastCall?.[1]?.get("enabled") === "true");
+  read.mockImplementation(async () => {
+    const args = save.mock.lastCall;
+    return typeof args?.[0] === "boolean" ? args[0] : args?.[1]?.get("enabled") === "true";
+  });
 });
 afterEach(cleanup);
 test.each(controls)('%s follows confirmed changes in both directions',(_name,Control)=>{
@@ -61,7 +64,7 @@ test.each(controls.filter(([name])=>name!=='purchase'))('%s replaces an old save
  expect(save).toHaveBeenCalledTimes(2);
 });
 
-const verifiedControls = controls.slice(0, 2);
+const verifiedControls = controls;
 
 test.each(verifiedControls)("%s ignores a late save receipt after another tab saves the original value", async (kind, Control) => {
   let finish!: (value: unknown) => void;
@@ -77,7 +80,7 @@ test.each(verifiedControls)("%s ignores a late save receipt after another tab sa
   await screen.findByRole("button", { name: "Saving…" });
   expect(read).not.toHaveBeenCalled();
   view.rerender(show("after-tab-b-saved-off"));
-  await act(async () => finish({ status: "succeeded", message: "Saved on" }));
+  await act(async () => finish({ status: "succeeded", ok: true, message: "Saved on" }));
 
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", false);
   expect(screen.getByRole("status").textContent).toBe("Your preference was updated in another tab.");

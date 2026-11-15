@@ -23,8 +23,9 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
+import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -43,6 +44,8 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
   const browseReturnHref = productBrowseReturnHref(query.from);
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
+  const transactionReturn = typeof query.transaction === "string" && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(query.transaction)
+    ? walletSupportReturnHref(query.transaction, query.walletView === "1") : null;
   const product = getDemoProduct(id);
   if (!product) notFound();
   const { account, availability, hidden, unavailable } = await getShoppingCatalog();
@@ -59,7 +62,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (
-    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} browseReturnHref={query.from === undefined ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={query.share} browseReturnHref={query.from === undefined ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
@@ -105,7 +108,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
       <div className={entryStyles.nav}>
-        <Link href={browseReturnHref}>← Back to {browseReturnLabel}</Link>
+        <Link href={transactionReturn ?? browseReturnHref}>← Back to {transactionReturn ? "this transaction" : browseReturnLabel}</Link>
         <ProductInfoDialog title="How entries and completion work" label="Entry details">{entryDetails}</ProductInfoDialog>
       </div>
       {sharedControls ? <div className={entryStyles.shared}>{sharedControls}</div> : null}

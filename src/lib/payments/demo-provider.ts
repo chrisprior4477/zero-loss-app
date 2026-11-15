@@ -59,9 +59,20 @@ export class DemoPaymentProvider {
     return card;
   }
 
-  async deletePaymentMethod(paymentMethod: DemoCardToken): Promise<void> {
+  async updateReviewedCard(paymentMethod: DemoCardToken, revision: string, makeDefault: boolean | null, makeDepositDefault: boolean | null, artwork?: DemoCardArtwork): Promise<DemoCard> {
+    const { data, error } = await this.db.rpc("update_reviewed_demo_card", {
+      p_payment_method: paymentMethod, p_revision: revision, p_make_default: makeDefault,
+      p_make_deposit_default: makeDepositDefault, ...(artwork ? { p_artwork: artwork } : {}),
+    });
+    if (error) throw new FundingFailure(error.code, error.message);
+    const card = parseDemoCard(data);
+    if (!card) throw new Error("Unconfirmed payment method");
+    return card;
+  }
+
+  async deletePaymentMethod(paymentMethod: DemoCardToken, revision?: string): Promise<void> {
     if (!demoCardFixture(paymentMethod)) throw new Error("Unsupported test card");
-    const { data, error } = await this.db.rpc("delete_demo_payment_method", { p_payment_method: paymentMethod });
+    const { data, error } = await this.db.rpc(revision ? "delete_reviewed_demo_payment_method" : "delete_demo_payment_method", { p_payment_method: paymentMethod, ...(revision ? { p_revision: revision } : {}) });
     if (error) throw new FundingFailure(error.code, error.message);
     if (typeof data !== "boolean") throw new Error("Unconfirmed payment-method deletion");
   }

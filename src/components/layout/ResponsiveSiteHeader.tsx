@@ -38,6 +38,7 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
   const accountRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const focusOnExpand = useRef(false);
   const [searchSession, setSearchSession] = useState({ layout, pathname, open: false });
   const expanded = preview ? preview.expanded : searchSession.layout === layout && searchSession.pathname === pathname && searchSession.open;
   const singleRow = layout === "search-down" || layout === "search-down-browse" || layout === "search-over";
@@ -47,9 +48,15 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
   };
   const closeSearch = () => setSearchOpen(false);
   const openSearch = () => {
+    focusOnExpand.current = true;
     setSearchOpen(true);
-    requestAnimationFrame(() => searchRef.current?.querySelector<HTMLInputElement>("input")?.focus());
+    if (expanded) searchRef.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
+  useLayoutEffect(() => {
+    if (!expanded || !focusOnExpand.current) return;
+    focusOnExpand.current = false;
+    searchRef.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [expanded]);
 
   useLayoutEffect(() => {
     const header = headerRef.current;

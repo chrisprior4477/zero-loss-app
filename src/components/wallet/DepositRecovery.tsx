@@ -25,18 +25,24 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   const title = useRef<HTMLHeadingElement>(null);
   const actionButton = useRef<HTMLButtonElement>(null);
   const supportLink = useRef<HTMLAnchorElement>(null);
-  const [result, action, pending] = useActionState(async (previous: DepositCheck | null, form: FormData): Promise<DepositCheck> => {
+  type RecoveryResult = { check: DepositCheck; finishFailed: boolean; initialStatus: typeof initialStatus };
+  const [response, action, pending] = useActionState(async (previous: RecoveryResult | null, form: FormData): Promise<RecoveryResult> => {
+    let finishFailed = false;
     try {
-      if (form.get("intent") === "finish" && previous && "sessionId" in previous) {
+      if (form.get("intent") === "finish" && previous?.initialStatus === initialStatus && previous && "sessionId" in previous.check) {
         const data = new FormData();
-        data.set("sessionId", previous.sessionId);
-        await reconcileDemoFunding({ status: "idle" }, data);
+        data.set("sessionId", previous.check.sessionId);
+        try {
+          const result = await reconcileDemoFunding({ status: "idle" }, data);
+          finishFailed = result?.status !== "succeeded";
+        } catch { finishFailed = true; }
       }
       const checked = await checkDemoDeposit(requestKey, amount, walletId);
       if (checked.status === "credited") onCredit(checked.amount, checked.balanceCents);
-      return checked;
-    } catch { return { status: "unavailable" }; }
+      return { check: checked, finishFailed, initialStatus };
+    } catch { return { check: { status: "unavailable" }, finishFailed, initialStatus }; }
   }, null);
+  const result = response?.initialStatus === initialStatus ? response?.check : undefined;
 
   useEffect(() => {
     if (embedded) return;
@@ -53,16 +59,18 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   const status = result?.status ?? initialStatus;
   const checkoutWarning = fromCheckout && (status === "credit_pending" || status === "not_processed")
     ? depositWarning(amount, status) : undefined;
+  const finishFailed = result && response?.finishFailed && result.status !== "credited";
   const card = <DepositReceipt amount={amount} date={date}
     status={pending ? "Checking this deposit…" : status === "credited" ? "Deposit credited to your wallet."
-      : status === "missing" && !onReview ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
+      : finishFailed ? "We couldn’t finish this deposit. Check this same request again before adding more funds."
+        : status === "missing" && !onReview ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
         : status ? checkoutWarning ?? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
     tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
     <form action={action} className={styles.actions}>
       {pending ? <button className={styles.primary} disabled>Checking…</button>
         : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={supportHref ?? depositSupportHref(requestKey)}>Contact Support</a>
         : status === "missing" && onReview ? <button ref={actionButton} type="button" className={styles.secondary} onClick={onReview}>Review same deposit</button>
-        : result && "sessionId" in result ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
+        : result && "sessionId" in result && !finishFailed ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
         : <button ref={actionButton} className={styles.primary} name="intent" value="check">Check this deposit</button>}
     </form>
     {onBack && <button type="button" className={styles.secondary} onClick={onBack} disabled={pending}>Back to Add funds</button>}

@@ -48,6 +48,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   const captureVersion = useRef(0);
   const decodingVersion = useRef<number | null>(null);
   const savingRef = useRef(false);
+  const reviewedCard = useRef<DemoCard | undefined>(undefined);
   const [cameraToken, setCameraToken] = useState(token);
   const [futureTransactions, setFutureTransactions] = useState(makeDefault);
   const [futureDeposits, setFutureDeposits] = useState(makeDepositDefault);
@@ -133,19 +134,21 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     const fixture = demoCardFixture(cameraToken)!;
     const data = new FormData();
     data.set("paymentMethod", fixture.token);
-    data.set("makeDefault", String(futureTransactions));
-    data.set("makeDepositDefault", String(futureDeposits));
+    const saved = reviewedCard.current;
+    if (saved?.revision) data.set("cardRevision", saved.revision);
+    if (!saved?.revision || futureTransactions !== saved.isDefault) data.set("makeDefault", String(futureTransactions));
+    if (!saved?.revision || futureDeposits !== (saved.isDepositDefault ?? saved.isDefault)) data.set("makeDepositDefault", String(futureDeposits));
     data.set("artwork", JSON.stringify(artwork));
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
       if (result.status !== "succeeded") { setError(result.status === "idle" ? "The card was not saved. Please try again." : result.message); return; }
-      const card: DemoCard = { token: fixture.token, lastFour: fixture.lastFour, isDefault: futureTransactions, isDepositDefault: futureDeposits, artwork };
+      const card: DemoCard = result.card ?? { token: fixture.token, lastFour: fixture.lastFour, isDefault: futureTransactions, isDepositDefault: futureDeposits, artwork };
       savingRef.current = false; setSaving(false); close(); onSaved(card);
     } catch { setError("The card could not be saved. Your preview is still here—please try again."); }
     finally { savingRef.current = false; setSaving(false); }
   }
   return <>
-    <button type="button" className={styles.trigger} disabled={disabled || saving} aria-label="Use camera" onClick={() => { reset(); setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); void startCamera(); }}>
+    <button type="button" className={styles.trigger} disabled={disabled || saving} aria-label="Use camera" onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); void startCamera(); }}>
       <span className={styles.camera} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5 9.5 3h5L16 5h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /><circle cx="12" cy="13" r="4" /></svg></span><span className={styles.label} aria-hidden="true">Use camera</span>
     </button>
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-label="Sample card camera" onCancel={event => { event.preventDefault(); close(); }}>

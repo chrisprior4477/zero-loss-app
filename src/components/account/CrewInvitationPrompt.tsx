@@ -15,7 +15,7 @@ export type CrewInvitationPromptData = { id: string; name: string; status: "pend
 export function CrewInvitationPrompt({ invitation, unavailable = false }: { invitation: CrewInvitationPromptData | null; unavailable?: boolean }) {
   const router = useRouter();
   // Preserve the decision/success screen when the action revalidates this page.
-  const [request] = useState(invitation);
+  const request = invitation;
   const [open, setOpen] = useState(Boolean(invitation) || unavailable);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);

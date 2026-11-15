@@ -21,7 +21,8 @@ export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabl
         const targetTop = window.scrollY + target.getBoundingClientRect().top - headerBottom - 12;
         const controls = revealControls ? document.getElementById("my-activity-empty-controls") : null;
         const controlsBottom = controls ? window.scrollY + controls.getBoundingClientRect().bottom - window.innerHeight + 16 : 0;
-        window.scrollTo({ top: Math.max(0, targetTop, controlsBottom), behavior: "auto" });
+        const desktop = !window.matchMedia?.("(max-width: 767px)").matches;
+        window.scrollTo({ top: Math.max(0, targetTop, desktop ? controlsBottom : 0), behavior: "auto" });
       });
     });
 

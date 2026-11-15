@@ -43,7 +43,12 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
       const brand = id === "popular-rewards" && window.location.hash === "#popular-rewards"
         ? new URLSearchParams(window.location.search).get("reward-brand") : null;
       const retailer = brand && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(brand) ? `/rewards/${brand}` : null;
-      const saved = bookmark()?.rows[id] ?? (retailer ? { left: 0, anchor: retailer, inset: 4 } : null);
+      const prize = id === "ending-soon" && window.location.hash === "#ending-soon"
+        ? new URLSearchParams(window.location.search).get("ending-prize") : null;
+      const prizeAnchor = prize && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(prize)
+        ? `/items/${prize}?from=${encodeURIComponent(`/?ending-prize=${prize}#ending-soon`)}` : null;
+      const anchorHref = retailer ?? prizeAnchor;
+      const saved = bookmark()?.rows[id] ?? (anchorHref ? { left: 0, anchor: anchorHref, inset: 4 } : null);
       if (!saved || !Number.isFinite(saved.left) || saved.left < 0 || !Number.isFinite(saved.inset)) return;
       restoring = true;
       const align = () => {

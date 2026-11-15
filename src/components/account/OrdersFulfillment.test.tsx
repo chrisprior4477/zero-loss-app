@@ -50,7 +50,7 @@ test("connects orders to rewards, activity and support", () => {
   expect(within(card).queryByRole("link", { name: /My Activity|Wallet history/ })).toBeNull();
   const helpLinks = screen.getAllByRole("link", { name: "Choose a transaction to report" });
   expect(helpLinks).toHaveLength(2);
-  for (const link of helpLinks) expect(link.getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+  for (const link of helpLinks) expect(link.getAttribute("href")).toBe("/account/wallet?view=history&panel=transactions#transactions");
   const related = within(screen.getByRole("navigation", { name: "Related pages" }));
   expect(related.getAllByRole("link").map(link => [link.textContent, link.getAttribute("href")])).toEqual([
     ["My Activity", "/account/entries"],

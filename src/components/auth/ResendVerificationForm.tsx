@@ -8,11 +8,13 @@ import {
 import { EmailDeliveryHint } from "@/components/auth/EmailDeliveryHint";
 import { signInReturnPath } from "@/lib/auth/entry-return";
 
-const initialState: ResendVerificationState = { ok: false, message: null };
+type ResendFeedback = ResendVerificationState & { submittedEmail: string };
+const initialState: ResendFeedback = { ok: false, message: null, submittedEmail: "" };
 
-async function resendVerification(previous: ResendVerificationState, data: FormData): Promise<ResendVerificationState> {
-  try { return await resendVerificationAction(previous, data); }
-  catch { return { ok: false, message: "We couldn’t confirm the verification email request. Check your connection, wait a minute, and try again." }; }
+async function resendVerification(previous: ResendFeedback, data: FormData): Promise<ResendFeedback> {
+  const submittedEmail = String(data.get("verification_email") ?? "").trim();
+  try { return { ...await resendVerificationAction(previous, data), submittedEmail }; }
+  catch { return { ok: false, message: "We couldn’t confirm the verification email request. Check your connection, wait a minute, and try again.", submittedEmail }; }
 }
 
 export function ResendVerificationForm({ email, returnTo = null }: { email: string; returnTo?: string | null }) {
@@ -22,6 +24,7 @@ export function ResendVerificationForm({ email, returnTo = null }: { email: stri
     initialState
   );
   const hasEmail = email.trim().length > 0;
+  const message = state.submittedEmail === email.trim() ? state.message : null;
 
   return (
     <form action={formAction} className="mt-3">
@@ -34,18 +37,18 @@ export function ResendVerificationForm({ email, returnTo = null }: { email: stri
       >
         {pending ? "Sending…" : "Resend verification email"}
       </button>
-      {!hasEmail && !state.message ? (
+      {!hasEmail && !message ? (
         <p className="mt-2 text-center text-xs leading-5 text-white/40">
           Enter your account email above first.
         </p>
       ) : null}
-      {state.message ? (
+      {message ? (
         <>
           <p
             role={state.ok ? "status" : "alert"}
             className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-5 ${state.ok ? "border-[#31e800]/35 bg-[#31e800]/10 text-green-100" : "border-red-300/30 bg-red-400/10 text-red-100"}`}
           >
-            {state.message}
+            {message}
           </p>
           {state.ok ? <EmailDeliveryHint className="mt-2" /> : null}
         </>

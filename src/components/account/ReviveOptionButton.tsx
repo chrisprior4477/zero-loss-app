@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useState } from "react";
 import { unstable_rethrow } from "next/navigation";
-import { revivePurchaseOption, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
+import { readDeclineForRevival, revivePurchaseOption, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
 import styles from "./my-activity.module.css";
 import dialogStyles from "./decline-purchase-offers.module.css";
@@ -21,6 +21,21 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
   }, initialState);
   const needsCheck = state.status === "error" && state.recovery === "check";
   const [reviewing, setReviewing] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [declineEventId, setDeclineEventId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState("");
+  async function openReview() {
+    if (reading) return;
+    setReading(true);
+    setReviewError("");
+    try {
+      const id = await readDeclineForRevival(optionId);
+      if (!id) { setReviewError("We couldn’t verify this decline. Refresh and try again."); return; }
+      setDeclineEventId(id);
+      setReviewing(true);
+    } catch { setReviewError("We couldn’t verify this decline. Refresh and try again."); }
+    finally { setReading(false); }
+  }
   const closeReview = useCallback(() => { if (!pending) setReviewing(false); }, [pending]);
   const [expired, setExpired] = useState<boolean | null>(null);
   const deadline = Date.parse(expiresAt ?? "");
@@ -50,16 +65,18 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
     }} className="text-right text-sm font-bold text-[#0069b3] underline">Check this offer →</a> : null}
   </>;
   return <div className={`${styles.declinedRevive} flex flex-col items-end gap-2`}>
-    <button type="button" aria-haspopup="dialog" onClick={() => setReviewing(true)} disabled={disabled}
+    <button type="button" aria-haspopup="dialog" onClick={() => void openReview()} disabled={disabled || reading}
       className="min-h-11 min-w-24 rounded-lg bg-[#31e800] px-5 font-extrabold text-[#052515] disabled:cursor-not-allowed disabled:opacity-50">
-      {!hasDeadline ? "Deadline unavailable" : expired === null ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
+      {!hasDeadline ? "Deadline unavailable" : expired === null || reading ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
     </button>
+    {reviewError ? <span role="alert" className={dialogStyles.message}>{reviewError}</span> : null}
     {reviewing ? <PurchaseDialog title="Revive this offer?" onClose={closeReview} closeDisabled={pending} closeLabel="Close revive confirmation" className={dialogStyles.dialog}>
       <p className="font-extrabold">{productTitle}</p>
       <p className="break-all text-sm font-bold">{ticketLabel}</p>
       <p className={dialogStyles.message}>This returns the offer to Purchase Options for free. Its original deadline stays the same.</p>
       <form action={action} className={dialogStyles.actions}>
         <input type="hidden" name="completionOptionId" value={optionId} />
+        <input type="hidden" name="declineEventId" value={declineEventId ?? ""} />
         <button type="button" onClick={closeReview} disabled={pending} className={dialogStyles.keep}>Cancel</button>
         <button type="submit" disabled={disabled} className={`${dialogStyles.finish} disabled:opacity-50`}>
           {!hasDeadline ? "Deadline unavailable" : expired ? "Expired" : pending ? "Reviving…" : "Confirm revive"}

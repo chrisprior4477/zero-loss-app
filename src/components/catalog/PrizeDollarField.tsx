@@ -7,10 +7,10 @@ import styles from "./prize-dollar-field.module.css";
 const ROW_HEIGHT = 48;
 const WINDOW_SPAN = 200;
 const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-const windowStart = (amount: number) => Math.max(0, Math.min(MAX_PRIZE_VALUE - WINDOW_SPAN, amount - WINDOW_SPAN / 2));
+const windowStart = (amount: number) => Math.max(-1, Math.min(MAX_PRIZE_VALUE - WINDOW_SPAN, amount - WINDOW_SPAN / 2));
 
-function DollarWheel({ label, initial, onSave, onCancel }: {
-  label: string; initial: number; onSave: (value: string) => void; onCancel: () => void;
+function DollarWheel({ label, unsetLabel, initial, onSave, onCancel }: {
+  label: string; unsetLabel: string; initial: number; onSave: (value: string) => void; onCancel: () => void;
 }) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -31,7 +31,7 @@ function DollarWheel({ label, initial, onSave, onCancel }: {
   }, [start]);
 
   function select(next: number) {
-    const value = Math.max(0, Math.min(MAX_PRIZE_VALUE, next));
+    const value = Math.max(-1, Math.min(MAX_PRIZE_VALUE, next));
     position.current = value;
     setAmount(value);
     // Shift a small window of rows as needed, including at the two endpoints.
@@ -44,6 +44,10 @@ function DollarWheel({ label, initial, onSave, onCancel }: {
 
   function visibleAmount(element: HTMLDivElement) {
     return start + Math.min(WINDOW_SPAN, Math.max(0, Math.round(element.scrollTop / ROW_HEIGHT)));
+  }
+  function saveVisibleAmount(element: HTMLDivElement) {
+    const value = visibleAmount(element);
+    onSave(value < 0 ? "" : String(value));
   }
 
   return <dialog ref={dialog} aria-labelledby={id} className={styles.dialog}
@@ -63,21 +67,21 @@ function DollarWheel({ label, initial, onSave, onCancel }: {
           }}
           onKeyDown={event => {
             const steps: Record<string, number> = { ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10 };
-            if (event.key === "Enter") { event.preventDefault(); onSave(String(visibleAmount(event.currentTarget))); return; }
+            if (event.key === "Enter") { event.preventDefault(); saveVisibleAmount(event.currentTarget); return; }
             if (!(event.key in steps) && event.key !== "Home" && event.key !== "End") return;
             event.preventDefault();
-            select(event.key === "Home" ? 0 : event.key === "End" ? MAX_PRIZE_VALUE : amount + steps[event.key]);
+            select(event.key === "Home" ? -1 : event.key === "End" ? MAX_PRIZE_VALUE : amount + steps[event.key]);
           }}>
           {Array.from({ length: WINDOW_SPAN + 1 }, (_, index) => {
             const value = start + index;
             return <div role="option" key={value} id={`${id}-${value}`} aria-selected={value === amount}
-              className={styles.row} onClick={() => select(value)}>{formatter.format(value)}</div>;
+              className={styles.row} onClick={() => select(value)}>{value < 0 ? unsetLabel : formatter.format(value)}</div>;
           })}
         </div>
       </div>
       <div className={styles.actions}>
         <button type="button" onClick={onCancel}>Cancel</button>
-        <button type="button" className={styles.done} onClick={() => onSave(String(visibleAmount(wheel.current!)))}>Done</button>
+        <button type="button" className={styles.done} onClick={() => { if (wheel.current) saveVisibleAmount(wheel.current); }}>Done</button>
       </div>
       <button type="button" className={styles.clear} onClick={() => onSave("")}>Clear amount</button>
     </div>
@@ -92,6 +96,7 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
   const trigger = useRef<HTMLButtonElement>(null);
   const isMinimum = name === "minValue";
   const title = isMinimum ? "Minimum prize value" : "Maximum prize value";
+  const unsetLabel = isMinimum ? "No minimum" : "No maximum";
   const amount = Number(value);
   const usable = Number.isInteger(amount) && amount >= 0 && amount <= MAX_PRIZE_VALUE;
   function close() {
@@ -106,10 +111,10 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
       onChange={event => onChange(event.currentTarget.value)} />
     <button ref={trigger} type="button" data-bound={name} aria-haspopup="dialog" aria-expanded={open}
       aria-labelledby={`${id}-label ${id}-value`} aria-describedby={issueId} onClick={() => setOpen(true)}>
-      <span id={`${id}-value`}>{value && usable ? formatter.format(amount) : isMinimum ? "No minimum" : "No maximum"}</span>
+      <span id={`${id}-value`}>{value && usable ? formatter.format(amount) : unsetLabel}</span>
       <span aria-hidden="true">⌄</span>
     </button>
-    {open ? <DollarWheel label={title} initial={usable ? amount : 0} onCancel={close}
+    {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={value && usable ? amount : -1} onCancel={close}
       onSave={next => { onActivate(); onChange(next); close(); }} /> : null}
   </div>;
 }

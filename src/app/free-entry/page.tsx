@@ -4,7 +4,7 @@ import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { redirect } from "next/navigation";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
-import { productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { freeEntryHref, productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { shareUuid } from "@/lib/sharing/saved-shares";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 
@@ -15,6 +15,11 @@ type Props = { searchParams: Promise<{ offering?: string; share?: string | strin
 export default async function FreeEntryPage({ searchParams }: Props) {
   const { offering, from, share, quantity: rawQuantity } = await searchParams;
   const product = await freeEntryProduct(offering);
+  if (product === undefined) return <main className="mx-auto max-w-3xl p-6 text-white">
+    <h1 className="text-2xl font-black">Availability temporarily unavailable</h1>
+    <p className="mt-3">We couldn’t check this prize. Try again to open its free-entry instructions.</p>
+    <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={freeEntryHref(offering ?? "", from, parseEntryQuantity(rawQuantity), share)}>Try again</Link>
+  </main>;
   if (!product) redirect("/browse");
   const browseReturn = productBrowseReturnPath(from);
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;

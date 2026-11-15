@@ -87,6 +87,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const unreadCount = enabledNotifications.filter(notification => !read.has(notification.id)).length;
   const visible = useMemo(() => filter === "all" ? enabledNotifications : filter === "action" ? attentionNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications, attentionNotifications]);
   const groups = useMemo(() => groupNotifications(visible), [visible]);
+  const entryNumbers = useMemo(() => new Map(groupNotifications(enabledNotifications)
+    .flatMap(group => group.notifications.map((notice, index) => [notice.id, index + 1] as const))), [enabledNotifications]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage, 0, "expand");
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : key === "action" ? attentionNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications, attentionNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
@@ -212,6 +214,14 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     } };
     window.history.replaceState({ ...window.history.state, ...updated }, "");
     try { sessionStorage.setItem(`zero-loss-notification-view:${userId}:${filter}`, JSON.stringify(updated)); } catch { /* History remains usable. */ }
+  }
+
+  function clearExactNotice() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("notice");
+    url.hash = "notification-tickets-filters";
+    window.history.replaceState(window.history.state, "", url);
+    setFocusedNotice(undefined);
   }
 
   function selectFilter(nextFilter: FilterKey) {
@@ -397,9 +407,9 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
             const notification = group.notifications[0];
             const requestId = notification.crewRequestId;
             const feedback = requestId ? crewFeedback[requestId] : undefined;
-            return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick} destination={item => notificationDestination(item, filter)}
+            return <NotificationStack key={group.key} group={group} read={read} entryNumbers={entryNumbers} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick} destination={item => notificationDestination(item, filter)}
               expanded={expandedGroups.includes(group.key) || (focusedNotice !== undefined && group.notifications.some(item => item.id === focusedNotice))} onExpandedChange={expanded => {
-                if (!expanded && group.notifications.some(item => item.id === focusedNotice)) setFocusedNotice(undefined);
+                if (!expanded && group.notifications.some(item => item.id === focusedNotice)) clearExactNotice();
                 const next = expanded ? [...expandedGroups, group.key] : expandedGroups.filter(key => key !== group.key);
                 updateBookmark({ expandedGroups: next }); setExpandedGroups(next);
               }}>
@@ -420,7 +430,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
             }}>See more updates ({batches.remaining} remaining)</button>}
             <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>
             {readMessage && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
-            {batches.expanded && <button type="button" aria-controls="notification-tickets" aria-expanded={batches.expanded} onClick={() => {
+            {(batches.expanded || batches.size > groupsPerPage) && <button type="button" aria-controls="notification-tickets" aria-expanded onClick={() => {
+              if (focusedNotice) clearExactNotice();
               updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });
               batches.reset();
               listRef.current?.focus({ preventScroll: true });

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 /** Settle the requested browse destination below the menu's closing animation. */
 export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "" }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
     let first = 0;
     let second = 0;
@@ -43,12 +43,13 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
-        document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" });
+        document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
         if (focusTarget && !focused) {
           focused = true;
           focusTarget.focus({ preventScroll: true });
         }
       };
+      scroll();
       first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
       settle = setTimeout(scroll, 280);
     };

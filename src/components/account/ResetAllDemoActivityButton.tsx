@@ -6,11 +6,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
-import { previewAllDemoActivityReset, resetAllDemoActivity } from "@/lib/account/demo-activity-reset-actions";
+import { previewAllDemoActivityReset, resetAllDemoActivity, type DemoActivityRevision } from "@/lib/account/demo-activity-reset-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./reset-all-demo-activity-button.module.css";
 
-type Preview = { entryCount: number; balanceCents: number };
+type Preview = { entryCount: number; balanceCents: number; revision?: DemoActivityRevision };
 
 export function ResetAllDemoActivityButton() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export function ResetAllDemoActivityButton() {
         const result = await previewAllDemoActivityReset();
         if (result.status === "error") { setNotice(result.message); return; }
         requestKey.current = crypto.randomUUID();
-        setPreview({ entryCount: result.entryCount, balanceCents: result.balanceCents });
+        setPreview(result);
       } catch { setNotice("We couldn’t check your demo activity. Check your connection and try again. No reset was requested."); }
     });
   }
@@ -49,7 +49,8 @@ export function ResetAllDemoActivityButton() {
     if (!preview || !requestKey.current || uncertain) return;
     startTransition(async () => {
       try {
-        const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, requestKey.current!);
+        const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, requestKey.current!, preview.revision);
+        if (result.status === "error" && result.stale) { close(); setNotice(result.message); return; }
         if (result.status === "error") { setNotice(result.message); setUncertain(true); return; }
         notifications?.clearAfterDemoReset();
         close();

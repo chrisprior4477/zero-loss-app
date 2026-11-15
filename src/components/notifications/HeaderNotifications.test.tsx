@@ -72,7 +72,7 @@ test("support goes to the exact conversation and uses purple", async () => {
   mock.unread=[make("support-1","account",{title:"Reply to your case",href:"/support?case=one#conversation"})]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Support");
   const item=screen.getByRole("button",{name:/Reply to your case/}); expect(item.getAttribute("data-color")).toBe("purple"); fireEvent.click(item);
-  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith("/support?case=one&fromUpdates=1#conversation"));
+  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith("/support?case=one&fromUpdates=1&updateCategory=support#conversation"));
 });
 
 test("Saved items opens Favorites without consuming any alerts",()=>{

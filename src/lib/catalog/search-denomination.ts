@@ -10,6 +10,8 @@ const words = `(?:(?:a|${hundreds}) thousand(?: (?:and )?${hundreds})?|${hundred
 const digits = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?`;
 const currency = new RegExp(String.raw`(?:\$\s*|\bUSD\s+)(${digits})(?:[ -]+(?:dollars?|USD)\b)?|\b(${digits})[ -]*(?:dollars?|USD)\b|\b(${words})[ -]+dollars?\b`, "gi");
 
+const initialCurrency = new RegExp(`^(?:${currency.source})`, "i");
+
 function spokenValue(amount: string) {
   let thousands = 0, group = 0;
   for (const word of amount.toLowerCase().split(/[ -]+/)) {
@@ -49,11 +51,12 @@ export function searchDenominations(query: string, products: readonly { retailer
   const normalized = query.replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
   const leading = /^(.*?)\b(under|below|less than|up to|at most)\s+(.+)$/i.exec(normalized);
   const trailing = /^(.*)\b(?:and|or)\s+(under|below|less)\s*$/i.exec(normalized);
-  const parsedBound = leading ? extractValues(leading[3].trim().replace(/[.!?]$/, ""), []) : trailing ? extractValues(trailing[1], products) : null;
-  const budget = parsedBound?.values.size === 1 && (!leading || parsedBound.text === "")
+  const boundText = leading?.[3].trim().replace(/[.!?]$/, "");
+  const parsedBound = boundText ? extractValues(boundText, []) : trailing ? extractValues(trailing[1], products) : null;
+  const budget = parsedBound?.values.size === 1 && (!boundText || !parsedBound.text || initialCurrency.test(boundText))
     ? { maximum: [...parsedBound.values][0], inclusive: !leading || /^(?:up to|at most)$/i.test(leading[2]) } : null;
   const { text, values } = budget
-    ? { text: (leading?.[1] ?? parsedBound!.text).trim(), values: new Set<number>() }
+    ? { text: (leading ? `${leading[1]} ${parsedBound!.text}` : parsedBound!.text).trim(), values: new Set<number>() }
     : extractValues(normalized, products);
   const merchantWords = normalizeSearch(text).replace(/\b(?:gift card|for|from|at|a|an|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const merchant = (values.size || budget) && merchantWords

@@ -48,7 +48,7 @@ export function currentProductEntryHref(pathname: string, search: string, intent
   const slug = match[1];
   const params = new URLSearchParams(search);
   const queryQuantity = parseEntryQuantity(params.get("quantity")) ?? 1;
-  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity, params.get("from"));
+  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity, params.get("from"), params.get("share"));
 }
 
 function validIntent(value: unknown): value is EntryIntent {

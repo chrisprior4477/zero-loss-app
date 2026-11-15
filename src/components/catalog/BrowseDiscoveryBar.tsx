@@ -25,7 +25,7 @@ export function BrowseDiscoveryFooterControls() {
   return <div className={`${styles.controls} ${styles.footerControls}`} role="group" aria-label="Browse options at the bottom">{controls}</div>;
 }
 
-export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string; searchField?: ReactNode; children?: ReactNode }) {
+export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string; scopedOfferRetailers?: string[]; searchField?: ReactNode; children?: ReactNode }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const categoryList = useRef<HTMLDivElement>(null);
@@ -63,6 +63,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const groups = query.trim().length > 1
     ? searchRetailerDirectory(props.retailerGroups, query.trim(), props.retailerGroups.length)
     : props.retailerGroups.filter(group => !query.trim() || group.category.toLowerCase().startsWith(query.trim().toLowerCase()));
+  const scopedOfferRetailers = props.scopedOfferRetailers ? new Set(props.scopedOfferRetailers) : null;
+  function allCategoriesRetailerHref(retailer: string) {
+    const url = new URL(props.browseHref, "https://zeroloss.local");
+    for (const key of ["category", "subcategory", "partnerCategory", "batch", "groceryIdea"]) url.searchParams.delete(key);
+    if (url.searchParams.get("sort") === "ending-soon") url.searchParams.delete("sort");
+    url.searchParams.set("retailer", retailer);
+    return `${url.pathname}${url.search}#search-results`;
+  }
   const distinctGroups = groups.filter(group => !prizeCategoryLabels.has(group.category.toLowerCase()));
   const retailerGroups = query.trim() ? props.retailerGroups : props.selectedRetailerGroup ? [props.selectedRetailerGroup] : props.retailerGroups;
   const retailers = Array.from(new Map(retailerGroups.flatMap(group => group.options.map(option => [option.value, { ...option, groupId: group.id }] as const))).values())
@@ -133,7 +141,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (voice.listening) return;
+    if (voice.busy) return;
     voice.cancel();
     applySearch(search);
   }
@@ -160,7 +168,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
       <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.cancel(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
-      {search.trim() && !voice.listening ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+      {search.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
     </form>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
@@ -183,7 +191,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
               {prizeCategories.map(category => <button type="button" key={category.id} className={styles.choice} aria-current={props.selectedCategory === category.id && !props.selectedRetailerGroup ? "true" : undefined} onClick={() => choosePrizeCategory(category.id)}><span>{category.label}<small>Browse prizes</small></span><span aria-hidden="true">→</span></button>)}
               {distinctGroups.map(group => <button type="button" key={group.id} className={styles.choice} aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory))}><span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span></button>)}
             </>
-              : retailers.map(option => <button type="button" key={option.value} className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value))}><span>{option.label}<small>{option.hasOffer ? "View current offers" : "No current offers"}</small></span><span aria-hidden="true">→</span></button>)}
+              : retailers.map(option => {
+                const hasScopedOffer = scopedOfferRetailers ? scopedOfferRetailers.has(option.value) : option.hasOffer;
+                return <div key={option.value}>
+                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value))}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
+                  {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
+                    ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)}>View {option.label} across all categories</Link> : null}
+                </div>;
+              })}
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0 ? <p className={styles.noMatches}>No match. Try another category or brand.</p> : null}
           </div>
         </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={close} /></div>}

@@ -289,7 +289,7 @@ test("legacy payment-method entrances open the manager and normalize an old frag
   expect(window.location.hash).toBe("#payment-methods");
 });
 
-test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("payment-method navigation lands below the header at $width px", async ({ width, target }) => {
+test.each([390, 1280])("payment-method navigation lands below the header at %i px", async width => {
   vi.stubGlobal("innerWidth", width);
   vi.stubGlobal("scrollY", 0);
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { callback(0); return 1; });
@@ -299,13 +299,14 @@ test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("payment-
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   render(<><header className="sticky" /><a href="#payment-methods">View payment methods</a><WalletPaymentMethods enabled savedCards={initialCards} displayName="Demo Customer" /></>);
   fireEvent.click(screen.getByRole("link", { name: "View payment methods" }));
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
+  expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Payment methods" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
   fireEvent.click(screen.getByRole("button", { name: "Update card" }));
   await screen.findByText("Card updated.");
   fireEvent.click(screen.getByRole("button", { name: "Back to payment methods" }));
   expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy();
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
 });
 
 test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("Add funds lands at the right section at $width px from a link or the URL", ({ width, target }) => {

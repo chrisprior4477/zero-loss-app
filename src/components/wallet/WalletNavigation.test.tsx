@@ -71,7 +71,7 @@ test.each(["all", "ready"])("summary and history controls target the right ticke
   render(await WalletPage({ searchParams: Promise.resolve({ rewards }) }));
   const filters = within(screen.getByRole("navigation", { name: "Filter reward history" }));
   expect(filters.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/account/wallet#reward-history");
-  expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready#reward-history");
+  expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready&rewardHistory=1#reward-history");
   expect(filters.getByRole("link", { name: "Used" }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
   expect(screen.getByRole("link", { name: /Ready.*To claim or use/ }).getAttribute("href")).toBe("/account/wallet?rewards=ready#ready-rewards");
   expect(screen.getByRole("region", { name: "Available rewards" }).id).toBe("ready-rewards");
@@ -106,14 +106,14 @@ test.each(["used", "expired"])("the %s view shows real records instead of the em
   expect(screen.queryByText(/You haven’t used or transferred|You do not have any expired/)).toBeNull();
 });
 
-test("expired purchase options without issued rewards retain their activity destination", async () => {
+test("expired purchase options without issued rewards open in wallet history", async () => {
   const state = storedActivityFixture();
   state.activity[2].completionOptionStatus = "expired";
   state.activity[2].status = "completed";
   state.activity[2].entryId = "expired-option-entry";
   mocks.account.mockResolvedValue({ activity: state, wallet });
   render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
-  expect(screen.getByRole("link", { name: /Open Nike.*Expired/ }).getAttribute("href")).toBe("/account/entries?item=nike-court-shot-shoes&entry=expired-option-entry");
+  expect(screen.getByRole("link", { name: /Open Nike.*Expired/ }).getAttribute("href")).toBe("/account/wallet?rewards=expired&expiredEntry=expired-option-entry#reward-history");
   expect(screen.queryByText("You do not have any expired purchase options yet.")).toBeNull();
 });
 

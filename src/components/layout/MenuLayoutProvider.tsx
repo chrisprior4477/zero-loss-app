@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { isMenuDevice, isMenuLayout, type MenuDevice, type MenuLayout, type MenuLayoutsByDevice } from "@/lib/navigation/menu-layout";
 import { saveMenuLayout } from "@/lib/account/menu-layout-action";
 
@@ -39,6 +39,8 @@ function useDeviceMenuChoice(initialLayout: MenuLayout, device: MenuDevice, acco
   const storageKey = accountId ? trialKey(accountId, device) : null;
   const [serverLayout, setServerLayout] = useState(initialLayout);
   const cachedServerLayout = useRef(initialLayout);
+  const revision = useRef(0);
+  useLayoutEffect(() => { revision.current++; }, [initialLayout]);
   // Reconcile new account responses before children render an obsolete save prompt.
   // A balance-only refresh does not change this value or accept a manual preview.
   if (serverLayout !== initialLayout) {
@@ -87,10 +89,17 @@ function useDeviceMenuChoice(initialLayout: MenuLayout, device: MenuDevice, acco
     interacted.current = true;
     saving.current = true;
     const chosen = layout;
+    const startedAt = revision.current;
     setMessage(null);
     startTransition(async () => {
       try {
         const result = await saveMenuLayout(chosen, device);
+        if (revision.current !== startedAt) {
+          clearTrial();
+          setLayout(cachedServerLayout.current);
+          setTrying(false);
+          return;
+        }
         if (!result.ok) { setMessage({ text: result.message, error: true }); return; }
         setSavedLayout(chosen);
         clearTrial(); setTrying(false);

@@ -73,12 +73,22 @@ export async function declinePurchaseOption(
   return { status: "succeeded", message: "Purchase option declined. Its reminders have been stopped and the original entry was not refunded.", href: "/account/entries" };
 }
 
+export async function readDeclineForRevival(optionId: string): Promise<string | null> {
+  if (!uuidPattern.test(optionId) || !isPreviewDataEnvironment()) return null;
+  const db = await createClient();
+  const { data, error } = await db.from("completion_option_events").select("id")
+    .eq("completion_option_id", optionId).eq("event_type", "declined")
+    .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1).maybeSingle();
+  return !error && typeof data?.id === "string" && uuidPattern.test(data.id) ? data.id : null;
+}
+
 export async function revivePurchaseOption(
   _previous: PurchaseOptionActionState,
   formData: FormData,
 ): Promise<PurchaseOptionActionState> {
   const optionId = String(formData.get("completionOptionId") ?? "");
-  if (!uuidPattern.test(optionId) || !isPreviewDataEnvironment()) {
+  const declineEventId = String(formData.get("declineEventId") ?? "");
+  if (!uuidPattern.test(optionId) || !uuidPattern.test(declineEventId) || !isPreviewDataEnvironment()) {
     return { status: "error", message: "Revival is available only for a declined demo option." };
   }
   let href: string;
@@ -92,12 +102,15 @@ export async function revivePurchaseOption(
       || typeof saved.entry_id !== "string" || !/^ent_[0-9a-f]{32}$/.test(saved.entry_id)) {
       return { status: "error", message: "We couldn’t find this saved option. Refresh Declined Offers before trying again." };
     }
-    const { data, error } = await db.rpc("revive_preview_purchase_option", {
+    const { data, error } = await db.rpc("undo_preview_purchase_option_decline", {
       p_completion_option_id: optionId,
-      p_idempotency_key: `revive_${optionId.replaceAll("-", "")}`,
+      p_decline_event_id: declineEventId,
     });
+    if (error?.code === "PT409") return { status: "error", recovery: "check", message: "This offer changed after you opened the confirmation. Check the current offer before reviving it." };
     if (error || data?.status !== "available") {
-      return { status: "error", message: error?.code === "P0001" ? error.message : "We couldn’t verify the revived option. Refresh and check its current status." };
+      return error?.code === "P0001"
+        ? { status: "error", message: error.message }
+        : { status: "error", recovery: "check", message: "We couldn’t verify the revived option. Check its saved status before trying again." };
     }
     revalidatePath("/account/entries");
     revalidatePath("/account/declined-offers");

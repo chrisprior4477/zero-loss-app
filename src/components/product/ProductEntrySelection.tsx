@@ -15,13 +15,17 @@ export function ProductEntrySelection({ slug, initialQuantity, remaining, childr
   const [quantity, setQuantity] = useState(Math.min(initialQuantity, maximum));
   useLayoutEffect(() => {
     // Browser Back restores this specific visit, even when the page is remounted.
-    const { freeEntryDraft, ...state } = window.history.state ?? {};
+    const { freeEntryDraft } = window.history.state ?? {};
     if (freeEntryDraft?.slug !== slug || !isEntryQuantity(freeEntryDraft.quantity)) return;
-    try { window.history.replaceState(state, ""); } catch { /* The quantity can still be restored. */ }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuantity(Math.min(freeEntryDraft.quantity, maximum));
   }, [slug, maximum]);
-  return <EntrySelection.Provider value={[quantity, setQuantity]}>{children}</EntrySelection.Provider>;
+  return <EntrySelection.Provider value={[quantity, next => {
+    setQuantity(next);
+    if (window.history.state?.freeEntryDraft?.slug !== slug) return;
+    try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next } }, ""); }
+    catch { /* The visible selection still updates. */ }
+  }]}>{children}</EntrySelection.Provider>;
 }
 
 export function useEntrySelection(initialQuantity: number): Selection {

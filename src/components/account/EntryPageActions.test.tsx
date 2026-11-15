@@ -33,6 +33,37 @@ const props = {
   returnHref: "/account/entries?viewed=ent_11111111111111111111111111111111",
 };
 
+test("a newer request head clears prior approval and supplies the new reference", async () => {
+  const newest = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const view = render(<EntryPageActions {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  view.rerender(<EntryPageActions {...props} balanceCents={2300} requestHead={{ ready: true, requestId: newest }} />);
+  const submit = screen.getByRole("button", { name: "Confirm entry for $1" });
+  expect(submit).toHaveProperty("disabled", true);
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  createPreviewEntry.mockResolvedValueOnce({ status: "error", message: "Fixture intercepted submit." });
+  fireEvent.click(submit);
+  await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledOnce());
+  expect(createPreviewEntry.mock.calls[0][1].get("previousRequestId")).toBe(newest);
+});
+
+test("a refreshed entry exposes an owner-scoped hold even while the latest request is unavailable", () => {
+  const pending: EntryRequest = {
+    slug: props.slug, title: props.itemTitle, requestId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", quantity: 2, amountCents: 200,
+    status: "pending", serverNow: new Date().toISOString(), undoUntil: new Date(Date.now() + 30_000).toISOString(),
+    href: null, duplicate: false,
+  };
+  const view = render(<EntryPageActions {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  view.rerender(<EntryPageActions {...props} balanceCents={2200} requestHead={{ ready: false, requestId: null }} initialReceipt={pending} />);
+  expect(screen.getByText("Your pending entry")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /undo.*entr/i })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Confirm entry for $1" })).toBeNull();
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
 test("typing additional entries updates review and clears any previous approval", () => {
   render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
   const input = screen.getByRole("spinbutton", { name: "Number of additional entries" });

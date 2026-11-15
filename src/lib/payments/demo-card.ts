@@ -15,7 +15,7 @@ export function parseDemoCardArtwork(value: unknown): DemoCardArtwork | null {
   return Array.isArray(value) && value.length === 8 && value.every(color => Number.isInteger(color) && color >= 0 && color < DEMO_CARD_COLORS.length)
     ? [...value] as DemoCardArtwork : null;
 }
-export type DemoCard = { token: DemoCardToken; lastFour: string; isDefault: boolean; isDepositDefault?: boolean; artwork?: DemoCardArtwork };
+export type DemoCard = { token: DemoCardToken; lastFour: string; revision?: string; isDefault: boolean; isDepositDefault?: boolean; artwork?: DemoCardArtwork };
 
 export function demoCardFixture(token: unknown) {
   return DEMO_CARD_FIXTURES.find(card => card.token === token);
@@ -31,6 +31,7 @@ export function parseDemoCard(value: unknown): DemoCard | null {
   if ("artwork" in value && value.artwork != null && !artwork) throw new Error("Invalid sample card artwork");
   if ("isDepositDefault" in value && typeof value.isDepositDefault !== "boolean") throw new Error("Invalid deposit preference");
   return { token: value.token as DemoCardToken, lastFour: value.lastFour as string, isDefault: value.isDefault,
+    ...("revision" in value && typeof value.revision === "string" && Number.isFinite(Date.parse(value.revision)) ? { revision: value.revision } : {}),
     ...("isDepositDefault" in value ? { isDepositDefault: value.isDepositDefault as boolean } : {}), ...(artwork ? { artwork } : {}) };
 }
 

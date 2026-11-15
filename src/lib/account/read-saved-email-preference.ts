@@ -2,12 +2,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function readSavedEmailPreference(preference: "outcome" | "purchase"): Promise<boolean | null> {
-  // Both getters authorize the current account through auth.uid().
-  if (preference !== "outcome" && preference !== "purchase") return null;
+const readers = {
+  outcome: "get_entry_outcome_email_enabled",
+  purchase: "get_purchase_option_email_enabled",
+  favorites: "get_favorite_alert_email_enabled",
+  crew: "get_crew_win_email_enabled",
+} as const;
+
+export async function readSavedEmailPreference(preference: keyof typeof readers): Promise<boolean | null> {
+  if (!Object.hasOwn(readers, preference)) return null;
   const db = await createClient();
-  const { data, error } = await db.rpc(preference === "outcome"
-    ? "get_entry_outcome_email_enabled"
-    : "get_purchase_option_email_enabled");
+  const { data, error } = await db.rpc(readers[preference]);
   return !error && typeof data === "boolean" ? data : null;
 }

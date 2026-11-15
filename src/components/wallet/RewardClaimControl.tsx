@@ -10,7 +10,7 @@ import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 
 const initialState: RewardClaimActionState = { status: "idle" };
 
-export function RewardClaimControl({ rewardId, previewShown = false }: { rewardId: string; previewShown?: boolean }) {
+export function RewardClaimControl({ rewardId, previewShown = false, checkHref }: { rewardId: string; previewShown?: boolean; checkHref?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: RewardClaimActionState, data: FormData): Promise<RewardClaimActionState> => {
     try { return await claimReward(previous, data); }
@@ -59,7 +59,7 @@ export function RewardClaimControl({ rewardId, previewShown = false }: { rewardI
       {pending ? "Claiming…" : state.status === "succeeded" ? "Reward claimed" : "Claim reward"}
     </button>
     {state.status !== "idle" ? <p role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
-    {needsCheck ? <a className="mt-3 inline-block text-sm font-bold text-[#0069b3] underline" href={`/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`}>Check this reward →</a> : null}
+    {needsCheck ? <a className="mt-3 inline-block text-sm font-bold text-[#0069b3] underline" href={checkHref ?? `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`}>Check this reward →</a> : null}
   </form>{introOpen ? <ClaimIdentityIntro busy={skipping} error={skipError} onSkipDemo={previewShown ? skipDemoAndClaim : undefined} onClose={() => { setIntroOpen(false); claimButton.current?.focus(); }} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
   {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} onClose={() => { setVerificationOpen(false); claimButton.current?.focus(); }} onComplete={() => {
     setVerificationOpen(false);

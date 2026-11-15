@@ -19,13 +19,13 @@ test("transaction-linked form keeps the chosen transaction and exact retry after
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
   expect(await screen.findByRole("button", { name: "Resend same message" })).toBeTruthy();
   expect(mocks.save).toHaveBeenCalledOnce();
-  expect(mocks.check).toHaveBeenCalledWith("support_request_001", undefined);
+  expect(mocks.check).toHaveBeenCalledWith((mocks.save.mock.calls[0][1] as FormData).get("requestKey"), undefined);
   fireEvent.click(screen.getByRole("button", { name: "Resend same message" }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith(`/support?case=${caseId}#conversation`));
   const first = mocks.save.mock.calls[0][1] as FormData;
   expect(mocks.save.mock.calls[1][1]).toBe(first);
   expect(first.get("transactionId")).toBe(caseId);
-  expect(first.get("requestKey")).toBe("support_request_001");
+  expect(first.get("requestKey")).toMatch(/^[a-f0-9-]{36}$/i);
   expect(first.get("subject")).toBe("Question about this wallet transaction");
 });
 

@@ -7,9 +7,13 @@ import CrewPage from "./crew/page";
 import ProfilePage from "./profile/page";
 import SectionPage from "./[section]/page";
 beforeEach(() => { vi.resetAllMocks(); mocks.account.mockResolvedValue(null); mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); }); });
-test.each(["orders", "security", "results"])("%s returns to itself after authentication", async section => {
+test.each(["orders", "security"])("%s returns to itself after authentication", async section => {
   await expect(SectionPage({ params: Promise.resolve({ section }) })).rejects.toThrow("NEXT_REDIRECT");
   expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe(`/account/${section}`);
+});
+test("the legacy results route points to completed activity", async () => {
+  await expect(SectionPage({ params: Promise.resolve({ section: "results" }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(mocks.redirect).toHaveBeenCalledWith("/account/entries?filter=completed");
 });
 test("profile returns to its editor", async () => {
   await expect(ProfilePage()).rejects.toThrow("NEXT_REDIRECT");

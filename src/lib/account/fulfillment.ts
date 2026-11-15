@@ -17,12 +17,17 @@ export function fulfillmentFilter(value: unknown): FulfillmentFilter {
   return value === "processing" || value === "fulfilled" || value === "exceptions" || value === "payment" ? value : "all";
 }
 
-export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "all", details = false, focusReward?: string) {
+export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "all", details = false, focusReward?: string, notification?: { filter: NotificationFilter; notice?: string }) {
   const query = new URLSearchParams();
   if (filter !== "all") query.set("filter", filter);
   if (rewardId) query.set("rewardId", rewardId);
   if (details && rewardId) query.set("details", "1");
   if (focusReward && !rewardId) query.set("focusReward", focusReward);
+  if (notification) {
+    query.set("from", "notifications");
+    query.set("alerts", notification.filter);
+    if (validNotice(notification.notice)) query.set("notice", notification.notice);
+  }
   return `/account/orders${query.size ? `?${query}` : ""}#fulfillment-records`;
 }
 

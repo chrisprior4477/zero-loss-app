@@ -19,7 +19,7 @@ export function getDepositWeeks(requests: readonly DemoFundingRequest[], asOf: s
   const ordered = posted.sort((a, b) => Date.parse(b.postedAt!) - Date.parse(a.postedAt!) || b.id.localeCompare(a.id));
   const weeks = Array.from({ length: 4 }, (_, index) => {
     const start = monday - index * 7 * day;
-    return { label: rangeFormat.formatRange(start, Math.min(start + 6 * day, today)), cents: BigInt(0), receipts: [] as DemoFundingRequest[] };
+    return { start, label: rangeFormat.formatRange(start, Math.min(start + 6 * day, today)), cents: BigInt(0), receipts: [] as DemoFundingRequest[] };
   });
   for (const request of ordered) {
     const date = localDay(Date.parse(request.postedAt!));

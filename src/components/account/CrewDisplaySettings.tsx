@@ -108,6 +108,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [newGroupName, setNewGroupName] = useState("");
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
+  const [removalFailures, setRemovalFailures] = useState(0);
   const restoreRemovalFocus = useRef<string | null>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
   const [groupMessage, setGroupMessage] = useState("");
@@ -159,6 +160,9 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     if (!groupDraftKey || loadedDraftKey === groupDraftKey) return;
     try {
       const draft = JSON.parse(sessionStorage.getItem(groupDraftKey) ?? "null");
+      // Browser storage is only available after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (typeof draft?.newGroupName === "string" && draft.newGroupName.length <= 50) setNewGroupName(draft.newGroupName);
       const editor = initialGroups.find(group => group.id === draft?.expanded);
       const entries: unknown[] = Array.isArray(draft?.changes) ? draft.changes : [];
       const changes = entries.filter((change): change is { before: CrewVisibilityGroup; after: CrewVisibilityGroup } => {
@@ -170,7 +174,6 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       if (changes.length) {
         const { groups: restored, expectedGroups } = reconcileGroups(changes.map(change => change.after), changes.map(change => change.before), initialGroups);
         // Hydrate this tab's draft and retain its saved baseline for conflict checks.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setGroups(restored);
         setBaseline(current => ({ ...current, groups: expectedGroups }));
       }
@@ -189,10 +192,10 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       return after && !sameGroup(before, after) ? [{ before, after }] : [];
     });
     try {
-      if (expandedGroupId || changes.length) sessionStorage.setItem(groupDraftKey, JSON.stringify({ expanded: expandedGroupId, changes }));
+      if (expandedGroupId || changes.length || newGroupName) sessionStorage.setItem(groupDraftKey, JSON.stringify({ expanded: expandedGroupId, changes, newGroupName }));
       else sessionStorage.removeItem(groupDraftKey);
     } catch { /* Editing remains available without tab storage. */ }
-  }, [baseline.groups, expandedGroupId, groupDraftKey, groups, loadedDraftKey]);
+  }, [baseline.groups, expandedGroupId, groupDraftKey, groups, loadedDraftKey, newGroupName]);
 
   useEffect(() => {
     if (removingGroupId || !restoreRemovalFocus.current) return;
@@ -321,6 +324,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         notifyAccountChanged();
         router.refresh();
       } else {
+        setRemovalFailures(count => count + 1);
         setEditorMessage({ id: group.id, text: result.message, error: true });
         if (result.conflict) { setRemovingGroupId(null); router.refresh(); }
       }
@@ -412,7 +416,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
             return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
               <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => { setRemovingGroupId(null); setExpandedGroupId(expanded ? null : group.id); }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
-                {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
+                {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
                 <div className={styles.memberEditor}>
                   <div className={styles.memberPickerHeading}><strong>People in this group</strong><span>{group.memberIds.length ? "Use Remove to take someone out of this group." : "No one added yet."}</span></div>

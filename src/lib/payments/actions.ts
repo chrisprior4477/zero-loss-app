@@ -8,7 +8,7 @@ import { DemoPaymentProvider, FundingFailure } from "./demo-provider";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { demoCardFixture, parseDemoCardArtwork, type DemoCardArtwork } from "./demo-card";
+import { demoCardFixture, parseDemoCardArtwork, type DemoCard, type DemoCardArtwork } from "./demo-card";
 import { confirmDemoFunding } from "./funding-authorization";
 import { entryReturnPath } from "@/lib/auth/entry-return";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
@@ -18,7 +18,7 @@ import { purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 
 export type DemoFundingActionState =
   | { status: "idle" }
-  | { status: "succeeded"; message: string }
+  | { status: "succeeded"; message: string; card?: DemoCard }
   | { status: "already_credited"; message: string }
   | { status: "pending"; message: string }
   | { status: "error"; message: string; beforePayment?: boolean };
@@ -130,6 +130,12 @@ export async function saveDemoPaymentMethod(
   formData: FormData,
 ): Promise<DemoFundingActionState> {
   const fixture = demoCardFixture(formData.get("paymentMethod"));
+  const revision = formData.get("cardRevision");
+  const makeDefault = formData.get("makeDefault");
+  const makeDepositDefault = formData.get("makeDepositDefault");
+  if (revision !== null && (typeof revision !== "string" || !Number.isFinite(Date.parse(revision)))) {
+    return { status: "error", message: "Refresh your saved cards and review the change again." };
+  }
   let artwork: DemoCardArtwork | undefined;
   const artworkInput = formData.get("artwork");
   if (artworkInput !== null) {
@@ -141,33 +147,41 @@ export async function saveDemoPaymentMethod(
     } catch { return { status: "error", message: "Use the sample camera colors. Photos and card details cannot be saved." }; }
   }
   if (!fixture
-    || !["true", "false"].includes(String(formData.get("makeDefault")))
+    || ((!revision || makeDefault !== null) && !["true", "false"].includes(String(makeDefault)))
     || (formData.has("makeDepositDefault") && !["true", "false"].includes(String(formData.get("makeDepositDefault"))))) {
     return { status: "error", message: "Use the supplied preview test card. Real card details are not accepted." };
   }
   let result: DemoFundingActionState;
   try {
-    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token, artwork,
-      formData.has("makeDepositDefault") ? formData.get("makeDepositDefault") === "true" : undefined);
+    const provider = await fundingProvider();
+    const card = typeof revision === "string"
+      ? await provider.updateReviewedCard(fixture.token, revision,
+        makeDefault === null ? null : makeDefault === "true", makeDepositDefault === null ? null : makeDepositDefault === "true", artwork)
+      : await provider.savePaymentMethod(makeDefault === "true", fixture.token, artwork, makeDepositDefault === null ? undefined : makeDepositDefault === "true");
     result = {
       status: "succeeded",
+      ...(revision ? { card } : {}),
       message: `${fixture.issuer} •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
     };
   } catch (error) {
-    result = failure(error);
+    result = error instanceof FundingFailure && error.code === "PT409" ? { status: "error", message: error.message } : failure(error);
   }
   updateWalletViews();
   return result;
 }
 
-export async function deleteDemoPaymentMethod(paymentMethod: string): Promise<{ status: "succeeded" | "error"; message: string }> {
+export async function deleteDemoPaymentMethod(paymentMethod: string, revision?: string): Promise<{ status: "succeeded" | "error"; message: string }> {
   const fixture = demoCardFixture(paymentMethod);
   if (!fixture) return { status: "error", message: "Only supplied preview test cards can be removed." };
   try {
-    await (await fundingProvider()).deletePaymentMethod(fixture.token);
+    await (await fundingProvider()).deletePaymentMethod(fixture.token, revision);
     updateWalletViews();
     return { status: "succeeded", message: `Test card •••• ${fixture.lastFour} removed. Earlier deposit records remain unchanged.` };
   } catch (error) {
+    if (error instanceof FundingFailure && error.code === "PT409") {
+      updateWalletViews();
+      return { status: "error", message: error.message };
+    }
     if (error instanceof FundingFailure && error.code === "42501") {
       return { status: "error", message: "Card removal is not available for this account." };
     }

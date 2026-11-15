@@ -159,6 +159,7 @@ test("the dollar wheel saves zero, can clear a bound, and Cancel keeps the curre
   fireEvent.click(screen.getByRole("button", { name: "Clear amount" }));
   expect(from().textContent).toContain("No minimum");
   fireEvent.click(from());
+  fireEvent.click(within(screen.getByRole("listbox", { name: "Minimum prize value" })).getByRole("option", { name: "$0" }));
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
   fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
   expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=0#search-results", { scroll: false });

@@ -14,9 +14,9 @@ const changePassword = recoverAuthForm<PasswordRecoveryState>(changeAccountPassw
   message: "We couldn’t confirm the password change. Try signing in with your new password before changing it again.",
 }));
 
-function ChangePasswordForm({ onCancel }: { onCancel: () => void }) {
-  const [state, action, pending] = useActionState(changePassword, initialState);
-
+function ChangePasswordForm({ onCancel, state, action, pending }: {
+  onCancel: () => void; state: PasswordRecoveryState; action: (data: FormData) => void; pending: boolean;
+}) {
   if (state.status === "updated") {
     return <p role="status" className={styles.passwordSuccess}>{state.message}</p>;
   }
@@ -37,6 +37,7 @@ function ChangePasswordForm({ onCancel }: { onCancel: () => void }) {
 
 export function ChangePasswordControl() {
   const [open, setOpen] = useState(false);
+  const [state, action, pending] = useActionState(changePassword, initialState);
   const trigger = useRef<HTMLButtonElement>(null);
 
   return <div className={styles.passwordControl}>
@@ -47,12 +48,13 @@ export function ChangePasswordControl() {
       aria-expanded={open}
       aria-controls="change-account-password-form"
       aria-label={open ? "Close password form" : "Change password"}
+      disabled={pending}
       onClick={() => setOpen((wasOpen) => !wasOpen)}
     >
       <span className={styles.passwordIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="4.5" /><path d="m11 12 9-9 2 2-2 2 1.5 1.5-2 2L18 9l-2 2" /></svg></span>
       <span className={styles.rowText}><strong>Password</strong><small>Change your password</small></span>
       <span className={styles.passwordArrow} aria-hidden="true">{open ? "⌃" : "›"}</span>
     </button>
-    {open ? <ChangePasswordForm onCancel={() => { setOpen(false); trigger.current?.focus(); }} /> : null}
+    {open ? <ChangePasswordForm state={state} action={action} pending={pending} onCancel={() => { setOpen(false); trigger.current?.focus(); }} /> : null}
   </div>;
 }

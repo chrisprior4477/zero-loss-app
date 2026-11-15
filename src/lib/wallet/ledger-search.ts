@@ -27,19 +27,18 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     return entries.filter(entry => matches(entry.amount));
   }
 
-  if (/\bdollars?$/i.test(query)) {
-    const { text, values } = searchDenominations(query, []);
-    if (!text && values.size === 1) {
-      const [value] = values;
-      return entries.filter(entry => Math.abs(entry.amount) === value * 100);
-    }
-  }
-
   const amounts: ReturnType<typeof amountMatch>[] = [];
-  const text = query.replace(amountInText, (_, token: string) => {
+  let text = query.replace(amountInText, (_, token: string) => {
     amounts.push(amountMatch(token.trim()));
     return " ";
   });
+  if (amounts.length === 0 && /\b(?:dollars?|USD)\b/i.test(query)) {
+    const spoken = searchDenominations(query, []);
+    if (!spoken.budget && spoken.values.size) {
+      text = spoken.text;
+      for (const value of spoken.values) amounts.push(amountMatch(String(value)));
+    }
+  }
   const terms = normalizeSearch(text).split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);
   const mayBeGiftCardTitle = amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);

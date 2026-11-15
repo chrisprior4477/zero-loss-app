@@ -74,6 +74,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   const titleId = useId();
   const [copyStatus, setCopyStatus] = useState("");
   const [manualCopy, setManualCopy] = useState<string | null>(null);
+  const latestCopy = useRef(0);
   const detail = orderPresentation(order);
 
   useLayoutEffect(() => {
@@ -135,8 +136,17 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   }, [onClose]);
 
   async function copy(value: string) {
-    try { await navigator.clipboard.writeText(value); setCopyStatus("Copied. Ready to paste into Support."); }
-    catch { setManualCopy(value); setCopyStatus("Copy the selected text below."); }
+    const attempt = ++latestCopy.current;
+    try {
+      await navigator.clipboard.writeText(value);
+      if (attempt !== latestCopy.current) return;
+      setManualCopy(null);
+      setCopyStatus("Copied. Ready to paste into Support.");
+    } catch {
+      if (attempt !== latestCopy.current) return;
+      setManualCopy(value);
+      setCopyStatus("Copy the selected text below.");
+    }
   }
 
   const timeZone = useAccountTimeZone();
@@ -157,7 +167,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
         {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
       </dl>
-      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
+      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${alertContext.replace(/^&from=notifications/, "")}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
@@ -222,9 +232,11 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
           const index = orders.findIndex(order => order.rewardId === anchorId);
           const pageSize = isPhone() ? 2 : 6;
           const step = pageOffset(rail.current, 1);
-          rail.current.scrollLeft = hasSaved && saved.size === pageSize && Number.isFinite(saved.position) && step > 0
-            ? Math.min(Math.max(0, saved.position), Math.ceil(orders.length / pageSize) - 1) * step
-            : pageOffset(rail.current, Math.floor(index / pageSize));
+          const anchorPage = Math.floor(index / pageSize);
+          const position = hasSaved && saved.size === pageSize && Number.isFinite(saved.position) && step > 0
+            ? Math.min(Math.max(0, saved.position), Math.ceil(orders.length / pageSize) - 1) : null;
+          rail.current.scrollLeft = position !== null && Math.abs(anchorPage - position) < 1
+            ? position * step : pageOffset(rail.current, anchorPage);
         }
         if (hasSaved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a

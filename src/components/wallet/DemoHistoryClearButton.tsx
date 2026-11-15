@@ -38,11 +38,30 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
     requestKey.current = null;
   }
 
+  useEffect(() => {
+    if (balanceCents === null || pending || checkingReset) return;
+    const origin = window.location.href;
+    const leaveHistory = () => {
+      if (window.location.href === origin) return;
+      dialog.current?.close();
+      setBalanceCents(null);
+      requestKey.current = null;
+    };
+    window.addEventListener("popstate", leaveHistory);
+    window.addEventListener("hashchange", leaveHistory);
+    return () => {
+      window.removeEventListener("popstate", leaveHistory);
+      window.removeEventListener("hashchange", leaveHistory);
+    };
+  }, [balanceCents, checkingReset, pending]);
+
   function open() {
+    const origin = window.location.href;
     setNotice("");
     startTransition(async () => {
       try {
         const preview = await previewDemoHistoryClear(kind);
+        if (window.location.href !== origin) return;
         if (preview.status === "error") { setNotice(preview.message); return; }
         requestKey.current = crypto.randomUUID();
         revision.current = preview.revision;

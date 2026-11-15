@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 /** Funding and sign-in keep their existing entry anchor, but the compact card fits as a whole. */
 export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
     let first = 0, second = 0;
     let settle: ReturnType<typeof setTimeout>;
@@ -12,7 +12,8 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
       const hash = window.location.hash;
       if (hash && hash !== "#enter-entry" && hash !== "#product-entry-card") return;
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
-      const scroll = () => { if (!cancelled) document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
+      const scroll = () => { if (!cancelled) document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" }); };
+      scroll();
       first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
       settle = setTimeout(scroll, 280);
     };

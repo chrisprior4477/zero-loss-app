@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { storeNotificationReads } from "@/lib/account/notification-read-store";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
-import { savedShareHref, shareUuid } from "./saved-shares";
+import { parseSavedProductShares, savedShareHref, shareUuid } from "./saved-shares";
 
 export async function recordReceivedProduct(slug: string, token: string | null, save = false) {
   const failure = { ok: false as const, message: "This shared item could not be saved. Please try again." };
@@ -16,6 +16,13 @@ export async function recordReceivedProduct(slug: string, token: string | null, 
   if (error || typeof data !== "string" || !shareUuid.test(data)) return failure;
   revalidatePath("/account/favorites");
   return { ok: true as const, id: data, href: savedShareHref(), message: "Saved in Shared with You." };
+}
+
+export async function readReceivedProductState(id: string) {
+  if (!shareUuid.test(id)) return null;
+  const db = await createClient();
+  const { data, error } = await db.rpc("get_saved_product_shares");
+  return error ? null : parseSavedProductShares(data)?.find(share => share.id === id) ?? null;
 }
 
 export async function setReceivedProductState(id: string, state: "viewed" | "declined" | "restore") {

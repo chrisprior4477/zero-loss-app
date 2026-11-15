@@ -11,7 +11,7 @@ import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 const item = storedActivityFixture().activity[2];
 const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
 const setup = (count = 2) => render(<DeclinePurchaseOffersDialog item={item} offeredOptionIds={ids.slice(0, count)} onClose={mocks.close} />);
-const receipts = ids.map(optionId => ({ optionId, declineEventId: `event-${optionId}` }));
+const receipts = ids.map((optionId, index) => ({ optionId, declineEventId: `b0000000-0000-4000-8000-00000000000${index}` }));
 function saved() { mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ids, receipts, message: "2 offers declined." }); }
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.resetAllMocks(); });
 
@@ -61,9 +61,32 @@ test("partial declines retain an undo for only the IDs actually saved", async ()
   fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
   await screen.findByRole("button", { name: "Undo decline" });
   fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
-  await waitFor(() => expect(mocks.close).toHaveBeenCalledOnce());
+  await screen.findByText(/confirmed declines were restored/);
+  mocks.check.mockResolvedValue({ [ids[1]]: "available" });
+  fireEvent.click(screen.getByRole("button", { name: "Check these offers" }));
+  await waitFor(() => expect(mocks.check).toHaveBeenCalledExactlyOnceWith(item.slug, [ids[1]]));
   expect(mocks.undo).toHaveBeenCalledExactlyOnceWith([receipts[0]]);
-  expect(mocks.router.refresh).toHaveBeenCalledOnce();
+  expect(mocks.close).not.toHaveBeenCalled();
+});
+
+test("reloading during Undo restores the original receipts even when no offers remain", async () => {
+  saved();
+  window.history.replaceState(null, "", `/account/purchase-options/${item.slug}`);
+  try {
+    const original = render(<DeclinePurchaseOffersDialog item={item} ownerId="demo" offeredOptionIds={ids} onClose={mocks.close} />);
+    fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
+    await screen.findByRole("button", { name: "Undo decline" });
+    expect(window.location.search).toBe("?decline=undo");
+    original.unmount();
+    mocks.undo.mockResolvedValue({ status: "succeeded", optionIds: ids, message: "Restored." });
+    render(<DeclinePurchaseOffersDialog item={item} ownerId="demo" offeredOptionIds={[]} recovering onClose={mocks.close} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Undo decline" }));
+    await waitFor(() => expect(mocks.close).toHaveBeenCalledOnce());
+    expect(mocks.undo).toHaveBeenCalledExactlyOnceWith(receipts);
+  } finally {
+    sessionStorage.clear();
+    window.history.replaceState(null, "", "/");
+  }
 });
 
 test("the countdown finishes a saved decline once, without writing or refunding again", async () => {

@@ -67,9 +67,10 @@ export function groupedActivityUpdates(all: AccountNotification[], unread: Accou
 export function groupedOpenEntries(all: AccountNotification[], unread: AccountNotification[]) {
   return groupedActivityUpdates(all, unread, "entries");
 }
-export function notificationDestination(href: string): string {
+export function notificationDestination(href: string, category?: HeaderCategory): string {
   if (!href.startsWith("/") || href.startsWith("//")) return "/account/notifications";
   const url = new URL(href, "https://local.invalid");
   url.searchParams.set("fromUpdates", "1");
+  if (url.pathname === "/support" && category === "support") url.searchParams.set("updateCategory", category);
   return `${url.pathname}${url.search}${url.hash}`;
 }

@@ -13,7 +13,7 @@ import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/ava
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
-import { setReceivedProductState } from "@/lib/sharing/saved-share-actions";
+import { readReceivedProductState, setReceivedProductState } from "@/lib/sharing/saved-share-actions";
 import styles from "./favorites.module.css";
 
 type Props = {
@@ -72,6 +72,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const [pending, startTransition] = useTransition();
   const tabs = useRef<HTMLDivElement>(null);
   const listPosition = useRef<ListPosition | null>(null);
+  const [skipFreshLanding, setSkipFreshLanding] = useState(false);
+  const shareSnapshot = useRef(initialShares);
+  useLayoutEffect(() => { shareSnapshot.current = initialShares; }, [initialShares]);
 
   useEffect(() => {
     if (initialShares === null) return;
@@ -111,6 +114,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
   function chooseTab(next: "favorites" | "shared") {
     listPosition.current = null;
+    setSkipFreshLanding(false);
     setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites");
     revealHeading();
   }
@@ -143,6 +147,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug ? { slug } : null;
       const previousPosition = listPosition.current;
+      setSkipFreshLanding(restoreScroll && !nextSelected && Boolean(previousPosition));
       listPosition.current = savedListPosition(state);
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
       if (!restoreScroll) return;
@@ -186,6 +191,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       return;
     }
     // A directly opened item may have no list behind it in this tab.
+    setSkipFreshLanding(true);
     setSelected(null);
     if (tab === "shared") setSharedView(nextView);
     location(href);
@@ -194,9 +200,25 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
     if (shareBusy) return;
     const previewHref = window.location.href;
+    const snapshotAtStart = shareSnapshot.current;
     setShareBusy(share.id); setMessage("");
     try {
-      const result = await setReceivedProductState(share.id, state);
+      let result = await setReceivedProductState(share.id, state);
+      if (result.ok && shareSnapshot.current !== snapshotAtStart) {
+        const beforeRead = shareSnapshot.current;
+        const verified = await readReceivedProductState(share.id).catch(() => null);
+        const latest = (shareSnapshot.current === beforeRead ? verified : null) ?? shareSnapshot.current?.find(value => value.id === share.id);
+        if (latest && latest.declinedAt !== result.declinedAt) {
+          if (window.location.href === previewHref) {
+            setSharedView(latest.declinedAt ? "declined" : "available");
+            location(savedShareHref(share.id, latest.declinedAt ? "declined" : "available"));
+          }
+          setShareOverrides(current => ({ ...current, [share.id]: { declinedAt: latest.declinedAt, viewedAt: latest.viewedAt } }));
+          setMessage("This share was updated in another tab.");
+          return;
+        }
+        if (latest) result = { ...result, ...latest };
+      }
       const stillViewing = window.location.href === previewHref;
       if (result.ok || stillViewing) applyShareResult(share.id, result);
       if (result.ok && stillViewing) {
@@ -247,7 +269,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : `/account/favorites?item=${detailProduct.slug}`)
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
-    <FavoritesLandingScroll enabled={!selectedSlug} />
+    <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding} />
     <div className={styles.container}>
       <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
       <div ref={tabs} className={styles.tabs} role="tablist" aria-label="Saved items" onKeyDown={event => {

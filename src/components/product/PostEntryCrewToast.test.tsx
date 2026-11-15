@@ -298,16 +298,29 @@ test("copy uses the plain prize link while the newly selected audience link is l
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}?share=${crewToken}`));
 });
 
-test("larger audiences use safe delivery batches without an audience selection cap", async () => {
+test("larger audiences send the entire selection through one delivery operation", async () => {
   const people = Array.from({ length: 21 }, (_, i) => ({ id: `50000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`, name: `Member ${i + 1}` }));
   mocks.options.mockResolvedValue({ ...options, memberCount: 21, members: people, groups: [{ ...options.groups[0], memberCount: 21, memberIds: people.map(person => person.id) }] });
   mocks.prize.mockResolvedValue({ ok: true, message: "Saved." });
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
   await audiences();
   fireEvent.click(screen.getByRole("button", { name: "Send to my Crew" }));
-  await waitFor(() => expect(mocks.prize).toHaveBeenCalledTimes(2));
-  expect(mocks.prize.mock.calls[0][1]).toHaveLength(20);
-  expect(mocks.prize.mock.calls[1][1]).toEqual([people[20].id]);
+  await waitFor(() => expect(mocks.prize).toHaveBeenCalledExactlyOnceWith(request.slug, people.map(person => person.id), null));
+});
+
+test("reopening Crew sharing reports a delivery that finished after closing", async () => {
+  let settle!: (result: { ok: boolean; message: string }) => void;
+  mocks.options.mockResolvedValue({ ...options, ownerId: "repeat-share-owner" });
+  mocks.prize.mockReturnValue(new Promise(resolve => { settle = resolve; }));
+  const original = render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
+  await audiences();
+  fireEvent.click(screen.getByRole("button", { name: "Send to my Crew" }));
+  original.unmount();
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share with Crew" }));
+  settle({ ok: true, message: "Your picks reached your Crew." });
+  expect(await screen.findByText("Your picks reached your Crew.")).toBeTruthy();
+  expect(mocks.prize).toHaveBeenCalledOnce();
 });
 
 test("an empty selected group becomes sendable after explicitly adding a Crew member", async () => {
@@ -377,8 +390,8 @@ test("editing the existing group does not erase saved contacts", async () => {
   fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false, expected: { ...options.groups[0], contacts } }));
-  expect(await screen.findByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
-  expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", true);
+  expect(await screen.findByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", false);
+  expect(screen.getByRole("button", { name: "Send to my groups" })).toHaveProperty("disabled", true);
   expect(mocks.share).not.toHaveBeenCalled();
 });
 

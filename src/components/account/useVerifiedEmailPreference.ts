@@ -4,11 +4,11 @@ import { useActionState, useLayoutEffect, useRef } from "react";
 import { readSavedEmailPreference } from "@/lib/account/read-saved-email-preference";
 import { useServerPreference } from "./useServerPreference";
 
-type SaveResult = { status: "idle" | "succeeded" | "error"; message?: string };
+export type EmailSaveResult = { status: "idle" | "succeeded" | "error"; message?: string };
 type Feedback = { status: "idle" | "error"; message: string } | { status: "succeeded"; message: string; submitted: boolean };
 
-export function useVerifiedEmailPreference<T extends SaveResult>(
-  kind: "outcome" | "purchase",
+export function useVerifiedEmailPreference<T extends EmailSaveResult>(
+  kind: Parameters<typeof readSavedEmailPreference>[0],
   initialEnabled: boolean | null,
   save: (previous: T, data: FormData) => Promise<T>,
   initialState: T,

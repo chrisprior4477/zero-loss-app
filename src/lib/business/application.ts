@@ -3,6 +3,7 @@ export type DemoCase = Partnership | "restaurant" | "tools";
 export type FormValues = Record<string, string | boolean>;
 export type PartnerListing = {
   title: string; brand: string; category: string; value: number; entryPrice: number; capacity: number;
+  capacityManuallySet?: boolean;
   summary: string; highlights: string[]; specifications: [string, string][]; included: string[];
   fulfillment: string; availability: string;
 };
@@ -29,6 +30,7 @@ const strings = (value: unknown): value is string[] => Array.isArray(value) && v
 function validListing(value: unknown): value is PartnerListing {
   return object(value) && ["title","brand","category","summary","fulfillment","availability"].every(k => typeof value[k] === "string")
     && ["value","entryPrice","capacity"].every(k => Number.isFinite(value[k]))
+    && (value.capacityManuallySet === undefined || typeof value.capacityManuallySet === "boolean")
     && strings(value.highlights) && strings(value.included) && Array.isArray(value.specifications)
     && value.specifications.every(pair => strings(pair) && pair.length === 2);
 }

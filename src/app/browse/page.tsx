@@ -87,6 +87,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     ? new Set(selectedRetailerGroup.options.map(option => option.value))
     : undefined;
   const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
+  const scopedOfferRetailers = browseRetailers(filterBrowseProducts(
+    matchedProducts.filter(product => !hidden.has(product.slug)),
+    { ...filters, retailer: "" }, searchTerm, endingSoon,
+  ));
   const savedWithinFilters = new Set(filterBrowseProducts(savedMatches.map(({ product }) =>
     ({ ...product, sold: product.capacity })), filters, searchTerm, endingSoon, allowedRetailers).map(product => product.slug));
   const savedOutsideFilters = savedMatches.some(({ product }) => !savedWithinFilters.has(product.slug));
@@ -201,7 +205,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         </div>
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
-          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
+          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}

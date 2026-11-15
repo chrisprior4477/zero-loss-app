@@ -103,6 +103,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
   const [deleteToken, setDeleteToken] = useState<DemoCardToken | null>(null);
+  const deleteRevision = useRef<string | undefined>(undefined);
   const [deletingCard, setDeletingCard] = useState(false);
   const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   const [editingCard, setEditingCard] = useState<DemoCardToken | null>(null);
@@ -188,6 +189,18 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       policyInput.current?.focus();
     } catch { /* The deposit can still be reviewed normally. */ }
   }, [blocked, cardUnavailable, cards, fundingEditorHash, locked, reviewStorageKey, visibleTokens]);
+  useEffect(() => {
+    const leaveFunding = () => {
+      if (!confirmation.current?.open || pending || window.location.hash === "#add-funds") return;
+      confirmation.current.close();
+    };
+    window.addEventListener("popstate", leaveFunding);
+    window.addEventListener("hashchange", leaveFunding);
+    return () => {
+      window.removeEventListener("popstate", leaveFunding);
+      window.removeEventListener("hashchange", leaveFunding);
+    };
+  }, [pending]);
   function discardReview() {
     try { sessionStorage.removeItem(reviewStorageKey); } catch { /* The dialog still closes. */ }
     clearConfirmation();
@@ -253,7 +266,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     if (!deleteToken || deletingCard) return;
     setDeletingCard(true);
     try {
-      const result = await deleteDemoPaymentMethod(deleteToken);
+      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(deleteToken, deleteRevision.current) : deleteDemoPaymentMethod(deleteToken));
       setCardMessage(result.message);
       if (result.status === "succeeded") {
         const remainingVisible = visibleTokens.filter(token => token !== deleteToken);
@@ -332,7 +345,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
           onUndo={closeDeleteDialog} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
           {allSamplesSaved ? <button type="button" className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => addCard(token)}>Edit</button> : null}
-          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
+          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); deleteRevision.current = cards.find(card => card.token === token)?.revision; setDeleteToken(token); }}>Delete Card</button> : null}
         </>}>
           <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
@@ -424,7 +437,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
           <DepositReceiptDate request={request} timeZone={timeZone} />
           <p>{request.reconciliation === "discrepancy" ? "Payment and wallet records need review" : request.reconciliation === "credit_pending" ? "Payment received · credit pending" : "Request saved · not processed"}</p>
         </div>
-        {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey, continueTo?.href)} className={paymentStyles.primary}>Contact Support</Link>
+        {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey, continueTo?.href, false, continueTo?.entryDepositReturn)} className={paymentStyles.primary}>Contact Support</Link>
           : <button type="button" className={paymentStyles.primary} onClick={() => onRecover(request)} aria-label={`Check this deposit · ${formatUsdFromCents(request.amount)}`}>Check this deposit</button>}
       </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
     )}
@@ -582,6 +595,22 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
   const returningToArchived = !hideArchived && requests?.some(request => request.idempotencyKey === focusRequest && hidden.has(request.id));
   const [dismissedArchiveReturn, setDismissedArchiveReturn] = useState<string>();
   const includeArchived = (showArchived || Boolean(returningToArchived && dismissedArchiveReturn !== focusRequest)) && !hideArchived;
+  function toggleArchive() {
+    if (includeArchived && returningToArchived) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("depositRow") === focusRequest) {
+        url.searchParams.delete("depositRow");
+        url.hash = "payment-deposits";
+        window.history.replaceState(window.history.state, "", url);
+      }
+    }
+    setDismissedArchiveReturn(focusRequest);
+    setShowArchived(!includeArchived);
+    setAllDeposits(false);
+    setReceipt(null);
+    batches.reset();
+    remember(0, 5, false, null);
+  }
   const visibleRequests = includeArchived ? requests : requests?.filter(request => !hidden.has(request.id));
   const displayRequests = desktop && visibleRequests ? [...visibleRequests].sort((a, b) =>
     Date.parse(b.postedAt ?? b.created_at) - Date.parse(a.postedAt ?? a.created_at) || b.id.localeCompare(a.id)) : visibleRequests;
@@ -658,6 +687,6 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
-    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setDismissedArchiveReturn(focusRequest); setShowArchived(!includeArchived); setAllDeposits(false); setReceipt(null); batches.reset(); remember(0, 5, false, null); }} aria-expanded={includeArchived}>{includeArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
+    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={toggleArchive} aria-expanded={includeArchived}>{includeArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

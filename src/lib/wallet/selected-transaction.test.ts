@@ -17,7 +17,7 @@ test("the recent snapshot needs no extra database lookup", async () => {
 });
 test("an older transaction uses the permitted owner-scoped RLS read", async () => {
   expect(await selectedTransaction(id, "owner", wallet)).toEqual({ requested: true, entry });
-  expect(mocks.select).toHaveBeenCalledWith("id,entry_type,amount,created_at");
+  expect(mocks.select).toHaveBeenCalledWith("id,entry_type,amount,created_at,source_event,related_pool_id,related_entry_id");
   expect(mocks.eq.mock.calls).toEqual([["customer_id", "owner"], ["id", id]]);
 });
 test.each(["bad", [id, id], null])("invalid selector cannot query the Ledger: %s", async value => {

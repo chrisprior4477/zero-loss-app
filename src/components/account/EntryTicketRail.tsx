@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
 import styles from "./entry-ticket-browser.module.css";
 
@@ -16,6 +16,18 @@ export type SavedTicket = {
   amountLabel: string;
 };
 
+const EntryTicketSelection = createContext<{ selected: string; select: (id: string) => void } | null>(null);
+
+export function EntryTicketSelectionProvider({ initial, children }: { initial: string; children: ReactNode }) {
+  const [selected, select] = useState(initial);
+  const context = useMemo(() => ({ selected, select }), [selected]);
+  return <EntryTicketSelection.Provider value={context}>{children}</EntryTicketSelection.Provider>;
+}
+
+export function useSelectedEntryTicket() {
+  return useContext(EntryTicketSelection);
+}
+
 export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, returnFilter, walletTransaction, restoreWalletView }: {
   returnFilter?: "active";
   walletTransaction?: string;
@@ -26,7 +38,10 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
   selectedEntryId: string;
 }) {
   const id = useId();
-  const [selected, setSelected] = useState(selectedEntryId);
+  const [localSelection, setLocalSelection] = useState(selectedEntryId);
+  const selection = useSelectedEntryTicket();
+  const selected = selection?.selected ?? localSelection;
+  const setSelected = selection?.select ?? setLocalSelection;
   const [showAll, setShowAll] = useState(false);
   const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
   const [copyErrorEntryId, setCopyErrorEntryId] = useState<string | null>(null);
@@ -57,7 +72,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
       window.removeEventListener("popstate", restore);
       window.removeEventListener("pageshow", restore);
     };
-  }, [ownerId, selectedEntryId, tickets]);
+  }, [ownerId, selectedEntryId, setSelected, tickets]);
 
   function remember(entryId: string, expanded = showAll) {
     const saved: EntryTicketReturn = {

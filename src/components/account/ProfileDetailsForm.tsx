@@ -77,19 +77,16 @@ function ProfileDateOfBirth({ defaultValue, onClear }: { defaultValue: string | 
   const maximumYear = new Date().getFullYear() - 18;
   const years = useMemo(() => Array.from({ length: 103 }, (_, index) => maximumYear - index), [maximumYear]);
   const maximumDay = daysInMonth(year, month);
-  const dateValue = year && month && day ? `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}` : "";
-  const normalizeDay = (nextYear: string, nextMonth: string) => {
-    const limit = daysInMonth(nextYear, nextMonth);
-    if (day && Number(day) > limit) setDay(String(limit));
-  };
+  const validDay = Number(day) <= maximumDay ? day : "";
+  const dateValue = year && month && validDay ? `${year}-${month.padStart(2, "0")}-${validDay.padStart(2, "0")}` : "";
   const clear = () => { setYear(""); setMonth(""); setDay(""); onClear(); };
 
   return <fieldset className={styles.dateField}>
     <legend>Date of birth</legend>
     <div className={styles.dateSelects}>
-      <label><span className="sr-only">Birth month</span><select aria-label="Birth month" value={month} required onChange={event => { setMonth(event.target.value); normalizeDay(year, event.target.value); }}><option value="">Month</option>{MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</select></label>
-      <label><span className="sr-only">Birth day</span><select aria-label="Birth day" value={day} required onChange={event => setDay(event.target.value)}><option value="">Day</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-      <label><span className="sr-only">Birth year</span><select aria-label="Birth year" value={year} required onChange={event => { setYear(event.target.value); normalizeDay(event.target.value, month); }}><option value="">Year</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">Birth month</span><select aria-label="Birth month" value={month} required onChange={event => setMonth(event.target.value)}><option value="">Month</option>{MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</select></label>
+      <label><span className="sr-only">Birth day</span><select aria-label="Birth day" value={validDay} required onChange={event => setDay(event.target.value)}><option value="">Day</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">Birth year</span><select aria-label="Birth year" value={year} required onChange={event => setYear(event.target.value)}><option value="">Year</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       <button type="button" className={styles.clearButton} aria-label="Clear date of birth" onClick={clear}>×</button>
     </div>
     <input type="hidden" name="date_of_birth" value={dateValue} />
@@ -156,6 +153,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     event.preventDefault();
     if (pending) return;
     const data = new FormData(event.currentTarget);
+    if (data.get("timezone") === "") data.delete("timezone");
     setShowFeedback(true);
     startTransition(() => action(data));
   }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onChange={() => setShowFeedback(false)} onInput={event => {

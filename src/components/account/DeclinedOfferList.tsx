@@ -30,7 +30,8 @@ export function DeclinedOfferList({ children, offerId, ownerId }: { children: Re
     } catch { /* The exact link still opens its ticket. */ }
     function remember() {
       if (!storageKey) return;
-      try { sessionStorage.setItem(storageKey, JSON.stringify(stacks.filter(stack => stack.open).map(stack => stack.dataset.declinedProduct))); }
+      const opened = Array.from(root?.querySelectorAll<HTMLDetailsElement>("details[data-declined-product][open]") ?? []);
+      try { sessionStorage.setItem(storageKey, JSON.stringify(opened.map(stack => stack.dataset.declinedProduct))); }
       catch { /* Disclosure still works without storage. */ }
     }
     revealLinkedOffer();

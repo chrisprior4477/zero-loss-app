@@ -34,8 +34,8 @@ export async function checkSupportMessage(requestKey: string, caseId?: string): 
 export async function saveSupportCase(_previous: SupportActionState, form: FormData): Promise<SupportActionState> {
   const caseId = String(form.get("caseId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
-  const transactionOrigin = !caseId && transactionId ? String(form.get("transactionOrigin") ?? "") : "";
   const rewardId = String(form.get("rewardId") ?? "");
+  const transactionOrigin = !caseId && (transactionId || rewardId) ? String(form.get("transactionOrigin") ?? "") : "";
   const depositKey = String(form.get("deposit") ?? "");
   const body = String(form.get("body") ?? "").trim();
   const requestKey = String(form.get("requestKey") ?? "");

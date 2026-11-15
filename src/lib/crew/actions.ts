@@ -10,7 +10,7 @@ export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: stri
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
-export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string; phone?: string; email?: string }[]; groups: (CrewVisibilityGroup & { memberCount: number })[] };
+export type CrewShareOptions = { ok: boolean; message: string; ownerId?: string; memberCount: number; members: { id: string; name: string; phone?: string; email?: string }[]; groups: (CrewVisibilityGroup & { memberCount: number })[] };
 
 export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, members: [], groups: [] };
@@ -24,7 +24,7 @@ export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   const approved = new Set<string>((members.data ?? []).map((member: { member_id: string }) => member.member_id));
   const groups: unknown[] = Array.isArray(settings.data?.groups) ? settings.data.groups : [];
   const contacts = crewMemberContacts(settings.data?.member_contacts);
-  return { ok: true, message: "", memberCount: approved.size,
+  return { ok: true, message: "", ownerId: session.user.id, memberCount: approved.size,
     members: (members.data ?? []).map((member: { member_id: string; name: string }) => contacts[member.member_id] ? { id: member.member_id, ...contacts[member.member_id] } : { id: member.member_id, name: member.name }),
     groups: groups.filter(isCrewVisibilityGroup).map(group => ({
     id: group.id, name: group.name, memberCount: group.memberIds.filter(id => approved.has(id)).length,
@@ -54,21 +54,45 @@ export async function shareConfirmedEntryWithCrew(requestId: string, groupId: st
   return { ok: true, message: "Shared with the Crew members you selected. Your wallet and payment details stay private." };
 }
 
+async function queueCrewDelivery(
+  recipients: string[],
+  deliver: (batch: string[]) => PromiseLike<{ data: unknown; error: unknown }>,
+) {
+  let queued = 0, alreadyShared = 0, completed = 0;
+  // Keep one server operation alive through dialog dismissal. The RPC
+  // deduplicates each audience member on retry.
+  for (let offset = 0; offset < recipients.length; offset += 20) {
+    const batch = recipients.slice(offset, offset + 20);
+    try {
+      const { data, error } = await deliver(batch);
+      const counts = data as { queued?: unknown; alreadyShared?: unknown } | null;
+      if (error || !counts || typeof counts.queued !== "number" || typeof counts.alreadyShared !== "number") break;
+      queued += counts.queued;
+      alreadyShared += counts.alreadyShared;
+      completed += batch.length;
+    } catch {
+      break;
+    }
+  }
+  return { queued, alreadyShared, completed };
+}
+
 export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: string[], groupId: string | null = null): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
-  if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
+  if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(recipientIds) || recipientIds.length < 1
     || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id)) || (groupId !== null && !crewUuid.test(groupId))) {
     return { ok: false, message: "Choose connected Crew members before sharing this prize." };
   }
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in before sharing this prize with your Crew." };
-  const { data, error } = await session.db.rpc("share_prize_with_crew", {
-    p_offering_slug: offeringSlug, p_recipient_ids: recipientIds, ...(groupId ? { p_group_id: groupId } : {}),
-  });
-  if (error || !data || typeof data.queued !== "number" || typeof data.alreadyShared !== "number") {
-    return { ok: false, message: "We couldn’t save this Crew share. Check that everyone is still connected, then try again." };
-  }
-  return { ok: true, queued: data.queued, alreadyShared: data.alreadyShared,
-    message: data.queued ? `Saved for email delivery to ${data.queued} connected Crew ${data.queued === 1 ? "member" : "members"}.` : "This prize was already shared with the selected Crew members." };
+  const { queued, alreadyShared, completed } = await queueCrewDelivery(recipientIds, batch => session.db.rpc("share_prize_with_crew", {
+    p_offering_slug: offeringSlug, p_recipient_ids: batch, ...(groupId ? { p_group_id: groupId } : {}),
+  }));
+  if (completed !== recipientIds.length) return {
+    ok: false, queued, alreadyShared,
+    message: `${completed ? `Shares confirmed for ${completed} of ${recipientIds.length} selected people. ` : ""}We couldn’t confirm the rest. Check that everyone is still connected, then retry the same selection.`,
+  };
+  return { ok: true, queued, alreadyShared,
+    message: queued ? `Saved for email delivery to ${queued} connected Crew ${queued === 1 ? "member" : "members"}.` : "This prize was already shared with the selected Crew members." };
 }
 
 export async function sharePrizeWithCrewGroups(offeringSlug: string, groups: { id: string; memberIds: string[] }[]): Promise<CrewActionResult & { groupCount?: number }> {
@@ -99,20 +123,21 @@ export async function sharePrizeWithCrewGroups(offeringSlug: string, groups: { i
 }
 
 export async function shareWinWithCrew(rewardId: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
-  if (!crewUuid.test(rewardId) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
+  if (!crewUuid.test(rewardId) || !Array.isArray(recipientIds) || recipientIds.length < 1
     || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {
     return { ok: false, message: "Choose connected Crew members before sharing this win." };
   }
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in before sharing this win with your Crew." };
-  const { data, error } = await session.db.rpc("share_win_with_crew", {
-    p_reward_id: rewardId, p_recipient_ids: recipientIds,
-  });
-  if (error || !data || typeof data.queued !== "number" || typeof data.alreadyShared !== "number") {
-    return { ok: false, message: "We couldn’t save this win share. Check that everyone is still connected, then try again." };
-  }
-  return { ok: true, queued: data.queued, alreadyShared: data.alreadyShared,
-    message: data.queued ? `Win update shared with ${data.queued} connected Crew ${data.queued === 1 ? "member" : "members"}. Email goes only to members who allow win updates.` : "This win was already shared with the selected Crew members." };
+  const { queued, alreadyShared, completed } = await queueCrewDelivery(recipientIds, batch => session.db.rpc("share_win_with_crew", {
+    p_reward_id: rewardId, p_recipient_ids: batch,
+  }));
+  if (completed !== recipientIds.length) return {
+    ok: false, queued, alreadyShared,
+    message: `${completed ? `Shares confirmed for ${completed} of ${recipientIds.length} selected people. ` : ""}We couldn’t confirm the rest. Check that everyone is still connected, then retry the same selection.`,
+  };
+  return { ok: true, queued, alreadyShared,
+    message: queued ? `Win update shared with ${queued} connected Crew ${queued === 1 ? "member" : "members"}. Email goes only to members who allow win updates.` : "This win was already shared with the selected Crew members." };
 }
 
 export async function setCrewWinEmailPreference(enabled: boolean): Promise<CrewActionResult> {

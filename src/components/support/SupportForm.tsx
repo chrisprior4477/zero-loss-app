@@ -61,11 +61,13 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     }
     const payload = ((previous.status === "error" && previous.uncertain) || draft.uncertain) && attempted.current ? attempted.current : data;
     attempted.current = payload;
-    changeDraft({ uncertain: true, transactionOrigin: String(payload.get("transactionOrigin") ?? "") });
+    const attemptKey = String(payload.get("requestKey") ?? "");
+    const attemptOrigin = String(payload.get("transactionOrigin") ?? "");
+    changeDraft({ requestKey: attemptKey, uncertain: true, transactionOrigin: attemptOrigin });
     try {
       const result = await saveSupportCase(previous, payload);
       if (result.status === "saved") writeSupportDraft(draftKey, null);
-      else changeDraft({ uncertain: result.status === "error" && Boolean(result.uncertain) });
+      else changeDraft({ requestKey: attemptKey, uncertain: result.status === "error" && Boolean(result.uncertain), transactionOrigin: attemptOrigin });
       return result;
     }
     catch { return { status: "error", uncertain: true, message: "Connection interrupted. Your text is still here. Check the saved result below without creating a second request." }; }
@@ -81,6 +83,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     event.preventDefault();
     if (locked || sending.current) return;
     const data = new FormData(event.currentTarget);
+    data.set("requestKey", crypto.randomUUID());
     sending.current = true;
     startTransition(() => action(data));
   }} className="space-y-4">

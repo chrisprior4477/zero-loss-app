@@ -15,14 +15,14 @@ test.each(["", "#enter-entry"])("the product and funding return %s land on the w
   history.replaceState(null, "", `/items/publix-100-gift-card?quantity=4&funded=1${hash}`);
   render(<ProductEntryAutoScroll productKey="publix:4:funded" />);
   act(() => vi.advanceTimersByTime(300));
-  expect(document.getElementById("product-entry-card")!.scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  expect(document.getElementById("product-entry-card")!.scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
   expect(document.getElementById("enter-entry")!.scrollIntoView).not.toHaveBeenCalled();
 });
 
 test("does not pull the page back after the shopper starts scrolling", () => {
   render(<ProductEntryAutoScroll productKey="publix" />);
   act(() => { window.dispatchEvent(new Event("wheel")); vi.advanceTimersByTime(300); });
-  expect(document.getElementById("product-entry-card")!.scrollIntoView).not.toHaveBeenCalled();
+  expect(document.getElementById("product-entry-card")!.scrollIntoView).toHaveBeenCalledOnce();
 });
 
 test("preserves explicit links to other parts of the product page", () => {

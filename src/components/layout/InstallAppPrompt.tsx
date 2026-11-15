@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import popupStyles from "./responsive-popup.module.css";
 
@@ -51,6 +51,37 @@ export function InstallAppPrompt() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [explicitRequest, setExplicitRequest] = useState(false);
   const [alreadyInstalled, setAlreadyInstalled] = useState(false);
+  const nativePromptPending = useRef(false);
+  const [installing, setInstalling] = useState(false);
+
+  const offerInstall = useCallback(async () => {
+    if (nativePromptPending.current) return;
+    const prompt = deferredPrompt.current;
+    if (!prompt) {
+      setShowInstructions(true);
+      return;
+    }
+    nativePromptPending.current = true;
+    setInstalling(true);
+    deferredPrompt.current = null;
+    setCanPrompt(false);
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice.outcome === "dismissed") {
+        rememberDismissal();
+        dismissedThisVisit.current = true;
+      }
+      setDismissed(true);
+      setExplicitRequest(false);
+    } catch {
+      setExplicitRequest(true);
+      setShowInstructions(true);
+    } finally {
+      nativePromptPending.current = false;
+      setInstalling(false);
+    }
+  }, []);
 
   useEffect(() => {
     const initialize = window.setTimeout(() => {
@@ -70,7 +101,8 @@ export function InstallAppPrompt() {
       setCanPrompt(false);
       setDismissed(true);
     };
-    const requestInstall = async () => {
+    const requestInstall = () => {
+      if (nativePromptPending.current) return;
       setExplicitRequest(true);
       dismissedThisVisit.current = false;
       setInteracted(true);
@@ -83,25 +115,7 @@ export function InstallAppPrompt() {
         return;
       }
 
-      const prompt = deferredPrompt.current;
-      if (!prompt) {
-        setShowInstructions(true);
-        return;
-      }
-
-      deferredPrompt.current = null;
-      setCanPrompt(false);
-      await prompt.prompt();
-      const choice = await prompt.userChoice;
-      if (choice.outcome === "accepted") {
-        setDismissed(true);
-        setExplicitRequest(false);
-      } else {
-        rememberDismissal();
-        dismissedThisVisit.current = true;
-        setDismissed(true);
-        setExplicitRequest(false);
-      }
+      void offerInstall();
     };
 
     window.addEventListener("pointerdown", noteInteraction, { once: true });
@@ -118,26 +132,13 @@ export function InstallAppPrompt() {
       window.removeEventListener("appinstalled", noteInstalled);
       window.removeEventListener(INSTALL_APP_REQUEST_EVENT, requestInstall);
     };
-  }, []);
+  }, [offerInstall]);
 
   const dismiss = () => {
     rememberDismissal();
     dismissedThisVisit.current = true;
     setDismissed(true);
     setExplicitRequest(false);
-  };
-
-  const install = async () => {
-    if (deferredPrompt.current) {
-      const prompt = deferredPrompt.current;
-      deferredPrompt.current = null;
-      setCanPrompt(false);
-      await prompt.prompt();
-      const choice = await prompt.userChoice;
-      if (choice.outcome === "dismissed") dismiss();
-      return;
-    }
-    setShowInstructions(true);
   };
 
   const visible = explicitRequest || (interacted && !dismissed && !alreadyInstalled && (canPrompt || manualPlatform !== null));
@@ -164,7 +165,7 @@ export function InstallAppPrompt() {
       {!showInstructions && (
         <div className="mt-3 flex justify-end gap-2">
           <button type="button" onClick={dismiss} className="min-h-10 rounded-lg px-4 text-[12px] font-bold text-white/65 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">Not now</button>
-          <button type="button" onClick={install} className="min-h-10 rounded-lg bg-[#087feb] px-5 text-[12px] font-extrabold text-white shadow-[0_8px_20px_rgba(8,127,235,.3)] hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">Install</button>
+          <button type="button" disabled={installing} onClick={offerInstall} className="min-h-10 rounded-lg bg-[#087feb] px-5 text-[12px] font-extrabold text-white shadow-[0_8px_20px_rgba(8,127,235,.3)] hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">Install</button>
         </div>
       )}
     </aside>

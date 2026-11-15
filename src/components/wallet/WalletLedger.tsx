@@ -97,6 +97,43 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     more: () => { updateBookmark({ offset: batches.end }); batches.more(); },
     previousPage: batches.previousPage ? () => { updateBookmark({ offset: Math.max(0, batches.start - batches.size) }); batches.previousPage?.(); } : undefined };
   const restoreBatch = batches.restore;
+  const readingRow = useRef<string | null>(null);
+  const previousDesktop = useRef(desktop);
+  useLayoutEffect(() => {
+    if (compact) return;
+    function trackRow() {
+      const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+      const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>(":scope > li[id]") ?? []);
+      const row = rows.find(item => {
+        const bounds = item.getBoundingClientRect();
+        return bounds.bottom > header && bounds.top < window.innerHeight;
+      });
+      readingRow.current = row?.id ?? null;
+    }
+    const layoutChanged = previousDesktop.current !== desktop;
+    previousDesktop.current = desktop;
+    let frame = 0;
+    function restoreReadingRow() {
+      const id = readingRow.current;
+      if (!id) return;
+      const index = matching.findIndex(entry => `transaction-${entry.id}` === id);
+      if (index >= 0) {
+        restoreBatch(index);
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView?.({ block: "start", behavior: "instant" }));
+      }
+    }
+    if (layoutChanged) restoreReadingRow();
+    else trackRow();
+    const orientation = window.screen.orientation;
+    orientation?.addEventListener("change", restoreReadingRow);
+    window.addEventListener("scroll", trackRow, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      orientation?.removeEventListener("change", restoreReadingRow);
+      window.removeEventListener("scroll", trackRow);
+    };
+  }, [compact, desktop, listRef, matching, restoreBatch]);
   const restoredView = useRef<string | null>(null);
   const bookmarkKey = walletId ? `zero-loss-wallet-view:${walletId}` : null;
   useLayoutEffect(() => {
@@ -222,7 +259,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
     const entryResult = destination.pathname.startsWith("/account/entries/") && destination.searchParams.get("walletView") === "1";
-    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult)) rememberLedgerSupportReturn(saved, transactionId);
+    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
@@ -269,7 +306,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch}
         onSubmit={event => {
           event.preventDefault();
-          if (!draft.trim() || voice.listening) return;
+          if (!draft.trim() || voice.busy) return;
           searchInput.current?.blur();
           setEditing(false);
           applySearch(draft.trim());
@@ -281,7 +318,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft}
             onFocus={() => setEditing(true)} onChange={event => { cancelVoice(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
-          {draft.trim() && !voice.listening ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
+          {draft.trim() && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
           <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
           {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={closeSearch}>×</button> : null}
         </div>
@@ -311,7 +348,9 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const preserveView = !compact && Boolean(walletId);
         const links = transactionLinks(entry, activity, preserveView);
-        const productHref = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
+        const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
+        const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
+          ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}) })}` : productPath;
         const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
         const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
         const selected = entry.id === selectedId;
@@ -330,7 +369,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <span className={styles.posted}>Posted</span>
         <div className={styles.transactionActions}>
           {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
-          {links.length > 1 ? <details className={styles.relatedEntries}>
+          {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
             <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}

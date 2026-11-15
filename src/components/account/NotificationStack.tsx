@@ -8,7 +8,7 @@ import type { NotificationGroup } from "@/lib/account/notification-groups";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./notifications.module.css";
 
-export function NotificationStack({ group, read, categoryLabel, onOpen, destination, children, expanded: controlledExpanded, onExpandedChange }: {
+export function NotificationStack({ group, read, categoryLabel, onOpen, destination, children, expanded: controlledExpanded, onExpandedChange, entryNumbers }: {
   group: NotificationGroup;
   read: ReadonlySet<string>;
   categoryLabel: string;
@@ -17,6 +17,7 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
   children?: ReactNode;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  entryNumbers?: ReadonlyMap<string, number>;
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const expanded = controlledExpanded ?? localExpanded;
@@ -52,11 +53,14 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
         </button> : <Link id={`notification-link-${encodeURIComponent(notification.id)}`} href={destination?.(notification) ?? notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}
       </div>
       {stacked && expanded ? <ol id={entriesId} className={styles.entryList} aria-label={`Entries for ${title}`}>
-        {group.notifications.map((item, index) => <li key={item.id} data-read={read.has(item.id)}>
-          <span className={styles.entryNumber} aria-hidden="true">{index + 1}</span>
-          <div className={styles.entryCopy}><strong>Entry {index + 1}{!read.has(item.id) ? <span className={styles.unreadBadge}>Unread</span> : null}</strong><span>{item.body}</span><small>{item.meta}</small></div>
-          <Link id={`notification-link-${encodeURIComponent(item.id)}`} href={destination?.(item) ?? item.href} className={styles.entryLink} aria-label={`See entry ${index + 1} for ${title}`} onClick={event => onOpen(event, item)}>See entry<AccountIcon name="arrow" /></Link>
-        </li>)}
+        {group.notifications.map((item, index) => {
+          const number = entryNumbers?.get(item.id) ?? index + 1;
+          return <li key={item.id} data-read={read.has(item.id)}>
+            <span className={styles.entryNumber} aria-hidden="true">{number}</span>
+            <div className={styles.entryCopy}><strong>Entry {number}{!read.has(item.id) ? <span className={styles.unreadBadge}>Unread</span> : null}</strong><span>{item.body}</span><small>{item.meta}</small></div>
+            <Link id={`notification-link-${encodeURIComponent(item.id)}`} href={destination?.(item) ?? item.href} className={styles.entryLink} aria-label={`See entry ${number} for ${title}`} onClick={event => onOpen(event, item)}>See entry<AccountIcon name="arrow" /></Link>
+          </li>;
+        })}
       </ol> : null}
     </article>
   </div>;

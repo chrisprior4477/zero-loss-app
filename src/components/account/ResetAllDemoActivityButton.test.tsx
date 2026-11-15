@@ -31,20 +31,20 @@ test("confirmation explains both empty histories and preserves sign-in; cancel m
 test("confirmed reset uses checked counts and refreshes the account", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
-  vi.mocked(previewAllDemoActivityReset).mockResolvedValue({ status: "ready", entryCount: 2, balanceCents: 50000 });
+  vi.mocked(previewAllDemoActivityReset).mockResolvedValue({ status: "ready", entryCount: 2, balanceCents: 50000, revision: { entries: "entries-revision", transactions: "transaction-revision" } });
   vi.mocked(resetAllDemoActivity).mockResolvedValue({ status: "succeeded", clearedCount: 2, clearedCents: 50000 });
   render(<ResetAllDemoActivityButton />);
   fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
   await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
   fireEvent.click(screen.getByRole("dialog").querySelector("button:last-child")!);
-  await waitFor(() => expect(resetAllDemoActivity).toHaveBeenCalledWith(2, 50000, expect.any(String)));
+  await waitFor(() => expect(resetAllDemoActivity).toHaveBeenCalledWith(2, 50000, expect.any(String), { entries: "entries-revision", transactions: "transaction-revision" }));
   await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
   expect(clearAfterDemoReset).toHaveBeenCalledOnce();
 });
 
 test("a refused reset preserves existing notifications", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  vi.mocked(previewAllDemoActivityReset).mockResolvedValue({ status: "ready", entryCount: 2, balanceCents: 50000 });
+  vi.mocked(previewAllDemoActivityReset).mockResolvedValue({ status: "ready", entryCount: 2, balanceCents: 50000, revision: { entries: "entries-revision", transactions: "transaction-revision" } });
   vi.mocked(resetAllDemoActivity).mockResolvedValue({ status: "error", message: "Demo entries changed. Review and confirm again." });
   render(<ResetAllDemoActivityButton />);
   fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
@@ -81,7 +81,7 @@ test("a lost reset response checks the account without resetting again or invent
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(screen.getByRole("status").textContent).toContain("0 entries and $0");
   expect(resetAllDemoActivity).toHaveBeenCalledOnce();
-  expect(resetAllDemoActivity).toHaveBeenCalledWith(47, 13600, expect.stringMatching(/^[a-f0-9-]{36}$/));
+  expect(resetAllDemoActivity).toHaveBeenCalledWith(47, 13600, expect.stringMatching(/^[a-f0-9-]{36}$/), undefined);
   expect(clearAfterDemoReset).not.toHaveBeenCalled();
   expect(refresh).toHaveBeenCalledOnce();
 });

@@ -43,7 +43,7 @@ test("browser Back restores the draft for this prize within current availability
       <DemoParticipationPanel {...props} sold={15} isSignedIn />
     </ProductEntrySelection>);
     expect(screen.getByRole("spinbutton", { name: "Number of entries" })).toHaveProperty("value", "5");
-    expect(window.history.state).toEqual({ unrelated: true });
+    expect(window.history.state).toEqual({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 7 } });
     expect(actionMocks.enter).not.toHaveBeenCalled();
   } finally {
     window.history.replaceState(null, "");
@@ -179,7 +179,7 @@ test("a return visit carries the last saved request into a new product entry", (
 test("checkout fails closed when the previous request cannot be checked", () => {
   render(<DemoParticipationPanel {...props} requestHead={{ ready: false, requestId: null }} isSignedIn />);
   expect(screen.getByRole("button", { name: "Enter for $1.00" }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByText(/couldn’t check your latest saved submission/)).toBeTruthy();
+  expect(screen.getByText(/couldn’t verify your latest saved submission/)).toBeTruthy();
 });
 
 test("lost response retries the identical intent instead of throwing away the page", async () => {

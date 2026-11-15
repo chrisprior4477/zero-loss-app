@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
 
 async function printPdf(request: NextRequest, offering: string | null, entrant: string | null, accountReference: string | null, entryReference: string | null) {
   const product = await freeEntryProduct(offering);
+  if (product === undefined) return new Response("Prize availability is temporarily unavailable. Return to your free-entry instructions and try again.", { status: 503 });
   if (!product) return Response.redirect(new URL("/browse", request.url), 303);
   const name = safeText(entrant, "LEGAL NAME NEEDED", 80);
   const account = safeText(accountReference, "DEMO ACCOUNT NEEDED", 80);

@@ -112,7 +112,11 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
     const trigger = triggerRef.current;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() => drawerRef.current?.focus());
+    const focusFrame = window.requestAnimationFrame(() => {
+      if (document.activeElement === previouslyFocused || !drawerRef.current?.contains(document.activeElement)) {
+        closeRef.current?.focus({ preventScroll: true });
+      }
+    });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       // A portal-mounted confirmation owns Escape and Tab until it closes.
@@ -130,10 +134,11 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      const inside = focusable.includes(document.activeElement as HTMLElement);
+      if (event.shiftKey && (!inside || document.activeElement === first)) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && (!inside || document.activeElement === last)) {
         event.preventDefault();
         first.focus();
       }
@@ -194,7 +199,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
 
       {open && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[120]" role="presentation">
-          <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
+          <button type="button" tabIndex={-1} aria-hidden="true" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
           <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>

@@ -109,6 +109,7 @@
   -webkit-text-fill-color: var(--field-ink);
 }
 .field textarea { resize: vertical; min-height: 160px; }
+.field :is(input, select, textarea):invalid { scroll-margin-top: calc(var(--site-header-height, 140px) + 16px); }
 .field input::placeholder { color: #536b86; opacity: 1; }
 .field select { padding-right: 28px; }
 .field select option { color: #0a1741; background: #fff; }

@@ -11,16 +11,17 @@ export function FaqExplorer() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FaqCategory>("all");
   const [expanded, setExpanded] = useState<string[]>([]);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
   const panel = useRef<HTMLElement>(null);
   const items = filterFaqs(query, category);
   const searching = /[a-z0-9]/i.test(query);
   const otherTopicMatches = items.length === 0 && searching && category !== "all" && filterFaqs(query, "all").length > 0;
   function updateBookmark(changes: Partial<FaqReturn>) {
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: {
-      href: window.location.href, query, category, expanded, scrollY: window.scrollY, answer: null, answerTop: 0, ...changes,
+      href: window.location.href, query, category, expanded, collapsed, scrollY: window.scrollY, answer: null, answerTop: 0, ...changes,
     } }, "");
   }
-  function changeQuery(value: string) { updateBookmark({ query: value }); setQuery(value); }
+  function changeQuery(value: string) { updateBookmark({ query: value, collapsed: [] }); setCollapsed([]); setQuery(value); }
   function changeCategory(value: FaqCategory) { updateBookmark({ category: value }); setCategory(value); }
   useLayoutEffect(() => {
     let first = 0, second = 0, interrupted = false;
@@ -31,6 +32,7 @@ export function FaqExplorer() {
       const saved = readFaqReturn(window.history.state, window.location.href);
       if (!saved) return;
       setQuery(saved.query); setCategory(saved.category); setExpanded(saved.expanded);
+      setCollapsed(saved.collapsed ?? []);
       cancel(); interrupted = false;
       const align = () => {
         if (interrupted) return;
@@ -57,7 +59,7 @@ export function FaqExplorer() {
     const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
     if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
     const answer = anchor.closest<HTMLElement>("[data-faq-id]");
-    const saved: FaqReturn = { href: window.location.href, query, category,
+    const saved: FaqReturn = { href: window.location.href, query, category, collapsed,
       expanded: Array.from(panel.current?.querySelectorAll<HTMLDetailsElement>("details[open][data-faq-id]") ?? []).map(element => element.dataset.faqId!),
       scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0 };
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
@@ -69,8 +71,11 @@ export function FaqExplorer() {
     </div>
     <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => changeCategory(key)} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
     <p role="status" className="mb-4 text-sm text-white/65">{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
-    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={item} expanded={searching || expanded.includes(item.id)} onToggle={open => {
-      if (!searching && open !== expanded.includes(item.id)) {
+    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={item} expanded={searching ? !collapsed.includes(item.id) : expanded.includes(item.id)} onToggle={open => {
+      if (searching && open === collapsed.includes(item.id)) {
+        const next = open ? collapsed.filter(id => id !== item.id) : [...collapsed, item.id];
+        updateBookmark({ collapsed: next }); setCollapsed(next);
+      } else if (!searching && open !== expanded.includes(item.id)) {
         const next = open ? expanded.includes(item.id) ? expanded : [...expanded, item.id] : expanded.filter(id => id !== item.id);
         // Ignore a native toggle caused by restoring the same controlled state.
         if (next !== expanded) { updateBookmark({ expanded: next }); setExpanded(next); }

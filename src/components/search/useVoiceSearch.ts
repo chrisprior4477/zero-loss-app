@@ -13,7 +13,8 @@ type Recognition = {
 /** Shared by header, hero and Browse; transcript is reviewed before pressing Go. */
 export function useVoiceSearch(onTranscript: (text: string) => void) {
   const recognitionRef = useRef<Recognition | null>(null);
-  const [listening, setListening] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "listening" | "finishing">("idle");
+  const listening = phase === "listening";
   const [error, setError] = useState("");
   const cancel = useCallback(() => {
     const recognition = recognitionRef.current;
@@ -22,16 +23,16 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
       recognition.onresult = recognition.onerror = recognition.onend = null;
       try { if (recognition.abort) recognition.abort(); else recognition.stop(); } catch { /* Already stopped by the browser. */ }
     }
-    setListening(false);
+    setPhase("idle");
   }, []);
   const stop = useCallback(() => {
     const recognition = recognitionRef.current;
-    if (recognition) {
+    if (recognition && listening) {
       // Stop captures the final words; browsers may return them after stop().
+      setPhase("finishing");
       try { recognition.stop(); } catch { cancel(); }
     }
-    setListening(false);
-  }, [cancel]);
+  }, [cancel, listening]);
   useEffect(() => () => {
     const recognition = recognitionRef.current;
     recognitionRef.current = null;
@@ -73,11 +74,11 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     recognition.onend = () => {
       if (recognitionRef.current !== recognition) return;
       recognitionRef.current = null;
-      recognition.onresult = recognition.onerror = recognition.onend = null;
-      setListening(false);
+        recognition.onresult = recognition.onerror = recognition.onend = null;
+      setPhase("idle");
     };
-    setListening(true);
+    setPhase("listening");
     try { recognition.start(); } catch { cancel(); setError("Voice search couldn’t start. Try again or type your search."); }
   }
-  return { listening, error, toggle, stop, cancel };
+  return { listening, busy: phase !== "idle", error, toggle, stop, cancel };
 }

@@ -35,7 +35,7 @@ test("Browse targets retailer categories rather than products and settles after 
   document.getElementById("search-results")!.scrollIntoView = products;
   act(() => vi.runAllTimers());
   expect(categories).toHaveBeenCalledTimes(2);
-  expect(categories).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  expect(categories).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
   expect(products).not.toHaveBeenCalled();
 });
 
@@ -45,10 +45,10 @@ test("a category hash navigation works on the existing browse page and stops for
   act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
   window.history.replaceState(null, "", "/browse#retailer-categories-heading");
   fireEvent(window, new HashChangeEvent("hashchange"));
-  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(2);
+  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(3);
   fireEvent(window, new HashChangeEvent("hashchange"));
   fireEvent.touchStart(window); act(() => vi.runAllTimers());
-  expect(scroll).toHaveBeenCalledTimes(2);
+  expect(scroll).toHaveBeenCalledTimes(4);
 });
 
 test.each([
@@ -68,17 +68,17 @@ test("search lands at items, settles header height, and runs again for a new que
   const view = render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="TV" /></>);
   const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
   act(() => vi.runAllTimers());
-  expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
   expect(scroll).toHaveBeenCalledTimes(2);
   view.rerender(<><div id="search-results" /><SearchResultsAutoScroll searchKey="coffee" /></>);
-  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(4);
+  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(5);
 });
 test("ordinary browse does not jump and user interaction cancels pending scroll", () => {
   const view = render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" /></>);
   const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
   act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
   view.rerender(<><div id="search-results" /><SearchResultsAutoScroll searchKey="TV" /></>);
-  fireEvent.wheel(window); act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
+  fireEvent.wheel(window); act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledOnce();
 });
 
 test("mobile browse, category and retailer routes land on offers and rerun for each selection", () => {
@@ -89,7 +89,7 @@ test("mobile browse, category and retailer routes land on offers and rerun for e
     view.rerender(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey={route} /></>);
     act(() => vi.runAllTimers());
   }
-  expect(scroll).toHaveBeenCalledTimes(8);
+  expect(scroll).toHaveBeenCalledTimes(11);
 });
 
 test("mobile browse still respects the explicit category directory destination", () => {

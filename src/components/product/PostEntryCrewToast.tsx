@@ -36,6 +36,8 @@ function CrewPortrait({ index }: { index: number }) {
 }
 type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
 const emptyOptions: CrewShareOptions = { ok: true, message: "", memberCount: 0, members: [], groups: [] };
+type CrewDelivery = { ok: boolean; message: string; groupCount?: number };
+const recentDeliveries = new Map<string, Promise<CrewDelivery>>();
 
 export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false }: Props) {
   const initialItem = product ?? { slug: request!.slug, title: request!.title };
@@ -93,6 +95,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const id = useId();
   const [preparedLink, setPreparedLink] = useState<{ slug: string; groupId: string | null; token: string | null } | null>(null);
   const shareSlug = item.slug;
+  const deliveryItem = item.win?.rewardId ?? request?.requestId ?? shareSlug;
   const singleLinkAudience = selectedGroupIds.length < 2;
   const shareGroupId = selectedGroupIds.length === 1 ? selectedGroupIds[0] : null;
   const shareToken = singleLinkAudience && preparedLink?.slug === shareSlug && preparedLink.groupId === shareGroupId ? preparedLink.token : null;
@@ -244,12 +247,21 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }
 
   async function loadAudiences(onlyGroups = false) {
-    setGroupsOnly(onlyGroups); setSelectedGroupIds([]); setShared(false);
-    go("audience");
+    if (step !== "audience" || onlyGroups !== groupsOnly) {
+      setGroupsOnly(onlyGroups); setSelectedGroupIds([]); setShared(false);
+      go("audience");
+    }
     await run(async () => {
       const result = await getCrewShareOptions();
       if (!alive.current) return;
-      if (result.ok) setOptions(result); else feedback(result.message, true);
+      if (!result.ok) { feedback(result.message, true); return; }
+      setOptions(result);
+      const deliveryKey = result.ownerId ? `${result.ownerId}:${deliveryItem}` : null;
+      const previous = deliveryKey ? recentDeliveries.get(deliveryKey) : undefined;
+      if (previous) {
+        const delivery = await previous;
+        if (alive.current) feedback(delivery.message, !delivery.ok);
+      }
     });
   }
 
@@ -522,7 +534,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       if (!result.ok) { if (result.conflict) setGroupConflict(true); feedback(result.message, true); return; }
       notifyAccountChanged();
       setOptions(current => ({ ...(current ?? emptyOptions), groups: [...(current?.groups ?? []).filter(g => g.id !== group.id), { ...group, memberCount: group.memberIds.length }] }));
-      setSelectedGroupIds(current => [...new Set([...current, group.id])]); setGroupsOnly(true); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
+      if (!editingGroup) setSelectedGroupIds(current => [...new Set([...current, group.id])]);
+      setGroupsOnly(true); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
     });
   }
 
@@ -532,22 +545,22 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!recipients.length || target && groups.length !== target.length) return;
     await run(async () => {
       const singleGroup = groups.length === 1 ? groups[0].id : null;
-      let result: { ok: boolean; message: string; groupCount?: number } = { ok: true, message: "Your share is saved." };
-      if (request && !item.win) result = await shareConfirmedEntryWithCrew(request.requestId, target && target.length > 1 ? target : singleGroup);
-      else if (groups.length > 1 && !item.win) result = await sharePrizeWithCrewGroups(item.slug, groups.map(({ id, memberIds }) => ({ id, memberIds })));
-      else {
-        let completed = 0;
-        // Keep the existing server batch bound; a person in several groups is
-        // included once, and canonical delivery actions make retries safe.
-        for (let offset = 0; offset < recipients.length; offset += 20) {
-          const batch = recipients.slice(offset, offset + 20);
-          result = item.win ? await shareWinWithCrew(item.win.rewardId, batch) : await sharePrizeWithCrew(item.slug, batch, singleGroup);
-          if (!alive.current) return;
-          if (!result.ok) { feedback(`${completed ? `${completed} people already have a saved share. ` : ""}${result.message}`, true); return; }
-          completed += batch.length;
-        }
-        if (recipients.length > 20) result = { ok: true, message: `Share saved for ${recipients.length} selected Crew members.` };
+      const delivery: Promise<CrewDelivery> = (request && !item.win
+        ? shareConfirmedEntryWithCrew(request.requestId, target && target.length > 1 ? target : singleGroup)
+        : groups.length > 1 && !item.win
+          ? sharePrizeWithCrewGroups(item.slug, groups.map(({ id, memberIds }) => ({ id, memberIds })))
+          : item.win ? shareWinWithCrew(item.win.rewardId, recipients) : sharePrizeWithCrew(item.slug, recipients, singleGroup))
+        .catch(() => ({ ok: false, message: "We couldn’t confirm delivery. Review your Crew shares before trying again." }));
+      const deliveryKey = options?.ownerId ? `${options.ownerId}:${deliveryItem}` : null;
+      if (deliveryKey) {
+        recentDeliveries.set(deliveryKey, delivery);
+        void delivery.then(() => {
+          window.setTimeout(() => {
+            if (recentDeliveries.get(deliveryKey) === delivery) recentDeliveries.delete(deliveryKey);
+          }, 5 * 60_000);
+        });
       }
+      const result = await delivery;
       if (alive.current) {
         feedback(result.message, !result.ok);
         if (result.ok) {

@@ -3,10 +3,21 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
-import { readPurchaseHandoff, savePurchaseHandoff } from "@/lib/wallet/purchase-selection-handoff";
+import { purchaseChoicePattern, readPurchaseHandoff, savePurchaseHandoff } from "@/lib/wallet/purchase-selection-handoff";
 
 type Choice = { selected: string[]; decline: boolean; needsReview: boolean };
 type Draft = Choice & { available: string[]; slug: string; ownerId: string };
+
+function sameTabWalletDraft(handoffId: string, ownerId: string, slug: string) {
+  if (!purchaseChoicePattern.test(handoffId)) return null;
+  try {
+    const raw = sessionStorage.getItem(purchaseSelectionKey);
+    const draft = JSON.parse(raw ?? "null");
+    if (draft?.ownerId !== ownerId || draft.slug !== slug || typeof draft.href !== "string") return null;
+    const href = new URL(draft.href, window.location.origin);
+    return href.origin === window.location.origin && href.pathname === "/account/wallet" && href.searchParams.get("choice") === handoffId ? raw : null;
+  } catch { return null; }
+}
 
 function restore(raw: string | null, ownerId: string, slug: string, available: string[], firstId: string): Choice | null {
   if (!raw) return null;
@@ -47,7 +58,8 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
       if (handoffId !== null) {
         const currentDraft = sessionStorage.getItem(`${key}:arrival`) === handoffId
           ? restore(sessionStorage.getItem(key), ownerId, slug, available, firstId) : null;
-        saved = currentDraft ?? restore(readPurchaseHandoff(handoffId), ownerId, slug, available, firstId)
+        const handoff = readPurchaseHandoff(handoffId) ?? sameTabWalletDraft(handoffId, ownerId, slug);
+        saved = currentDraft ?? restore(handoff, ownerId, slug, available, firstId)
           ?? { selected: [firstId], decline: false, needsReview: true };
         sessionStorage.setItem(`${key}:arrival`, handoffId);
       } else if (query.get("resume") === "wallet") {
@@ -75,7 +87,12 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     catch { /* The selection remains usable in the current page. */ }
   }
   function clearChoice() {
-    try { sessionStorage.removeItem(key); } catch { /* Purchase is already recorded. */ }
+    try {
+      sessionStorage.removeItem(key);
+      const arrival = sessionStorage.getItem(`${key}:arrival`);
+      if (arrival && sameTabWalletDraft(arrival, ownerId, slug)) sessionStorage.removeItem(purchaseSelectionKey);
+      sessionStorage.removeItem(`${key}:arrival`);
+    } catch { /* Purchase is already recorded. */ }
   }
   return { ...choice, handoffId, available, updateChoice, clearChoice };
 }

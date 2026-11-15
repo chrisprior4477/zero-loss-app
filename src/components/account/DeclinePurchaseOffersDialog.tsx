@@ -12,15 +12,23 @@ import { PurchaseDialog } from "./PurchaseCheckoutDialog";
 import { holdAccountRefresh, notifyAccountChanged } from "@/lib/account/account-state-events";
 import styles from "./decline-purchase-offers.module.css";
 
-type Phase = "confirm" | "working" | "undo" | "undoing" | "error" | "leaving";
+const receiptUuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+type SavedDecline = { receipts: DeclineReceipt[]; reviewed: string[]; kept: string[]; deadline: number; message: string };
 
-export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose }: {
-  item: ActivityItem; offeredOptionIds: string[]; selectedOptionIds?: string[] | null;
-  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose: () => void;
+function declineDeadline() {
+  return Date.now() + 30_000;
+}
+
+type Phase = "recover" | "confirm" | "working" | "undo" | "undoing" | "error" | "leaving";
+
+export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose, ownerId, recovering = false }:  {
+  item: ActivityItem; ownerId?: string; recovering?: boolean; offeredOptionIds: string[]; selectedOptionIds?: string[] | null;
+  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose?: () => void;
 }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("confirm");
+  const [phase, setPhase] = useState<Phase>(recovering ? "recover" : "confirm");
   const [message, setMessage] = useState("");
+  const [unresolvedIds, setUnresolvedIds] = useState<string[]>([]);
   const [checked, setChecked] = useState<Record<string, string> | null>(null);
   const [checking, setChecking] = useState(false);
   const [receipts, setReceipts] = useState<DeclineReceipt[]>([]);
@@ -39,10 +47,43 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
   const kept = offeredOptionIds.filter(id => !reviewed.has(id));
   const count = reviewedOptionIds.length;
   const savedCount = optionIds.length;
-  const busy = phase === "working" || phase === "undoing" || phase === "leaving";
+  const busy = phase === "recover" || phase === "working" || phase === "undoing" || phase === "leaving";
   const offerWord = count === 1 ? "offer" : "offers";
   const cancelReview = selective && onBackToSelection ? onBackToSelection : onClose;
-  const returnToRemaining = selective && kept.length > 0 && phase === "undo";
+  const [restoredKept, setRestoredKept] = useState<string[] | null>(null);
+  const remainingIds = restoredKept ?? kept;
+  const returnToRemaining = remainingIds.length > 0 && phase === "undo" && (selective || recovering);
+  const storageKey = ownerId ? `zero-loss-decline-undo:${ownerId}:${item.slug}` : null;
+  const clearSaved = useCallback(() => {
+    try { if (storageKey) sessionStorage.removeItem(storageKey); } catch { /* The session may block storage. */ }
+  }, [storageKey]);
+  useEffect(() => {
+    if (!recovering || !storageKey) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved: SavedDecline | null = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
+        if (saved && Number.isFinite(saved.deadline) && saved.deadline <= Date.now() + 30_000
+          && Array.isArray(saved.receipts) && saved.receipts.length
+          && saved.receipts.every(receipt => receiptUuid.test(receipt.optionId) && receiptUuid.test(receipt.declineEventId))
+          && Array.isArray(saved.reviewed) && saved.reviewed.every(id => receiptUuid.test(id))
+          && Array.isArray(saved.kept) && saved.kept.every(id => receiptUuid.test(id)) && typeof saved.message === "string") {
+          setReceipts(saved.receipts);
+          setReviewedOptionIds(saved.reviewed);
+          setRestoredKept(saved.kept);
+          const confirmed = new Set(saved.receipts.map(receipt => receipt.optionId));
+          setUnresolvedIds(saved.reviewed.filter(id => !confirmed.has(id)));
+          setUndoUntil(saved.deadline);
+          setSeconds(Math.max(0, Math.ceil((saved.deadline - Date.now()) / 1000)));
+          setMessage(saved.message);
+          setPhase("undo");
+          return;
+        }
+      } catch { /* Never reconstruct a receipt from URL input. */ }
+      setMessage("There is no active undo confirmation in this tab. Check the saved offers for their current status.");
+      setPhase("error");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [recovering, storageKey]);
 
   useEffect(() => () => releaseRefresh.current?.(), []);
 
@@ -50,13 +91,14 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
   const finish = useCallback(() => {
     if (inFlight.current || leaving.current) return;
     leaving.current = true;
+    clearSaved();
     releaseRefresh.current?.();
     setUndoUntil(null);
     setPhase("leaving");
-    if (returnToRemaining) onClose();
+    if (returnToRemaining) onClose?.();
     router.replace(returnToRemaining ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : declinedOfferHref(firstDeclined));
     router.refresh();
-  }, [router, item.slug, onClose, returnToRemaining, firstDeclined]);
+  }, [router, item.slug, onClose, returnToRemaining, firstDeclined, clearSaved]);
 
   // Keep the saved decline visible until Undo, Finish, or the original deadline.
   // An Undo already in flight must finish before any countdown navigation.
@@ -66,14 +108,17 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     const timer = window.setInterval(() => {
       const left = Math.max(0, Math.ceil((undoUntil - Date.now()) / 1000));
       setSeconds(left);
-      if (!left) finish();
+      if (!left && unresolvedIds.length) {
+        releaseRefresh.current?.();
+        setPhase("error");
+      } else if (!left) finish();
     }, 250);
     return () => window.clearInterval(timer);
-  }, [phase, undoUntil, finish]);
+  }, [phase, undoUntil, finish, unresolvedIds.length]);
 
   const dismiss = useCallback(() => {
     if (inFlight.current || leaving.current) return;
-    if (phase === "confirm") cancelReview();
+    if (phase === "confirm") cancelReview?.();
     else finish();
   }, [phase, cancelReview, finish]);
 
@@ -81,7 +126,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     if (inFlight.current) return;
     inFlight.current = true;
     setChecking(true);
-    try { setChecked(await checkDeclinedOfferStatuses(item.slug, reviewedOptionIds)); }
+    try { setChecked(await checkDeclinedOfferStatuses(item.slug, unresolvedIds.length ? unresolvedIds : reviewedOptionIds)); }
     catch { setChecked({}); }
     finally { inFlight.current = false; setChecking(false); }
   }
@@ -97,7 +142,20 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
       if (result.receipts.length) {
         notifyAccountChanged();
         setReceipts(result.receipts);
-        setUndoUntil(Date.now() + 30_000);
+        const confirmed = new Set(result.receipts.map(receipt => receipt.optionId));
+        setUnresolvedIds(reviewedOptionIds.filter(id => !confirmed.has(id)));
+        const deadline = declineDeadline();
+        setUndoUntil(deadline);
+        if (storageKey) try {
+          sessionStorage.setItem(storageKey, JSON.stringify({ receipts: result.receipts, reviewed: reviewedOptionIds,
+            kept, deadline, message: result.message } satisfies SavedDecline));
+          const recoveryUrl = new URL(window.location.href);
+          if (recoveryUrl.pathname === `/account/purchase-options/${item.slug}`) {
+            recoveryUrl.searchParams.delete("option");
+            recoveryUrl.searchParams.set("decline", "undo");
+            window.history.replaceState(window.history.state, "", recoveryUrl);
+          }
+        } catch { /* The open dialog still shows the original undo window. */ }
         setSeconds(30);
         setPhase("undo");
       } else { releaseRefresh.current?.(); setPhase("error"); }
@@ -115,11 +173,18 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     setPhase("undoing");
     try {
       const result = await undoBulkDemoPurchaseOptions(receipts);
+      clearSaved();
       if (result.optionIds.length) notifyAccountChanged();
       setUndoUntil(null);
       releaseRefresh.current?.();
-      if (result.status === "succeeded") {
-        onClose();
+      if (result.status === "succeeded" && unresolvedIds.length) {
+        setMessage("The confirmed declines were restored. Check the other offers for their current status.");
+        setPhase("error");
+      } else if (result.status === "succeeded") {
+        if (storageKey && new URLSearchParams(window.location.search).get("decline") === "undo") {
+          router.replace(`/account/purchase-options/${encodeURIComponent(item.slug)}`, { scroll: false });
+        }
+        onClose?.();
         router.refresh();
       } else {
         setMessage(result.message);
@@ -133,7 +198,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     } finally { inFlight.current = false; }
   }
 
-  const title = phase === "confirm" ? (selective ? `Decline ${count} ${offerWord}?` : `Decline ${offerWord}?`)
+  const title = phase === "recover" ? "Checking your saved decline" : phase === "confirm" ? (selective ? `Decline ${count} ${offerWord}?` : `Decline ${offerWord}?`)
     : phase === "error" ? "Check your offers"
       : phase === "undo" || phase === "undoing" ? "Decline submitted" : "Declining offers";
 
@@ -166,21 +231,21 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
         <p className={styles.undoMessage} role="status">{message}</p>
         <div className={styles.actions}>
           <button ref={undoButton} type="button" className={styles.keep} disabled={busy || seconds === 0} onClick={() => void undo()}>{phase === "undoing" ? "Restoring…" : "Undo decline"}</button>
-          <button type="button" className={styles.finish} disabled={busy} onClick={finish}>{finishLabel}</button>
+          <button type="button" className={styles.finish} disabled={busy || checking} onClick={unresolvedIds.length ? () => void checkOffers() : finish}>{unresolvedIds.length ? checking ? "Checking…" : "Check these offers" : finishLabel}</button>
         </div>
       </div>
-      {selective && <div className={styles.reviewTickets}>{ticketList(optionIds, "Declined")}{ticketList(kept, "Still available")}</div>}
+      {(selective || recovering) && <div className={styles.reviewTickets}>{ticketList(optionIds, "Declined")}{ticketList(remainingIds, "Still available")}</div>}
     </> : phase === "error" ? <>
       <p className={styles.message} role="alert">{message}</p>
       <button type="button" className={styles.keep} onClick={() => void checkOffers()} disabled={checking}>{checking ? "Checking…" : "Check these offers"}</button>
-      {checked && <ul aria-live="polite" className={styles.reviewTickets}>
-        {reviewedOptionIds.map((id, index) => <li key={id}>
+    </> : <p className={styles.message} role="status">{phase === "leaving" ? "Opening Declined Offers…" : "Saving your decline…"}</p>}
+    {checked && <ul aria-live="polite" className={styles.reviewTickets}>
+        {(unresolvedIds.length ? unresolvedIds : reviewedOptionIds).map((id, index) => <li key={id}>
           {ticketLabels?.[id] ?? `Offer ${index + 1}`} · {checked[id] === "declined"
             ? <Link href={declinedOfferHref(id)}>Declined</Link>
             : checked[id] === "available" ? "Available in Purchase Options"
             : checked[id] === "purchased" ? "Purchased" : checked[id] === "expired" ? "Expired" : "Still checking"}
         </li>)}
-      </ul>}
-    </> : <p className={styles.message} role="status">{phase === "leaving" ? "Opening Declined Offers…" : "Saving your decline…"}</p>}
+    </ul>}
   </PurchaseDialog>;
 }

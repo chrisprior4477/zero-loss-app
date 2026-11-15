@@ -220,7 +220,7 @@ test("a credential read error cannot fall back to another sample number", async 
   render(await WalletPage({ searchParams: Promise.resolve({ rewardId: "reward-1" }) }));
   expect(mocks.rpc).toHaveBeenCalledWith("get_claimed_reward", { p_reward_id: "reward-1" });
   expect(screen.queryByLabelText("Sample reward barcode")).toBeNull();
-  expect(screen.getByRole("status").textContent).toContain("couldn’t load your saved");
+  expect(screen.getAllByRole("status").some(status => status.textContent?.includes("couldn’t load your saved"))).toBe(true);
 });
 
 test.each(["samsung-m70h-tv", "not-in-the-catalog", "https://evil.test", ["samsung-m70h-tv", "other"]])("only a known catalog prize produces a return link: %s", async (from) => {

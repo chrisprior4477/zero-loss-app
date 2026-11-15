@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import styles from "./crew-group-removal-countdown.module.css";
 
-export function CrewGroupRemovalCountdown({ name, busy, onUndo, onConfirm }: {
-  name: string; busy: boolean; onUndo: () => void; onConfirm: () => void;
+export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm }: {
+  name: string; busy: boolean; retry?: number; onUndo: () => void; onConfirm: () => void;
 }) {
   const [deadline] = useState(() => Date.now() + 30_000);
   const [seconds, setSeconds] = useState(30);
@@ -16,7 +16,7 @@ export function CrewGroupRemovalCountdown({ name, busy, onUndo, onConfirm }: {
     undoButton.current?.focus({ preventScroll: true });
     undoButton.current?.closest("section")?.scrollIntoView?.({ block: "nearest" });
   }, []);
-  useEffect(() => { if (!busy) submitting.current = false; }, [busy]);
+  useLayoutEffect(() => { if (!busy) submitting.current = false; }, [busy, retry]);
   useEffect(() => {
     if (busy) return;
     const timer = window.setInterval(() => {

@@ -19,7 +19,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { DemoPaymentProvider, type DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { notificationFilter, validNotice } from "@/lib/account/notification-return";
-import { depositRecoveryHref, purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
+import { entryFundingReturnPath, depositRecoveryHref, purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 import { depositSupportHref } from "@/lib/support/references";
 import { ledgerEntryProduct } from "@/lib/wallet/history";
 import { ledgerDescription } from "@/lib/wallet/transaction-links";
@@ -98,7 +98,7 @@ async function loadSupportCases(db: Awaited<ReturnType<typeof createClient>>, us
   };
 }
 
-function SupportCaseList({ cases, inboxContext, timeZone }: { cases: WaitingCase[]; inboxContext: string; timeZone: string }) {
+function SupportCaseList({ cases, inboxContext, inbox, timeZone }: { cases: WaitingCase[]; inboxContext: string; inbox: boolean; timeZone: string }) {
   const date = new Intl.DateTimeFormat("en-US", { timeZone: safeTimeZone(timeZone), dateStyle: "medium" });
   return <ul className="mt-3 space-y-3">
     {cases.map(supportCase => {
@@ -110,7 +110,7 @@ function SupportCaseList({ cases, inboxContext, timeZone }: { cases: WaitingCase
             <span className={`text-sm ${styles.eyebrow}`}>
               {lastReply && Number.isFinite(Date.parse(lastReply))
                 ? <>Last Support reply <time dateTime={lastReply}>{date.format(new Date(lastReply))}</time></>
-                : statusLabel(supportCase.status, Boolean(inboxContext))}
+                : statusLabel(supportCase.status, inbox)}
             </span>
             <span className={`text-xs ${styles.muted}`}>{supportCase.case_number}</span>
           </span>
@@ -169,7 +169,7 @@ function SupportReceipt({ title, detail, image, amount, timestamp, timeZone, sta
   </aside>;
 }
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; from?: string; orderFilter?: string; page?: string; messages?: string; walletView?: string; details?: string; alerts?: string; notice?: string; checkoutReturn?: string; depositList?: string }> }) {
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; from?: string; orderFilter?: string; page?: string; messages?: string; walletView?: string; details?: string; alerts?: string; notice?: string; checkoutReturn?: string; entryReturn?: string; depositList?: string; fromUpdates?: string; updateCategory?: string }> }) {
   const query = await searchParams;
   const account = await getAccountContext();
   const validCase = typeof query.case === "string" && uuid.test(query.case) ? query.case : null;
@@ -178,27 +178,28 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const validDeposit = typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : null;
   const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : validReward || validDeposit ? "#report-problem" : "");
   const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
-  if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><Link className={button} href="/forgot-password">Reset your password →</Link></div><div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className={`${button} mt-4`}>Sign in to get help</Link></div></PageContainer>;
+  if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><Link className={button} href={authNavigationHref("/forgot-password", next)}>Reset your password →</Link></div><div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className={`${button} mt-4`}>Sign in to get help</Link></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
   const access = await db.rpc("has_support_access");
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
   const casePage = pageIndex(query.page);
-  const inboxContext = inbox ? `&view=inbox${casePage ? `&page=${casePage + 1}` : ""}` : "";
+  const inboxContext = `${inbox ? "&view=inbox" : ""}${casePage ? `&page=${casePage + 1}` : ""}`;
   const orderFilter = fulfillmentFilter(query.orderFilter);
   const orderContext = orderFilter === "all" ? "" : `&orderFilter=${orderFilter}`;
   const alerts = query.alerts !== undefined ? notificationFilter(query.alerts) : undefined;
   const notice = validNotice(query.notice) ? query.notice : undefined;
   const alertContext = alerts ? `&alerts=${alerts}${notice ? `&notice=${encodeURIComponent(notice)}` : ""}` : "";
   const checkoutReturn = purchaseOptionReturnPath(query.checkoutReturn) ?? undefined;
+  const entryReturn = entryFundingReturnPath(query.entryReturn) ?? undefined;
   const depositList = query.depositList === "1";
-  const depositContext = `${checkoutReturn ? `&checkoutReturn=${encodeURIComponent(checkoutReturn)}` : ""}${depositList ? "&depositList=1" : ""}`;
+  const depositContext = `${checkoutReturn ? `&checkoutReturn=${encodeURIComponent(checkoutReturn)}` : ""}${entryReturn ? `&entryReturn=${encodeURIComponent(entryReturn)}` : ""}${depositList ? "&depositList=1" : ""}`;
   const returnToDetails = query.from === "order" && query.details === "1";
   const walletContext = query.from === "wallet" ? "&from=wallet" : "";
   const walletView = query.walletView === "1";
   const caseInboxHref = `/support?view=inbox${casePage ? `&page=${casePage + 1}` : ""}#case-list`;
-  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
+  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href={`/support${!inbox && casePage ? `?page=${casePage + 1}` : ""}#case-list`}>My support cases</Link><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
   if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (query.deposit !== undefined && !validDeposit) ||
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
     (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
@@ -219,19 +220,23 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       : null;
     const openingBody = typeof opening?.data?.body === "string" ? opening.data.body : "";
     const origin = /^Transaction opened from: (wallet|order:(all|processing|fulfilled|exceptions|payment))\n\n/.exec(openingBody);
+    const rewardOrderFilter = /^Reward reference: [a-f0-9-]{36}\nReward opened from: (all|processing|fulfilled|exceptions|payment)\n\n/i.exec(openingBody)?.[1];
+    const reopenDetails = returnToDetails || Boolean(rewardOrderFilter);
     const fromWallet = origin ? origin[1] === "wallet" : Boolean(walletContext);
-    const fromOrder = origin ? Boolean(origin[2]) : query.from === "order" || Boolean(alerts);
-    const savedFilter = origin?.[2] ? fulfillmentFilter(origin[2]) : orderFilter;
+    const fromOrder = origin ? Boolean(origin[2]) : query.from === "order" || Boolean(alerts) || Boolean(rewardOrderFilter);
+    const originFilter = origin?.[2] ?? rewardOrderFilter;
+    const savedFilter = originFilter ? fulfillmentFilter(originFilter) : orderFilter;
     const ledgerLink = ownerCase && isPurchaseCharge && !fromWallet && account.orders?.orders.length
       ? await db.from("ledger_entries").select("source_event").eq("customer_id", account.userId).eq("id", supportCase.ledger_entry_id).maybeSingle()
       : null;
     const savedOrder = !ledgerLink?.error && typeof ledgerLink?.data?.source_event === "string"
       ? await getSupportOrder(db, account.userId, ledgerLink.data.source_event, account.orders.orders) : undefined;
     const orderReturn = savedOrder && exactOrderHref(savedOrder.orderNumber, savedFilter, returnToDetails && fromOrder, Boolean(alerts), alerts, notice);
-    const caseContext = `${inboxContext}${fromWallet ? "&from=wallet" : fromOrder ? `&from=order${savedFilter !== "all" ? `&orderFilter=${savedFilter}` : ""}${returnToDetails ? "&details=1" : ""}` : ""}${walletView ? "&walletView=1" : ""}`;
-    const linkedCaseContext = `${caseContext}${ownerCase && orderReturn ? alertContext : ""}${ownerCase && !supportCase.ledger_entry_id ? depositContext : ""}`;
+    const caseContext = `${inboxContext}${fromWallet ? "&from=wallet" : fromOrder ? `&from=order${savedFilter !== "all" ? `&orderFilter=${savedFilter}` : ""}${reopenDetails ? "&details=1" : ""}` : ""}${walletView ? "&walletView=1" : ""}`;
+    const headerContext = query.fromUpdates === "1" ? `&fromUpdates=1${query.updateCategory === "support" ? "&updateCategory=support" : ""}` : "";
+    const linkedCaseContext = `${caseContext}${headerContext}${ownerCase && (orderReturn || fromOrder && !supportCase.ledger_entry_id) ? alertContext : ""}${ownerCase && !supportCase.ledger_entry_id ? depositContext : ""}`;
     const caseHref = `/support?case=${validCase}${linkedCaseContext}`;
-    const rewardId = /^Reward reference: ([a-f0-9-]{36})\n\n/i.exec(openingBody)?.[1];
+    const rewardId = /^Reward reference: ([a-f0-9-]{36})\n(?:Reward opened from: (?:all|processing|fulfilled|exceptions|payment)\n)?\n/i.exec(openingBody)?.[1];
     const depositId = /^Deposit reference: ([a-f0-9-]{36})\nDeposit amount: /i.exec(openingBody)?.[1];
     const reward = rewardId ? account.activity.activity.find(item => item.rewardId === rewardId) : undefined;
     const deposit = depositId && account.wallet?.scope === "demo"
@@ -244,8 +249,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         {orderReturn && <Link href={orderReturn}>Back to this order</Link>}
         {ownerCase && (!orderReturn || !fromOrder) && <Link href={walletView ? walletSupportReturnHref(supportCase.ledger_entry_id, true) : `${walletTransactionsHref.split("#")[0]}&transaction=${supportCase.ledger_entry_id}#transaction-${supportCase.ledger_entry_id}`}>Back to this transaction</Link>}
       </div>}
-      {reward && <p className={`${note} mt-3 text-sm`}><Link href={returnToDetails && fromOrder ? fulfillmentHref(rewardId, savedFilter, true) : `/account/wallet?rewardId=${rewardId}#reward-pass`}>Back to this reward · {reward.title}</Link></p>}
-      {deposit && <p className={`${note} mt-3 text-sm`}><Link href={depositRecoveryHref(deposit.idempotencyKey, depositList, false, checkoutReturn)}>Back to this deposit · {formatUsdFromCents(deposit.amount)}</Link></p>}
+      {reward && <p className={`${note} mt-3 text-sm`}><Link href={reopenDetails && fromOrder ? fulfillmentHref(rewardId, savedFilter, true, undefined, alerts ? { filter: alerts, notice } : undefined) : `/account/wallet?rewardId=${rewardId}#reward-pass`}>Back to this reward · {reward.title}</Link></p>}
+      {deposit && <p className={`${note} mt-3 text-sm`}><Link href={depositRecoveryHref(deposit.idempotencyKey, depositList, false, checkoutReturn, entryReturn)}>Back to this deposit · {formatUsdFromCents(deposit.amount)}</Link></p>}
       <p className={`mt-3 text-sm ${styles.muted}`}>Check this case for the next reply. If more information is needed, you can add it below. No email is sent by this preview.</p>
       {events.error ? <p role="alert" className="mt-5">We couldn’t load the conversation. Refresh to try again.</p> : <ol className="my-6 space-y-4">{messages.map(event => <li key={event.id} data-staff={event.actor_kind === "staff"} className={`${styles.ticket} ${styles.message}`}>
         <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {formatOfferDeadline(event.created_at, account.timezone)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{origin && event.body === openingBody ? openingBody.slice(origin[0].length) : event.body}</p>
@@ -293,14 +298,14 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             amount={linkedReward ? formatUsdFromCents(linkedReward.priceCents) : undefined}
             timestamp={reward?.data?.created_at} timeZone={account.timezone} status={rewardStatus}
             reference={`Reward reference: ${validReward}`}
-            href={returnToDetails ? fulfillmentHref(validReward, orderFilter, true) : `/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`} returnLabel="Back to this reward" /> : null}
+            href={returnToDetails ? fulfillmentHref(validReward, orderFilter, true, undefined, alerts ? { filter: alerts, notice } : undefined) : `/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`} returnLabel="Back to this reward" /> : null}
           {deposit ? <SupportReceipt
             title={deposit.reconciliation === "reconciled" ? "Funds added" : "Deposit request"}
             amount={`${formatUsdFromCents(deposit.amount)} USD`} timestamp={deposit.postedAt ?? deposit.created_at}
             timeZone={account.timezone} status={depositStatuses[deposit.reconciliation]}
             reference={`Deposit reference: ${deposit.id}`}
-            href={depositRecoveryHref(deposit.idempotencyKey, depositList, false, checkoutReturn)} returnLabel="Back to this deposit" /> : null}
-          <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} caseContext={returnOrder || (validReward && returnToDetails) ? `&from=order${orderContext}${returnToDetails ? "&details=1" : ""}${alertContext}` : `${walletContext}${walletView && validTransaction ? "&walletView=1" : ""}${deposit ? depositContext : ""}`} transactionOrigin={returnOrder ? `order:${orderFilter}` : walletContext ? "wallet" : undefined} />
+            href={depositRecoveryHref(deposit.idempotencyKey, depositList, false, checkoutReturn, entryReturn)} returnLabel="Back to this deposit" /> : null}
+          <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} caseContext={returnOrder || (validReward && returnToDetails) ? `&from=order${orderContext}${returnToDetails ? "&details=1" : ""}${alertContext}` : `${walletContext}${walletView && validTransaction ? "&walletView=1" : ""}${deposit ? depositContext : ""}`} transactionOrigin={returnOrder || (validReward && returnToDetails) ? `order:${orderFilter}` : walletContext ? "wallet" : undefined} />
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
@@ -309,14 +314,14 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
           : <>
             {cases.waiting.length > 0 ? <section aria-labelledby="support-waiting-heading" className="mt-4">
               <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3>
-              <SupportCaseList cases={cases.waiting} inboxContext={inboxContext} timeZone={account.timezone} />
+              <SupportCaseList cases={cases.waiting} inboxContext={inboxContext} inbox={inbox} timeZone={account.timezone} />
             </section> : null}
             {cases.other.length > 0 ? <div className="mt-4">
               {cases.waiting.length > 0 ? <h3 className="font-bold">Other cases</h3> : null}
-              <SupportCaseList cases={cases.other} inboxContext={inboxContext} timeZone={account.timezone} />
+              <SupportCaseList cases={cases.other} inboxContext={inboxContext} inbox={inbox} timeZone={account.timezone} />
             </div> : null}
           </>}
-        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}${walletContext}${orderContext}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}${walletView ? "&walletView=1" : ""}` : validReward ? `/support?rewardId=${validReward}${orderContext}` : validDeposit ? depositSupportHref(validDeposit, checkoutReturn, depositList).split("#")[0] : "/support", casePage, cases.more) : null}
+        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}${walletContext}${orderContext}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}${walletView ? "&walletView=1" : ""}` : validReward ? `/support?rewardId=${validReward}${orderContext}` : validDeposit ? depositSupportHref(validDeposit, checkoutReturn, depositList, entryReturn).split("#")[0] : "/support", casePage, cases.more) : null}
       </section>
     </div>
   </PageContainer>;

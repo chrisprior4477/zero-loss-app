@@ -23,6 +23,11 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<HeaderCategory | null>(null);
   const [bannerCategory, setBannerCategory] = useState<HeaderCategory | null>(null);
   const warmed = useRef(new Map<string, number>());
+  useEffect(() => {
+    const openSupport = () => setSelected("support");
+    window.addEventListener("zero-loss-open-support-updates", openSupport);
+    return () => window.removeEventListener("zero-loss-open-support-updates", openSupport);
+  }, []);
   const prefetch = useCallback((href: string) => {
     if (!href.startsWith("/account/entries")) return;
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
@@ -53,7 +58,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     if (!href) setBusy(true);
     setError("");
     // Navigation must not wait for the read receipt or a second page render.
-    if (href) { value.setOpen(false); router.push(notificationDestination(href)); }
+    if (href) { value.setOpen(false); router.push(notificationDestination(href, current)); }
     try {
       if (ids.length) await value.markRead(ids);
       if (!href) value.setOpen(false);
@@ -92,7 +97,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       <div className={styles.balances} inert={active || previewing ? true : undefined} aria-hidden={active || previewing ? true : undefined}>{children}</div>
       {previewing ? <div className={styles.samplePreview} role="img" aria-label="Sample notification banner preview. These examples are not account alerts."><NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={previewMessages} /></div> : null}
       {active ? <button ref={trigger} type="button" className={styles.trigger} aria-label={`${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onPointerDown={() => { keyboardOpened.current = false; }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") keyboardOpened.current = true; }} onClick={() => { if (bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
-        {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
+        {!value?.bannerHidden || value.preferencesPreviewActive ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
@@ -126,5 +131,8 @@ export function ReturnToUpdates() {
   const search = useSearchParams();
   const value = useNotifications();
   if (search.get("fromUpdates") !== "1" || !value) return null;
-  return <div className={styles.return}><button type="button" onClick={() => value.setOpen(true)}>← Back to updates</button></div>;
+  return <div className={styles.return}><button type="button" onClick={() => {
+    if (search.get("updateCategory") === "support") window.dispatchEvent(new Event("zero-loss-open-support-updates"));
+    value.setOpen(true);
+  }}>← Back to updates</button></div>;
 }

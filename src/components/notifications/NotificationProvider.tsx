@@ -27,6 +27,21 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const readChanges = useRef(new Map<string, boolean>());
   const readOperations = useRef(new Map<string, number>());
   const revision = useRef(0);
+  const bannerChannel = useRef<BroadcastChannel | null>(null);
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("zero-loss-notification-banner");
+    bannerChannel.current = channel;
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (!Array.isArray(event.data)) return;
+      const ids = new Set(event.data.filter((id): id is string => typeof id === "string"));
+      revision.current++;
+      ids.forEach(id => { readOperations.current.delete(id); readChanges.current.delete(id); });
+      setSnapshot(snapshot => snapshot ? { ...snapshot, readIds: snapshot.readIds.filter(id => !ids.has(id)) } : null);
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    };
+    return () => { bannerChannel.current = null; channel.close(); };
+  }, []);
   const mergeReads = useCallback((next: Snapshot | null) => {
     if (!next) return null;
     const reads = new Set(next.readIds);
@@ -125,6 +140,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     revision.current++;
     result.ids.forEach(id => readChanges.current.set(id, false));
     setSnapshot(mergeReads(result.snapshot));
+    bannerChannel.current?.postMessage(result.ids);
     setEnabled(true);
     setBannerHidden(false);
     // Keep the page visible so the restored animation can be tried immediately.

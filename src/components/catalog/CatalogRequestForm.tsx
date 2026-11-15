@@ -82,7 +82,7 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
       formData.set("requestKey", requestKey);
       setShowFeedback(true);
       startTransition(() => formAction(formData));
-    }} className="space-y-5">
+    }} className="space-y-5 [&_:invalid]:scroll-mt-[calc(var(--site-header-height,140px)+16px)]">
       <input type="hidden" name="sourceQuery" value={initialProduct} />
       <div>
         <label htmlFor="requested-item" className="text-sm font-bold text-white">What would you like to see?</label>

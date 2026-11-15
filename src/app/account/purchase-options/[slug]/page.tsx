@@ -10,6 +10,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/purchase-options.module.css";
+import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
 import { CompletedPurchaseReceipt } from "@/components/account/CompletedPurchaseReceipt";
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
@@ -71,6 +72,16 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const activity = account.activity.activity;
   const options = openPrizeOptions(activity, slug)
     .sort((left, right) => (left.enteredAt ?? "").localeCompare(right.enteredAt ?? "") || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
+  if (decline === "undo" && account.wallet?.scope === "demo" && isPreviewDataEnvironment()) {
+    const item = options[0] ?? activity.find(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined");
+    if (item) return <main className={styles.page}><section className={styles.shell}>
+      <h1>Check your declined offers</h1>
+      <Link href={prizePath}>View purchase options</Link>
+      <DeclinePurchaseOffersDialog item={item} recovering ownerId={account.userId}
+        offeredOptionIds={options.flatMap(offer => offer.completionOptionId ? [offer.completionOptionId] : [])}
+        ticketLabels={offerTicketLabels(activity.filter(ticket => ticket.slug === slug), activity)} />
+    </section></main>;
+  }
   if (selectedEntryId !== undefined && !options.some(option => option.entryId === selectedEntryId)) {
     if (typeof selectedEntryId !== "string" || !selectedEntryId) notFound();
     const ticket = findActivityItem(activity, slug, selectedEntryId);

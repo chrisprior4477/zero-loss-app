@@ -31,13 +31,14 @@ function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; ti
 type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; asOf: string; timeZone?: string };
 
 export function WeeklyDeposits(props: ChartProps) {
-  const [openWeek, setOpenWeek] = useState<string | null>(null);
+  const [openWeek, setOpenWeek] = useState<number | null>(null);
   return useMenuViewport() === "desktop" ? <DepositChart {...props} openWeek={openWeek} setOpenWeek={setOpenWeek} /> : null;
 }
 
 function DepositChart({ requests, hiddenIds, asOf, timeZone, openWeek, setOpenWeek }: ChartProps & {
-  openWeek: string | null; setOpenWeek: (week: string | null) => void;
+  openWeek: number | null; setOpenWeek: (week: number | null) => void;
 }) {
+  const [openReceipt, setOpenReceipt] = useState<string | null>(null);
   const chart = useMemo(() => {
     if (!requests) return null;
     const hidden = new Set(hiddenIds);
@@ -45,24 +46,27 @@ function DepositChart({ requests, hiddenIds, asOf, timeZone, openWeek, setOpenWe
   }, [requests, hiddenIds, asOf, timeZone]);
   const total = chart?.weeks.reduce((sum, week) => sum + week.cents, BigInt(0)) ?? BigInt(0);
   const largest = Math.max(1, ...(chart?.weeks.map(week => Number(week.cents)) ?? []));
+  const displayedReceipt = (openReceipt && requests?.find(request => request.id === openReceipt
+    && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id))) || chart?.latest;
   return <aside className={styles.weeklyPanel} aria-labelledby="weekly-deposit-heading">
     <h2 id="weekly-deposit-heading">Weekly deposits</h2>
     {!chart ? <p role="status">Weekly deposit history is unavailable.</p> : <>
       <div className={styles.weekChart}>
         <p>Posted deposits · Last four weeks</p><strong className={styles.weekTotal}>{formatDepositTotal(total)}</strong>
-        {chart.weeks.map(week => <div key={week.label}>
-          <button type="button" className={styles.weekBar} disabled={!week.receipts.length} aria-expanded={openWeek === week.label}
+        {chart.weeks.map(week => <div key={week.start}>
+          <button type="button" className={styles.weekBar} disabled={!week.receipts.length} aria-expanded={openWeek === week.start}
             aria-label={`${week.label}, ${formatDepositTotal(week.cents)} in posted deposits`}
-            onClick={() => setOpenWeek(openWeek === week.label ? null : week.label)}>
+            onClick={() => setOpenWeek(openWeek === week.start ? null : week.start)}>
             <span>{week.label}</span><span className={styles.barTrack} aria-hidden="true"><i style={{ width: `${100 * Number(week.cents) / largest}%` }} /></span><b>{formatDepositTotal(week.cents)}</b>
           </button>
-          {openWeek === week.label && <div className={styles.weekDetails}>{week.receipts.map(request => <ReceiptDetails key={request.id} request={request} timeZone={timeZone} />)}</div>}
+          {openWeek === week.start && <div className={styles.weekDetails}>{week.receipts.map(request => <ReceiptDetails key={request.id} request={request} timeZone={timeZone} />)}</div>}
         </div>)}
       </div>
       <p className={styles.weekHint}>{total ? "Select a week to see its deposits." : "No posted deposits in the last four weeks."}</p>
-      {chart.latest && <div className={styles.latestDeposit}><strong>Latest posted deposit</strong><details className={styles.weekReceipt}>
-        <summary><DepositReceiptDate request={chart.latest} timeZone={timeZone} /><b>View {formatUsdFromCents(chart.latest.amount)} receipt</b></summary>
-        <p>Payment &amp; credit matched</p><p>Request {chart.latest.id}</p><DepositCreditLink request={chart.latest} />
+      {displayedReceipt && <div className={styles.latestDeposit}><strong>{displayedReceipt.id === chart.latest?.id ? "Latest posted deposit" : "Deposit receipt"}</strong><details key={displayedReceipt.id} className={styles.weekReceipt}
+        onToggle={event => { setOpenReceipt(event.currentTarget.open ? displayedReceipt.id : null); }}>
+        <summary><DepositReceiptDate request={displayedReceipt} timeZone={timeZone} /><b>View {formatUsdFromCents(displayedReceipt.amount)} receipt</b></summary>
+        <p>Payment &amp; credit matched</p><p>Request {displayedReceipt.id}</p><DepositCreditLink request={displayedReceipt} />
       </details></div>}
     </>}
   </aside>;

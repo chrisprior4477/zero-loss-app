@@ -25,7 +25,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     return groups.find(group => entries.some(entry => entrySharedInScope(entry, group.id, defaultRule, rules)))?.id ?? "crew";
   });
   const group = groups.find(g => g.id === selectedScope);
-  const scope = group?.id ?? "crew";
+  const scope = selectedScope;
   const scopeAvailable = scope === "crew" || Boolean(group);
   const label = scope === "crew" ? "Your Crew" : group?.name ?? "Unavailable group";
   const [sharedOnly, setSharedOnly] = useState(true);
@@ -147,7 +147,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
       finally { inFlight.current = false; }
     });
   }
-  const disabled = pending || !available || !scopeAvailable;
+  const disabled = pending || !available || !scopeAvailable || retry !== null;
   const status = message ? <div className={error ? styles.error : styles.notice} role={error ? "alert" : "status"}>
     <p>{message}</p><div>{undoId ? <button type="button" disabled={pending} onClick={restore}>Undo</button> : null}
       {retry ? <button type="button" disabled={pending} onClick={() => stop(retry)}>Retry cleanup</button> : null}</div>

@@ -313,16 +313,20 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
           I agree to the{" "}
           <Link
             href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[var(--foreground)] underline-offset-2 hover:underline"
           >
-            Terms of Service
+            Terms of Service (new tab)
           </Link>{" "}
           and{" "}
           <Link
             href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[var(--foreground)] underline-offset-2 hover:underline"
           >
-            Privacy Policy
+            Privacy Policy (new tab)
           </Link>
           .
         </span>

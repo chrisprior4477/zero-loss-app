@@ -86,20 +86,20 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
     <p className={styles.saved}>Saved: {bannerStyleNames[saved]}</p>
     <fieldset disabled={busy} className={styles.grid}><legend className="sr-only">Notification banner style</legend>
       {bannerStyles.map((style, i) => <label className={styles.option} data-selected={choice === style} key={style}>
-        <input type="radio" name="notification-banner-style" value={style} checked={choice === style} onChange={() => { setChoice(style); setHeaderStyle?.(style); notifications?.setBannerHidden(false); setMessage(""); }} />
+        <input type="radio" name="notification-banner-style" value={style} checked={choice === style} onChange={() => { setChoice(style); setHeaderStyle?.(style); setMessage(""); }} />
         <span className={styles.name}>{i + 1}. {bannerStyleNames[style]}</span>
         <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} speed={speed} displaySeconds={displaySeconds} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
       </label>)}
     </fieldset>
     <div className={styles.speedControl}>
       <label htmlFor="notification-banner-speed">Banner speed <output htmlFor="notification-banner-speed">{speed} / 10</output></label>
-      <input id="notification-banner-speed" type="range" min="1" max="10" step="1" value={speed} disabled={busy} aria-valuetext={`Speed ${speed} of 10`} aria-describedby="banner-speed-help" onChange={e => { const next = Number(e.target.value); setSpeed(next); setHeaderSpeed?.(next); notifications?.setBannerHidden(false); setMessage(""); }} />
+      <input id="notification-banner-speed" type="range" min="1" max="10" step="1" value={speed} disabled={busy} aria-valuetext={`Speed ${speed} of 10`} aria-describedby="banner-speed-help" onChange={e => { const next = Number(e.target.value); setSpeed(next); setHeaderSpeed?.(next); setMessage(""); }} />
       <div className={styles.speedScale} aria-hidden="true"><span>1 · Slower</span><span>10 · Faster</span></div>
       <p id="banner-speed-help">How quickly the banner opens and closes.</p>
     </div>
     <div className={styles.speedControl}>
       <label htmlFor="notification-banner-display-time">Display time <output htmlFor="notification-banner-display-time">{displaySeconds} {displaySeconds === 1 ? "second" : "seconds"}</output></label>
-      <input id="notification-banner-display-time" type="range" min="1" max="10" step="1" value={displaySeconds} disabled={busy} aria-valuetext={`${displaySeconds} ${displaySeconds === 1 ? "second" : "seconds"}`} aria-describedby="banner-display-time-help" onChange={e => { const next = Number(e.target.value); setDisplaySeconds(next); setHeaderDisplaySeconds?.(next); notifications?.setBannerHidden(false); setMessage(""); }} />
+      <input id="notification-banner-display-time" type="range" min="1" max="10" step="1" value={displaySeconds} disabled={busy} aria-valuetext={`${displaySeconds} ${displaySeconds === 1 ? "second" : "seconds"}`} aria-describedby="banner-display-time-help" onChange={e => { const next = Number(e.target.value); setDisplaySeconds(next); setHeaderDisplaySeconds?.(next); setMessage(""); }} />
       <div className={styles.speedScale} aria-hidden="true"><span>1 second</span><span>10 seconds</span></div>
       <p id="banner-display-time-help">How long each notification stays open.</p>
     </div>

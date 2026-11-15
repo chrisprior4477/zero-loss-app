@@ -7,7 +7,8 @@ afterEach(cleanup);
 
 function Selector({ maximum = 150, disabled = false }: { maximum?: number; disabled?: boolean }) {
   const [quantity, setQuantity] = useState(1);
-  return <EntryQuantityInput value={quantity} maximum={maximum} label="Quantity" disabled={disabled} onChange={setQuantity} />;
+  const [draft, setDraft] = useState<string | null>(null);
+  return <EntryQuantityInput value={quantity} maximum={maximum} label="Quantity" disabled={disabled} onChange={setQuantity} invalidDraft={draft} onInvalidDraft={setDraft} />;
 }
 
 test("typing replaces the selected number and Enter finishes editing without submitting", () => {
@@ -36,9 +37,12 @@ test("invalid and empty input cannot turn into an unintended ticket quantity", (
   fireEvent.change(input, { target: { value: "" } });
   expect(input.value).toBe("");
   fireEvent.blur(input);
-  expect(input.value).toBe("1");
+  expect(input.value).toBe("");
+  expect(input.getAttribute("aria-invalid")).toBe("true");
   fireEvent.change(input, { target: { value: "0" } });
   fireEvent.blur(input);
+  expect(input.value).toBe("0");
+  fireEvent.keyDown(input, { key: "Escape" });
   expect(input.value).toBe("1");
 });
 

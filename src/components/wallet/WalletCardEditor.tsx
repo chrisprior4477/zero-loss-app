@@ -17,12 +17,13 @@ export function openWalletPanel(hash: string, state: object | null = null, repla
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id) {
+export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id, moveFocus = false) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const target = (window.innerWidth <= 767 ? document.getElementById(mobileId) : null) ?? document.getElementById(id);
     if (!target) return;
     const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
     window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - header - 12), behavior: "auto" });
+    if (moveFocus) target.querySelector<HTMLElement>("h2[tabindex], h3[tabindex]")?.focus({ preventScroll: true });
   }));
 }
 
@@ -50,8 +51,16 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const [expiry, setExpiry] = useState(fixture.expiry as string);
   const [code, setCode] = useState(fixture.code as string);
   const [artwork] = useState(initialArtwork ?? savedCard?.artwork);
-  const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
-  const [makeDepositDefault, setMakeDepositDefault] = useState(savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true);
+  const [defaultChoice, setDefaultChoice] = useState<{ checked: boolean; original: boolean } | null>(null);
+  const [depositChoice, setDepositChoice] = useState<{ checked: boolean; original: boolean } | null>(null);
+  const savedDefault = savedCard?.isDefault ?? true;
+  const savedDepositDefault = savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true;
+  const makeDefault = defaultChoice?.checked ?? savedDefault;
+  const makeDepositDefault = depositChoice?.checked ?? savedDepositDefault;
+  const preferenceConflict = Boolean(
+    defaultChoice && defaultChoice.original !== savedDefault && defaultChoice.checked !== savedDefault
+    || depositChoice && depositChoice.original !== savedDepositDefault && depositChoice.checked !== savedDepositDefault,
+  );
   const [error, setError] = useState("");
   const [showSaveResult, setShowSaveResult] = useState(false);
   const [back, setBack] = useState(false);
@@ -68,7 +77,9 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       const result = await saveDemoPaymentMethod(previous, data);
       if (result.status === "succeeded") {
         const savedFixture = demoCardFixture(data.get("paymentMethod"))!;
-        completeSave({ token: savedFixture.token, lastFour: savedFixture.lastFour, isDefault: data.get("makeDefault") === "true", isDepositDefault: data.get("makeDepositDefault") === "true", ...(artwork ? { artwork } : {}) });
+        setDefaultChoice(null);
+        setDepositChoice(null);
+        completeSave(result.card ?? { token: savedFixture.token, lastFour: savedFixture.lastFour, isDefault: data.get("makeDefault") === "true", isDepositDefault: data.get("makeDepositDefault") === "true", ...(artwork ? { artwork } : {}) });
       }
       return result;
     } catch { return { status: "error" as const, message: "The card could not be saved. Please try again." }; }
@@ -76,23 +87,38 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const updated = showSaveResult && !pending && state.status === "succeeded" && Boolean(savedCard);
 
   return <section id={depositLabel ? fundingCardEditorId : "wallet-card-editor"} className={styles.editor} aria-labelledby="wallet-card-editor-title">
-    <h3 id="wallet-card-editor-title">{savedCard ? "Edit card" : "Add a card"}</h3>
+    <h3 id="wallet-card-editor-title" tabIndex={-1}>{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       <button type="button" className={styles.primary} disabled={disabled || pending} onClick={() => nameInput.current?.focus()}>Add Card</button>
-      <MobileCardCamera token={enteredFixture?.token ?? token} savedCard={savedCard?.token === (enteredFixture?.token ?? token) ? savedCard : undefined} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={card => completeSave(card, "camera")} />
+      <MobileCardCamera token={savedCard?.token ?? enteredFixture?.token ?? token} savedCard={savedCard} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={card => completeSave(card, "camera")} />
     </div>
     <form noValidate aria-label="Save payment method" onChange={() => { setError(""); setShowSaveResult(false); }} onSubmit={event => {
       event.preventDefault();
       if (disabled || pending) return;
       setError("");
+      if (savedCard && enteredFixture && enteredFixture.token !== savedCard.token) {
+        setError("This editor updates the selected card. Use Add Card to save a different sample card.");
+        return;
+      }
       if (!cardholder.trim() || !enteredFixture || expiry.trim() !== enteredFixture.expiry || code.trim() !== enteredFixture.code) {
         setShowSaveResult(false);
         setError("Use the supplied sample card details. Real card details are not accepted in this preview.");
         return;
       }
       // Prevent the automatic form reset from discarding edits on a save error.
+      if (preferenceConflict) {
+        setError("These card preferences changed in another tab. Review the current settings before saving.");
+        setDefaultChoice(null);
+        setDepositChoice(null);
+        return;
+      }
       const data = new FormData(event.currentTarget);
+      if (savedCard?.revision) {
+        data.set("cardRevision", savedCard.revision);
+        if (!defaultChoice || makeDefault === savedDefault) data.delete("makeDefault");
+        if (!depositChoice || makeDepositDefault === savedDepositDefault) data.delete("makeDepositDefault");
+      }
       setShowSaveResult(true);
       startTransition(() => action(data));
     }}>
@@ -107,8 +133,8 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         <label>Expiry<input autoComplete="off" value={expiry} onChange={event => setExpiry(event.target.value)} disabled={disabled || pending} /></label>
         <label>Security code<input inputMode="numeric" autoComplete="off" value={code} onChange={event => setCode(event.target.value)} disabled={disabled || pending} /></label>
       </div>
-      <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setMakeDefault(event.target.checked)} disabled={disabled || pending} />Use this card for future transactions</label>
-      <label className={styles.choice}><input type="checkbox" checked={makeDepositDefault} onChange={event => setMakeDepositDefault(event.target.checked)} disabled={disabled || pending} />Use this card for deposits</label>
+      <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setDefaultChoice({ checked: event.target.checked, original: savedDefault })} disabled={disabled || pending} />Use this card for future transactions</label>
+      <label className={styles.choice}><input type="checkbox" checked={makeDepositDefault} onChange={event => setDepositChoice({ checked: event.target.checked, original: savedDepositDefault })} disabled={disabled || pending} />Use this card for deposits</label>
       {error || (showSaveResult && !pending && state.status === "error") ? <p role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
       {updated ? <p role="status" className={styles.notice}>Card updated.</p> : null}
       <div className={`${styles.actions} ${styles.editorActions}`}>

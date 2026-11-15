@@ -104,6 +104,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
       }}
       onKeyDown={event => {
         if (event.key === "Escape") { event.preventDefault(); onClose(true); return; }
+        if (event.key === "Tab") { onClose(true); return; }
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault(); choose(options[browseIndex.current]); return;
         }

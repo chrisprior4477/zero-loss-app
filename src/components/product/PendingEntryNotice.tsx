@@ -166,7 +166,10 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
 
   useEffect(() => {
     generation.current += 1;
-    const timer = window.setTimeout(() => { setRequests([]); void refresh(); }, 0);
+    const timer = window.setTimeout(() => {
+      setRequests([...knownPending.current.values()]);
+      void refresh();
+    }, 0);
     return () => window.clearTimeout(timer);
   }, [pathname, refresh]);
 

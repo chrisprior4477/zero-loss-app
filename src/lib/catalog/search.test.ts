@@ -8,7 +8,7 @@ describe("catalog search", () => {
     expect(matches.length).toBeGreaterThan(0);
     expect(matches.every(product => product.value === 100 && product.retailer.startsWith("Walmart"))).toBe(true);
   });
-  test.each([["Walmart gift cards under $100", false], ["Walmart gift cards up to one hundred dollars", true]])("applies the budget in %s", (query, inclusive) => {
+  test.each([["Walmart gift cards under $100", false], ["Walmart gift cards up to one hundred dollars", true], ["Walmart up to $100 gift cards", true]])("applies the budget in %s", (query, inclusive) => {
     const matches = searchCatalog(demoProducts, query);
     expect(matches.some(product => product.value === 75)).toBe(true);
     expect(matches.some(product => product.value === 100)).toBe(inclusive);

@@ -7,11 +7,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, RedirectType: { replace: "replace" } }));
 import { revivePurchaseOption } from "./lifecycle-actions";
 
+const declineEventId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const optionId = "11111111-1111-4111-8111-111111111111";
 const entryId = `ent_${"2".repeat(32)}`;
 const slug = "directory-build-a-bear-workshop-100-gift-card";
 const saved = { completion_option_id: optionId, entry_id: entryId, slug };
-function form() { const data = new FormData(); data.set("completionOptionId", optionId); return data; }
+function form() { const data = new FormData(); data.set("completionOptionId", optionId); data.set("declineEventId", declineEventId); return data; }
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -27,7 +28,7 @@ test("revival redirects from the server to the exact owned option after revalida
   const data = form(); data.set("slug", "unrelated"); data.set("entryId", "unrelated"); data.set("href", "https://example.test");
   await expect(revivePurchaseOption({ status: "idle" }, data)).rejects.toThrow(`redirect:/account/purchase-options/${slug}?option=${entryId}`);
   expect(mocks.redirect).toHaveBeenCalledWith(`/account/purchase-options/${slug}?option=${entryId}`, "replace");
-  expect(mocks.rpc).toHaveBeenCalledWith("revive_preview_purchase_option", { p_completion_option_id: optionId, p_idempotency_key: `revive_${optionId.replaceAll("-", "")}` });
+  expect(mocks.rpc).toHaveBeenCalledWith("undo_preview_purchase_option_decline", { p_completion_option_id: optionId, p_decline_event_id: declineEventId });
   expect(mocks.revalidate).toHaveBeenCalledWith("/account/declined-offers");
   expect(mocks.revalidate).toHaveBeenCalledWith(`/account/purchase-options/${slug}`);
   expect(mocks.redirect.mock.invocationCallOrder[0]).toBeGreaterThan(mocks.revalidate.mock.invocationCallOrder.at(-1)!);

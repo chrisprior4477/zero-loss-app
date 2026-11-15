@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
+import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
+import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 
 /**
  * Hero action row from the Checkpoint 2 artboards: Shop button, live winners
@@ -54,6 +55,7 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
   const router = useRouter();
   const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState("");
+  const voice = useVoiceSearch(setQuery);
   const [wordIndex, setWordIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +101,7 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
       <form
         action="/browse"
         method="get"
+        onSubmit={event => { if (voice.busy) event.preventDefault(); }}
         className={
           focused
             ? "absolute inset-0 z-20 flex items-center gap-1.5 rounded-[10px] bg-white px-2 shadow-[0_6px_22px_rgba(0,0,0,0.35)]"
@@ -117,7 +120,7 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
           name="q"
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={event => { voice.cancel(); setQuery(event.target.value); }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           enterKeyHint="search"
@@ -125,9 +128,9 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
           placeholder={`Search ${SEARCH_WORDS[wordIndex]}`}
           className="min-w-0 flex-1 truncate border-none bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[rgba(0,48,95,0.55)]"
         />
-        {query.trim() ? (
+        {query.trim() && !voice.busy ? (
           <button type="submit" aria-label="Go to search results" className="min-h-9 shrink-0 rounded-md bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
-        ) : <VoiceSearchButton key={query} onTranscript={setQuery} />}
+        ) : <VoiceSearchControl {...voice} />}
       </form>
       <p
         id="hero-search-status"

@@ -55,11 +55,11 @@ function setup(matches = true) {
   return { header, filters, controls, scrollTo: window.scrollTo as ReturnType<typeof vi.fn> };
 }
 
-test("mobile empty activity lands below the sticky header with actions in view", () => {
+test("mobile empty activity keeps its filters visible when the actions require scrolling", () => {
   const { controls, scrollTo } = setup();
   controls.getBoundingClientRect = vi.fn(() => new DOMRect(0, 1000, 360, 50));
   const view = render(<MyActivityLandingScroll filter="completion" revealControls enabled />);
-  expect(scrollTo).toHaveBeenCalledWith({ top: 366, behavior: "auto" });
+  expect(scrollTo).toHaveBeenCalledWith({ top: 248, behavior: "auto" });
 
   view.rerender(<MyActivityLandingScroll filter="completed" revealControls enabled />);
   expect(scrollTo).toHaveBeenCalledTimes(2);

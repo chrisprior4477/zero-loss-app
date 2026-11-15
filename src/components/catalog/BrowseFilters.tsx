@@ -33,16 +33,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const applyingPreset = useRef(false);
   const [localDraft, setLocalDraft] = useState(searchTerm);
   const session = useBrowseResultsSearch();
-  const searchDraft = session?.draft ?? localDraft;
-  const setSearchDraft = session?.setDraft ?? setLocalDraft;
-  const localVoice = useVoiceSearch(setLocalDraft);
-  const voice = session?.voice ?? localVoice;
-  function editSearch() {
-    if (session && session.editor !== "filters") {
-      voice.cancel();
-      session.setEditor("filters");
-    }
-  }
+  const searchDraft = localDraft;
+  const voice = useVoiceSearch(setLocalDraft);
   const [searchFocused, setSearchFocused] = useState(false);
   const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
@@ -82,8 +74,12 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
-    if (voice.listening && !filtersOnly) return;
+    if (voice.busy && !filtersOnly) return;
     voice.cancel();
+    if (!filtersOnly) {
+      session?.voice.cancel();
+      session?.setDraft(params.get("q") ?? "");
+    }
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
     onNavigate?.();
@@ -120,17 +116,12 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
-          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onFocus={editSearch} onChange={event => { voice.cancel(); setSearchDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
-          {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setSearchDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
-          {searchDraft.trim() && !voice.listening ? (
+          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.cancel(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
+          {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
+          {searchDraft.trim() && !voice.busy ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
           ) : null}
-          <VoiceSearchControl listening={voice.listening && (!session || session.editor === "filters")} error={(!session || session.editor === "filters") ? voice.error : ""}
-            toggle={() => {
-              if (session && session.editor !== "filters" && voice.listening) { editSearch(); return; }
-              session?.setEditor("filters");
-              voice.toggle();
-            }} />
+          <VoiceSearchControl listening={voice.listening} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
         </div>
         {directoryMatches.length ? (
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
@@ -195,7 +186,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setMode("all");
         setBounds({ minValue: "", maxValue: "" });
-        setSearchDraft(searchTerm);
+        setLocalDraft(searchTerm);
         onNavigate?.();
       }} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>

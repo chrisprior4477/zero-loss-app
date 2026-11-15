@@ -49,7 +49,7 @@ export function HeaderAccountMetrics({
           rememberWalletSelection(walletFunding);
         } else if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0 && window.location.pathname === "/account/wallet") {
           const query = new URLSearchParams(window.location.search);
-          if (query.get("view") === "history" && !query.has("reward") && !query.has("rewardId")) {
+          if (query.get("view") === "history" && !query.has("transaction") && !query.has("reward") && !query.has("rewardId")) {
             event.preventDefault();
             window.location.hash = "balance";
           }

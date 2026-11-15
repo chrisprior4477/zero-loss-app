@@ -18,7 +18,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { EntryTicketRail } from "@/components/account/EntryTicketRail";
+import { EntryTicketRail, EntryTicketSelectionProvider } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
@@ -26,10 +26,12 @@ import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import styles from "@/components/account/entry-page.module.css";
 import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
+import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
+import { entryReviewContext } from "@/lib/wallet/funding-navigation";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string; alerts?: string; notice?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
@@ -52,7 +54,14 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   // A saved URL remains usable after this customer's entry receives an outcome.
   const item = account.activity.activity.find(entry => entry.entryId === entryId);
   if (!item) notFound();
-  if (item.status !== "active") redirect(activityHref(item));
+  const entryContext = entryReviewContext(query);
+  if (item.status !== "active") {
+    if (item.rewardId && (entryContext.transaction || entryContext.notice)) {
+      const reward = new URLSearchParams({ reward: item.slug, rewardId: item.rewardId, ...entryContext });
+      redirect(`/account/wallet?${reward}#reward-pass`);
+    }
+    redirect(activityHref(item));
+  }
   const relatedEntries = account.activity.activity
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
     .sort(compareSavedEntries);
@@ -70,6 +79,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(entry.enteredAt)) : "Date unavailable",
     amountLabel: formatUsdFromCents(entry.paidCents),
   }));
+  const initialTicket = entryView === "first" ? savedTickets[0].entryId : entryId;
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
@@ -98,8 +108,9 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnFilter = query?.filter === "active" ? "active" : undefined;
-  const walletTransaction = typeof query?.transaction === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(query.transaction) ? query.transaction : undefined;
+  const walletTransaction = entryContext.transaction;
   const walletHref = walletTransaction && walletSupportReturnHref(walletTransaction, query?.walletView === "1");
+  const alertsHref = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}${returnFilter ? "&filter=active" : ""}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
@@ -111,7 +122,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
           <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>
-          <Link href={walletHref || returnHref} className={styles.closePage} aria-label={walletHref ? "Close entry details and return to this transaction" : "Close entry details and return to My Activity"}><span aria-hidden="true">×</span></Link>
+          <Link href={walletHref || alertsHref || returnHref} className={styles.closePage} aria-label={walletHref ? "Close entry details and return to this transaction" : alertsHref ? "Close entry details and return to this update" : "Close entry details and return to My Activity"}><span aria-hidden="true">×</span></Link>
         </div>
       </div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
@@ -133,13 +144,15 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} />
+      <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
+      <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>{entryCount === 1 ? "Your saved entry is one chance" : `Your ${entryCount} saved entries are ${entryCount} separate chances`} in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} itemImage={item.image} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} itemImage={item.image} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} entryContext={entryContext} />
       </section>
+      </EntryTicketSelectionProvider>
     </div>
   </main></PreferenceSnapshot>;
 }

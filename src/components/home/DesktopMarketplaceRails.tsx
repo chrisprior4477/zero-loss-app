@@ -308,7 +308,7 @@ export function DesktopMarketplaceRails() {
               >
                 <Link
                   href={item.href?.startsWith("/items/")
-                    ? productHrefWithBrowseReturn(item.href.slice("/items/".length), "/browse?sort=ending-soon")
+                    ? productHrefWithBrowseReturn(item.href.slice("/items/".length), `/?ending-prize=${encodeURIComponent(item.href.slice("/items/".length))}#ending-soon`)
                     : item.href ?? "/browse"}
                   draggable={false}
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"

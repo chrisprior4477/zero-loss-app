@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, undoEntryLabel, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
@@ -13,6 +13,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { EntryQuantityInput } from "@/components/product/EntryQuantityInput";
+import { useSelectedEntryTicket } from "./EntryTicketRail";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import { entryReviewFundingHref, entryReviewHref } from "@/lib/wallet/funding-navigation";
 import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
@@ -41,15 +42,18 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
+export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, entryContext }: {
   entryId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
   itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
+  entryContext?: { transaction?: string; walletView?: string; alerts?: string; notice?: string };
 }) {
   const router = useRouter();
+  const crewReturnEntry = useSelectedEntryTicket()?.selected ?? entryId;
   const [nextOpen, setNextOpen] = useState(false);
   const [typedLimit, setTypedLimit] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(() => Math.min(isEntryQuantity(initialQuantity) ? initialQuantity : 1, isEntryQuantity(remaining) ? remaining : 1));
+  const [invalidQuantity, setInvalidQuantity] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(resumeReview || initialReceipt !== null);
   const [approved, setApproved] = useState(false);
   const [working, setWorking] = useState(false);
@@ -63,6 +67,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   const attemptedForm = useRef<FormData | null>(null);
   const activeRequestId = useRef<string | null>(initialReceipt?.requestId ?? null);
   const latestReceipt = useRef<EntryRequest | null>(initialReceipt);
+  const lastServerHead = useRef(requestHead.requestId);
   const checkout = useRef<HTMLDivElement>(null);
   const closingRequest = useRef(false);
   const crewRail = useRef<HTMLDivElement>(null);
@@ -78,19 +83,39 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   const quantityAvailable = isEntryQuantity(quantity) && quantity <= maxQuantity;
   const totalCents = quantity * (entryPriceCents ?? 0);
   const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
-  const canEnter = entryEnabled && requestHead.ready && entryPriceCents !== null && balanceCents !== null;
+  const canEnter = entryEnabled && requestHead.ready && !requestHead.validating && entryPriceCents !== null && balanceCents !== null;
   const busy = working || receipt?.status === "pending";
   const uncertain = result.status === "error" && result.code === "outcome_unknown";
   const reviewing = !receipt && result.status !== "succeeded" && result.status !== "request";
   const activityFilter = new URLSearchParams(returnHref.split("?")[1]).get("filter");
-  const addFundsHref = entryReviewFundingHref(slug, entryId, quantity, activityFilter);
-  const ticketHref = entryId ? `/account/entries/${entryId}${activityFilter === "active" ? "?filter=active" : ""}#entry-details-intro` : null;
+  const addFundsHref = entryReviewFundingHref(slug, entryId, quantity, activityFilter, entryContext);
+  const ticketQuery = new URLSearchParams({ ...(activityFilter === "active" ? { filter: "active" } : {}), ...entryContext });
+  const ticketHref = entryId ? `/account/entries/${entryId}${ticketQuery.size ? `?${ticketQuery}` : ""}#entry-details-intro` : null;
 
   function openReview() {
-    if (entryId) window.history.replaceState(window.history.state, "", entryReviewHref(entryId, quantity, activityFilter));
+    if (invalidQuantity !== null) return;
+    if (entryId) window.history.replaceState(window.history.state, "", entryReviewHref(entryId, quantity, activityFilter, entryContext));
     setCheckoutOpen(true);
   }
-  useEntryWalletFunding(entryId && canEnter && quantityAvailable && reviewing && !busy && !uncertain ? addFundsHref : null);
+  useEntryWalletFunding(entryId && canEnter && quantityAvailable && invalidQuantity === null && reviewing && !busy && !uncertain ? addFundsHref : null);
+
+  useLayoutEffect(() => {
+    if (working || uncertain) return;
+    if (requestHead.ready && requestHead.requestId !== lastServerHead.current) {
+      lastServerHead.current = requestHead.requestId;
+      setLatestRequestId(requestHead.requestId);
+      setApproved(false);
+    }
+    if (!initialReceipt || initialReceipt.requestId === activeRequestId.current
+      || (requestHead.ready && initialReceipt.requestId !== requestHead.requestId)) return;
+    activeRequestId.current = initialReceipt.requestId;
+    latestReceipt.current = initialReceipt;
+    attemptedForm.current = null;
+    setReceipt(initialReceipt);
+    setResult({ status: "idle" });
+    setApproved(false);
+    setCheckoutOpen(true);
+  }, [initialReceipt, requestHead, uncertain, working]);
 
   useEffect(() => {
     if (!initialReceipt) return;
@@ -195,13 +220,13 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   }
 
   async function submitInlineEntry() {
-    if (!canEnter || !approved || busy || (!uncertain && (insufficientBalance || !quantityAvailable))) return;
+    if (!canEnter || !approved || busy || (!uncertain && (insufficientBalance || !quantityAvailable || invalidQuantity !== null))) return;
     const form = uncertain && attemptedForm.current ? attemptedForm.current : new FormData();
     if (!uncertain || !attemptedForm.current) {
       form.set("offeringSlug", slug);
       form.set("quantity", String(quantity));
       form.set("idempotencyKey", submissionKey);
-      const previousRequestId = receipt?.status !== "pending" ? receipt?.requestId ?? latestRequestId ?? requestHead.requestId : latestRequestId ?? requestHead.requestId;
+      const previousRequestId = latestRequestId;
       if (previousRequestId) form.set("previousRequestId", previousRequestId);
       attemptedForm.current = form;
     }
@@ -248,6 +273,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   }
 
   function adjustQuantity(next: number, clamped = false) {
+    setInvalidQuantity(null);
     setTypedLimit(clamped ? next : null);
     setQuantity(next);
     setApproved(false);
@@ -286,13 +312,14 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
           {reviewing ? <div className={styles.quantityControls} aria-label="Choose additional entries">
             <div className={styles.quantityStepper}>
               <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
-              <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} />
+              <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} invalidDraft={invalidQuantity} onInvalidDraft={draft => { setInvalidQuantity(draft); if (draft !== null) setApproved(false); }} />
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
+            {invalidQuantity !== null ? <span role="status">Enter at least one extra entry.</span> : null}
             {typedLimit === quantity && typedLimit === maxQuantity ? <span role="status">Only {typedLimit} more {typedLimit === 1 ? "entry is" : "entries are"} available. Your quantity was adjusted.</span> : null}
           </div> : null}
-          {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
+          {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview} disabled={invalidQuantity !== null}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
           {checkoutOpen ? <div id="additional-entry-checkout" ref={checkout} tabIndex={-1} className={styles.inlineCheckout} data-phase={receipt?.status ?? result.status} data-landing-align={reviewing ? "center" : "start"} aria-label="Additional entry checkout">
             {reviewing ? <>
             <div className={styles.reviewPrize}>
@@ -303,7 +330,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
             {!quantityAvailable && !uncertain ? <p className={styles.checkoutError}>Only {maxQuantity} additional {maxQuantity === 1 ? "ticket is" : "tickets are"} available now. Reduce the quantity before confirming.</p> : null}
-            {!working && !uncertain && requestHead.ready && (insufficientBalance || (result.status === "error" && result.code === "insufficient_balance")) ? <InsufficientFundsNotice href={addFundsHref}>
+            {!working && !uncertain && invalidQuantity === null && requestHead.ready && (insufficientBalance || (result.status === "error" && result.code === "insufficient_balance")) ? <InsufficientFundsNotice href={addFundsHref}>
               {insufficientBalance ? <>Not enough demo funds for this quantity. Add {formatUsdFromCents(totalCents - (balanceCents ?? 0))} more for these entries.</> : <>Your available balance changed. Check the latest balance in Add funds, then return to this entry review.</>}
             </InsufficientFundsNotice> : null}
             {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh to check it before entering again.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
@@ -315,8 +342,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
             {result.status === "error" && result.code !== "insufficient_balance" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {reviewing ? <>
-              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working} />I approve this demo entry transaction.</label>
-              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || working || (!uncertain && (insufficientBalance || !quantityAvailable))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
+              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
+              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || working || (!uncertain && (insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
             {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApproved(false); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
           </div> : null}
@@ -334,11 +361,11 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
               return <div className={styles.crewCard} key={member.id}>
                 <div className={styles.crewAvatar}>{member.avatarUrl ? <Image src={member.avatarUrl} alt="" fill sizes="72px" unoptimized={member.avatarUrl.startsWith("http")} /> : <span aria-hidden="true">{member.name.charAt(0).toUpperCase()}</span>}</div>
                 <strong>{member.name}</strong>
-                <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); setCrewShareMessage(""); }}>{selected ? "Selected ✓" : "Notify"}</button>
+                <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} disabled={crewSharePending} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); setCrewShareMessage(""); }}>{selected ? "Selected ✓" : "Notify"}</button>
                 <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
-            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(entryId ? { entry: entryId } : {}), ...(activityFilter === "active" ? { filter: "active" } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry } : {}), ...(activityFilter === "active" ? { filter: "active" } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: "smooth" })}>›</button>
         </div>
