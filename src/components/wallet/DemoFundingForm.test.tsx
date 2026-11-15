@@ -232,7 +232,7 @@ test("a pending history record opens the one matching recovery card without post
   render(<DemoFundingRequests fundingEnabled requests={[
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
   ]} />);
-  expect(screen.getByRole("link", { name: "Check this deposit" }).getAttribute("href")).toBe("/account/wallet?view=history&deposit=pending_request_key_01#purchase-deposit");
+  expect(screen.getByRole("link", { name: "Check this deposit" }).getAttribute("href")).toBe("/account/wallet?view=history&deposit=pending_request_key_01&panel=deposits#purchase-deposit");
   expect(reconcileDemoFunding).not.toHaveBeenCalled();
 });
 

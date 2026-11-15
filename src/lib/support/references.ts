@@ -1,10 +1,15 @@
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 import type { FulfillmentFilter } from "@/lib/account/fulfillment";
 
 export type SupportDeposit = { key: string; id: string; amount: number };
 
-export function depositSupportHref(key: string): string {
-  return `/support?deposit=${encodeURIComponent(key)}#report-problem`;
+export function depositSupportHref(key: string, checkoutReturn?: string, fromDeposits = false): string {
+  const params = new URLSearchParams({ deposit: key });
+  const checkout = purchaseOptionReturnPath(checkoutReturn);
+  if (checkout) params.set("checkoutReturn", checkout);
+  if (fromDeposits) params.set("depositList", "1");
+  return `/support?${params}#report-problem`;
 }
 
 export function rewardSupportHref(rewardId?: string | null, orderFilter: FulfillmentFilter = "all"): string {

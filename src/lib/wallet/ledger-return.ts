@@ -2,9 +2,9 @@ export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refund
 
 export const ledgerReturnKey = "zeroLossWalletLedgerReturn";
 
-export function walletSupportReturnHref(transactionId: string, restoreView: boolean) {
+export function walletSupportReturnHref(transactionId: string, restoreView: boolean, depositList = false) {
   const id = encodeURIComponent(transactionId);
-  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}#transaction-${id}`;
+  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}#transaction-${id}`;
 }
 
 function supportReturnKey(walletId: string, transactionId: string) {

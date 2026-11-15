@@ -424,7 +424,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
           <DepositReceiptDate request={request} timeZone={timeZone} />
           <p>{request.reconciliation === "discrepancy" ? "Payment and wallet records need review" : request.reconciliation === "credit_pending" ? "Payment received · credit pending" : "Request saved · not processed"}</p>
         </div>
-        {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey)} className={paymentStyles.primary}>Contact Support</Link>
+        {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey, continueTo?.href)} className={paymentStyles.primary}>Contact Support</Link>
           : <button type="button" className={paymentStyles.primary} onClick={() => onRecover(request)} aria-label={`Check this deposit · ${formatUsdFromCents(request.amount)}`}>Check this deposit</button>}
       </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
     )}
@@ -650,11 +650,11 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
           remember(batches.start, batches.size, allDeposits, next);
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
-          <p>Request {request.id}</p><DepositCreditLink request={request} />
+          <p>Request {request.id}</p><DepositCreditLink request={request} fromDeposits />
           {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} className="font-bold underline">View deposit receipt</Link></p>}
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
-        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
+        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}

@@ -29,6 +29,7 @@ test("signed-out deposit recovery preserves the exact request and purchase selec
 
 test.each([
   [{ view: "history" }, "/account/wallet?view=history"],
+  [{ view: "history", panel: "transactions" }, "/account/wallet?view=history&panel=transactions#transactions"],
   [{ view: "history", panel: "funding" }, "/account/wallet?view=history&panel=funding#add-funds"],
 ])("history and explicit funding have distinct sign-in returns: %j", async (query, expected) => {
   mocks.getAccountContext.mockResolvedValue(null);
@@ -51,11 +52,13 @@ test("failed activity reads offer a full retry of the exact saved reward without
 test.each([
   [{ via: "completed" }, "Back to this purchase", `/account/entries?filter=completed&viewed=${purchaseEntry}#my-activity-filters`],
   [{ transaction: "22222222-2222-4222-8222-222222222222", walletView: "1" }, "Back to this transaction", "/account/wallet?view=history&transaction=22222222-2222-4222-8222-222222222222&walletView=1#transaction-22222222-2222-4222-8222-222222222222"],
+  [{ alerts: "activity", notice: "reward-ready-1" }, "Back to notifications", "/account/notifications?filter=activity&notice=reward-ready-1#notification-tickets-filters"],
+  [{ via: "order-selection" }, "Back to this order", "/account/orders?order=ord_exact#order-ord_exact"],
   [{}, "Back to Gift Cards & Rewards", "/account/wallet"],
 ])("gift card details return to the originating record: %j", async (query, label, href) => {
   const rewardId = "11111111-1111-4111-8111-111111111111";
   const paid = { ...purchaseActivity, status: "completed", rewardSource: "purchase", rewardStatus: "ready", rewardId };
-  mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid] }, wallet: null });
+  mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid] }, wallet: null, orders: { orders: [{ orderNumber: "ord_exact", status: "fulfilled", rewardId }] } });
   render(await WalletPage({ searchParams: Promise.resolve({ rewardId, ...query }) }));
   expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
 });

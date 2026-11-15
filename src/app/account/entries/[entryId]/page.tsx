@@ -24,11 +24,12 @@ import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import styles from "@/components/account/entry-page.module.css";
+import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
@@ -97,6 +98,8 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnFilter = query?.filter === "active" ? "active" : undefined;
+  const walletTransaction = typeof query?.transaction === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(query.transaction) ? query.transaction : undefined;
+  const walletHref = walletTransaction && walletSupportReturnHref(walletTransaction, query?.walletView === "1");
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}${returnFilter ? "&filter=active" : ""}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
@@ -108,7 +111,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
           <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>
-          <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
+          <Link href={walletHref || returnHref} className={styles.closePage} aria-label={walletHref ? "Close entry details and return to this transaction" : "Close entry details and return to My Activity"}><span aria-hidden="true">×</span></Link>
         </div>
       </div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
@@ -130,7 +133,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} returnFilter={returnFilter} />
+      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

@@ -62,7 +62,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList }: { depositList?: boolean; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [query, setQuery] = useState("");
@@ -221,7 +221,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const destination = new URL(anchor.href);
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
-    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult)) rememberLedgerSupportReturn(saved, transactionId);
+    const entryResult = destination.pathname.startsWith("/account/entries/") && destination.searchParams.get("walletView") === "1";
+    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult)) rememberLedgerSupportReturn(saved, transactionId);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
@@ -334,7 +335,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}
           {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, false, preserveView)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
+          {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
           <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>

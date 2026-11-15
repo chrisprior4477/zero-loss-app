@@ -1,3 +1,4 @@
+import { validNotice, type NotificationFilter } from "./notification-return";
 import type { AccountOrder, AccountOrders } from "./orders";
 import type { AccountActivity, RewardSource, RewardStatus } from "./activity";
 
@@ -27,9 +28,9 @@ export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "
 
 export const fulfillmentFilterLabel: Record<FulfillmentFilter, string> = { all: "all orders", processing: "In progress orders", fulfilled: "Issued orders", exceptions: "Exceptions", payment: "Confirmed payments" };
 
-export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all", details = false, fromNotification = false) {
+export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all", details = false, fromNotification = false, alerts?: NotificationFilter, notice?: string) {
   const id = encodeURIComponent(orderNumber);
-  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}${details ? "&details=1" : ""}${fromNotification ? "&from=notifications" : ""}#order-${id}`;
+  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}${details ? "&details=1" : ""}${fromNotification ? "&from=notifications" : ""}${alerts ? `&alerts=${alerts}` : ""}${validNotice(notice) ? `&notice=${encodeURIComponent(notice)}` : ""}#order-${id}`;
 }
 
 export function fulfillmentActivityHref(record: Pick<FulfillmentRecord, "entryId">) {

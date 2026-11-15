@@ -122,6 +122,16 @@ test("a deposit report uses the account's exact receipt and keeps a direct walle
   expect(screen.getByRole("link", { name: "Back to this deposit" }).getAttribute("href")).toBe(`/account/wallet?view=history&deposit=${caseId}#purchase-deposit`);
 });
 
+test("Support returns a verified checkout deposit to the original offer and selection", async () => {
+  const deposit = { id: own, idempotencyKey: caseId, amount: 7300, currency: "USD", status: "processing", reconciliation: "discrepancy", created_at: "2026-11-12T12:00:00Z" };
+  const entry = "ent_11111111111111111111111111111111";
+  const checkoutReturn = `/account/purchase-options/playstation-5-slim?option=${entry}&resume=wallet&choice=${own}`;
+  mocks.rpc.mockImplementation(async name => ({ data: name === "get_demo_funding_requests" ? [deposit] : false }));
+  render(await SupportPage({ searchParams: Promise.resolve({ deposit: caseId, checkoutReturn }) }));
+  expect(screen.getByRole("link", { name: "Back to this deposit" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&from=playstation-5-slim&entry=${entry}&choice=${own}&deposit=${caseId}#purchase-deposit`);
+});
+
 test("a receipt missing from the signed-in account cannot open a linked deposit report", async () => {
   mocks.rpc.mockImplementation(async name => ({ data: name === "get_demo_funding_requests" ? [] : false }));
   render(await SupportPage({ searchParams: Promise.resolve({ deposit: caseId }) }));

@@ -17,7 +17,7 @@ import { CrewWinEmailPreference } from "./CrewWinEmailPreference";
 import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import { NotificationStack } from "./NotificationStack";
 import { groupNotifications } from "@/lib/account/notification-groups";
-import { notificationReturnKey, readNotificationReturn, type NotificationReturn } from "@/lib/account/notification-return";
+import { notificationDestination, notificationReturnKey, readNotificationReturn, type NotificationReturn } from "@/lib/account/notification-return";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
@@ -56,7 +56,7 @@ function updatePendingReads(key: string, ids: string[], remove = false) {
   } catch { /* Saving a read receipt still works without storage. */ }
 }
 
-export function NotificationsCenter({ userId, initialFilter = "all", supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, initialFilter = "all", initialNotice, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; initialNotice?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const live = useNotifications()?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
   // counts, rows and read controls without remounting the customer's view.
@@ -65,6 +65,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const initialAlertPreferences = live ? live.preferences : serverAlertPreferences;
   const readAvailable = live ? live.readAvailable : serverReadAvailable;
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  const [focusedNotice, setFocusedNotice] = useState(initialNotice);
+  const focusedReturn = useRef(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
   const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);
@@ -80,7 +82,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const headingRef = useRef<HTMLElement>(null);
   const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
-  const attentionNotifications = useMemo(() => enabledNotifications.filter(notification => notification.category === "action" || !read.has(notification.id)), [enabledNotifications, read]);
+  const attentionNotifications = useMemo(() => enabledNotifications.filter(notification => notification.category === "action" || !read.has(notification.id) || notification.id === focusedNotice), [enabledNotifications, read, focusedNotice]);
   const actionCount = enabledNotifications.filter(notification => notification.category === "action").length;
   const unreadCount = enabledNotifications.filter(notification => !read.has(notification.id)).length;
   const visible = useMemo(() => filter === "all" ? enabledNotifications : filter === "action" ? attentionNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications, attentionNotifications]);
@@ -91,6 +93,23 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
   const restoreRange = batches.restoreRange;
+  const noticeIndex = focusedNotice ? groups.findIndex(group => group.notifications.some(item => item.id === focusedNotice)) : -1;
+
+  useEffect(() => {
+    if (!focusedNotice || noticeIndex < 0 || focusedReturn.current) return;
+    if (noticeIndex >= batches.end) {
+      restoreRange(0, Math.ceil((noticeIndex + 1) / groupsPerPage) * groupsPerPage);
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      const link = document.getElementById(`notification-link-${encodeURIComponent(focusedNotice)}`);
+      if (!link) return;
+      focusedReturn.current = true;
+      const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+      window.scrollTo({ top: Math.max(0, window.scrollY + link.getBoundingClientRect().top - header - 18), behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedNotice, noticeIndex, batches.end, restoreRange]);
   const restoredView = useRef<string | null>(null);
 
   useEffect(() => {
@@ -199,12 +218,14 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     const url = new URL(window.location.href);
     if (nextFilter === "all") url.searchParams.delete("filter");
     else url.searchParams.set("filter", nextFilter);
+    url.searchParams.delete("notice");
     url.hash = "notification-tickets-filters";
     const state = { ...window.history.state };
     const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
     if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };
     window.history.replaceState(state, "", url);
     setFilter(nextFilter);
+    setFocusedNotice(undefined);
     batches.reset();
     if (!window.matchMedia?.("(max-width: 620px)").matches) return;
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
@@ -299,11 +320,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     });
   }
 
-  function openNotification(notification: AccountNotification) {
+  function openNotification(notification: AccountNotification, destination: string) {
     setLocallyRead((previous) => new Set(previous).add(notification.id));
     if (failedReadKey) updatePendingReads(failedReadKey, [notification.id]);
     // The optional read receipt must not hold up the customer's destination.
-    router.push(notification.href);
+    router.push(destination);
     startReadTransition(async () => {
       const result = await saveRead([notification.id]);
       if (result.ok && failedReadKey) {
@@ -332,7 +353,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     }
     if (!readAvailable || read.has(notification.id)) return;
     event.preventDefault();
-    openNotification(notification);
+    openNotification(notification, event.currentTarget.getAttribute("href") ?? notification.href);
   }
 
   return <div className={styles.page}>
@@ -376,8 +397,9 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
             const notification = group.notifications[0];
             const requestId = notification.crewRequestId;
             const feedback = requestId ? crewFeedback[requestId] : undefined;
-            return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}
-              expanded={expandedGroups.includes(group.key)} onExpandedChange={expanded => {
+            return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick} destination={item => notificationDestination(item, filter)}
+              expanded={expandedGroups.includes(group.key) || (focusedNotice !== undefined && group.notifications.some(item => item.id === focusedNotice))} onExpandedChange={expanded => {
+                if (!expanded && group.notifications.some(item => item.id === focusedNotice)) setFocusedNotice(undefined);
                 const next = expanded ? [...expandedGroups, group.key] : expandedGroups.filter(key => key !== group.key);
                 updateBookmark({ expandedGroups: next }); setExpandedGroups(next);
               }}>

@@ -17,8 +17,8 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, onCredit, onReview, onBack }: {
-  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, supportHref, onCredit, onReview, onBack }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean; supportHref?: string;
   onCredit: (amount: number, balance: number) => void; onReview?: () => void; onBack?: () => void;
 }) {
   const sectionId = onBack ? "funding-deposit-recovery" : "add-funds";
@@ -60,7 +60,7 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
     tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
     <form action={action} className={styles.actions}>
       {pending ? <button className={styles.primary} disabled>Checking…</button>
-        : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={depositSupportHref(requestKey)}>Contact Support</a>
+        : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={supportHref ?? depositSupportHref(requestKey)}>Contact Support</a>
         : status === "missing" && onReview ? <button ref={actionButton} type="button" className={styles.secondary} onClick={onReview}>Review same deposit</button>
         : result && "sessionId" in result ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
         : <button ref={actionButton} className={styles.primary} name="intent" value="check">Check this deposit</button>}

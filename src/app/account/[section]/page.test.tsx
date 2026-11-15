@@ -7,7 +7,7 @@ import LiveAccountSection from "./page";
 const mocks = vi.hoisted(() => ({ account: vi.fn(), support: vi.fn(), db: {} }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => mocks.db }));
-vi.mock("@/lib/account/order-support", () => ({ getOrderSupportHref: mocks.support, walletTransactionHelpHref: "/account/wallet?view=history#transactions" }));
+vi.mock("@/lib/account/order-support", () => ({ getOrderSupportHref: mocks.support, walletTransactionHelpHref: "/account/wallet?view=history&panel=transactions#transactions" }));
 vi.mock("@/components/account/AccountSecurityDashboard", () => ({ AccountSecurityDashboard: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 
@@ -47,7 +47,7 @@ test.each([0, 1, 8])("Report a problem resolves exact order %i, including repeat
 });
 
 test("an unavailable purchase keeps its exact order visible with recovery help instead of attaching another payment", async () => {
-  mocks.support.mockResolvedValue("/account/wallet?view=history#transactions");
+  mocks.support.mockResolvedValue("/account/wallet?view=history&panel=transactions#transactions");
   render(await LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: orders[8].orderNumber, support: "report" }) }));
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toContain("couldn’t attach this order’s transaction");
@@ -65,17 +65,27 @@ test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, in
   const url = await openOrderNotification(order);
   expect(within(screen.getByRole("region", { name: "Retailer gift-card fulfillment" })).getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href"))
-    .toBe(`/account/wallet?reward=${order.rewardSlug}&rewardId=${order.rewardId}`);
+    .toBe(`/account/wallet?reward=${order.rewardSlug}&rewardId=${order.rewardId}&via=order-notification&alerts=orders&notice=order-${order.orderNumber}-fulfilled`);
   expect(document.getElementById(decodeURIComponent(url.hash.slice(1)))).toBeTruthy();
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("link", { name: "Back to order updates" }).getAttribute("href"))
-    .toBe("/account/notifications?filter=orders#notification-tickets-filters");
+    .toBe(`/account/notifications?filter=orders&notice=order-${order.orderNumber}-fulfilled#notification-tickets-filters`);
   expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", order.orderNumber);
   expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Report a problem with this order" }).getAttribute("href"))
-    .toBe("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem");
+    .toBe(`/support?transaction=11111111-1111-4111-8111-111111111111&alerts=orders&notice=order-${order.orderNumber}-fulfilled#report-problem`);
   expect(screen.getByRole("link", { name: "Show all orders & rewards" }).getAttribute("href"))
     .toBe("/account/orders#fulfillment-records");
+});
+
+test("an exception returns to Action needed and carries its exact alert into Support", async () => {
+  const order = { ...orders[0], status: "exception" as const };
+  await openOrderNotification(order);
+  const notice = `order-${order.orderNumber}-exception`;
+  expect(screen.getByRole("link", { name: "Back to order updates" }).getAttribute("href"))
+    .toBe(`/account/notifications?filter=action&notice=${notice}#notification-tickets-filters`);
+  const report = within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Report a problem with this order" }).getAttribute("href");
+  expect(report).toContain(`&alerts=action&notice=${notice}`);
 });
 
 test("an old pending notice opens that order's current fulfilled record", async () => {
@@ -99,7 +109,7 @@ test("ordinary Orders navigation still shows the full paginated list", async () 
   expect(screen.getByText("1–2 of 9")).toBeTruthy();
   expect(screen.queryByText("SELECTED ORDER")).toBeNull();
   expect(mocks.support).not.toHaveBeenCalled();
-  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Choose a transaction to report" }).getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Choose a transaction to report" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=transactions#transactions");
 });
 
 test("an exact reward selection resolves its own order, while mismatched selections do not", async () => {

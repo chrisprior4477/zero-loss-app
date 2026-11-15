@@ -19,7 +19,7 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
     // Only the actual entry or purchase debit should link to that gift card.
     if (!item || (reservation && isWalletReward(item))) return [];
     const href = item.status === "active"
-      ? `${activityHref(item)}?entries=open#saved-entry-rail`
+      ? `${activityHref(item)}?entries=open&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
       ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}#purchase-option-rail`
       : isWalletReward(item) && item.rewardId

@@ -148,7 +148,7 @@ export function buildOrderNotifications(orders: readonly AccountOrder[]): Accoun
       title: issued ? `${order.retailer} gift card issued` : corrected ? `${order.retailer} order was corrected` : exception ? `${order.retailer} order needs attention` : `${order.retailer} order ${order.status === "cancelled" ? "cancelled" : "is processing"}`,
       body: issued ? "Your retailer gift card is ready to open." : corrected ? "A correction is recorded. Open the order for its current details." : exception ? "Your order is saved, but its issuance needs attention." : order.status === "cancelled" ? "This order is closed. Its history remains available." : "Payment is confirmed. We’ll show the issued card when it is ready.",
       meta: `Order ${order.orderNumber.slice(-8).toUpperCase()}`,
-      href: exactOrderHref(order.orderNumber, "all", false, true),
+      href: exactOrderHref(order.orderNumber, "all", false, true, exception ? "action" : "orders", `order-${order.orderNumber}-${order.status}`),
       action: "View exact order",
       image: order.image,
       visualLabel: order.retailer,

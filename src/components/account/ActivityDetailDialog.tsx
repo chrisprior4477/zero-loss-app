@@ -89,7 +89,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       <button ref={closeRef} type="button" onClick={close} aria-label="Close activity details" className={styles.detailClose}>×</button>
     </header>
     <div role="region" aria-label="Product details" tabIndex={0} className={styles.detailBody}>
-      {item.status === "completion" ? <div className={styles.purchaseDetail}>
+      {item.completionOptionStatus === "expired" ? <section className={styles.detailPanel}><p className={styles.panelEyebrow}>PURCHASE OPTION</p><h3>This offer has expired</h3><p className={styles.detailCopy}>You can still view this entry in My Activity.</p></section> : item.status === "completion" ? <div className={styles.purchaseDetail}>
         <header className={styles.purchaseHeading}><h2>What you spent still counts.</h2><p>Apply your entry toward the product you chose.</p></header>
         <div className={styles.purchaseLayout}>
           <section className={styles.purchaseTicket} aria-label="Purchase option details">

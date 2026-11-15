@@ -17,10 +17,10 @@ export function DepositReceiptDate({ request, timeZone }: { request: DemoFunding
   return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
-export function DepositCreditLink({ request, restoreLedgerView = false }: { request: DemoFundingRequest; restoreLedgerView?: boolean }) {
+export function DepositCreditLink({ request, restoreLedgerView = false, fromDeposits = false }: { request: DemoFundingRequest; restoreLedgerView?: boolean; fromDeposits?: boolean }) {
   const id = request.ledgerId;
   if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
-  return <Link href={walletSupportReturnHref(id, restoreLedgerView)} className="font-bold underline">View wallet credit →</Link>;
+  return <Link href={walletSupportReturnHref(id, restoreLedgerView, fromDeposits)} className="font-bold underline">View wallet credit →</Link>;
 }
 
 function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {

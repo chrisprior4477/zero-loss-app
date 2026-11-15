@@ -39,6 +39,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+test("closing an entry opened from Wallet returns to its transaction without replacing My Activity", async () => {
+  const transaction = "11111111-1111-4111-8111-111111111111";
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }), searchParams: Promise.resolve({ entries: "open", transaction, walletView: "1" }) }));
+  expect(screen.getByRole("link", { name: "Close entry details and return to this transaction" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&transaction=${transaction}&walletView=1#transaction-${transaction}`);
+  expect(screen.getByRole("link", { name: "Go to My Activity" }).getAttribute("href")).toContain("/account/entries?viewed=");
+});
+
 test("a saved entry recovers only its prize's owner-scoped pending hold on reload", async () => {
   const request = { requestId: "22222222-2222-4222-8222-222222222222", slug: "playstation-5-slim", title: "PlayStation 5 Slim Model",
     quantity: 24, amountCents: 2400, status: "pending", undoUntil: new Date(Date.now() + 30000).toISOString(), serverNow: new Date().toISOString() };

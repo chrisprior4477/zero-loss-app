@@ -55,6 +55,15 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   expect(screen.getByRole("navigation", { name: "Account wallet overview" }).querySelector("button")?.textContent).not.toBe("Delete Funds");
 });
 
+test.each(["reconciled", "credit_pending"] as const)("Add funds handles the selected %s deposit", reconciliation => {
+  const wallet = { ...empty, walletAccountId: "wallet-a", scope: "demo" as const, fundingAvailable: true };
+  const key = "deposit_11111111-1111-4111-8111-111111111111";
+  render(<WalletOverview wallet={wallet} fundingEnabled recoveryKey={key} requests={[{ id: "receipt", amount: 2500, currency: "USD", status: "succeeded", reconciliation, created_at: "2026-11-12T12:00:00Z", idempotencyKey: key }]} />);
+  const target = reconciliation === "reconciled" ? "/account/wallet?view=history&panel=funding#add-funds" : "#add-funds";
+  expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual([target, target]);
+  expect(screen.queryByRole("form", { name: "Add funds" })).toBeNull();
+});
+
 test("wallet tickets reuse real account counts and direct destinations", () => {
   render(<WalletOverview wallet={empty} activity={storedActivityFixture()} requests={[]} />);
   expect(screen.getByRole("link", { name: "Playable Wallet: $0.00" }).getAttribute("href")).toBe("#balance");

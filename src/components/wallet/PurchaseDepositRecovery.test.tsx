@@ -16,7 +16,10 @@ const props = { requestKey: key, requests: [receipt], wallet, continueTo, fundin
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 test("a receipt opened from Payment deposits links back to the same deposit row", () => {
-  render(<PurchaseDepositRecovery {...props} continueTo={undefined} fromDeposits />);
+  const ledgerId = "33333333-3333-4333-8333-333333333333";
+  render(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, ledgerId }]} continueTo={undefined} fromDeposits />);
+  expect(screen.getByRole("link", { name: /View wallet credit/ }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&transaction=${ledgerId}&depositList=1#transaction-${ledgerId}`);
   expect(screen.getByRole("link", { name: "Back to Payment deposits" }).getAttribute("href"))
     .toBe(`/account/wallet?view=history&panel=deposits&depositRow=${key}#payment-deposits`);
 });
@@ -72,7 +75,7 @@ test("a pending deposit finishes the original session and only then offers purch
 test("discrepancy requires support and never offers another funding action", () => {
   render(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, reconciliation: "discrepancy" }]} />);
   expect(screen.getByRole("alert").textContent).toContain("needs review");
-  expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe(`/support?deposit=${key}#report-problem`);
+  expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe(`/support?deposit=${key}&checkoutReturn=${encodeURIComponent(continueTo.href)}#report-problem`);
   expect(screen.queryByRole("button")).toBeNull();
 });
 

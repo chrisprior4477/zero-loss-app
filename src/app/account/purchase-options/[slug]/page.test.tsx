@@ -78,6 +78,11 @@ test("a second tab opens Declined Offers after the final available offer is decl
   await expect(visit()).rejects.toThrow("/account/declined-offers");
 });
 
+test("an old group link opens the exact expired offer in My Activity", async () => {
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [{ ...open, status: "completed", completionOptionStatus: "expired" }] } });
+  for (const option of [undefined, open.entryId]) await expect(visit(option)).rejects.toThrow(`/account/entries?item=${slug}&entry=${open.entryId}`);
+});
+
 test("an unknown prize with no offers still reports not found", async () => {
   getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [] } });
   await expect(visit()).rejects.toThrow("NOT_FOUND");

@@ -63,7 +63,12 @@ export function purchaseDepositRecoveryHref(slug: string, entryId: string | unde
   return href.replace("#add-funds", `&deposit=${requestKey}#purchase-deposit`);
 }
 
-export function depositRecoveryHref(requestKey: string, fromDeposits = false, fromLedger = false): string {
+export function depositRecoveryHref(requestKey: string, fromDeposits = false, fromLedger = false, checkoutReturn?: unknown): string {
+  const checkout = purchaseOptionReturnPath(checkoutReturn);
+  if (checkout && depositRequestKeyPattern.test(requestKey)) {
+    const url = new URL(checkout, "https://navigation.invalid");
+    return purchaseDepositRecoveryHref(url.pathname.split("/").at(-1)!, url.searchParams.get("option") ?? undefined, url.searchParams.get("choice"), requestKey);
+  }
   return `/account/wallet?view=history&deposit=${encodeURIComponent(requestKey)}${fromDeposits ? "&panel=deposits" : ""}${fromLedger ? "&walletView=1" : ""}#purchase-deposit`;
 }
 

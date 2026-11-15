@@ -52,11 +52,20 @@ function depart() {
   return { page, saved: window.history.state, link };
 }
 
+test("an explicit return reveals an alert beyond the first batch, even after it was read", () => {
+  window.history.replaceState({}, "", "/account/notifications?filter=action&notice=order-17#notification-tickets-filters");
+  render(<NotificationsCenter userId="owner" notifications={orders} initialReadIds={["order-17"]} initialFilter="action" initialNotice="order-17" activityAvailable walletAvailable crewAvailable readAvailable />);
+  flush();
+  expect(screen.getByRole("button", { name: /Action needed30/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(document.getElementById("notification-link-order-17")).toBeTruthy();
+  expect(scrollTo).toHaveBeenCalled();
+});
+
 test("order Back preserves the category, expanded batches, internal scroll and page position", () => {
   const { page, saved, link } = depart();
   expect(saved.frameworkState).toBe("keep");
   expect(saved[notificationReturnKey]).toMatchObject({ userId: "owner", filter: "orders", start: 12, size: 12, listScrollTop: 450, scrollY: 950 });
-  expect(link.getAttribute("href")).toBe("/account/orders?order=order-17#order-order-17");
+  expect(link.getAttribute("href")).toBe("/account/orders?order=order-17&alerts=orders&notice=order-17#order-order-17");
   expect(window.location.pathname).toBe(href);
   page.unmount();
   window.history.replaceState({}, "", link.getAttribute("href"));
@@ -118,7 +127,7 @@ test("unread order keeps its exact destination and saves the bookmark before awa
   fireEvent.click(screen.getByRole("button", { name: /Orders30/ }));
   await act(async () => { fireEvent.click(screen.getAllByRole("link", { name: "View exact order" })[0]); });
   expect(actions.mark).toHaveBeenCalledWith(["order-0"]);
-  expect(actions.push).toHaveBeenCalledWith(orders[0].href);
+  expect(actions.push).toHaveBeenCalledWith(orders[0].href.replace("#", "&alerts=orders&notice=order-0#"));
   expect(window.history.state[notificationReturnKey].filter).toBe("orders");
 });
 

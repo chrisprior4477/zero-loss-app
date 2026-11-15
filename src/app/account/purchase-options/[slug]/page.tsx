@@ -83,6 +83,9 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   if (options.length === 0) {
     if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect("/account/declined-offers");
     if (activity.some(ticket => ticket.slug === slug && isPurchasedReward(ticket))) redirect("/account/entries?filter=completed");
+    const expired = activity.filter(ticket => ticket.slug === slug && ticket.completionOptionStatus === "expired");
+    const lastExpired = expired.sort((a, b) => (b.completionExpiresAt ?? "").localeCompare(a.completionExpiresAt ?? ""))[0];
+    if (lastExpired) redirect(activityHref(lastExpired));
     notFound();
   }
 

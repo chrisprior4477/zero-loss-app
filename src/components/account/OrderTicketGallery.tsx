@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { validNotice, type NotificationFilter } from "@/lib/account/notification-return";
 import { createPortal } from "react-dom";
 import { type CSSProperties, type PointerEvent, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { FulfillmentRecord, FulfillmentFilter } from "@/lib/account/fulfillment";
@@ -67,7 +68,7 @@ function CopyIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>;
 }
 
-function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void; phone: boolean }) {
+function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: { alertContext: string; filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void; phone: boolean }) {
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -156,7 +157,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
         {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
       </dl>
-      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
+      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
@@ -164,7 +165,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
   </div>, document.body);
 }
 
-export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fromNotification = false, initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; purchaseStamps?: Record<string, PurchaseStamp>; filter?: FulfillmentFilter; fromNotification?: boolean; initialDetailsId?: string; initialAnchorId?: string }) {
+export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fromNotification = false, alerts, notice, exactSelection = false, initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; purchaseStamps?: Record<string, PurchaseStamp>; filter?: FulfillmentFilter; fromNotification?: boolean; alerts?: NotificationFilter; notice?: string; exactSelection?: boolean; initialDetailsId?: string; initialAnchorId?: string }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? initialAnchorId ?? null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
@@ -181,6 +182,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   const currentView = view?.size === size ? view : null;
   const previousPage = currentView?.previous ?? currentPage - 1;
   const nextPage = currentView?.next ?? currentPage + 1;
+  const alertContext = fromNotification ? `${alerts ? `&alerts=${alerts}` : ""}${validNotice(notice) ? `&notice=${encodeURIComponent(notice)}` : ""}` : "";
   const hasPrevious = previousPage >= 0;
   const hasNext = nextPage <= lastPage;
   const selected = opened && anchorIndex >= 0 ? orders[anchorIndex] : null;
@@ -381,7 +383,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
           const purchaseStamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
-          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + `&via=${fromNotification ? "order-notification" : "orders"}`
+          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + `&via=${fromNotification ? "order-notification" : exactSelection ? "order-selection" : "orders"}${alertContext}`
             + (filter === "all" ? "" : `&orderFilter=${filter}`);
           const position = index % size;
           const page = Math.floor(index / size);
@@ -404,7 +406,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
       {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
       {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
       </div>
-      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
+      {selected && opened ? <OrderDetails alertContext={fromNotification ? `&from=notifications${alertContext}` : ""} key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
     <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasPrevious || undefined} onClick={() => { if (hasPrevious) changePage(previousPage); }}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasNext || undefined} onClick={() => { if (hasNext) changePage(nextPage); }}><AccountIcon name="chevron" /></button></div></nav>
   </div>;

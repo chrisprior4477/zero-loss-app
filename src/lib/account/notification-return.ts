@@ -1,6 +1,29 @@
-import type { NotificationCategory } from "./notifications";
+import type { AccountNotification, NotificationCategory } from "./notifications";
 
 export type NotificationFilter = "all" | NotificationCategory;
+export function notificationFilter(value: unknown): NotificationFilter {
+  return value === "action" || value === "account" || value === "activity" || value === "orders" || value === "crew" ? value : "all";
+}
+
+export function validNotice(value: unknown): value is string {
+  return typeof value === "string" && /^[a-zA-Z0-9_:-]{1,160}$/.test(value);
+}
+
+export function notificationHref(filter: NotificationFilter, notice?: string) {
+  const params = new URLSearchParams();
+  if (filter !== "all") params.set("filter", filter);
+  if (validNotice(notice)) params.set("notice", notice);
+  return `/account/notifications${params.size ? `?${params}#notification-tickets-filters` : ""}`;
+}
+
+export function notificationDestination(item: AccountNotification, filter: NotificationFilter) {
+  if (!item.href.startsWith("/account/orders?order=") && !item.href.startsWith("/account/wallet?reward=")) return item.href;
+  const [path, hash] = item.href.split("#", 2);
+  const url = new URL(path, "https://navigation.invalid");
+  url.searchParams.set("alerts", filter);
+  if (validNotice(item.id)) url.searchParams.set("notice", item.id);
+  return `${url.pathname}${url.search}${hash ? `#${hash}` : ""}`;
+}
 export const notificationReturnKey = "zeroLossNotificationReturn";
 export type NotificationReturn = {
   userId: string;

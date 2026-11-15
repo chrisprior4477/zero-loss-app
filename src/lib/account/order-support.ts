@@ -2,7 +2,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccountOrder } from "./orders";
 
-export const walletTransactionHelpHref = "/account/wallet?view=history#transactions";
+import { walletTransactionsHref } from "./activity";
+
+export const walletTransactionHelpHref = walletTransactionsHref;
 
 /** Resolve the reverse of the order-to-Support handoff against the customer's visible orders. */
 export async function getSupportOrder(db: SupabaseClient, userId: string, purchaseEvent: string, orders: AccountOrder[]) {
