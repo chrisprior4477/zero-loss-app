@@ -1,5 +1,4 @@
 /* Shared popup placement. Navigation drawers, hover hints and inline status stay separate. */
-.balanceNotice { --popup-width:512px; }
 .errorNotice { --popup-width:380px; }
 .favoriteNotice { --popup-width:384px; }
 
