@@ -312,6 +312,11 @@
 .fundingRequests li :global([data-reconciliation]:not([data-reconciliation="reconciled"])) { color: #9b5409; }
 .fundingRequests li :global(form button) { border-color: #78b0d6; color: #075eb4; }
 .fundingRequests .archiveToggle { color: #075eb4; }
+.depositsToCheck { margin-block: 14px; }
+.depositsToCheck h3 { color: #0b1940; font-size: 18px; font-weight: 850; }
+.depositsToCheck ul { margin-top: 8px; }
+.depositsToCheck li { padding: 10px 16px; background: #fff0d9; overflow-wrap: anywhere; }
+.depositsToCheck li > a { min-height: 44px; margin-top: 4px; }
 .depositMeta { color: #395979; font-size: 13px; }
 .depositMeta summary { cursor: pointer; }
 .depositMeta summary:focus-visible { outline: 2px solid #0872fb; outline-offset: 2px; }
@@ -378,6 +383,7 @@
   .fundingRequests .depositAmounts { display: contents; }
   .depositAmounts > span { text-align: right; font-variant-numeric: tabular-nums; }
   .fundingRequests li > form, .fundingRequests li > [role="alert"] { grid-column: 1 / -1; }
+  .depositsToCheck li > a { grid-column: 3; justify-self: end; margin-top: 0; }
 }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #93dcff; outline-offset: 3px; }
 @media (max-width: 1380px) {

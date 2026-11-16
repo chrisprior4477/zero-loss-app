@@ -550,8 +550,37 @@ test("pending request offers recovery but discrepancy requires review", () => {
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
     { id: "bad", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "aaaaaaaaaaaaaaaa", reconciliation: "discrepancy" },
   ]} />);
-  expect(screen.getAllByRole("link", { name: "Check this deposit" })).toHaveLength(1);
-  expect(screen.getByRole("alert").textContent).toContain("operator review");
+  const pending = within(screen.getByRole("region", { name: "Deposits to check" }));
+  expect(pending.getByRole("link", { name: "Check this deposit" }).getAttribute("href"))
+    .toBe("/account/wallet?view=history&deposit=pending_request_key_01&panel=deposits#purchase-deposit");
+  expect(pending.getByRole("alert").textContent).toContain("operator review");
+  expect(pending.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toContain("aaaaaaaaaaaaaaaa");
+});
+
+test("older interrupted deposits are shown once above history and return to history when credited", async () => {
+  const recent = Array.from({ length: 7 }, (_, index) => ({
+    id: `posted-${index}`, amount: 100, currency: "USD" as const, status: "succeeded" as const,
+    created_at: "2026-11-14", idempotencyKey: `posted_request_key_${index}`, reconciliation: "reconciled" as const,
+  }));
+  const pending = {
+    id: "older-request", amount: 7300, currency: "USD" as const, status: "processing" as const,
+    created_at: "2026-11-09", idempotencyKey: "older_request_key_01", reconciliation: "credit_pending" as const,
+  };
+  const { container, rerender } = render(<DemoFundingRequests fundingEnabled requests={[...recent, pending]} focusRequest={pending.idempotencyKey} />);
+  const pendingRegion = screen.getByRole("region", { name: "Deposits to check" });
+  expect(pendingRegion.contains(screen.getByText("$73 USD"))).toBe(true);
+  expect(container.querySelector("#deposit-row-older-request details")?.hasAttribute("open")).toBe(true);
+  expect(screen.getAllByText("$73 USD")).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "See more deposits (2 remaining)" })).toBeTruthy();
+  await waitFor(() => expect(document.activeElement?.id).toBe("deposit-row-older-request"));
+
+  rerender(<DemoFundingRequests fundingEnabled requests={[...recent, { ...pending, status: "succeeded", reconciliation: "reconciled" }]} focusRequest={pending.idempotencyKey} />);
+  expect(screen.queryByRole("region", { name: "Deposits to check" })).toBeNull();
+  const credited = screen.getByText("$73 USD").closest("li");
+  expect(credited?.id).toBe("deposit-row-older-request");
+  expect(credited?.textContent).toContain("Payment & credit matched");
+  expect(credited?.querySelector("details")?.hasAttribute("open")).toBe(true);
+  await waitFor(() => expect(document.activeElement).toBe(credited));
 });
 
 test("payment deposits return to their heading when the full list is collapsed", () => {

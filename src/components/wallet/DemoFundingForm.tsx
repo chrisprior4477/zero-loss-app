@@ -647,11 +647,16 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
     remember(0, 5, false, null);
   }
   const visibleRequests = includeArchived ? requests : requests?.filter(request => !hidden.has(request.id));
-  const displayRequests = desktop && visibleRequests ? [...visibleRequests].sort((a, b) =>
-    Date.parse(b.postedAt ?? b.created_at) - Date.parse(a.postedAt ?? a.created_at) || b.id.localeCompare(a.id)) : visibleRequests;
+  const needsCheck = (request: DemoFundingRequest) => request.reconciliation !== "reconciled" && !hidden.has(request.id);
+  const depositsToCheck = visibleRequests?.filter(needsCheck) ?? [];
+  const displayRequests = visibleRequests?.filter(request => !needsCheck(request));
+  if (desktop) displayRequests?.sort((a, b) =>
+    Date.parse(b.postedAt ?? b.created_at) - Date.parse(a.postedAt ?? a.created_at) || b.id.localeCompare(a.id));
   const count = displayRequests?.length ?? 0;
   const focusIndex = focusRequest ? (displayRequests?.findIndex(request => request.idempotencyKey === focusRequest) ?? -1) : -1;
-  const focusId = focusIndex < 0 ? null : displayRequests![focusIndex].id;
+  const focusId = focusRequest
+    ? depositsToCheck.find(request => request.idempotencyKey === focusRequest)?.id ?? displayRequests?.[focusIndex]?.id ?? null
+    : null;
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(count, 5, 0, desktop ? "pages" : "fit");
   const restoreRange = batches.restoreRange;
   useEffect(() => {
@@ -668,14 +673,15 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
     } catch { /* Use the first batch. */ }
   }, [viewKey, restoreRange, focusId, focusIndex, desktop]);
   const end = desktop ? Math.min(count, allDeposits ? count : 6) : batches.end;
-  const focusedRow = useRef<string | null>(null);
+  const focusedRow = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!focusId) { focusedRow.current = null; return; }
-    if (focusIndex >= end || receipt !== focusId || focusedRow.current === focusId) return;
+    if (focusIndex >= end || receipt !== focusId) return;
     const frame = requestAnimationFrame(() => {
       const row = document.getElementById(`deposit-row-${focusId}`);
-      if (!row) return;
-      focusedRow.current = focusId;
+      if (!row || focusedRow.current === row) return;
+      focusedRow.current = row;
+      row.focus({ preventScroll: true });
       row.scrollIntoView?.({ block: "nearest", behavior: "instant" });
       revealWalletSection(row.id);
     });
@@ -700,11 +706,8 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
     else batches.more();
     remember(desktop ? batches.start : batches.end, batches.size, desktop || allDeposits, receipt);
   } };
-  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
-    <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
-    {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
-      : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
-      : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} id={`deposit-row-${request.id}`} tabIndex={-1} className="p-4">
+  function renderDeposit(request: DemoFundingRequest) {
+    return <li key={request.id} id={`deposit-row-${request.id}`} tabIndex={-1} className="p-4">
         <details className={styles.depositMeta} open={receipt === request.id} onToggle={event => {
           const isOpen = event.currentTarget.open;
           if (!isOpen && receipt !== request.id) return;
@@ -720,7 +723,17 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
-      </li>)}</ul></>}
+      </li>;
+  }
+  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
+    <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
+    {depositsToCheck.length > 0 && <section className={styles.depositsToCheck} aria-labelledby="deposits-to-check-heading">
+      <h3 id="deposits-to-check-heading">Deposits to check</h3>
+      <ul>{depositsToCheck.map(renderDeposit)}</ul>
+    </section>}
+    {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
+      : count > 0 ? <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(renderDeposit)}</ul></>
+      : depositsToCheck.length === 0 && <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
     {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={toggleArchive} aria-expanded={includeArchived}>{includeArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
