@@ -65,8 +65,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, timeZone = "America/New_York" }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; timeZone?: string;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, timeZone = "America/New_York", cardEndings = {} }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; timeZone?: string; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -122,8 +122,16 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
               <span className={overview.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 45vw, 20vw" /></span>
               <span className={overview.rewardTitle}>{item.title}</span>
               <span className={overview.rewardMeta}>{item.retailer} · {formatUsdFromCents(item.priceCents)}</span>
-              {repeatedCardRef(item) ? <span className={overview.rewardMeta}>Card ref. {repeatedCardRef(item)}</span> : null}
-              <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
+              {repeatedCardRef(item) && item.rewardClaimedAt ? <span className={overview.cardIdentityRow}>
+                <span className={overview.savedIdentity}><span>Card ref. <span className={overview.identityValue}>{repeatedCardRef(item)}</span></span><span>Saved in your wallet</span></span>
+                <span className={overview.claimIdentity}>
+                  {item.rewardId && cardEndings[item.rewardId] ? <strong>Card ending <span className={overview.identityValue}>{cardEndings[item.rewardId]}</span></strong> : null}
+                  <span>Claimed <span className={overview.identityValue}>{claimedDate(item.rewardClaimedAt, timeZone)}</span></span>
+                </span>
+              </span> : <>
+                {repeatedCardRef(item) ? <span className={overview.rewardMeta}>Card ref. {repeatedCardRef(item)}</span> : null}
+                <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
+              </>}
               {state.isPreview ? <span className={overview.sample}>Sample · Not redeemable</span> : null}
               <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : item.rewardClaimedAt ? "Open gift card" : "Open reward"} <AccountIcon name="arrow" /></span>
             </Link>)}

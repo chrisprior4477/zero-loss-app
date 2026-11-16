@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { getAccountContext } from "@/lib/account/context";
+import { rewardCardEndings } from "@/lib/account/reward-card-endings";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { ActivityDetailDialog } from "@/components/account/ActivityDetailDialog";
@@ -215,6 +216,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const expired = rewardView === "expired" && typeof query.expiredEntry === "string" && account.activity.source !== "unavailable"
     ? account.activity.activity.find(item => item.entryId === query.expiredEntry && item.completionOptionStatus === "expired") : undefined;
   const focusExpired = rewardView === "expired" && typeof query.expiredFocus === "string" ? query.expiredFocus : expired?.entryId;
-  const rewards = <WalletRewards timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
+  const cardEndings = rewardView === "used" || rewardView === "expired" ? {} : await rewardCardEndings(account.activity, async id => {
+    const db = await createClient();
+    const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: id });
+    return error ? null : data;
+  });
+  const rewards = <WalletRewards cardEndings={cardEndings} timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={`/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }
