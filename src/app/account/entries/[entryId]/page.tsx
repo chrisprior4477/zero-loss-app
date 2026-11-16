@@ -145,7 +145,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         </div>
       </section>
       <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
-      <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} />
+      <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} alerts={notificationFilter(query?.alerts)} notice={validNotice(query?.notice) ? query.notice : undefined} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

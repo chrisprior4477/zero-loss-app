@@ -86,11 +86,13 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }, [panelOpen, editorToken, isEdit, isAdd, unavailable]);
   async function setDefault(card: DemoCard, value: boolean) {
     setBusy(true); setMessage("");
+    if (!card.revision) { setMessage("Refresh your saved cards before changing the default."); setBusy(false); router.refresh(); return; }
     const data = new FormData(); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
+    data.set("cardRevision", card.revision);
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
       if (result.status !== "idle") setMessage(result.message);
-      if (result.status === "succeeded") { setCards(current => current.map(item => ({ ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
+      if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
     } catch { setMessage("Your preference could not be saved. Please try again."); }
     finally { setBusy(false); }
   }

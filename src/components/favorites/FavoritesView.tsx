@@ -11,7 +11,7 @@ import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { formatUsdFromCents } from "@/lib/wallet/money";
-import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
+import { readFavoriteCapacityAlert, setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
 import { readReceivedProductState, setReceivedProductState } from "@/lib/sharing/saved-share-actions";
 import styles from "./favorites.module.css";
@@ -64,6 +64,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
   const detailHeading = useRef<HTMLHeadingElement>(null);
   const selectedSlug = selectedShare?.slug ?? (selection?.slug && slugs.includes(selection.slug) ? selection.slug : null);
+  const latestAlerts = useRef(initialAlerts);
+  useEffect(() => { latestAlerts.current = initialAlerts; }, [initialAlerts]);
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
   const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
@@ -231,9 +233,22 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   }
   function toggleAlert(slug: string) {
     if (busySlug || !initialAlerts || emailEnabled === null) return;
-    const enabled = !alerts[slug]; setBusySlug(slug); setMessage("");
+    const enabled = !alerts[slug];
+    const startingSnapshot = latestAlerts.current;
+    setBusySlug(slug); setMessage("");
     startTransition(async () => {
-      try { const result = await setFavoriteCapacityAlert(slug, enabled); if (result.ok) setAlertOverrides(current => ({ ...current, [slug]: enabled })); setMessage(result.message); }
+      try {
+        const result = await setFavoriteCapacityAlert(slug, enabled);
+        if (!result.ok) { setMessage(result.message); return; }
+        let saved = enabled;
+        if (latestAlerts.current !== startingSnapshot && Boolean(latestAlerts.current?.[slug]) !== enabled) {
+          const confirmed = await readFavoriteCapacityAlert(slug);
+          if (confirmed === null) { setMessage("The alert changed in another tab. Refresh to check the saved setting."); return; }
+          saved = confirmed;
+        }
+        setAlertOverrides(current => ({ ...current, [slug]: saved }));
+        setMessage(saved === enabled ? result.message : "This alert changed in another tab. The current setting is shown.");
+      }
       catch { setMessage("We couldn’t confirm this change. Refresh and try again."); }
       finally { setBusySlug(null); }
     });

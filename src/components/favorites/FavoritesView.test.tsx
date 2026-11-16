@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn(
 vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: ["nike-court-shot-shoes"], available: true, isSignedIn: true, busySlugs: [], toggle: mocks.toggle }) }));
 vi.mock("./FavoritesLandingScroll", () => ({ FavoritesLandingScroll: () => null }));
 vi.mock("@/lib/sharing/saved-share-actions", () => ({ setReceivedProductState: mocks.state }));
-vi.mock("@/lib/favorites/alert-actions", () => ({ setFavoriteCapacityAlert: mocks.alert }));
+vi.mock("@/lib/favorites/alert-actions", () => ({ setFavoriteCapacityAlert: mocks.alert, readFavoriteCapacityAlert: async () => true }));
 vi.mock("next/image", () => ({ default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} /> }));
 import { FavoritesView } from "./FavoritesView";
 const share: SavedProductShare = { id: "11111111-1111-4111-8111-111111111111", token: "22222222-2222-4222-8222-222222222222", slug: "playstation-5-slim", title: "PlayStation", sender: "Alex", createdAt: "2026-10-25T12:00:00Z", viewedAt: null, savedAt: null, declinedAt: null, demo: false };

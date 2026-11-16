@@ -107,9 +107,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     }
     setOpenPanel(null);
   }
-  function choose(href: string) {
+  function choose(href: string, preserveSubcategory = false) {
     const url = new URL(href, "https://zeroloss.local");
     if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
+    if (preserveSubcategory && props.subcategory) url.searchParams.set("subcategory", props.subcategory);
     close();
     router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
   }
@@ -194,7 +195,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
               : retailers.map(option => {
                 const hasScopedOffer = scopedOfferRetailers ? scopedOfferRetailers.has(option.value) : option.hasOffer;
                 return <div key={option.value}>
-                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value))}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
+                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value), true)}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
                   {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
                     ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)}>View {option.label} across all categories</Link> : null}
                 </div>;

@@ -13,7 +13,7 @@ beforeEach(() => {
  mock.getAccount.mockResolvedValue({userId:"owner",emailConfirmed:true,wallet:{scope:"demo",entries:[],balanceCents:0},activity:{source:"customer-empty",activity:[]},orders:{source:"customer-empty",orders:[]}});
  mock.from.mockImplementation((table: string) => {
    const result={error:null,data:table === "crew_invitations" ? mock.crew : table === "support_cases" ? [{id:"11111111-1111-4111-8111-111111111111",subject:"Old support case",status:"open",updated_at:"2026-01-01"}] : []};
-   const chain={select:()=>chain,or:()=>chain,eq:vi.fn(()=>chain),order:()=>chain,limit:()=>Promise.resolve(result),in:()=>Promise.resolve(result),then:(resolve:(value:unknown)=>unknown)=>Promise.resolve(result).then(resolve)};
+   const chain={select:()=>chain,or:()=>chain,eq:vi.fn(()=>chain),order:()=>chain,limit:()=>Promise.resolve(result),in:()=>chain,then:(resolve:(value:unknown)=>unknown)=>Promise.resolve(result).then(resolve)};
    return chain;
  });
 });

@@ -15,7 +15,7 @@ test("a debit opens its recorded entry, not another entry for the same product",
 test("a batch reservation retains each entry and its current outcome", () => {
   const links = transactionLinks({ ...row, entryIds: [active.entryId, option.entryId, active.entryId] }, [active, option]);
   expect(links).toHaveLength(2);
-  expect(links[1].href).toBe(`/account/purchase-options/${option.slug}?option=${option.entryId}#purchase-option-rail`);
+  expect(links[1].href).toBe(`/account/purchase-options/${option.slug}?option=${option.entryId}&transaction=${row.id}#purchase-option-rail`);
 });
 
 test("unknown or other-account entries never get a guessed destination", () => {

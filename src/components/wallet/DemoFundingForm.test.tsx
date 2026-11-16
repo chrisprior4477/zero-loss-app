@@ -455,16 +455,17 @@ test("supplied test-card details are display-only and never submitted", () => {
 
 test("saved default is restored and customer may opt out", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
-  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCard={{ token: "demo_card_4242", lastFour: "4242", isDefault: true }} />);
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCard={{ token: "demo_card_4242", lastFour: "4242", isDefault: true, revision: "2026-10-01T10:00:00Z" }} />);
   const checkbox = screen.getByRole("checkbox", { name: "Use as my default payment method" }) as HTMLInputElement;
   expect(checkbox.checked).toBe(true);
   fireEvent.click(checkbox);
   await waitFor(() => expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false"));
+  expect(vi.mocked(saveDemoPaymentMethod).mock.calls.at(-1)?.[1].get("cardRevision")).toBe("2026-10-01T10:00:00Z");
 });
 
 test("additional sample cards form a two-card selection and can be saved", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
-  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true, revision: "2026-10-01T10:00:00Z" }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Add another card/ }));
   fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
   fireEvent.click(screen.getByRole("button", { name: "Save card" }));

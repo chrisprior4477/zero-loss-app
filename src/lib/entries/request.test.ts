@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { entryReceiptHref, parseEntryRequest } from "./request";
+import { entryReceiptHref, parseEntryRequest, remainingEntryUndoMilliseconds } from "./request";
+
+test("a delayed receipt does not start the Undo window over", () => {
+  const issued = "2026-10-14T12:00:00Z", deadline = "2026-10-14T12:00:30Z";
+  expect(remainingEntryUndoMilliseconds(issued, deadline, Date.parse(issued) + 8_000)).toBe(22_000);
+  expect(remainingEntryUndoMilliseconds(issued, deadline, Date.parse(issued) + 31_000)).toBe(0);
+});
 
 test("a closed pool opens the exact purchase option in My Activity", () => {
   expect(entryReceiptHref({ status: "not_selected", entryId: "ent_1234" }, "dunkin-25-gift-card"))

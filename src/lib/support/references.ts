@@ -28,6 +28,6 @@ export function supportReferencePrefix(rewardId = "", deposit?: SupportDeposit, 
     const orderOrigin = /^order:(all|processing|fulfilled|exceptions|payment)$/.exec(transactionOrigin);
     return `Reward reference: ${rewardId}${orderOrigin ? `\nReward opened from: ${orderOrigin[1]}` : ""}\n\n`;
   }
-  return /^(?:wallet|order:(?:all|processing|fulfilled|exceptions|payment))$/.test(transactionOrigin)
+  return /^(?:wallet|order:(?:all|processing|fulfilled|exceptions|payment)(?::details)?)$/.test(transactionOrigin)
     ? `Transaction opened from: ${transactionOrigin}\n\n` : "";
 }

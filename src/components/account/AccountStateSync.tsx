@@ -17,10 +17,20 @@ export function AccountStateSync({ accountId, balanceCents, activeCount, offerRe
     if (balanceCents !== null && activeCount !== null) return;
     // Retry a failed server read without inventing totals or resubmitting an
     // account action. Stop after three attempts and cancel as soon as it recovers.
-    const timers = [1000, 4000, 10000].map(delay => window.setTimeout(() => {
-      if (document.visibilityState !== "hidden" && navigator.onLine) router.refresh();
-    }, delay));
-    return () => timers.forEach(timer => window.clearTimeout(timer));
+    let waitingForReceipt = false;
+    const retry = () => {
+      if (document.visibilityState === "hidden" || !navigator.onLine) return;
+      if (isAccountRefreshHeld()) { waitingForReceipt = true; return; }
+      waitingForReceipt = false;
+      router.refresh();
+    };
+    const onRelease = () => { if (waitingForReceipt) retry(); };
+    const timers = [1000, 4000, 10000].map(delay => window.setTimeout(retry, delay));
+    window.addEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, onRelease);
+    return () => {
+      timers.forEach(timer => window.clearTimeout(timer));
+      window.removeEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, onRelease);
+    };
   }, [accountId, balanceCents, activeCount, router]);
 
   useEffect(() => {

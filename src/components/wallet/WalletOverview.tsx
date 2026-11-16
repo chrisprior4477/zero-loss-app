@@ -22,7 +22,7 @@ import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, hiddenProducts }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, hiddenProducts, notificationReturnHref, landOnBalance = false }:   {
   timeZone?: string;
   restoreLedgerView?: boolean;
   hiddenProducts?: ReadonlySet<string>;
@@ -37,6 +37,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   requestKey?: string;
   recoveryKey?: string;
   depositRow?: string;
+  notificationReturnHref?: string;
+  landOnBalance?: boolean;
   fromDeposits?: boolean;
   depositList?: boolean;
   requests?: DemoFundingRequest[] | null;
@@ -69,7 +71,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <main className={styles.page}>
-    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={!recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
+    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={landOnBalance || (!recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable)} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="#balance" actionHref={canFund ? addFundsHref : undefined} actionDisabled={!canFund} />
@@ -119,7 +121,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selected ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
-        {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger depositList={depositList} timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}
+        {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger notificationReturnHref={notificationReturnHref} depositList={depositList} timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}
         {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger depositList={depositList} key={selected?.id ?? "history"} walletId={wallet.walletAccountId ?? undefined} timeZone={timeZone} entries={ledgerEntries ?? wallet.entries} activity={activity?.source === "unavailable" ? [] : activity?.activity} totalCount={wallet.transactionCount} selectedId={selected?.id} hiddenIds={demoHistoryVisibility?.ledgerEntryIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} />}
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>

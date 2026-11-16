@@ -41,7 +41,7 @@ test("the balance keeps the selected purchase context and returns to normal afte
   render(<HeaderAccountMetrics isSignedIn liveBalance="$24" activityState={activityState} />);
   const wallet = screen.getByRole("link", { name: "$24 playable balance" });
   act(() => setWalletFundingContext({ href: purchaseFundingHref(slug, entry)!, slug, selected: ["option-1", "option-2"], decline: false }));
-  expect(wallet.getAttribute("href")).toBe(`/account/wallet?view=history&from=${slug}&entry=${entry}#balance`);
+  expect(wallet.getAttribute("href")).toBe(`/account/wallet?view=history&from=${slug}&entry=${entry}&landing=balance#balance`);
   fireEvent.click(wallet);
   expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ slug, selected: ["option-1", "option-2"], decline: false });
   act(() => setWalletFundingContext(null));

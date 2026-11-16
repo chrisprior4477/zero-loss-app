@@ -6,7 +6,7 @@ export function ledgerDescription(entryType: string, productTitle?: string) {
   if (entryType === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", productTitle ?? "Hold released on Undo or replaced by the confirmed entry purchase"];
   if (entryType === "ENTRY_DEBIT") return ["Entry purchase", productTitle ?? "Product entry"];
   if (entryType === "PURCHASE_DEBIT") return ["Gift-card purchase", productTitle ?? "Completed purchase option"];
-  return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entryType] ?? ["Wallet transaction", "Posted ledger activity"];
+  return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], UNCLAIMED_WINNER_CREDIT: ["Unclaimed reward credit returned", "Returned to playable wallet"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entryType] ?? ["Wallet transaction", "Posted ledger activity"];
 }
 
 /** Only link records present in the signed-in customer's authorized activity. */
@@ -21,7 +21,7 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
     const href = item.status === "active"
       ? `${activityHref(item)}?entries=open&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
-      ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}#purchase-option-rail`
+      ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#purchase-option-rail`
       : isWalletReward(item) && item.rewardId
       ? `${activityHref(item)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}`
       : activityHref(item);

@@ -22,6 +22,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   const uploaded = useRef(new Set(record?.document.files.map(f => f.id)));
   const queue = useRef(Promise.resolve(false));
   const imported = useRef<string | null>(null);
+  const deviceCopy = useRef<string | null>(null);
   const locked = useRef(submitted);
   const initialRead = useRef(false);
   useEffect(() => {
@@ -46,7 +47,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
           const stored = raw && readDeviceDraft(raw);
           if (stored) {
             const data = completeLegacy(stored);
-            if (owner) setGuestDraft(data);
+            if (owner) { deviceCopy.current = raw; setGuestDraft(data); }
             else { lastSaved.current = data; setSavedDraft(data); setDraft(data); }
           }
         } catch { /* A blocked or outdated device draft must not hide the form. */ }
@@ -135,7 +136,17 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
 
   function importGuest() {
     if (!guestDraft) return;
-    try { imported.current = localStorage.getItem(guestDraftKey); } catch { /* Import the loaded copy. */ }
+    try {
+      const current = localStorage.getItem(guestDraftKey);
+      if (current !== deviceCopy.current) {
+        deviceCopy.current = current;
+        const latest = current && readDeviceDraft(current);
+        setGuestDraft(latest ? completeLegacy(latest) : null);
+        setMessage(latest ? "The device draft changed. Choose Use this draft again to import the latest version." : "The device draft is no longer available.");
+        return;
+      }
+    } catch { /* Import the loaded copy. */ }
+    imported.current = deviceCopy.current;
     setDraft(guestDraft);
     setGuestDraft(null);
     void save(guestDraft);

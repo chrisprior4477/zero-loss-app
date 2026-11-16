@@ -3,19 +3,9 @@ import path from "node:path";
 import { NextRequest } from "next/server";
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import QRCode from "qrcode";
+import { businessCampaignDestination, businessCampaigns, type CampaignKey } from "@/lib/business/demo-campaigns";
 
 export const runtime = "nodejs";
-type CampaignKey = "products" | "fulfillment" | "campaign" | "other" | "restaurant" | "tools";
-
-const campaigns: Record<CampaignKey, { brand: string; title: string; reward: string; value: string; original: string; generated: string }> = {
-  products: { brand: "HARBOR COFFEE", title: "Win a better morning.", reward: "Coffee Explorer Collection and one year of remarkable coffee", value: "$249", original: "harbor-coffee-board.png", generated: "harbor-coffee-campaign.png" },
-  fulfillment: { brand: "NORTHSTAR REWARDS", title: "A reward made for you.", reward: "$150 dining, travel, shopping, or entertainment reward", value: "$150", original: "northstar-rewards-board.png", generated: "northstar-rewards-campaign.png" },
-  campaign: { brand: "TRAILBOUND ADVENTURES", title: "Trade the routine for the ridgeline.", reward: "A mountain escape, guided trail day, and outdoor gear for four", value: "$1,200", original: "trailbound-adventures-board.png", generated: "trailbound-adventures-campaign.png" },
-  other: { brand: "BUILD WITH MAYA", title: "Build the setup you actually want.", reward: "A creator-curated performance PC and complete desk package", value: "$2,499", original: "maya-chen-creator-board.png", generated: "maya-chen-creator-campaign.png" },
-  restaurant: { brand: "BELLAMORA ITALIAN KITCHEN", title: "Dinner is on us.", reward: "A memorable Italian dinner for two with a $150 dining gift card", value: "$150", original: "bellamora-originals.png", generated: "bellamora-campaign.png" },
-  tools: { brand: "FORGE & FIELD SUPPLY", title: "Build more. Spend less.", reward: "Professional tools and jobsite equipment from a ten-listing launch catalog", value: "$299", original: "forge-field-originals.png", generated: "forge-field-campaign.png" },
-};
-
 function wrap(text: string, font: PDFFont, size: number, width: number) {
   const output: string[] = []; let line = "";
   for (const word of text.split(" ")) { const next = line ? `${line} ${word}` : word; if (font.widthOfTextAtSize(next, size) <= width) line = next; else { if (line) output.push(line); line = word; } }
@@ -30,11 +20,11 @@ function drawQrLabel(page: PDFPage, qr: Awaited<ReturnType<PDFDocument["embedPng
 }
 
 export async function GET(request: NextRequest) {
-  const requested = request.nextUrl.searchParams.get("case") as CampaignKey | null; const key = requested && campaigns[requested] ? requested : "products"; const campaign = campaigns[key];
+  const requested = request.nextUrl.searchParams.get("case") as CampaignKey | null; const key = requested && Object.hasOwn(businessCampaigns, requested) ? requested : "products"; const campaign = businessCampaigns[key];
   const format = request.nextUrl.searchParams.get("format") === "cards" ? "card" : "flyer"; const design = request.nextUrl.searchParams.get("design") === "generated" ? "generated" : "original";
   const document = await PDFDocument.create(); const regular = await document.embedFont(StandardFonts.Helvetica); const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const image = await document.embedPng(await readFile(path.join(process.cwd(), "public", "business-demo", campaign[design])));
-  const destination = key === "tools" ? "forge-field" : key === "restaurant" ? "bellamora" : key;
+  const destination = businessCampaignDestination(key);
   const qrData = await QRCode.toDataURL(`${request.nextUrl.origin}/business-preview/${destination}`, { width: 420, margin: 1, errorCorrectionLevel: "H", color: { dark: "#00132e", light: "#ffffff" } });
   const qr = await document.embedPng(Buffer.from(qrData.split(",")[1], "base64"));
   const navy = rgb(0, 19 / 255, 46 / 255); const green = rgb(49 / 255, 232 / 255, 0); const cyan = rgb(0, 185 / 255, 1); const cream = rgb(.97, .95, .89);

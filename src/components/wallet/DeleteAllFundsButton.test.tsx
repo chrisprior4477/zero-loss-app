@@ -4,12 +4,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const actions = vi.hoisted(() => ({
   preview: vi.fn(),
   clear: vi.fn(),
+  check: vi.fn(),
 }));
 const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/wallet/demo-balance-actions", () => ({
   previewDemoBalanceClear: actions.preview,
   clearDemoBalance: actions.clear,
+  checkDemoBalanceClear: actions.check,
 }));
 
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
@@ -47,8 +49,9 @@ test("a failed balance check stays recoverable without requesting a reset", asyn
   expect(await screen.findByRole("dialog")).toBeTruthy();
 });
 
-test("a missing reset response checks the balance without another mutation", async () => {
-  actions.preview.mockResolvedValueOnce({ status: "ready", balanceCents: 13600 }).mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "ready", balanceCents: 0 });
+test("a missing reset response checks the original reset receipt without another mutation", async () => {
+  actions.preview.mockResolvedValueOnce({ status: "ready", balanceCents: 13600 });
+  actions.check.mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "succeeded", clearedCents: 13600 });
   actions.clear.mockRejectedValue(new Error("Missing confirmation"));
   render(<DeleteAllFundsButton value="$136" />);
   fireEvent.click(await screen.findByRole("button", { name: "Delete Funds" }));
@@ -56,11 +59,12 @@ test("a missing reset response checks the balance without another mutation", asy
   fireEvent.click(screen.getByRole("button", { name: "Clear demo funds" }));
   expect((await screen.findByRole("alert")).textContent).toContain("may already be saved");
   expect(screen.queryByRole("button", { name: "Clear demo funds" })).toBeNull();
-  fireEvent.click(await screen.findByRole("button", { name: "Check wallet balance" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Check wallet reset" }));
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still couldn’t check"));
-  fireEvent.click(await screen.findByRole("button", { name: "Check wallet balance" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Check wallet reset" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(screen.getByRole("status").textContent).toContain("Balance is $0");
+  expect(screen.getByRole("status").textContent).toContain("$136 in demo funds cleared");
+  expect(actions.check).toHaveBeenLastCalledWith(actions.clear.mock.calls[0][1]);
   expect(actions.clear).toHaveBeenCalledTimes(1);
   expect(actions.clear.mock.calls[0][0]).toBe(13600);
   expect(actions.clear.mock.calls[0][1]).toMatch(/^[a-f0-9-]{36}$/);

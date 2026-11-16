@@ -4,7 +4,7 @@ import type { LedgerEntryRow } from "./snapshot";
 
 const dollars = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
 const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:dollars?|USD))?$`, "i");
-const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?=\s|$)`, "g");
+const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?:\s+(?:dollars?|USD)\b)?(?=\s|$)`, "gi");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
 
 function amountCents(token: string) {

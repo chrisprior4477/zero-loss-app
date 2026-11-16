@@ -19,7 +19,7 @@ async function authorizedDemoWallet() {
   if (wallet.scope !== "demo" || !wallet.fundingAvailable || wallet.walletAccountId === null) {
     throw new Error("Demo balance reset is unavailable for this wallet.");
   }
-  return { db, balanceCents: wallet.balanceCents };
+  return { db, userId: user.id, balanceCents: wallet.balanceCents };
 }
 
 export async function previewDemoBalanceClear(): Promise<Preview> {
@@ -28,6 +28,20 @@ export async function previewDemoBalanceClear(): Promise<Preview> {
     return { status: "ready", balanceCents };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Unable to check your demo wallet." };
+  }
+}
+
+export async function checkDemoBalanceClear(requestKey: string): Promise<Result | { status: "not_found"; balanceCents: number }> {
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) return { status: "error", message: "Invalid reset request." };
+  try {
+    const { db, userId, balanceCents } = await authorizedDemoWallet();
+    const { data, error } = await db.from("ledger_entries").select("amount")
+      .eq("customer_id", userId).eq("entry_type", "CORRECTION")
+      .eq("source_event", `customer_demo_balance_clear_${requestKey}`).maybeSingle();
+    if (error || (data && (!Number.isSafeInteger(data.amount) || data.amount >= 0))) throw new Error();
+    return data ? { status: "succeeded", clearedCents: -data.amount } : { status: "not_found", balanceCents };
+  } catch {
+    return { status: "error", message: "We couldn’t check whether this reset was recorded. Check again when your wallet is available." };
   }
 }
 

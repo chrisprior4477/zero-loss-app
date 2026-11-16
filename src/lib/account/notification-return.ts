@@ -18,6 +18,8 @@ export function notificationHref(filter: NotificationFilter, notice?: string) {
 
 export function notificationDestination(item: AccountNotification, filter: NotificationFilter) {
   if (!item.href.startsWith("/account/orders?order=") && !item.href.startsWith("/account/wallet?reward=")
+    && !/^\/account\/wallet\?(?:[^#]*&)?transaction=/.test(item.href)
+    && !/^\/support(?:[?#]|$)/.test(item.href)
     && !/^\/account\/entries\/ent_[a-f0-9]{32}(?:[?#]|$)/i.test(item.href)) return item.href;
   const [path, hash] = item.href.split("#", 2);
   const url = new URL(path, "https://navigation.invalid");

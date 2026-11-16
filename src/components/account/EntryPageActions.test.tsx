@@ -84,7 +84,7 @@ test("the header wallet and inline funding return to this exact ticket and addit
   for (const quantity of [6, 7, 9, 10]) {
     fireEvent.change(screen.getByRole("spinbutton", { name: "Number of additional entries" }), { target: { value: String(quantity) } });
     const href = `/account/wallet?view=history&from=${props.slug}&entry=${props.entryId}&quantity=${quantity}&review=entry`;
-    expect(wallet.getAttribute("href")).toBe(href + "#balance");
+    expect(wallet.getAttribute("href")).toBe(href + "&landing=balance#balance");
     fireEvent.click(screen.getByRole("button", { name: `Add ${quantity} more entries to PlayStation 5` }));
     expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(href + "#add-funds");
   }

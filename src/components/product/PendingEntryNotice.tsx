@@ -1,5 +1,6 @@
 "use client";
 
+import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
@@ -184,7 +185,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   useEffect(() => {
     for (const request of requests) {
       if (request.status !== "pending" || inFlight.current.has(request.requestId)) continue;
-      const remaining = Date.parse(request.undoUntil) - Date.parse(request.serverNow) - (now - request.receivedAt);
+      const remaining = remainingEntryUndoMilliseconds(request.serverNow, request.undoUntil, performance.timeOrigin + request.receivedAt) - (now - request.receivedAt);
       if (remaining > 0 || performance.now() < (nextResolveAt.current.get(request.requestId) ?? 0)) continue;
       inFlight.current.add(request.requestId);
       void resolvePendingEntryRequest(request.requestId, false).then(result => {

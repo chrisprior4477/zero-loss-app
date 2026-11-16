@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
 import { purchaseChoicePattern, readPurchaseHandoff, savePurchaseHandoff } from "@/lib/wallet/purchase-selection-handoff";
@@ -44,16 +44,18 @@ function restore(raw: string | null, ownerId: string, slug: string, available: s
 
 export function useCheckoutSelection(ownerId: string, options: ActivityItem[], entryId?: string) {
   const slug = options[0].slug;
-  const available = useMemo(() => options.map(option => option.completionOptionId!), [options]);
+  const roster = JSON.stringify(options.map(option => option.completionOptionId));
+  const available = useMemo(() => JSON.parse(roster) as string[], [roster]);
   const firstId = options.find(option => option.entryId === entryId)?.completionOptionId ?? available[0];
   const key = `zero-loss-checkout-choice:${ownerId}:${slug}:${entryId ?? "all"}`;
   const [choice, setChoice] = useState<Choice>({ selected: [firstId], decline: true, needsReview: false });
   const [handoffId, setHandoffId] = useState<string>();
+  const inMemory = useRef<{ key: string; raw: string } | null>(null);
 
   useLayoutEffect(() => {
-    let saved: Choice | null = null;
+    let saved = inMemory.current?.key === key ? restore(inMemory.current.raw, ownerId, slug, available, firstId) : null;
     const query = new URLSearchParams(window.location.search);
-    try {
+    if (!saved) try {
       const handoffId = query.get("choice");
       if (handoffId !== null) {
         const currentDraft = sessionStorage.getItem(`${key}:arrival`) === handoffId
@@ -75,7 +77,8 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChoice(initial);
     setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));
-    try { sessionStorage.setItem(key, JSON.stringify({ ...initial, available, slug, ownerId })); }
+    inMemory.current = { key, raw: JSON.stringify({ ...initial, available, slug, ownerId }) };
+    try { sessionStorage.setItem(key, inMemory.current.raw); }
     catch { /* The cross-tab snapshot remains independent of tab storage. */ }
   }, [available, firstId, key, ownerId, slug]);
 
@@ -83,10 +86,12 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     const next = { ...choice, ...change };
     setChoice(next);
     setHandoffId(savePurchaseHandoff({ ...next, available, slug, ownerId }));
-    try { sessionStorage.setItem(key, JSON.stringify({ ...next, available, slug, ownerId })); }
+    inMemory.current = { key, raw: JSON.stringify({ ...next, available, slug, ownerId }) };
+    try { sessionStorage.setItem(key, inMemory.current.raw); }
     catch { /* The selection remains usable in the current page. */ }
   }
   function clearChoice() {
+    inMemory.current = null;
     try {
       sessionStorage.removeItem(key);
       const arrival = sessionStorage.getItem(`${key}:arrival`);

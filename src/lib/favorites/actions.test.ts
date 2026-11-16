@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { g
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => false }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: vi.fn() }));
 
+vi.mock("@/lib/catalog/shopping-catalog", () => ({ getShoppingCatalog: async () => ({ hidden: new Set<string>(), unavailable: false }) }));
 vi.mock("./reader", () => ({ getFavoriteSnapshot: mocks.snapshot }));
 import { getCurrentFavorites, setFavorite } from "./actions";
 

@@ -38,7 +38,7 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   const crew = query([{ id, requester_name: "Sam" }]);
   const support = query([{ id, subject: "Demo case", status: "awaiting_customer", updated_at: "2026-09-21T12:00:00Z" }]);
   const reads = query([{ notification_id: `crew-${id}` }]);
-  mocks.from.mockImplementation(table => ({ crew_invitations: crew, support_cases: support, customer_notification_reads: reads })[table as string]);
+  mocks.from.mockImplementation(table => ({ crew_invitations: crew, support_cases: support, support_case_events: query([]), customer_notification_reads: reads })[table as string]);
   const props = await notificationProps();
   expect(props.notifications.find(item => item.crewRequestId === id)?.href).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
   expect(props.notifications.find(item => item.id.startsWith("support-"))?.href).toBe(`/support?case=${id}#conversation`);

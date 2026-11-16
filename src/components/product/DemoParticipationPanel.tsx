@@ -1,5 +1,6 @@
 "use client";
 
+import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -293,8 +294,8 @@ export function DemoParticipationPanel({
   }, [requestReceipt?.requestId, requestReceipt?.status]);
 
   const undoSeconds = requestReceipt?.status === "pending"
-    ? Math.max(0, Math.ceil((Date.parse(requestReceipt.undoUntil) - Date.parse(requestReceipt.serverNow)
-      - (undoNow - receiptReceivedAt)) / 1000)) : 0;
+    ? Math.max(0, Math.ceil((remainingEntryUndoMilliseconds(requestReceipt.serverNow, requestReceipt.undoUntil,
+      performance.timeOrigin + receiptReceivedAt) - Math.max(0, undoNow - receiptReceivedAt)) / 1000)) : 0;
   async function undoEntry() {
     if (requestReceipt?.status !== "pending" || undoBusy || undoSeconds === 0) return;
     setUndoBusy(true);

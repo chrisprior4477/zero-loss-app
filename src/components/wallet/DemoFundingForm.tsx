@@ -287,7 +287,17 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     const data = new FormData();
     data.set("paymentMethod", token);
     data.set("makeDefault", String(asDefault));
-    if (artwork[token]) data.set("artwork", JSON.stringify(artwork[token]));
+    const existing = cards.find(card => card.token === token);
+    if (artwork[token] && JSON.stringify(existing?.artwork) !== JSON.stringify(artwork[token])) {
+      data.set("artwork", JSON.stringify(artwork[token]));
+    }
+    if (existing && !existing.revision) {
+      setCardMessage("Refresh your saved cards before making changes.");
+      setSavingCard(null);
+      router.refresh();
+      return;
+    }
+    if (existing?.revision) data.set("cardRevision", existing.revision);
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
       setCardMessage(result.status === "idle" ? "The sample card was not saved." : result.message);
@@ -295,7 +305,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         const fixture = demoCardFixture(token)!;
         const effectiveDefault = asDefault;
         setCards(previous => [...previous.filter(card => card.token !== token).map(card => ({ ...card, isDefault: effectiveDefault ? false : card.isDefault })),
-          { ...previous.find(card => card.token === token), token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
+          result.card ?? { ...previous.find(card => card.token === token), token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
         if (effectiveDefault) setDefaultToken(token);
         else if (defaultToken === token) setDefaultToken(null);
         router.refresh();
@@ -583,7 +593,15 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
   function remember(start: number, size: number, all: boolean, opened: string | null) {
     if (viewKey) try { sessionStorage.setItem(viewKey, JSON.stringify({ start, size, all, receipt: opened })); } catch { /* The list remains usable. */ }
   }
+  function clearReceiptLink() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("depositRow")) return;
+    url.searchParams.delete("depositRow");
+    url.hash = "payment-deposits";
+    window.history.replaceState(window.history.state, "", url);
+  }
   function close() {
+    clearReceiptLink();
     batches.reset();
     setAllDeposits(false);
     setReceipt(null);
@@ -675,6 +693,7 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
           if (!isOpen && receipt !== request.id) return;
           const next = isOpen ? request.id : null;
           if (next === receipt) return;
+          if (!isOpen && request.id === focusId) clearReceiptLink();
           setReceipt(next);
           remember(batches.start, batches.size, allDeposits, next);
         }}>

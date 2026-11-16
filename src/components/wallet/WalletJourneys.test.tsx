@@ -8,7 +8,7 @@ import { saveDemoPaymentMethod, completeDemoFunding } from "@/lib/payments/actio
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { WalletCardEditor } from "./WalletCardEditor";
 import { DemoFundingForm } from "./DemoFundingForm";
-const initialCards: DemoCard[] = [{ token: "demo_card_4242", lastFour: "4242", isDefault: true }];
+const initialCards: DemoCard[] = [{ token: "demo_card_4242", lastFour: "4242", isDefault: true, revision: "2026-10-01T10:00:00Z" }];
 const allCards: DemoCard[] = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token: fixture.token, lastFour: fixture.lastFour, isDefault: index === 0, isDepositDefault: index === 1 }));
 beforeEach(() => { window.history.replaceState(null, "", "/account/wallet?view=history#balance"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });

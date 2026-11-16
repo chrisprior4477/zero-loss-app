@@ -8,9 +8,13 @@ export const purchaseSelectionKey = "zero-loss-purchase-funding-selection";
 let current: WalletFundingContext | null = null;
 const listeners = new Set<() => void>();
 
+export function walletBalanceFundingHref(href: string): string {
+  return href.replace(/#add-funds$/, "&landing=balance#balance");
+}
+
 export function purchaseFundingHref(slug: string, entryId: string | undefined, choice?: string): string | null {
   if (!entryId || !/^ent_[a-f0-9]{32}$/.test(entryId) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
-  return fundingHref(slug, entryId, undefined, undefined, choice).replace("#add-funds", "#balance");
+  return walletBalanceFundingHref(fundingHref(slug, entryId, undefined, undefined, choice));
 }
 export function setWalletFundingContext(value: WalletFundingContext | null) {
   if (current === value) return;
@@ -31,7 +35,7 @@ export function useWalletFundingContext() {
 export function useEntryWalletFunding(addFundsHref: string | null, rememberEntry?: () => void) {
   useEffect(() => {
     if (!addFundsHref) return;
-    const context = { href: addFundsHref.replace(/#add-funds$/, "#balance"), rememberEntry };
+    const context = { href: walletBalanceFundingHref(addFundsHref), rememberEntry };
     setWalletFundingContext(context);
     return () => { if (current === context) setWalletFundingContext(null); };
   }, [addFundsHref, rememberEntry]);

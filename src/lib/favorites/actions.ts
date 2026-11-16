@@ -1,5 +1,6 @@
 "use server";
 
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { getFavoriteSnapshot } from "./reader";
@@ -34,6 +35,9 @@ export async function setFavorite(productSlug: string, shouldSave: boolean): Pro
     if (authError || !user) return { status: "sign-in", message: "Sign in to save favorites." };
     if (isPreviewDataEnvironment()) await ensurePreviewCustomer(db, user);
     if (shouldSave) {
+      const catalog = await getShoppingCatalog();
+      if (catalog.hidden.has(productSlug)) return { status: "error", message: "This prize has closed and can’t be saved." };
+      if (catalog.unavailable) return { status: "error", message: "Prize availability could not be checked. Try again shortly." };
       const { error } = await db.from("customer_favorites").insert({ customer_id: user.id, product_slug: productSlug });
       if (error && error.code !== "23505") throw error;
       return { status: "saved" };

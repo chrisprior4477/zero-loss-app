@@ -115,7 +115,13 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
     inFlight.current = true; setPhase("saving"); setError(null);
     try {
       const result = await advanceDemoVerification(verification.id, next);
-      if (result.verification) setVerification(result.verification); else setError(result.error);
+      if (result.verification) setVerification(result.verification);
+      else {
+        const saved = await beginDemoVerification(rewardId);
+        if (saved.verification && (saved.verification.id !== verification.id || saved.verification.step !== verification.step)) {
+          setVerification(saved.verification);
+        } else setError(result.error);
+      }
     } catch { setError("The connection was interrupted. Retry this step; your saved progress is safe."); }
     finally { setPhase("idle"); inFlight.current = false; }
   }

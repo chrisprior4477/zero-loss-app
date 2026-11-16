@@ -31,7 +31,19 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
     element.showModal(); document.body.style.overflow = "hidden"; heading.current?.focus();
     return () => { element.close(); document.body.style.overflow = overflow; if (trigger?.isConnected) trigger.focus({ preventScroll: true }); };
   }, [open]);
-  function close() { if (pending.current) return; setOpen(false); if (result?.ok) router.refresh(); }
+  function close() {
+    if (pending.current) return;
+    setOpen(false);
+    if (request && (request.status === "accepted" || result?.ok)) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("request") === request.id) {
+        url.searchParams.delete("request");
+        if (url.hash === `#crew-request-${request.id}`) url.hash = "";
+        window.history.replaceState(window.history.state, "", url);
+      }
+    }
+    if (result?.ok) router.refresh();
+  }
   async function respond(accept: boolean) {
     if (!request || pending.current) return;
     pending.current = true; setBusy(true); setResult(null);

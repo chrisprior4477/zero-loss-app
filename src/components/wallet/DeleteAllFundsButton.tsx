@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { clearDemoBalance, previewDemoBalanceClear } from "@/lib/wallet/demo-balance-actions";
+import { checkDemoBalanceClear, clearDemoBalance, previewDemoBalanceClear } from "@/lib/wallet/demo-balance-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./delete-all-funds-button.module.css";
 
@@ -59,10 +59,12 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   function checkBalance() {
     startTransition(async () => {
       try {
-        const preview = await previewDemoBalanceClear();
-        if (preview.status === "error") { setNotice(preview.message); return; }
+        const result = await checkDemoBalanceClear(requestKey.current!);
+        if (result.status === "error") { setNotice(result.message); return; }
         closeDialog();
-        setNotice(`Your current demo Playable Balance is ${formatUsdFromCents(preview.balanceCents)}. No additional reset was requested. Review your wallet before clearing funds again.`);
+        setNotice(result.status === "succeeded"
+          ? `${formatUsdFromCents(result.clearedCents)} in demo funds cleared. Your entries, rewards, and wallet history remain.`
+          : `There’s no record of this reset yet. Your current demo Playable Balance is ${formatUsdFromCents(result.balanceCents)}.`);
         router.refresh();
       } catch { setNotice("We still couldn’t check your balance. Reconnect and check again; no additional reset was requested."); }
     });
@@ -84,7 +86,7 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
           {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
           <div className={styles.actions}>
             <button type="button" onClick={closeDialog} disabled={pending} className={styles.cancel}>{uncertain ? "Close" : "Cancel"}</button>
-            {uncertain ? <button type="button" onClick={checkBalance} disabled={pending} className={styles.confirm}>{pending ? "Checking…" : "Check wallet balance"}</button>
+            {uncertain ? <button type="button" onClick={checkBalance} disabled={pending} className={styles.confirm}>{pending ? "Checking…" : "Check wallet reset"}</button>
               : <button type="button" onClick={confirmClear} disabled={pending} className={styles.confirm}>{pending ? "Clearing…" : "Clear demo funds"}</button>}
           </div>
         </div>

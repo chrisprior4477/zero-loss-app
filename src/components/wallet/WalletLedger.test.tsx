@@ -66,8 +66,10 @@ test("searches past the visible batch by product, retailer, and exact posted amo
   }
   fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
   expect(rows()).toEqual(["transaction-older-purchase"]);
-  type("AirPods −$249.00");
-  expect(rows()).toEqual(["transaction-older-purchase"]);
+  for (const search of ["AirPods −$249.00", "AirPods -249 dollars", "AirPods -249 USD"]) {
+    type(search);
+    expect(rows()).toEqual(["transaction-older-purchase"]);
+  }
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-02" } });
   expect(screen.getByRole("heading", { name: "No matching transactions" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));

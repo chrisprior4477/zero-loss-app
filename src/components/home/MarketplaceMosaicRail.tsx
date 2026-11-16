@@ -3,6 +3,7 @@
 import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
 
 import Image from "next/image";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
@@ -17,6 +18,11 @@ import { marketplaceColumns } from "@/lib/home/marketplace-columns";
 const pilotHref = "/items/dewalt-20v-drill-kit";
 const products = [...dollarChoiceDemoItems.filter(item => item.href === pilotHref),
   ...dollarChoiceDemoItems.filter(item => item.href !== pilotHref)];
+
+function marketplaceProductHref(href: string) {
+  const slug = /^\/items\/([a-z0-9-]+)$/.exec(href)?.[1];
+  return slug ? productHrefWithBrowseReturn(slug, `/?marketplace-prize=${slug}#marketplace-mosaic-title`) : href;
+}
 
 function EntryButton({ compact = false }: { compact?: boolean }) {
   return <span className={compact
@@ -34,7 +40,7 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
 
   return (
     <article className="group relative w-[190px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
-      <Link href={item.href} draggable={false} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+      <Link href={marketplaceProductHref(item.href)} draggable={false} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
         <div className="relative h-[136px] overflow-hidden bg-[linear-gradient(145deg,#fff,#e9eef2)] sm:h-[196px]">
           <span aria-hidden="true" className="absolute inset-x-[20%] bottom-3 h-10 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image
@@ -78,7 +84,7 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
   const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
   return (
     <article className="group relative min-h-[95px] w-[125px] flex-1 overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:min-h-[123px] sm:w-[230px] sm:rounded-[20px]">
-      <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">
+      <Link href={marketplaceProductHref(item.href)} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">
         <div className="relative h-[78px] w-[62px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[106px] sm:w-[110px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />

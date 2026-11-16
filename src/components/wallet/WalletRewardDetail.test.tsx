@@ -96,7 +96,7 @@ test("Crew selections and share feedback stay with the exact reward, even for th
   expect(await screen.findByText("Second share saved")).toBeTruthy();
   expect(mocks.share).toHaveBeenLastCalledWith(nextRewardId, ["crew-b"]);
   view.rerender(reward(nextRewardId));
-  expect(screen.getByRole("button", { name: "Share saved" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Share win with selected Crew" })).toHaveProperty("disabled", true);
 });
 
 test.each(["prize", "completed"] as const)("%s reward sharing is a manual compact button and never includes the gift-card number", status => {

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { crewUuid } from "./visibility";
 import type { SharingSelection } from "./sharing-management";
 
-export type SharingResult = { ok: boolean; message: string; count?: number; undoId?: string };
+export type SharingResult = { ok: boolean; message: string; count?: number; undoId?: string; audienceUnavailable?: boolean };
 const validScope = (scope: unknown) => typeof scope === "string" && (scope === "crew" || crewUuid.test(scope));
 function refreshSharing() { revalidatePath("/account/crew"); revalidatePath("/account/crew/display"); }
 
@@ -22,6 +22,9 @@ export async function cleanupCrewShares(operationId: string, selection: SharingS
   const { data, error } = await db.rpc("cleanup_crew_shares", { p_operation_id: operationId, p_scope: selection.scope,
     p_offering_slug: selection.offeringSlug ?? null, p_entry_id: selection.entryId ?? null, p_before: selection.before ?? null,
     ...(selection.reviewedEntryIds ? { p_reviewed_entry_ids: selection.reviewedEntryIds } : {}) });
+  if (error?.code === "22023" && error.message === "Group unavailable") {
+    return { ok: false, audienceUnavailable: true, message: "This group is no longer available. Choose another audience to continue." };
+  }
   if (error || !data || typeof data.count !== "number") return { ok: false, message: "We couldn’t confirm cleanup. Retry to check the same request safely." };
   refreshSharing();
   return { ok: true, count: data.count, undoId: data.undone || !data.count ? undefined : data.id,

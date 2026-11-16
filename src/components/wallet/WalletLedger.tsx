@@ -28,7 +28,7 @@ function category(entry: LedgerEntryRow): LedgerFilter {
   if (entry.entry_type === "DEPOSIT") return "funding";
   if (["ENTRY_DEBIT", "ENTRY_HOLD", "ENTRY_HOLD_RELEASE"].includes(entry.entry_type)) return "entries";
   if (entry.entry_type === "PURCHASE_DEBIT") return "purchases";
-  if (entry.entry_type === "REFUND") return "refunds";
+  if (entry.entry_type === "REFUND" || entry.entry_type === "UNCLAIMED_WINNER_CREDIT") return "refunds";
   return "all";
 }
 
@@ -62,7 +62,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList }: { depositList?: boolean; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, notificationReturnHref }: { notificationReturnHref?: string; depositList?: boolean; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [query, setQuery] = useState("");
@@ -258,7 +258,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const destination = new URL(anchor.href);
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
-    const entryResult = destination.pathname.startsWith("/account/entries/") && destination.searchParams.get("walletView") === "1";
+    const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/")) && destination.searchParams.get("walletView") === "1";
     if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
@@ -296,6 +296,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     updateBookmark({ ...dates, offset: 0 });
     batches.reset();
   }
+  const historyIncomplete = typeof totalCount === "number" && totalCount > entries.length;
   const selectedRow = useRef<HTMLLIElement>(null);
   useEffect(() => {
     const row = selectedRow.current;
@@ -336,13 +337,14 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         {(from || through) ? <button type="button" onClick={() => changeDates("", "")}>Clear dates</button> : null}
         {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date. Showing results from the last valid range.</p> : null}
       </div>
+      {historyIncomplete && <p role="status">Only recent transactions loaded. Search and filters apply to the available history. <button type="button" onClick={() => { updateBookmark({}); window.location.reload(); }}>Retry full history</button></p>}
       <div className={styles.historyResultCount}>
         {query || from || through || filter !== "all" ? <button type="button" onClick={resetFilters}>Reset filters</button> : null}
         <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
-    {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
+    {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
@@ -368,6 +370,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         </div>
         <span className={styles.posted}>Posted</span>
         <div className={styles.transactionActions}>
+          {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
           {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
           {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
             <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>

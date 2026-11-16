@@ -83,7 +83,7 @@ test("the sticky wallet balance follows the current prize quantity and browse fi
   for (const quantity of [6, 7, 9, 10, 101, 1]) {
     fireEvent.change(screen.getByRole("spinbutton", { name: "Number of entries" }), { target: { value: String(quantity) } });
     const href = screen.getByRole("link", { name: "Add funds" }).getAttribute("href")!;
-    expect(wallet.getAttribute("href")).toBe(href.replace("#add-funds", "#balance"));
+    expect(wallet.getAttribute("href")).toBe(href.replace("#add-funds", "&landing=balance#balance"));
     const params = new URL(href, "https://example.test").searchParams;
     expect(params.get("browse")).toBe(browse);
     expect(params.get("quantity") ?? "1").toBe(String(quantity));

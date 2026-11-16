@@ -401,7 +401,7 @@ test("reading an informational update removes it from attention but retains it u
   renderAttention();
   fireEvent.click(screen.getByRole("link", { name: /View transaction/ }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread"]));
-  expect(actionMocks.push).toHaveBeenCalledWith(attentionFixtures[2].href);
+  expect(actionMocks.push).toHaveBeenCalledWith(`${attentionFixtures[2].href}&alerts=action&notice=${attentionFixtures[2].id}`);
   expect(screen.queryByText("Your deposit posted")).toBeNull();
   expect(screen.getByRole("button", { name: "Action needed3" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "All5" }));

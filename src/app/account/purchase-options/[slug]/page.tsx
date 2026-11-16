@@ -9,6 +9,7 @@ import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import styles from "@/components/account/purchase-options.module.css";
 import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
@@ -20,7 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt", string | string[]>>;
+type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug } = await params;
@@ -28,13 +29,15 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const { option: selectedEntryId, decline, receipt } = query;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   const selectors = new URLSearchParams();
-  for (const key of ["option", "resume", "choice", "decline", "receipt"] as const) {
+  for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView"] as const) {
     const value = query[key];
     if (Array.isArray(value)) notFound();
     if (value !== undefined) selectors.set(key, value);
   }
   const returnPath = accountReturnPath(selectors.size ? `${prizePath}?${selectors}` : prizePath);
   if (!returnPath || Array.isArray(selectedEntryId)) notFound();
+  const walletHref = typeof query.transaction === "string" && /^[0-9a-f-]{36}$/i.test(query.transaction)
+    ? walletSupportReturnHref(query.transaction, query.walletView === "1") : undefined;
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", returnPath));
   if (typeof receipt === "string") {
@@ -109,7 +112,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", options.map(option => option.completionOptionId)])} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", options.map(option => option.completionOptionId)])} returnTransactionHref={walletHref} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
       ticketLabels={offerTicketLabels(options, activity)} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} creditedDeposits={requests?.filter(request => request.reconciliation === "reconciled").map(request => request.idempotencyKey)} fundingAvailable={account.fundingEnabled && cards !== null}
       pendingDeposits={requests?.filter(request => request.reconciliation !== "reconciled")
@@ -128,6 +131,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         </div>
       </div>
 
+      {walletHref && <Link href={walletHref} className={styles.return}>Back to this transaction</Link>}
       <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} showSummary />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">

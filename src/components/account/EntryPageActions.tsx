@@ -1,5 +1,6 @@
 "use client";
 
+import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -185,8 +186,9 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   }, [router, ticketHref, resumeReview]);
   useEffect(() => {
     if (!receipt || receipt.status !== "pending") return;
-    const serverOffset = Date.parse(receipt.serverNow) - Date.now();
-    const update = () => setSecondsLeft(Math.max(0, Math.ceil((Date.parse(receipt.undoUntil) - Date.now() - serverOffset) / 1000)));
+    const started = performance.now();
+    const remaining = remainingEntryUndoMilliseconds(receipt.serverNow, receipt.undoUntil, Date.now());
+    const update = () => setSecondsLeft(Math.max(0, Math.ceil((remaining - (performance.now() - started)) / 1000)));
     update();
     const timer = window.setInterval(update, 250);
     return () => window.clearInterval(timer);

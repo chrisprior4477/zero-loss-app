@@ -6,6 +6,8 @@ import { useLayoutEffect } from "react";
 export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
   useLayoutEffect(() => {
     let cancelled = false;
+    const fromCrew = new URLSearchParams(window.location.search).get("from")?.startsWith("/account/crew");
+    const needsSettling = !fromCrew || window.location.hash === "#enter-entry";
     let first = 0, second = 0;
     let settle: ReturnType<typeof setTimeout>;
     const align = () => {
@@ -14,13 +16,14 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const scroll = () => { if (!cancelled) document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" }); };
       scroll();
+      if (!needsSettling) return;
       first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
       settle = setTimeout(scroll, 280);
     };
     align();
     const header = document.querySelector("header");
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(align);
-    if (header) observer?.observe(header);
+    if (header && needsSettling) observer?.observe(header);
     const stopObserving = setTimeout(() => observer?.disconnect(), 1500);
     const navigate = () => { cancelled = false; align(); };
     const stop = () => { cancelled = true; observer?.disconnect(); };

@@ -56,9 +56,12 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       }
       setPrintPreview(showingPrint);
     };
+    const scrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
     const initial = requestAnimationFrame(restoreView);
     window.addEventListener("popstate", restoreView);
     return () => {
+      window.history.scrollRestoration = scrollRestoration;
       cancelAnimationFrame(initial);
       window.removeEventListener("popstate", restoreView);
     };
@@ -171,7 +174,7 @@ export function FreeEntryPrintSheet({ offering, title, name, account, reference,
   offering: string; title: string; name: string; account: string; reference: string; back: ReactNode;
 }) {
   return <main className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
-    <div className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
+    <div id="print-entry-insert" className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
       <div>
         {back}
         <p className="mt-1 text-xs text-white/65">The white page below represents one actual letter-size 8.5 × 11 sheet. If this preview blocks printing, open the PDF.</p>

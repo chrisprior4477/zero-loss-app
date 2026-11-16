@@ -101,7 +101,7 @@ export default async function LiveAccountSection({
       ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
       : walletTransactionHelpHref;
     const filter = fulfillmentFilter(query?.filter);
-    const fromNotification = Boolean(selectedOrderNumber && query?.from === "notifications");
+    const fromNotification = Boolean((selectedOrderNumber || selectedRewardId) && query?.from === "notifications");
     const alerts = fromNotification ? query?.alerts === undefined ? selectedOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts) : undefined;
     const notice = fromNotification && validNotice(query?.notice) ? query.notice : undefined;
     const reportContext = `${filter === "all" ? "" : `&orderFilter=${filter}`}${alerts ? `&alerts=${alerts}` : ""}${notice ? `&notice=${encodeURIComponent(notice)}` : ""}`;

@@ -47,7 +47,11 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
         ? new URLSearchParams(window.location.search).get("ending-prize") : null;
       const prizeAnchor = prize && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(prize)
         ? `/items/${prize}?from=${encodeURIComponent(`/?ending-prize=${prize}#ending-soon`)}` : null;
-      const anchorHref = retailer ?? prizeAnchor;
+      const marketplacePrize = id === "marketplace" && window.location.hash === "#marketplace-mosaic-title"
+        ? new URLSearchParams(window.location.search).get("marketplace-prize") : null;
+      const marketplaceAnchor = marketplacePrize && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(marketplacePrize)
+        ? `/items/${marketplacePrize}?from=${encodeURIComponent(`/?marketplace-prize=${marketplacePrize}#marketplace-mosaic-title`)}` : null;
+      const anchorHref = retailer ?? prizeAnchor ?? marketplaceAnchor;
       const saved = bookmark()?.rows[id] ?? (anchorHref ? { left: 0, anchor: anchorHref, inset: 4 } : null);
       if (!saved || !Number.isFinite(saved.left) || saved.left < 0 || !Number.isFinite(saved.inset)) return;
       restoring = true;

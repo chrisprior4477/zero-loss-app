@@ -123,6 +123,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
           writePreference("operation", result.undoId ? { operation, undoId: result.undoId, undoUntil: Date.now() + 86_400_000, message: `${result.message} Audience: ${operation.label}.` } : null);
           setCleanup(null); router.refresh();
         }
+        else if (result.audienceUnavailable) { writePreference("operation", null); setCleanup(null); router.refresh(); }
         else setRetry(operation);
       } catch { setMessage("We couldn’t confirm cleanup. Retry checks the same request safely."); setError(true); setRetry(operation); }
       finally { inFlight.current = false; }

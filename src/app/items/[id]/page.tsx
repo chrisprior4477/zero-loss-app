@@ -42,10 +42,10 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const query = await searchParams;
   const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
-  const browseReturnHref = productBrowseReturnHref(query.from);
-  const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const transactionReturn = typeof query.transaction === "string" && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(query.transaction)
     ? walletSupportReturnHref(query.transaction, query.walletView === "1") : null;
+  const browseReturnHref = productBrowseReturnHref(transactionReturn ?? query.from);
+  const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const product = getDemoProduct(id);
   if (!product) notFound();
   const { account, availability, hidden, unavailable } = await getShoppingCatalog();
@@ -62,7 +62,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (
-    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={query.share} browseReturnHref={query.from === undefined ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={query.share} browseReturnHref={query.from === undefined && !transactionReturn ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
@@ -98,7 +98,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
               <p>Each entry’s dollar applies only to its own purchase option. You can pay that option’s remaining amount from your Playable Wallet. Separate entries and options cannot be combined. An expired or declined option is not a general-purpose credit.</p>
     <p>{isGiftCardOffering ? "This gift card is not Playable Balance or withdrawable cash." : `Zero Loss does not ship the ${product.title} directly.`} Find an issued card in <Link href="/account/wallet" className="font-bold text-cyan-300 underline">Gift Cards &amp; Rewards</Link> and use it online or in store where accepted, subject to {product.retailer}&apos;s terms.</p>
-    {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={query.from} share={query.share} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
+    {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={transactionReturn ?? query.from} share={query.share} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 

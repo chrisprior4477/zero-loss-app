@@ -1,5 +1,14 @@
 import { isEntryQuantity } from "./quantity";
 
+/** Delayed HTML or a slow response must not give a customer a fresh Undo window. */
+export function remainingEntryUndoMilliseconds(serverNow: string, undoUntil: string, receivedAt: number): number {
+  const issued = Date.parse(serverNow);
+  const deadline = Date.parse(undoUntil);
+  // A clock set to a different date cannot measure network transit.
+  const reference = Math.abs(receivedAt - issued) < 12 * 60 * 60_000 ? Math.max(issued, receivedAt) : issued;
+  return Math.max(0, deadline - reference);
+}
+
 export type EntryRequest = {
   requestId: string;
   slug: string;

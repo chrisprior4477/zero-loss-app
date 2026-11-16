@@ -52,8 +52,9 @@ export function searchDenominations(query: string, products: readonly { retailer
   const leading = /^(.*?)\b(under|below|less than|up to|at most)\s+(.+)$/i.exec(normalized);
   const trailing = /^(.*)\b(?:and|or)\s+(under|below|less)\s*$/i.exec(normalized);
   const boundText = leading?.[3].trim().replace(/[.!?]$/, "");
-  const parsedBound = boundText ? extractValues(boundText, []) : trailing ? extractValues(trailing[1], products) : null;
-  const budget = parsedBound?.values.size === 1 && (!boundText || !parsedBound.text || initialCurrency.test(boundText))
+  const bareBound = boundText?.match(new RegExp(`^(${digits})(?=\\s|$)`, "i"));
+  const parsedBound = bareBound && boundText ? { text: boundText.slice(bareBound[0].length).trim(), values: new Set([Number(bareBound[1].replaceAll(",", ""))]) } : boundText ? extractValues(boundText, []) : trailing ? extractValues(trailing[1], products) : null;
+  const budget = parsedBound?.values.size === 1 && (!boundText || !parsedBound.text || bareBound || initialCurrency.test(boundText))
     ? { maximum: [...parsedBound.values][0], inclusive: !leading || /^(?:up to|at most)$/i.test(leading[2]) } : null;
   const { text, values } = budget
     ? { text: (leading ? `${leading[1]} ${parsedBound!.text}` : parsedBound!.text).trim(), values: new Set<number>() }
