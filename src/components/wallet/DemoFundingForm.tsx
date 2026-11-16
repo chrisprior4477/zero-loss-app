@@ -466,13 +466,15 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
     )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={`${paymentStyles.secondary} ${styles.mobileManageCards}`} aria-expanded={manageCards} aria-controls="add-card" onClick={manageCards ? closeSavedCards : openSavedCards}>Manage saved cards</button>}
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
       <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={() => setManageCards(value => !value)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
       {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => chooseDepositCard(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}
       <div hidden={!manageCards}>{cardPanel}</div>
     </div>}
-    <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+    <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
+      {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={manageCards ? closeSavedCards : openSavedCards}>Manage saved cards</button>}
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+    </div>
   </form>;
 }
 
