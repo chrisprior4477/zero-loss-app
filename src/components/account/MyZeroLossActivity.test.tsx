@@ -173,12 +173,30 @@ test.each([
   expect(screen.getByText(detail)).toBeTruthy();
   expect(screen.queryByRole("link", { name: /See my other activity/ })).toBeNull();
 });
-test("empty category links clearly to the rest of the saved activity", () => {
+test.each([
+  [true, true],
+  [true, false],
+  [false, true],
+  [false, false],
+])("empty Purchase Options links to available wins (%s) and open entries (%s)", (hasWins, hasOpenEntries) => {
   const state = storedActivityFixture();
-  state.activity = [state.activity[0]];
+  state.activity = state.activity.filter(item => item.status === "completed"
+    || (hasWins && item.status === "prize")
+    || (hasOpenEntries && item.status === "active"));
   render(<MyZeroLossActivity state={state} filter="completion" />);
   expect(screen.getByRole("heading", { name: "No open purchase options" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: /See my other activity/ }).getAttribute("href")).toBe("/account/entries");
+  expect(screen.queryByRole("link", { name: /See my other activity/ })).toBeNull();
+  const shortcuts = screen.queryByRole("navigation", { name: "Other available activity" });
+  if (!hasWins && !hasOpenEntries) {
+    expect(shortcuts).toBeNull();
+    return;
+  }
+  const links = within(shortcuts!).getAllByRole("link");
+  const expected = [
+    ...(hasWins ? [["You Won", "/account/entries?filter=prize#my-activity-filters"]] : []),
+    ...(hasOpenEntries ? [["See Open Entries", "/account/entries?filter=active#my-activity-filters"]] : []),
+  ];
+  expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual(expected);
 });
 
 test("the empty Purchase Options list links to still-revivable declined offers", () => {

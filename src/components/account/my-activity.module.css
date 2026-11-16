@@ -44,8 +44,9 @@
 .filter:hover { filter: brightness(1.1); transform: translateY(-2px); }
 .filter[aria-current="page"] { filter: brightness(1.04); }
 .filter[data-filter="all"] { --ticket-color: #82d9fa; color: #081b38; }
-.filter[data-filter="active"] { --ticket-color: #0077ff; }
-.filter[data-filter="prize"] { --ticket-color: #4ee85d; color: #082528; }
+:is(.filter, .emptyShortcut)[data-filter="active"] { --ticket-color: #0077ff; --ticket-text: #f7fbff; }
+:is(.filter, .emptyShortcut)[data-filter="prize"] { --ticket-color: #4ee85d; --ticket-text: #082528; }
+.filter[data-filter="prize"] { color: var(--ticket-text); }
 .filter[data-filter="completion"] { --ticket-color: #ff832b; color: #251c16; }
 .filter[data-filter="completed"] { --ticket-color: #3c6e9a; }
 .filter > svg { width: clamp(27px, 2.9vw, 47px); height: clamp(27px, 2.9vw, 47px); flex: 0 0 auto; }
@@ -181,6 +182,20 @@
 .empty p { color: #536d87; }
 .empty a { display: inline-flex; min-height: 44px; align-items: center; margin-top: 20px; padding: 9px 17px; border-radius: 10px; background: #44ec62; color: #08251d; font-weight: 800; }
 .empty a.reviewDeclinedOffers { gap: 8px; background: #ff9a36; color: #112044; }
+.emptyShortcuts { display: flex; gap: 8px; }
+.empty a.emptyShortcut {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 180px;
+  justify-content: center;
+  padding-inline: 8px;
+  background: var(--ticket-color);
+  color: var(--ticket-text);
+  font-size: .875rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.emptyShortcut:hover { filter: brightness(1.08); }
 .emptyControls { display: flex; min-height: 56px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 6px; }
 
 .accountTools { margin-top: 44px; padding-top: 26px; border-top: 1px solid #92bde64f; }

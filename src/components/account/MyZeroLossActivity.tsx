@@ -37,8 +37,10 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
-  const declinedCount = filter === "completion" && items.length === 0
-    ? revivableDeclinedOfferCount(verifiedState.activity) : 0;
+  const emptyPurchaseOptions = filter === "completion" && items.length === 0;
+  const declinedCount = emptyPurchaseOptions ? revivableDeclinedOfferCount(verifiedState.activity) : 0;
+  const openEntryCount = emptyPurchaseOptions ? filterActivity(verifiedState.activity, "active").length : 0;
+  const hasWins = emptyPurchaseOptions && filterActivity(verifiedState.activity, "prize").length > 0;
   return <section data-activity-source={state.source}>
     <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).map(notification => notification.id)} />
     <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !returnToOptions && !resumePurchase} />
@@ -61,7 +63,12 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
       {declinedCount > 0 ? <div><Link href={declinedOfferHref(null, "completion")} className={styles.reviewDeclinedOffers}>
         Review {declinedCount} declined {declinedCount === 1 ? "offer" : "offers"} <span aria-hidden="true">→</span>
       </Link></div> : null}
-      {state.source !== "unavailable" && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}
+      {openEntryCount > 0 ? <p className="mt-2 text-sm leading-6">{openEntryCount === 1 ? "You have 1 open entry awaiting results." : `You have ${openEntryCount} open entries awaiting results.`}</p> : null}
+      {hasWins || openEntryCount > 0 ? <nav aria-label="Other available activity" className={styles.emptyShortcuts}>
+        {hasWins ? <Link href={`/account/entries?filter=prize#${openEntriesAnchorId}`} data-filter="prize" className={styles.emptyShortcut}>You Won</Link> : null}
+        {openEntryCount > 0 ? <Link href={openEntriesHref} data-filter="active" className={styles.emptyShortcut}>See Open Entries</Link> : null}
+      </nav> : null}
+      {!emptyPurchaseOptions && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}
     </div><div id="my-activity-empty-controls" className={styles.emptyControls}><Link href="/" className={styles.continueShopping}>Continue shopping</Link>{canClearDemoEntries && state.source !== "unavailable" ? <ClearAllEntriesButton /> : null}</div></>}
     <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} returnToOptions={returnToOptions} resumePurchase={resumePurchase} />
   </section>;
