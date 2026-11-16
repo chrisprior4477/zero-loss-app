@@ -118,9 +118,21 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
   const cameraCard = cards.find(card => card.token === cameraToken);
+  function openSavedCards() {
+    setManageCards(true);
+    revealWalletSection("add-card", "add-card", true);
+  }
+  function closeSavedCards() {
+    setManageCards(false);
+    if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
+      openWalletPanel(`#${amountSection}`, null, true);
+    }
+    revealWalletSection(amountSection, amountSection);
+    document.getElementById("funding-manage-cards")?.focus({ preventScroll: true });
+  }
   function addCard(token?: DemoCardToken) {
     if (!ready || locked || cardUnavailable) return;
-    if (!token && allSamplesSaved) { setManageCards(true); revealWalletSection("add-card"); return; }
+    if (!token && allSamplesSaved) { openSavedCards(); return; }
     const editorToken = token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
     // Only store the funding choice and fixture reference in this tab's editor history entry.
     openWalletPanel(fundingEditorHash, { fundingCardDraft: {
@@ -254,7 +266,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       setEditingCard(editorToken);
       revealWalletSection(fundingCardEditorId);
     }
-    if (window.location.hash === fundingEditorHash) syncEditor();
+    if (window.location.hash === fundingEditorHash || window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) syncEditor();
     window.addEventListener("hashchange", syncEditor);
     window.addEventListener("popstate", syncEditor);
     return () => { window.removeEventListener("hashchange", syncEditor); window.removeEventListener("popstate", syncEditor); };
@@ -338,13 +350,14 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     if (mobile || window.location.hash === fundingEditorHash) {
       openWalletPanel(mobile ? `#${amountSection}` : "#add-funds", null, true);
     }
-    if (fromCamera) setManageCards(true);
+    if (mobile) setManageCards(false);
+    else if (fromCamera) setManageCards(true);
     revealWalletSection(mobile ? amountSection : fromCamera ? `sample-payment-${card.token}` : "add-funds");
     router.refresh();
   }
   const cameraSaved = (card: DemoCard) => acceptSavedCard(card, true);
-  const cardPanel = <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
-      <div className={styles.demoCardsHeading}><div><h3>{allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
+  const cardPanel = <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel} data-collapsed={!manageCards} hidden={mobile && !manageCards}>
+      <div className={styles.demoCardsHeading}><div><h3 tabIndex={-1}>{mobile || allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
         <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
@@ -365,8 +378,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         </DemoFundingCard>;
       })}</div>
       {visibleTokens.length === 0 ? <p className={styles.cardMessage}>No card selected. Add a sample card above to continue.</p> : null}
-      {cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
-      <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
+      {!mobile && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
+      {mobile && <button type="button" className={`${paymentStyles.secondary} ${styles.backToAmount}`} onClick={closeSavedCards}>Back to amount</button>}
     </section>;
   if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => {
     openWalletPanel("#add-funds", null, true);
@@ -401,6 +414,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
     {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} landingAlias="add-funds" settleAfterNavigation restrictToTargetHash />}
     <div id={amountSection} className={styles.fundingAmountSection}>
+      {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
       {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
@@ -452,6 +466,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
     )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
+    {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={`${paymentStyles.secondary} ${styles.mobileManageCards}`} aria-expanded={manageCards} aria-controls="add-card" onClick={manageCards ? closeSavedCards : openSavedCards}>Manage saved cards</button>}
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
       <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={() => setManageCards(value => !value)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
       {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => chooseDepositCard(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}

@@ -13,11 +13,11 @@ const allCards: DemoCard[] = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token
 beforeEach(() => { window.history.replaceState(null, "", "/account/wallet?view=history#balance"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-test.each([0, 1])("full funding card list lets the user choose an edit from entry %i without losing the deposit", async index => {
+test.each(["Choose saved card", "Manage saved cards"])("full funding card list opens from %s without losing the deposit", async entry => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const { container } = render(<DemoFundingForm requestKey="full_cards_waiting_deposit" savedCards={allCards} displayName="Demo Customer" />);
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "75" } });
-  fireEvent.click(screen.getAllByRole("button", { name: "Choose saved card" })[index]);
+  fireEvent.click(screen.getByRole("button", { name: entry }));
   expect(screen.getByText("All five sample cards are saved. Choose a saved card to edit.")).toBeTruthy();
   expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
@@ -46,7 +46,10 @@ test.each(["add", "edit"])("refresh inside the funding card editor restores the 
   let page = renderWallet("before_card_editor_refresh");
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "73" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Current card in use" }), { target: { value: "demo_card_4242" } });
-  if (mode === "edit") fireEvent.click(within(page.container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!).getByRole("button", { name: "Edit" }));
+  if (mode === "edit") {
+    fireEvent.click(screen.getByRole("button", { name: "Manage saved cards" }));
+    fireEvent.click(within(page.container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!).getByRole("button", { name: "Edit" }));
+  }
   else fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
   fireEvent.change(screen.getByLabelText("Security code"), { target: { value: "unsaved-code" } });
   expect(JSON.stringify(window.history.state)).not.toContain("unsaved-code");
@@ -326,6 +329,29 @@ test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("Add fund
   vi.mocked(window.scrollTo).mockClear();
   render(view);
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+});
+
+test("Manage saved cards jumps above the amount and returns with the deposit draft", async () => {
+  vi.stubGlobal("innerWidth", 390);
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const top = this.id === "funding-amount" ? 700 : this.id === "add-card" ? 320 : 0;
+    return new DOMRect(0, top, 390, this.tagName === "HEADER" ? 105 : 50);
+  });
+  render(<><header className="sticky" /><DemoFundingForm requestKey="mobile_manage_test" savedCards={initialCards} /></>);
+  const amount = screen.getByLabelText("Add specific amount (USD)");
+  const manage = screen.getByRole("button", { name: "Manage saved cards", expanded: false });
+  expect(screen.queryByRole("region", { name: "Add Credit Card" })).toBeNull();
+  expect(manage.compareDocumentPosition(screen.getByRole("link", { name: "Back to wallet" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.change(amount, { target: { value: "73" } });
+  fireEvent.click(manage);
+  expect(manage.getAttribute("aria-expanded")).toBe("true");
+  await waitFor(() => expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 203, behavior: "auto" }));
+  expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Your saved cards" }));
+  fireEvent.click(screen.getByRole("button", { name: "Back to amount" }));
+  expect(screen.queryByRole("region", { name: "Add Credit Card" })).toBeNull();
+  await waitFor(() => expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 583, behavior: "auto" }));
+  expect(amount).toHaveProperty("value", "$73");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
 });
 
 test("Back to wallet waits for the update, then leaves the editor with the updated card saved", async () => {

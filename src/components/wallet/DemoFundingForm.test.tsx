@@ -7,6 +7,10 @@ vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), checkDe
 import { completeDemoFunding, checkDemoDeposit, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 
+function openMobileCards() {
+  fireEvent.click(screen.getByRole("button", { name: "Manage saved cards", expanded: false }));
+}
+
 const refreshCards: DemoCard[] = [
   { token: "demo_card_4242", lastFour: "4242", isDefault: true, isDepositDefault: true },
   { token: "demo_card_5556", lastFour: "5556", isDefault: false, isDepositDefault: false },
@@ -386,7 +390,7 @@ test("a completed deposit marker becomes a new Add funds form after demo funds a
   await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("new_server_render_key_02");
   expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
-  expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Manage saved cards", expanded: false })).toBeTruthy();
 });
 
 test("an interrupted matching deposit can be retried while new deposits are blocked", async () => {
@@ -412,7 +416,7 @@ test.each(["button", "wallet link"])("a completed deposit can start again throug
   if (entrance === "button") fireEvent.click(screen.getByRole("button", { name: "Add more funds" }));
   else { window.history.replaceState(null, "", "#add-funds"); fireEvent(window, new HashChangeEvent("hashchange")); }
 
-  expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Manage saved cards", expanded: false })).toBeTruthy();
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).not.toBe("stable_demo_request_001");
 
 });
@@ -444,6 +448,7 @@ test("an already credited purchase-option deposit offers a safe return without c
 
 test("supplied test-card details are display-only and never submitted", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  openMobileCards();
   expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
   expect(screen.getAllByText("4242 4242 4242 4242").length).toBeGreaterThan(0);
   const form = new FormData(container.querySelector("form")!);
@@ -456,6 +461,7 @@ test("supplied test-card details are display-only and never submitted", () => {
 test("saved default is restored and customer may opt out", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCard={{ token: "demo_card_4242", lastFour: "4242", isDefault: true, revision: "2026-10-01T10:00:00Z" }} />);
+  openMobileCards();
   const checkbox = screen.getByRole("checkbox", { name: "Use as my default payment method" }) as HTMLInputElement;
   expect(checkbox.checked).toBe(true);
   fireEvent.click(checkbox);
@@ -466,6 +472,7 @@ test("saved default is restored and customer may opt out", async () => {
 test("additional sample cards form a two-card selection and can be saved", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true, revision: "2026-10-01T10:00:00Z" }]} />);
+  openMobileCards();
   fireEvent.click(screen.getByRole("button", { name: /Add another card/ }));
   fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
   fireEvent.click(screen.getByRole("button", { name: "Save card" }));
@@ -482,6 +489,7 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
     { token: "demo_card_4242", lastFour: "4242", isDefault: true },
     { token: "demo_card_5556", lastFour: "5556", isDefault: false },
   ]} />);
+  openMobileCards();
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
   const confirmation = screen.getByRole("dialog", { name: "Delete saved card" });
   expect(within(confirmation).getByText("Bank of America •••• 4242")).toBeTruthy();
@@ -506,6 +514,7 @@ test("removing the only saved card blocks funding until another card is chosen",
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   vi.mocked(deleteDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Test card removed." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
+  openMobileCards();
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(screen.getByText("No card selected. Add a sample card above to continue.")).toBeTruthy());
@@ -524,6 +533,7 @@ test("retry restores and locks the original default preference, not the current 
   const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" blocked={false} requests={[
     { id: "pending-session", amount: 1000, currency: "USD", status: "processing", created_at: "2026-10-14", idempotencyKey: "original_request_key_01", reconciliation: "credit_pending" },
   ]} />);
+  openMobileCards();
   const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
   expect(checkbox.checked).toBe(true);
   expect(checkbox.disabled).toBe(true);
