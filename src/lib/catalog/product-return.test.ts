@@ -34,6 +34,15 @@ test("an Ending Soon prize anchor and valid batch survive a product round trip",
   }
 });
 
+test("ticket-count filters survive a prize round trip only inside Ending Soon", () => {
+  const source = "/browse?category=ending-soon&ticketsLeft=2-5&q=Walmart&maxValue=100&batch=2#prize-walmart-100-gift-card";
+  const detail = new URL(productHrefWithBrowseReturn("walmart-100-gift-card", source), "https://example.test");
+  expect(productBrowseReturnHref(detail.searchParams.get("from"))).toBe(source);
+  for (const bad of [source.replace("ending-soon", "electronics"), source.replace("2-5", "invalid"), source.replace("ticketsLeft=2-5", "ticketsLeft=2-5&ticketsLeft=1")]) {
+    expect(productBrowseReturnHref(bad)).toBe("/browse");
+  }
+});
+
 test("ordinary Browse cards retain their anchor and exact search without allowing unrelated destinations", () => {
   for (const source of ["/browse#prize-bath-body-works-25-gift-card", "/browse?category=beauty&batch=2#prize-bath-body-works-25-gift-card",
     "/browse?q=lipstick&category=beauty&maxValue=100&batch=2#prize-mac-lipstick"]) {

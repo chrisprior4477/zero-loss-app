@@ -4,10 +4,11 @@ import { savedShareHref, shareUuid } from "../sharing/saved-shares";
 import { crewPickReturnPath } from "../crew/view-return";
 import { isEntryQuantity } from "../entries/quantity";
 import { groceryThemes } from "./grocery-themes";
+import { parseEndingSoonTicketRange } from "./ending-soon-ticket-ranges";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
-  "partnerCategory", "available", "minValue", "maxValue", "batch", "groceryIdea",
+  "partnerCategory", "available", "minValue", "maxValue", "batch", "groceryIdea", "ticketsLeft",
 ]);
 
 /** Allow only known shopping destinations, including the personal Favorites list. */
@@ -46,6 +47,8 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const batch = url.searchParams.get("batch");
     const category = url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "");
     const endingSoon = marketplaceCategoryId(category) === "ending-soon";
+    const ticketsLeft = url.searchParams.get("ticketsLeft");
+    if (ticketsLeft !== null && (!endingSoon || !parseEndingSoonTicketRange(ticketsLeft))) return null;
     if (batch !== null && !(endingSoon && (batch === "last" || /^last-(?:[2-9]|[1-9]\d{1,5})$/.test(batch)))
       && (!/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
     const idea = url.searchParams.get("groceryIdea");

@@ -20,3 +20,10 @@ test("selecting a retailer keeps the current marketplace category", () => {
   expect(discoveryCategoryHref("specialty-retail", filters, "electronics", "Best Buy"))
     .toBe("/browse?category=electronics&partnerCategory=specialty-retail&retailer=Best+Buy#search-results");
 });
+
+test("retailer refinement preserves the Ending Soon ticket range", () => {
+  const filters = parseBrowseFilterState({ category: "ending-soon", maxValue: "100" }, []);
+  const url = new URL(discoveryCategoryHref("specialty-retail", filters, "ending-soon", "Best Buy", "2-5"), "https://example.test");
+  expect(Object.fromEntries(url.searchParams)).toEqual({ category: "ending-soon", partnerCategory: "specialty-retail", retailer: "Best Buy", ticketsLeft: "2-5", maxValue: "100", sort: "fewest-left" });
+  expect(discoveryCategoryHref("specialty-retail", filters, "electronics", "Best Buy", "2-5")).not.toContain("ticketsLeft");
+});

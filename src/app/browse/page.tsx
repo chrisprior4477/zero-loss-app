@@ -14,6 +14,7 @@ import { catalogSearchTooLong } from "@/lib/catalog/search-text";
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
+import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; batch?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string; groceryIdea?: string | string[] }>;
+  searchParams: Promise<{ category?: string; sort?: string; batch?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string; groceryIdea?: string | string[]; ticketsLeft?: string | string[] }>;
 };
 const batchSize = 24;
 
@@ -51,6 +52,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const endingSoon = selectedCategory === "ending-soon";
+  const ticketsLeft = endingSoon ? parseEndingSoonTicketRange(query.ticketsLeft) : null;
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
   const showCatalogDenominations = !unavailable
@@ -76,12 +78,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     filters.type === "gift-cards" ? "Gift Cards" : filters.type === "pictured" ? "Products with photos" : null,
     filters.availableOnly ? "Available only" : null,
     budgetLabel,
+    endingSoonTicketRanges.find(range => range.value === ticketsLeft)?.label,
   ].filter((label): label is string => Boolean(label));
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts, demoProducts);
   const searchMatches = searchTerm && !searchTooLong ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
   const savedMatches = searchTerm && !searchTooLong ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
-  const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
+  const matchedProducts = filterEndingSoonTickets(searchTerm ? searchMatches.map(match => match.product) : categoryProducts, ticketsLeft);
   const allowedRetailers = selectedRetailerGroup
     ? new Set(selectedRetailerGroup.options.map(option => option.value))
     : undefined;
@@ -114,7 +117,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
   const showBatchSearch = endingSoon || products.length > 0 || Boolean(searchTerm);
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
-  const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
+  const activeFilters = Boolean(subcategory) || Boolean(ticketsLeft) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || filters.minValue !== null || filters.maxValue !== null
     || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
   const clearHrefParams = new URLSearchParams();
@@ -128,12 +131,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     if (value) searchParamsForView.set(key, value);
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
+  if (ticketsLeft) searchParamsForView.set("ticketsLeft", ticketsLeft);
   const searchHref = `/browse${searchParamsForView.size ? `?${searchParamsForView}` : ""}`;
   const canSuggestRecovery = !products.length && !unavailable && !searchTooLong;
   let broaderSearch: { href: string; count: number } | null = null;
   if (canSuggestRecovery && searchTerm && (selectedCategory || subcategory || selectedRetailerGroup)) {
     const params = new URLSearchParams(searchParamsForView);
-    for (const key of ["category", "subcategory", "partnerCategory"]) params.delete(key);
+    for (const key of ["category", "subcategory", "partnerCategory", "ticketsLeft"]) params.delete(key);
     if (params.get("sort") === "ending-soon") params.delete("sort");
     const globalRetailers = discoveryGroups.flatMap(group => group.options);
     const broaderFilters = parseBrowseFilterState(Object.fromEntries(params), [
@@ -211,7 +215,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         </div>
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
-          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
+          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}
@@ -256,6 +260,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {[...new Set(appliedFilters)].map(label => <li key={label} className="max-w-full rounded-full bg-[#d5f1ff] px-2.5 py-1 text-xs font-bold break-words text-[#123e68]">{label}</li>)}
           </ul> : null}
         </div>}
+        {endingSoon ? <nav aria-label="Tickets remaining" className="mt-4 grid max-w-md grid-cols-4 gap-2">
+          {[{ value: null, label: "All" }, ...endingSoonTicketRanges].map(range => {
+            const params = new URLSearchParams(searchParamsForView);
+            if (range.value) params.set("ticketsLeft", range.value);
+            else params.delete("ticketsLeft");
+            const selected = range.value === ticketsLeft;
+            return <Link key={range.value ?? "all"} href={`/browse?${params}#search-results`} prefetch={false} scroll={false}
+              aria-current={selected ? "true" : undefined}
+              className={`flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl px-1 text-xs font-extrabold sm:text-sm ${selected ? "bg-[#ff7800] text-[#061e3d]" : "bg-[#c8efff] text-[#123e68] hover:bg-cyan-100"}`}>
+              {range.label}
+            </Link>;
+          })}
+        </nav> : null}
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
@@ -370,5 +387,5 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </div>
     </main>
   );
-  return showBatchSearch ? <BrowseResultsSearchSession key={JSON.stringify([selectedCategory, subcategory, selectedRetailerGroup?.id, filters.retailer, searchTerm, endingSoon])} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
+  return showBatchSearch ? <BrowseResultsSearchSession key={JSON.stringify([selectedCategory, subcategory, selectedRetailerGroup?.id, filters.retailer, searchTerm, endingSoon, ticketsLeft])} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
 }

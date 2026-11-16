@@ -55,7 +55,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   withoutBudget.searchParams.delete("minValue");
   withoutBudget.searchParams.delete("maxValue");
   const budgetLabel = browsePrizeValueLabel(props.filters);
-  const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly)
+  const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly) + Number(Boolean(props.ticketsLeft))
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
     + Number(props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left"));
   const prizeCategories = marketplaceCategories.filter(category => !query.trim() || searchTextMatches(category.label, query));
@@ -66,7 +66,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const scopedOfferRetailers = props.scopedOfferRetailers ? new Set(props.scopedOfferRetailers) : null;
   function allCategoriesRetailerHref(retailer: string) {
     const url = new URL(props.browseHref, "https://zeroloss.local");
-    for (const key of ["category", "subcategory", "partnerCategory", "batch", "groceryIdea"]) url.searchParams.delete(key);
+    for (const key of ["category", "subcategory", "partnerCategory", "batch", "groceryIdea", "ticketsLeft"]) url.searchParams.delete(key);
     if (url.searchParams.get("sort") === "ending-soon") url.searchParams.delete("sort");
     url.searchParams.set("retailer", retailer);
     return `${url.pathname}${url.search}#search-results`;
@@ -121,6 +121,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
     if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
     const endingSoon = url.searchParams.get("sort") === "ending-soon";
+    if (endingSoon && props.ticketsLeft) url.searchParams.set("ticketsLeft", props.ticketsLeft);
     const currentSort = new URL(props.browseHref, url).searchParams.get("sort");
     const implicitEndingSort = props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left" && currentSort !== "fewest-left";
     if (!endingSoon && props.filters.sort !== "featured" && !implicitEndingSort) {
@@ -190,12 +191,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
             <button type="button" className={styles.choice} aria-current={!props.selectedCategory && !props.selectedRetailerGroup && !props.filters.retailer ? "true" : undefined} onClick={() => choosePrizeCategory("")}>All categories<span aria-hidden="true">→</span></button>
             {mode === "categories" ? <>
               {prizeCategories.map(category => <button type="button" key={category.id} className={styles.choice} aria-current={props.selectedCategory === category.id && !props.selectedRetailerGroup ? "true" : undefined} onClick={() => choosePrizeCategory(category.id)}><span>{category.label}<small>Browse prizes</small></span><span aria-hidden="true">→</span></button>)}
-              {distinctGroups.map(group => <button type="button" key={group.id} className={styles.choice} aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory))}><span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span></button>)}
+              {distinctGroups.map(group => <button type="button" key={group.id} className={styles.choice} aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory, "", props.ticketsLeft))}><span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span></button>)}
             </>
               : retailers.map(option => {
                 const hasScopedOffer = scopedOfferRetailers ? scopedOfferRetailers.has(option.value) : option.hasOffer;
                 return <div key={option.value}>
-                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value), true)}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
+                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value, props.ticketsLeft), true)}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
                   {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
                     ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)}>View {option.label} across all categories</Link> : null}
                 </div>;

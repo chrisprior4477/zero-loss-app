@@ -12,12 +12,14 @@ import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { useBrowseResultsSearch } from "./BrowseResultsSearch";
 import { PrizeDollarField } from "./PrizeDollarField";
+import type { EndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 
 export type BrowseFilterProps = {
   filters: BrowseFilterState;
   retailerGroups: RetailerFilterGroup[];
   selectedRetailerGroup: RetailerFilterGroup | null;
   selectedCategory: MarketplaceCategoryId | null;
+  ticketsLeft?: EndingSoonTicketRange | null;
   searchTerm: string;
   subcategory: string;
   clearHref: string;
@@ -25,7 +27,7 @@ export type BrowseFilterProps = {
   onNavigate?: () => void;
 };
 
-export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
@@ -70,7 +72,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     }
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
-    for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort"]) {
+    for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
       const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
@@ -104,6 +106,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         }
       }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
       {selectedCategory ? <input type="hidden" name="category" value={selectedCategory} /> : null}
+      {selectedCategory === "ending-soon" && ticketsLeft ? <input type="hidden" name="ticketsLeft" value={ticketsLeft} /> : null}
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}
       {selectedRetailerGroup ? <input type="hidden" name="partnerCategory" value={selectedRetailerGroup.id} /> : null}
       {filters.retailer ? <input type="hidden" name="retailer" value={filters.retailer} /> : null}
@@ -127,7 +130,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory)} onClick={event => {
+              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;

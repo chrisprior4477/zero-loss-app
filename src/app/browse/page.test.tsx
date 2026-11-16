@@ -35,6 +35,52 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); availability.mockResolvedValue(null); });
 const topOptions = () => within(screen.getByRole("group", { name: "Browse options at the top" }));
 
+test("Ending Soon ranges combine with search and budget, reset paging and preserve prize returns", async () => {
+  availability.mockResolvedValue(Object.fromEntries([[25, 1], [50, 2], [75, 5], [100, 11]].map(([value, remaining]) => {
+    const slug = `best-buy-${value}-gift-card`;
+    const capacity = value * 3;
+    return [slug, { slug, capacity, sold: capacity - remaining, remaining, entryPriceCents: 100 }];
+  })));
+  const query = { category: "ending-soon", ticketsLeft: "2-5", q: "Best Buy", maxValue: "100", batch: "2", type: "gift-cards" };
+  render(await BrowsePage({ searchParams: Promise.resolve(query) }));
+  const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading");
+  expect(cards.map(card => card.textContent)).toEqual(["$50 Best Buy Gift Card", "$75 Best Buy Gift Card"]);
+  const ranges = within(screen.getByRole("navigation", { name: "Tickets remaining" }));
+  expect(ranges.getByRole("link", { name: "2–5 left" }).getAttribute("aria-current")).toBe("true");
+  const next = new URL(ranges.getByRole("link", { name: "6–10 left" }).getAttribute("href")!, "https://example.test");
+  expect(next.searchParams.get("ticketsLeft")).toBe("6-10");
+  expect(next.searchParams.get("batch")).toBeNull();
+  expect(next.searchParams.get("q")).toBe("Best Buy");
+  expect(next.searchParams.get("maxValue")).toBe("100");
+  const prize = within(cards[0].closest("article")!).getByRole("link");
+  expect(new URL(prize.getAttribute("href")!, "https://example.test").searchParams.get("from")).toContain("ticketsLeft=2-5");
+  const bottom = within(screen.getByRole("search", { name: "Search Ending Soon at the bottom" }));
+  fireEvent.change(bottom.getByRole("searchbox"), { target: { value: "Walmart" } });
+  fireEvent.click(bottom.getByRole("button", { name: "Go to search results" }));
+  const searchUrl = new URL(navigation.push.mock.lastCall![0], "https://example.test");
+  expect(searchUrl.searchParams.get("ticketsLeft")).toBe("2-5");
+  expect(searchUrl.searchParams.get("q")).toBe("Walmart");
+  cleanup();
+  render(await BrowsePage({ searchParams: Promise.resolve({ ...query, ticketsLeft: undefined, batch: undefined }) }));
+  expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(card => card.textContent))
+    .toEqual(["$25 Best Buy Gift Card", "$50 Best Buy Gift Card", "$75 Best Buy Gift Card", "$100 Best Buy Gift Card"]);
+});
+
+test("ticket ranges never show closed or less-than-90%-full pools and are absent from ordinary Browse", async () => {
+  availability.mockResolvedValue(Object.fromEntries([[25, 0], [50, 20], [75, 5], [100, 11]].map(([value, remaining]) => {
+    const slug = `best-buy-${value}-gift-card`;
+    const capacity = value * 3;
+    return [slug, { slug, capacity, sold: capacity - remaining, remaining, entryPriceCents: 100 }];
+  })));
+  render(await BrowsePage({ searchParams: Promise.resolve({ category: "ending-soon", q: "Best Buy", type: "gift-cards" }) }));
+  expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(card => card.textContent))
+    .toEqual(["$75 Best Buy Gift Card", "$100 Best Buy Gift Card"]);
+  cleanup();
+  render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy", type: "gift-cards", ticketsLeft: "1" }) }));
+  expect(screen.queryByRole("navigation", { name: "Tickets remaining" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "$75 Best Buy Gift Card" })).toBeTruthy();
+});
+
 describe("Browse search results", () => {
   test.each([
     ["Best Buy one hundred dollars", [100, 75, 50, 25]],
