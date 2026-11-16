@@ -52,10 +52,10 @@ test.each([false, true])("history resolves owner-scoped entries with a bounded n
   expect(queries.filter(query => query.table === "ledger_entries").map(query => query.range)).toEqual([[0, recent ? 1 : 2]]);
   expect(history?.[1].entryIds).toEqual([ids[0]]);
   expect(history?.[0].entryRequestId).toBe(recent ? undefined : requestId);
-  expect(history?.[1].entryBatchId).toBe(recent ? undefined : batchId);
+  expect(history?.[1].entryBatchId).toBe(batchId);
   expect(queries.every(query => query.owner === "owner")).toBe(true);
   expect(queries.filter(query => query.columns === "entry_id,entry_request_id").map(query => query.range)).toEqual([[0, 499], [500, 999]]);
-  expect(queries.filter(query => query.columns === "entry_id,preview_batch_id")).toEqual(recent ? [] :
+  expect(queries.filter(query => query.columns === "entry_id,preview_batch_id")).toEqual(
     [{ table: "customer_entries", columns: "entry_id,preview_batch_id", owner: "owner", wallet: "wallet", values: [ids[0]] }]);
 });
 

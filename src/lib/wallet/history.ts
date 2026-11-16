@@ -123,7 +123,7 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     }
   }
 
-  const debitIds = recentOnly ? [] : [...new Set(rows.flatMap(row =>
+  const debitIds = [...new Set(rows.flatMap(row =>
     row.entry_type === "ENTRY_DEBIT" && row.related_entry_id && publicEntryId.test(row.related_entry_id) ? [row.related_entry_id] : []))];
   const entryBatches = new Map<string, string>();
   for (let index = 0; index < debitIds.length; index += 100) {

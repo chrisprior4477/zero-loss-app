@@ -56,6 +56,36 @@ const wallet: WalletSnapshot = {
   entries: [{ id: "ledger-1", entry_type: "DEPOSIT", amount: 15000, created_at: "2026-09-17T12:00:00.000Z" }],
 };
 
+test("stacks only posted purchases from the same submission and reopens their exact transactions", async () => {
+  const product = { slug: "playstation-5-slim", title: "PlayStation 5 Slim Model", image: "/console.png", retailer: "Best Buy" };
+  const entries = ["one", "two", "three", "separate", "unlinked"].map((id, index) => ({
+    id, entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-14T22:45:00Z", product,
+    entryBatchId: index < 3 ? "batch-1" : index === 3 ? "batch-2" : undefined,
+  }));
+  const notices = buildAccountNotifications({ ...storedActivityFixture(), activity: [] }, { ...wallet, entries }, true);
+  const props = { initialFilter: "activity" as const, notifications: notices, initialReadIds: ["wallet-one"], activityAvailable: true, walletAvailable: true, crewAvailable: true, readAvailable: true };
+  const view = render(<NotificationsCenter {...props} />);
+  expect(screen.getByRole("heading", { name: "3 entry purchases posted" })).toBeTruthy();
+  expect(screen.getByText("$3 total")).toBeTruthy();
+  expect(screen.getAllByRole("heading", { name: "Entry purchase posted" })).toHaveLength(2);
+  expect(screen.queryByRole("list", { name: /Wallet transactions/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /See 3 transactions/ }));
+  const list = within(screen.getByRole("list", { name: /Wallet transactions/ }));
+  expect(list.getAllByTestId("notification-image")).toHaveLength(3);
+  expect(list.getAllByText("Posted -$1")).toHaveLength(3);
+  expect(list.getAllByText("Unread")).toHaveLength(2);
+  const second = list.getAllByRole("link", { name: "View transaction" })[1];
+  const destination = "/account/wallet?view=history&transaction=two&alerts=activity&notice=wallet-two#transaction-two";
+  expect(second.getAttribute("href")).toBe(destination);
+  fireEvent.click(second);
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["wallet-two"]));
+  expect(actionMocks.push).toHaveBeenCalledWith(destination);
+  view.unmount();
+  render(<NotificationsCenter {...props} initialNotice="wallet-two" />);
+  expect(screen.getByRole("button", { name: /Hide transactions/ }).getAttribute("aria-expanded")).toBe("true");
+  expect(document.getElementById("notification-link-wallet-two")).toBeTruthy();
+});
+
 test("notifications are built from the signed-in account snapshot without inventing orders", () => {
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
   expect(notifications.some(item => item.title === "Your $400 reward is ready")).toBe(true);

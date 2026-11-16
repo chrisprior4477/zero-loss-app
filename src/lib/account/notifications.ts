@@ -29,6 +29,7 @@ export type AccountNotification = {
   enteredAt?: string | null;
   rewardSource?: "winner" | "purchase" | null;
   ledgerEntryType?: string;
+  entryPurchase?: { amountCents: number; batchId?: string };
   /** Completed account actions remain in history but need no acknowledgement. */
   resolved?: boolean;
 };
@@ -222,6 +223,12 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
       tone: "wallet",
       preferenceKey: "wallet_updates",
       ledgerEntryType: entry.entry_type,
+      ...(entry.entry_type === "ENTRY_DEBIT" ? {
+        image: entry.product?.image,
+        itemTitle: entry.product?.title,
+        itemSlug: entry.product?.slug,
+        entryPurchase: { amountCents: entry.amount, batchId: entry.entryBatchId },
+      } : {}),
     });
   }
   notifications.push({

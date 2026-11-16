@@ -146,6 +146,8 @@
 .notification[data-emphasis="email"] .details strong { color: #1452a6; background: #bbebff; }
 .rowAction { display: inline-flex; flex-shrink: 0; max-width: 58%; min-height: 44px; align-items: center; justify-content: center; gap: 6px; padding: 8px 11px; border: 0; border-radius: 8px; color: #fff; background: #006dff; font-size: 12px; font-weight: 800; line-height: 1.2; text-align: center; text-decoration: none; }
 .rowAction:hover { background: #0052d5; }
+.purchaseToggle { min-height: 36px; padding-block: 4px; }
+.purchaseTickets { position: relative; display: grid; gap: 7px; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px dotted #7aadc9; list-style: none; }
 .rowAction svg, .entryLink svg, .showMore svg { width: 16px; height: 16px; flex: 0 0 16px; }
 .collapseIcon { transform: rotate(-90deg); }
 .entryList { margin-top: 12px; padding: 4px 0 0; border-top: 1px dotted #a4bfd6; list-style: none; }
