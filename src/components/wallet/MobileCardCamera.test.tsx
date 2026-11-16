@@ -47,7 +47,8 @@ test.each(["funding-top", "funding-bottom", "methods"])("full sample camera expl
   const cards = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token: fixture.token, lastFour: fixture.lastFour, isDefault: index === 0, isDepositDefault: index === 1 }));
   window.history.replaceState(null, "", "#payment-methods");
   const { container } = render(entry === "methods" ? <WalletPaymentMethods enabled savedCards={cards} /> : <DemoFundingForm requestKey="full_camera_waiting_deposit" savedCards={cards} />);
-  const dialog = await captureBoth(entry === "funding-bottom" ? 1 : 0);
+  if (entry === "funding-top") fireEvent.click(screen.getByRole("button", { name: "Manage saved cards" }));
+  const dialog = await captureBoth();
   const isMethods = entry === "methods";
   expect(within(dialog).getByText(`This updates your saved ${isMethods ? "Bank of America •••• 4242" : "Discover •••• 5556"}.`)).toBeTruthy();
   expect(within(dialog).getByText(/No additional card is added/)).toBeTruthy();
@@ -84,10 +85,11 @@ test("front and back use the rear camera, release it, and save only the sample r
   expect(completeDemoFunding).not.toHaveBeenCalled();
 });
 
-test.each([0, 1])("funding camera entry %i saves into the card list without changing the waiting deposit", async index => {
+test.each(["amount form", "saved cards"])("the camera in the %s saves without changing the waiting deposit", async location => {
   const { container } = render(<DemoFundingForm requestKey="camera_deposit_request_01" savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "75" } });
-  const dialog = await captureBoth(index);
+  if (location === "saved cards") fireEvent.click(screen.getByRole("button", { name: "Manage saved cards" }));
+  const dialog = await captureBoth();
   fireEvent.click(within(dialog).getByRole("button", { name: "Save this card" }));
   await waitFor(() => expect(container.querySelector('#sample-payment-demo_card_5556')).toBeTruthy());
   expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
