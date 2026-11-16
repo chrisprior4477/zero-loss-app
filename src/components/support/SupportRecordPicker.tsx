@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import help from "@/components/help/help-tickets.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { loadSupportRecords } from "@/lib/support/record-actions";
@@ -33,17 +33,6 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<SupportRecordPage | null>(null);
-  useLayoutEffect(() => {
-    if (!open) return;
-    const rootOverflow = document.documentElement.style.overflow;
-    const bodyOverflow = document.body.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = rootOverflow;
-      document.body.style.overflow = bodyOverflow;
-    };
-  }, [open]);
 
   async function load(nextKind: SupportRecordKind, nextPage: number) {
     const id = ++request.current;
