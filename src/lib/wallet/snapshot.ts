@@ -70,4 +70,6 @@ export type LedgerEntryRow = {
   product?: { title: string; image: string; slug?: string; retailer?: string };
   /** Public entry IDs resolved from owner-scoped ledger relationships. */
   entryIds?: string[];
+  entryRequestId?: string;
+  entryBatchId?: string;
 };

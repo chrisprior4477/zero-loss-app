@@ -3,7 +3,53 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
+import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+test("groups only the recorded entry batch and shows the original photo and actions for each entry", () => {
+  const product = { title: "PlayStation 5 Slim Model", slug: "playstation-5-slim", image: "/catalog/playstation-5-slim.png" };
+  const entries: LedgerEntryRow[] = Array.from({ length: 5 }, (_, index) => ({
+    id: `11111111-1111-4111-8111-00000000000${index}`, entry_type: "ENTRY_DEBIT", amount: -100,
+    created_at: "2026-11-14T22:45:00Z", entryBatchId: index < 4 ? "batch-a" : "batch-b",
+    entryIds: [`ent_${String(index).padStart(32, "0")}`], product,
+  }));
+  const activity = entries.map(entry => ({ ...storedActivityFixture().activity[0], entryId: entry.entryIds![0] }));
+  const { container, rerender } = render(<WalletLedger entries={entries} activity={activity} />);
+  const stack = container.querySelector<HTMLDetailsElement>("details[data-transaction-stack]")!;
+  expect(stack.open).toBe(false);
+  expect(stack.querySelector("summary")?.textContent).toContain("Show 4 entries");
+  expect(screen.getByText("Showing 5 of 5 transactions")).toBeTruthy();
+  expect(document.getElementById(`transaction-${entries[4].id}`)?.parentElement?.id).toBe("wallet-transaction-list");
+  stack.open = true;
+  const originals = within(screen.getByRole("list", { name: "Individual entry purchases" }));
+  expect(originals.getAllByRole("img", { name: product.title })).toHaveLength(4);
+  expect(originals.getAllByRole("link", { name: "View entry" }).map(link => link.getAttribute("href")))
+    .toEqual(entries.slice(0, 4).map(entry => `/account/entries/${entry.entryIds![0]}?entries=open&transaction=${entry.id}#saved-entry-rail`));
+  expect(originals.getAllByRole("link", { name: "Report a problem" }).map(link => link.getAttribute("href")))
+    .toEqual(entries.slice(0, 4).map(entry => `/support?transaction=${entry.id}`));
+  stack.open = false;
+  rerender(<WalletLedger entries={entries} activity={activity} selectedId={entries[2].id} />);
+  expect(stack.open).toBe(true);
+  expect(document.activeElement?.id).toBe(`transaction-${entries[2].id}`);
+});
+
+test("pairs exact offsetting reservation records without including a confirmed debit", () => {
+  const created_at = "2026-11-14T22:45:00Z";
+  render(<WalletLedger entries={[
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 700, created_at, entryRequestId: "original-request" },
+    { id: "confirmed", entry_type: "ENTRY_DEBIT", amount: -700, created_at },
+    { id: "different", entry_type: "ENTRY_HOLD", amount: -700, created_at, entryRequestId: "other-request" },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -700, created_at, entryRequestId: "original-request" },
+  ]} />);
+  expect(screen.getByText("$7 held → $7 released")).toBeTruthy();
+  expect(screen.getByText("$0")).toBeTruthy();
+  const stack = screen.getByText("Show 2 records ↓").closest("details")!;
+  stack.open = true;
+  expect(within(screen.getByRole("list", { name: "Hold and release records" })).getAllByRole("listitem").map(row => row.id))
+    .toEqual(["transaction-release", "transaction-hold"]);
+  expect(screen.getByText("Entry purchase")).toBeTruthy();
+  expect(document.getElementById("transaction-different")?.parentElement?.id).toBe("wallet-transaction-list");
+});
 
 test("only an exact matched deposit credit gets a receipt shortcut", () => {
   const requestKey = "deposit_request_123456";

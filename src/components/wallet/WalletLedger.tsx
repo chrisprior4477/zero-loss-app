@@ -20,9 +20,11 @@ import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { transactionDateRange } from "@/lib/wallet/date-presets";
 import { depositRecoveryHref } from "@/lib/wallet/funding-navigation";
+import { ledgerGroups } from "@/lib/wallet/ledger-groups";
 
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
 const noHiddenIds: string[] = [];
+const stackId = (entry: LedgerEntryRow) => `transaction-stack-${entry.id}`;
 
 function category(entry: LedgerEntryRow): LedgerFilter {
   if (entry.entry_type === "DEPOSIT") return "funding";
@@ -90,12 +92,15 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, appliedDates.from, appliedDates.through, timeZone), [displayEntries, appliedDates, compact, timeZone]);
   const searched = useMemo(() => searchLedger(dated, query, description), [dated, query]);
   const matching = useMemo(() => filter === "all" ? searched : searched.filter(entry => category(entry) === filter), [searched, filter]);
-  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, desktop ? 6 : 5, matching.findIndex(entry => entry.id === selectedId), "pages");
-  const visible = compact ? matching : matching.slice(batches.origin, batches.end);
+  const groups = useMemo(() => ledgerGroups(matching, !compact), [matching, compact]);
+  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(groups.length, desktop ? 6 : 5, groups.findIndex(group => group.rows.some(row => row.id === selectedId)), "pages");
+  const visible = compact ? groups : groups.slice(batches.origin, batches.end);
+  const firstRecord = groups[batches.origin]?.offset ?? 0;
+  const lastRecord = groups[batches.end]?.offset ?? matching.length;
   const twoColumns = !compact && desktop && visible.length > 3;
-  const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions",
-    more: () => { updateBookmark({ offset: batches.end }); batches.more(); },
-    previousPage: batches.previousPage ? () => { updateBookmark({ offset: Math.max(0, batches.start - batches.size) }); batches.previousPage?.(); } : undefined };
+  const controls = { ...batches, remaining: matching.length - lastRecord, close, listId: "wallet-transaction-list", noun: "transactions",
+    more: () => { updateBookmark({ offset: lastRecord }); batches.more(); },
+    previousPage: batches.previousPage ? () => { updateBookmark({ offset: groups[Math.max(0, batches.start - batches.size)]?.offset ?? 0 }); batches.previousPage?.(); } : undefined };
   const restoreBatch = batches.restore;
   const readingRow = useRef<string | null>(null);
   const previousDesktop = useRef(desktop);
@@ -116,7 +121,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     function restoreReadingRow() {
       const id = readingRow.current;
       if (!id) return;
-      const index = matching.findIndex(entry => `transaction-${entry.id}` === id);
+      const index = groups.findIndex(group => stackId(group.rows[0]) === id || group.rows.some(entry => `transaction-${entry.id}` === id));
       if (index >= 0) {
         restoreBatch(index);
         cancelAnimationFrame(frame);
@@ -133,7 +138,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       orientation?.removeEventListener("change", restoreReadingRow);
       window.removeEventListener("scroll", trackRow);
     };
-  }, [compact, desktop, listRef, matching, restoreBatch]);
+  }, [compact, desktop, listRef, groups, restoreBatch]);
   const restoredView = useRef<string | null>(null);
   const bookmarkKey = walletId ? `zero-loss-wallet-view:${walletId}` : null;
   useLayoutEffect(() => {
@@ -183,8 +188,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
       const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description);
-      const rowIndex = savedMatches.findIndex(entry => `transaction-${entry.id}` === saved.rowId);
-      restoreBatch(rowIndex === -1 ? saved.offset : rowIndex);
+      const savedGroups = ledgerGroups(savedMatches);
+      const rowIndex = savedGroups.findIndex(group => stackId(group.rows[0]) === saved.rowId || group.rows.some(entry => `transaction-${entry.id}` === saved.rowId));
+      const savedOffset = savedGroups.findLastIndex(group => group.offset <= saved.offset);
+      restoreBatch(rowIndex === -1 ? savedOffset : rowIndex);
       cancelScroll();
       interrupted = false;
       const align = () => {
@@ -195,10 +202,12 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           secondFrame = requestAnimationFrame(() => {
             if (interrupted || window.location.href !== saved.href) return;
             const list = listRef.current;
-            for (const detail of list?.querySelectorAll("details") ?? []) {
-              detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "");
-            }
             const row = document.getElementById(saved.rowId);
+            const exactRow = selectedId ? document.getElementById(`transaction-${selectedId}`) : null;
+            for (const detail of list?.querySelectorAll("details") ?? []) {
+              detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "")
+                || (detail.hasAttribute("data-transaction-stack") && (detail.contains(row) || detail.contains(exactRow)));
+            }
             const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
             const top = row && (list?.contains(row) || supportReturn)
               ? window.scrollY + row.getBoundingClientRect().top - (supportReturn ? Math.max(headerBottom + 12, saved.rowTop) : saved.rowTop)
@@ -233,7 +242,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
     const bookmark = { [ledgerReturnKey]: {
-      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived, offset: batches.origin,
+      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived, offset: firstRecord,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,
@@ -249,7 +258,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const row = anchor.closest("li");
     const saved: LedgerReturn = {
       walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived,
-      offset: batches.origin, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
+      offset: firstRecord, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
     };
     // Merge, rather than replace, Next's own navigation state. Keep the URL and
@@ -301,7 +310,45 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   useEffect(() => {
     const row = selectedRow.current;
     if (row && (!window.location.hash || window.location.hash === `#${row.id}`)) row.focus({ preventScroll: true });
-  }, [selectedId]);
+  }, [selectedId, batches.origin]);
+  function renderRecord(entry: LedgerEntryRow) {
+    const [title, detail] = description(entry);
+    const artwork = icon(entry);
+    const preserveView = !compact && Boolean(walletId);
+    const links = transactionLinks(entry, activity, preserveView);
+    const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
+    const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
+      ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}) })}` : productPath;
+    const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
+    const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
+    const selected = entry.id === selectedId;
+    return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
+      ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
+      <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
+      <span className={styles.ledgerVisuals}>
+        {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
+        <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
+      </span>
+      <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}{!compact && entry.product?.retailer ? <span>{entry.product.retailer}</span> : null}</div>
+      <div className={styles.transactionValue}>
+        <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
+        {links.length === 1 ? <Link href={links[0].href} className={styles.reportLink} aria-label={`${links[0].label} for ${detail}`} title={links[0].label}><AccountIcon name="chevron" /></Link> : null}
+      </div>
+      <span className={styles.posted}>Posted</span>
+      <div className={styles.transactionActions}>
+        {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
+        {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
+        {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
+          <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
+          <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
+        </details> : null}
+        {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
+        {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
+        <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+      </div>
+    </li>;
+  }
+
   return <>
     {!compact ? <div className={styles.historyControls}>
       <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch}
@@ -340,47 +387,42 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       {historyIncomplete && <p role="status">Only recent transactions loaded. Search and filters apply to the available history. <button type="button" onClick={() => { updateBookmark({}); window.location.reload(); }}>Retry full history</button></p>}
       <div className={styles.historyResultCount}>
         {query || from || through || filter !== "all" ? <button type="button" onClick={resetFilters}>Reset filters</button> : null}
-        <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
+        <p aria-live="polite">Showing {firstRecord > 0 || lastRecord < matching.length ? `${firstRecord + 1}–${lastRecord}` : lastRecord} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
-      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
-        const preserveView = !compact && Boolean(walletId);
-        const links = transactionLinks(entry, activity, preserveView);
-        const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
-        const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
-          ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}) })}` : productPath;
-        const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
-        const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
-        const selected = entry.id === selectedId;
-        return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
-          ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
-        <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
-        <span className={styles.ledgerVisuals}>
-          {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
-          <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
-        </span>
-        <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}{!compact && entry.product?.retailer ? <span>{entry.product.retailer}</span> : null}</div>
-        <div className={styles.transactionValue}>
-        <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
-        {links.length === 1 ? <Link href={links[0].href} className={styles.reportLink} aria-label={`${links[0].label} for ${detail}`} title={links[0].label}><AccountIcon name="chevron" /></Link> : null}
-        </div>
-        <span className={styles.posted}>Posted</span>
-        <div className={styles.transactionActions}>
-          {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
-          {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
-          {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
-            <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
-            <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
-          </details> : null}
-          {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
-          <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
-        </div>
-      </li>; })}</ul>
+      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(({ rows, stack }) => {
+        const first = rows[0];
+        if (!stack) return renderRecord(first);
+        const image = rows.find(row => row.product)?.product;
+        const hold = stack.kind === "reservation" ? rows.find(row => row.entry_type === "ENTRY_HOLD") : undefined;
+        const label = hold ? "2 records" : `${rows.length} entries`;
+        return <li id={stackId(first)} key={stackId(first)} className={styles.transactionStack}>
+          <details data-transaction-stack open={rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
+            <summary className={styles.stackSummary} data-layers={Math.min(3, rows.length - 1)}>
+              <span className={styles.stackLayer} aria-hidden="true" />
+              <span className={styles.stackFace}>
+                <time dateTime={first.created_at}>{dateLabel(first.created_at, timeZone)}</time>
+                {image && <span className={styles.ledgerVisuals}><span className={styles.ledgerProduct}><Image src={image.image} alt="" width={43} height={43} sizes="43px" /></span></span>}
+                <span className={styles.ledgerDescription}>
+                  <strong>{hold ? "Entry reservation released" : `${rows.length} entry purchases`}</strong>
+                  {image && <span>{image.title}</span>}
+                  <span>{hold ? `${formatUsdFromCents(-hold.amount)} held → ${formatUsdFromCents(-hold.amount)} released` : image?.retailer}</span>
+                </span>
+                <span className={styles.transactionValue}><strong className={hold ? styles.positive : styles.amount}>{formatUsdFromCents(stack.amount)}</strong></span>
+                <span className={styles.posted}>{hold ? "Net" : "Posted"}</span>
+                <span className={`${styles.transactionActions} ${styles.stackAction}`}>
+                  <span className={styles.stackShow}>Show {label} ↓</span><span className={styles.stackHide}>Hide {label} ↑</span>
+                </span>
+              </span>
+            </summary>
+            <ul className={styles.stackRecords} aria-label={hold ? "Hold and release records" : "Individual entry purchases"}>{rows.map(renderRecord)}</ul>
+          </details>
+        </li>;
+      })}</ul>
     </div>}
     {!compact && <TicketBatchControls {...controls} />}
     {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" /> : null}

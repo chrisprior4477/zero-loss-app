@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type LedgerSourceRow = LedgerEntryRow & { source_event: string; related_pool_id: string | null; related_entry_id?: string | null };
 const requestEvent = /^entry_request_([0-9a-f-]{36})_ENTRY_HOLD(?:_RELEASE)?$/i;
 const ledgerId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const publicEntryId = /^ent_[a-f0-9]{32}$/i;
 const ledgerTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function product(slug: string | undefined) {
@@ -122,6 +123,21 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     }
   }
 
+  const debitIds = recentOnly ? [] : [...new Set(rows.flatMap(row =>
+    row.entry_type === "ENTRY_DEBIT" && row.related_entry_id && publicEntryId.test(row.related_entry_id) ? [row.related_entry_id] : []))];
+  const entryBatches = new Map<string, string>();
+  for (let index = 0; index < debitIds.length; index += 100) {
+    const ids = debitIds.slice(index, index + 100);
+    const query = db.from("customer_entries").select("entry_id,preview_batch_id")
+      .eq("customer_id", userId).in("entry_id", ids);
+    const { data, error } = await (wallet.walletAccountId ? query.eq("wallet_account_id", wallet.walletAccountId) : query);
+    if (!error) for (const entry of data ?? []) {
+      if (ids.includes(entry.entry_id) && typeof entry.preview_batch_id === "string" && ledgerId.test(entry.preview_batch_id)) {
+        entryBatches.set(entry.entry_id, entry.preview_batch_id);
+      }
+    }
+  }
+
   const purchaseEvents = [...new Set(rows.filter(row => row.entry_type === "PURCHASE_DEBIT").map(row => row.source_event))];
   const purchaseSlugs = new Map<string, string>();
   const purchaseEntries = new Map<string, string>();
@@ -154,7 +170,10 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     const purchaseEntry = purchaseEntries.get(row.source_event);
     const ids = row.related_entry_id ? [row.related_entry_id]
       : requestId ? requestEntries.get(requestId) ?? [] : purchaseEntry ? [purchaseEntry] : [];
-    const entryIds = [...new Set(ids)].filter(id => /^ent_[a-f0-9]{32}$/i.test(id));
-    return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}), ...(entryIds.length ? { entryIds } : {}) };
+    const entryIds = [...new Set(ids)].filter(id => publicEntryId.test(id));
+    const entryBatchId = row.entry_type === "ENTRY_DEBIT" && row.related_entry_id ? entryBatches.get(row.related_entry_id) : undefined;
+    return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}),
+      ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
+      ...(!recentOnly && requestId && requestSlugs.has(requestId) ? { entryRequestId: requestId } : {}) };
   });
 }

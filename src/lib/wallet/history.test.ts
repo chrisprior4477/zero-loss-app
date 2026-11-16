@@ -28,18 +28,20 @@ test.each([false, true])("history resolves owner-scoped entries with a bounded n
   const ids = Array.from({ length: 501 }, (_, index) => `ent_${index.toString(16).padStart(32, "0")}`);
   const hold = { ...base, entry_type: "ENTRY_HOLD", source_event: `entry_request_${requestId}_ENTRY_HOLD`, related_pool_id: null, related_entry_id: null };
   const debit = { ...base, id: "11111111-1111-4111-8111-111111111110", entry_type: "ENTRY_DEBIT", source_event: "preview_entry", related_pool_id: "preview_best-buy-100-gift-card", related_entry_id: ids[0] };
-  const queries: { table: string; owner?: string; range?: number[] }[] = [];
+  const batchId = "33333333-3333-4333-8333-333333333333";
+  const queries: { table: string; owner?: string; wallet?: string; columns?: string; values?: string[]; range?: number[] }[] = [];
   const fake = { from(table: string) {
     const query: (typeof queries)[number] = { table }; queries.push(query);
     const builder = {
-      select: () => builder,
-      eq: (column: string, value: string) => { if (column === "customer_id") query.owner = value; return builder; },
-      in: () => builder,
+      select: (columns: string) => { query.columns = columns; return builder; },
+      eq: (column: string, value: string) => { if (column === "customer_id") query.owner = value; if (column === "wallet_account_id") query.wallet = value; return builder; },
+      in: (_column: string, values: string[]) => { query.values = values; return builder; },
       or: () => builder,
       order: () => builder,
       range: (from: number, to: number) => { query.range = [from, to]; return builder; },
       then: (resolve: (value: unknown) => unknown) => resolve({ error: null, data: table === "ledger_entries" ? [hold, debit]
         : table === "entry_requests" ? [{ id: requestId, offering_slug: "best-buy-100-gift-card" }]
+          : query.columns === "entry_id,preview_batch_id" ? [{ entry_id: ids[0], preview_batch_id: batchId }]
           : ids.slice(query.range?.[0] ?? 0, (query.range?.[1] ?? 500) + 1).map(entry_id => ({ entry_id, entry_request_id: requestId })) }),
     };
     return builder;
@@ -49,8 +51,12 @@ test.each([false, true])("history resolves owner-scoped entries with a bounded n
   expect(history?.[0].entryIds).toEqual(ids);
   expect(queries.filter(query => query.table === "ledger_entries").map(query => query.range)).toEqual([[0, recent ? 1 : 2]]);
   expect(history?.[1].entryIds).toEqual([ids[0]]);
+  expect(history?.[0].entryRequestId).toBe(recent ? undefined : requestId);
+  expect(history?.[1].entryBatchId).toBe(recent ? undefined : batchId);
   expect(queries.every(query => query.owner === "owner")).toBe(true);
-  expect(queries.filter(query => query.table === "customer_entries").map(query => query.range)).toEqual([[0, 499], [500, 999]]);
+  expect(queries.filter(query => query.columns === "entry_id,entry_request_id").map(query => query.range)).toEqual([[0, 499], [500, 999]]);
+  expect(queries.filter(query => query.columns === "entry_id,preview_batch_id")).toEqual(recent ? [] :
+    [{ table: "customer_entries", columns: "entry_id,preview_batch_id", owner: "owner", wallet: "wallet", values: [ids[0]] }]);
 });
 
 test.each(["new deposit", "late older deposit", "duplicate page row"])(
