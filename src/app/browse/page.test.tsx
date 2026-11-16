@@ -334,8 +334,7 @@ describe("Browse search results", () => {
   ] as const)("offers a working all-category search for %s from %s", async (q, category, expectedProduct) => {
     const filters = { available: "1", sort: "value-high" };
     render(await BrowsePage({ searchParams: Promise.resolve({ category, q, ...filters }) }));
-    const matches = within(screen.getByRole("region", { name: "Matches in other categories" }));
-    const url = new URL(matches.getByRole("link", { name: /across all categories/ }).getAttribute("href")!, "https://example.test");
+    const url = new URL(screen.getByRole("link", { name: "Search all categories" }).getAttribute("href")!, "https://example.test");
     expect(Object.fromEntries(url.searchParams)).toEqual({ q, ...filters });
     expect(url.hash).toBe("#search-results");
     expect(screen.queryByRole("region", { name: "Matching retailer categories" })).toBeNull();
@@ -346,10 +345,11 @@ describe("Browse search results", () => {
 
   test("offers broader results only if another category has a match within the remaining filters", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "Target", maxValue: "5" }) }));
-    expect(screen.queryByRole("region", { name: "Matches in other categories" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Search all categories" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Remove price filter" })).toBeNull();
     cleanup();
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "Best Buy" }) }));
-    expect(screen.queryByRole("region", { name: "Matches in other categories" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Search all categories" })).toBeNull();
     expect(screen.getByRole("link", { name: /Apple AirPods/ })).toBeTruthy();
   });
 
@@ -430,14 +430,15 @@ describe("Browse search results", () => {
   test("does not claim the whole catalog is empty when only a selected category has no matches", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels", category: "gas" }) }));
     expect(screen.getByRole("heading", { name: "No “paper towels” matches in Gas." })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /View results for “paper towels” across all categories/ }).getAttribute("href")).toBe("/browse?q=paper+towels#search-results");
+    expect(screen.getByRole("link", { name: "Search all categories" }).getAttribute("href")).toBe("/browse?q=paper+towels#search-results");
   });
 
   test("an empty category search has two search bars and keeps the recovery actions", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "PetSmart", maxValue: "500", batch: "3" }) }));
     expect(screen.queryByRole("search", { name: "Search Electronics again" })).toBeNull();
     expect(screen.getByRole("search", { name: "Search browse results at the bottom" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /View PetSmart across all categories/ }).getAttribute("href")).toBe("/browse?maxValue=500&q=PetSmart#search-results");
+    expect(screen.getByText(/matches outside Electronics · \$500 and under/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Search all categories" }).getAttribute("href")).toBe("/browse?maxValue=500&q=PetSmart#search-results");
     expect(screen.getByRole("link", { name: /Request a product/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Browse available rewards" })).toBeTruthy();
     expect(screen.getByRole("search", { name: "Search marketplace" })).toBeTruthy();
@@ -499,13 +500,13 @@ describe("Browse search results", () => {
     expect(screen.getAllByRole("searchbox", { name: "Search all prizes" })).toHaveLength(1);
   });
 
-  test("an old filtered search explains the prize-value limit and offers the unrestricted search", async () => {
+  test("an old filtered search explains which limit blocks a match", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "PlayStation", maxValue: "25" }) }));
     expect(screen.getByRole("heading", { name: "No products match these filters." })).toBeTruthy();
-    expect(screen.getByText(/This is the prize value, not the cost to enter/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Search all prizes" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
+    expect(screen.getByText(/matches? (?:is|are) above \$25\./)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Search all categories" })).toBeNull();
     expect(within(screen.getByRole("list", { name: "Applied filters" })).getByText("$25 and under")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Remove price limit" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
+    expect(screen.getByRole("link", { name: "Remove price filter" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
   });
 
   test("shows the filters beside the empty results and removes only the price range", async () => {
@@ -516,12 +517,34 @@ describe("Browse search results", () => {
     expect(within(appliedFilters).getByText("Best Buy")).toBeTruthy();
     expect(within(appliedFilters).getByText("Available only")).toBeTruthy();
     expect(within(appliedFilters).getByText(/\$5.*\$25/)).toBeTruthy();
-    const remove = screen.getByRole("link", { name: "Remove price limit" });
+    const remove = screen.getByRole("link", { name: "Remove price filter" });
     const destination = new URL(remove.getAttribute("href")!, "https://navigation.invalid");
     expect(destination.hash).toBe("#search-results");
     expect(Object.fromEntries(destination.searchParams)).toEqual(search);
     rerender(await BrowsePage({ searchParams: Promise.resolve(search) }));
     expect(screen.getByRole("link", { name: /PlayStation 5 Slim Model/ })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Remove price limit" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Remove price filter" })).toBeNull();
+  });
+
+  test("offers either filter recovery when both independently restore a result", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "gift-cards", q: "Best Buy", minValue: "150", sort: "value-high", available: "1" }) }));
+    expect(screen.getByText("4 matches are below $150 in Gift Cards.")).toBeTruthy();
+    expect(screen.getByText(/matches outside Gift Cards · \$150 and over/)).toBeTruthy();
+    const price = screen.getByRole("link", { name: "Remove price filter" });
+    expect(price.getAttribute("href")).toBe("/browse?category=gift-cards&sort=value-high&available=1&q=Best+Buy#search-results");
+    const categories = screen.getByRole("link", { name: "Search all categories" });
+    const destination = new URL(categories.getAttribute("href")!, "https://example.test");
+    expect(Object.fromEntries(destination.searchParams)).toEqual({ q: "Best Buy", minValue: "150", sort: "value-high", available: "1" });
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve(Object.fromEntries(destination.searchParams)) }));
+    expect(screen.getByRole("link", { name: /Apple AirPods Pro 3/ })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "$75 Best Buy Gift Card" })).toBeNull();
+  });
+
+  test("keeps product requests available when neither filter would restore a match", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "gift-cards", q: "ceramic telescope", maxValue: "50" }) }));
+    expect(screen.queryByRole("link", { name: "Search all categories" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Remove price filter" })).toBeNull();
+    expect(screen.getByRole("link", { name: /Request a product/ }).getAttribute("href")).toContain("product=ceramic+telescope");
   });
 });

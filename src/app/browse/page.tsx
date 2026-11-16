@@ -10,7 +10,7 @@ import {
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/search";
-import { catalogSearchTooLong, normalizeSearch } from "@/lib/catalog/search-text";
+import { catalogSearchTooLong } from "@/lib/catalog/search-text";
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
@@ -19,7 +19,6 @@ import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/ca
 import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
-import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -54,13 +53,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const endingSoon = selectedCategory === "ending-soon";
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
-  const showCatalogDenominations = !endingSoon && !unavailable
+  const showCatalogDenominations = !unavailable
     && Boolean(searchTerm || selectedCategory || query.retailer || query.partnerCategory || query.type === "gift-cards");
   const unavailableDenominations = showCatalogDenominations ? demoProducts.filter(product =>
     hidden.has(product.slug) && product.value === 100 && isGiftCardListing(product))
     .map(product => ({ ...product, sold: product.capacity })) : [];
   const searchableProducts = [...availableProducts, ...unavailableDenominations];
-  const categoryProducts = filterCatalogSubcategory(searchableProducts.filter(
+  const categoryProducts = filterCatalogSubcategory((endingSoon ? availableProducts : searchableProducts).filter(
     product => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
@@ -118,7 +117,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || filters.minValue !== null || filters.maxValue !== null
     || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
-  const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
   if (selectedRetailerGroup && !(selectedCategory && filters.retailer)) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
@@ -131,8 +129,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
   const searchHref = `/browse${searchParamsForView.size ? `?${searchParamsForView}` : ""}`;
-  let broaderSearch: { href: string; label: string } | null = null;
-  if (!products.length && !unavailable && searchTerm && !searchTooLong && (selectedCategory || subcategory)) {
+  const canSuggestRecovery = !products.length && !unavailable && !searchTooLong;
+  let broaderSearch: { href: string; count: number } | null = null;
+  if (canSuggestRecovery && searchTerm && (selectedCategory || subcategory || selectedRetailerGroup)) {
     const params = new URLSearchParams(searchParamsForView);
     for (const key of ["category", "subcategory", "partnerCategory"]) params.delete(key);
     if (params.get("sort") === "ending-soon") params.delete("sort");
@@ -142,15 +141,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     ]);
     const broaderMatches = searchCatalogMatches(searchableProducts, searchTerm, denomination, { includeLowerGiftCards: true });
     const broaderProducts = filterBrowseProducts(broaderMatches.map(({ product }) => product), broaderFilters, searchTerm);
-    const scopedSlugs = new Set(categoryProducts.map(product => product.slug));
-    if (broaderProducts.some(product => !scopedSlugs.has(product.slug))) {
-      const keyword = normalizeSearch(searchTerm);
-      const retailer = globalRetailers.find(option => normalizeSearch(option.label) === keyword);
-      broaderSearch = {
-        href: `/browse?${params}#search-results`,
-        label: retailer ? `View ${retailer.label} across all categories` : `View results for “${searchTerm}” across all categories`,
-      };
-    }
+    if (broaderProducts.length) broaderSearch = { href: `/browse?${params}#search-results`, count: broaderProducts.length };
   }
   const returnParams = new URLSearchParams(searchParamsForView);
   if (tailBatch || batch > 1) returnParams.set("batch", tailBatch ? tailBatchValue(tailBatch) : String(batch));
@@ -176,11 +167,26 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const withoutBudget = new URLSearchParams(searchParamsForView);
   withoutBudget.delete("minValue");
   withoutBudget.delete("maxValue");
-  const removePriceLimit = budgetLabel && !products.length && !unavailable ? (
-    <Link href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} prefetch={false}
-      className="mt-3 inline-flex min-h-11 max-w-full items-center justify-center rounded-lg bg-cyan-200 px-4 py-2 text-sm font-bold text-[#102e50] hover:bg-cyan-100">
-      Remove price limit
-    </Link>
+  const priceMatchCount = canSuggestRecovery && budgetLabel ? filterBrowseProducts(
+    matchedProducts, { ...filters, minValue: null, maxValue: null }, searchTerm, endingSoon, allowedRetailers,
+  ).length : 0;
+  const categoryScope = subcategory || selectedLabel || selectedRetailerGroup?.category;
+  const broaderScope = selectedRetailerGroup && (subcategory || selectedLabel) ? "your selected categories" : categoryScope;
+  const outsideBudget = filters.maxValue !== null
+    ? filters.minValue ? `outside the ${budgetLabel} prize-value filter` : `above $${filters.maxValue.toLocaleString("en-US")}`
+    : filters.minValue !== null ? `below $${filters.minValue.toLocaleString("en-US")}` : "";
+  const recoveryLinkClass = "inline-flex min-h-11 max-w-full items-center justify-center rounded-lg bg-cyan-200 px-4 py-2 text-sm font-bold text-[#102e50] hover:bg-cyan-100";
+  const filterRecovery = priceMatchCount || broaderSearch ? (
+    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3 text-left">
+      {priceMatchCount ? <div className="min-w-0">
+        <p className="mb-2 text-sm text-white/85">{priceMatchCount.toLocaleString("en-US")} {priceMatchCount === 1 ? "match is" : "matches are"} {outsideBudget}{categoryScope ? ` in ${categoryScope}` : ""}.</p>
+        <Link href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} prefetch={false} className={recoveryLinkClass}>Remove price filter</Link>
+      </div> : null}
+      {broaderSearch ? <div className="min-w-0">
+        <p className="mb-2 text-sm text-white/85">{broaderSearch.count.toLocaleString("en-US")} {broaderSearch.count === 1 ? "match" : "matches"} outside {broaderScope}{budgetLabel ? ` · ${budgetLabel}` : ""}.</p>
+        <Link href={broaderSearch.href} prefetch={false} className={recoveryLinkClass}>Search all categories</Link>
+      </div> : null}
+    </div>
   ) : null;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
@@ -223,13 +229,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </nav>
           ) : null}
 
-        {broaderSearch ? (
-          <section aria-label="Matches in other categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
-            <Link href={broaderSearch.href} prefetch={false} className="inline-flex min-h-11 max-w-full items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200 [overflow-wrap:anywhere]">
-              {broaderSearch.label} →
-            </Link>
-          </section>
-        ) : directoryMatches.length ? (
+        {!broaderSearch && directoryMatches.length ? (
           <section aria-label="Matching retailer categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
             <h2 className="text-sm font-black uppercase tracking-[.1em] text-cyan-200">Matching retailer categories</h2>
             <p className="mt-1 text-sm text-white/65">Explore the retailer directory. Current offers are marked separately.</p>
@@ -295,7 +295,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {savedOutsideFilters ? <h3 className="mt-4 text-sm font-bold text-cyan-200">
               {savedWithinFilters.size === 0 ? "Saved in your account · outside your filters" : "Saved in your account · includes results outside your filters"}
             </h3> : null}
-            {removePriceLimit}
+            {filterRecovery}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {savedMatches.map(({ product }) => {
                 const result = resolvedProductDestination(account?.activity, product.slug);
@@ -307,18 +307,16 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         ) : products.length ? null : unavailable ? (
           <p role="status" className="mt-6 text-white/75">Prize availability could not be loaded. Refresh to check again.</p>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
-          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
+          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-4 text-center sm:p-8">
             <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
             <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>
-            {removePriceLimit}
+            {filterRecovery}
           </section>
         ) : (activeFilters || selectedRetailerGroup) && (!searchTerm || matchedProducts.length) ? (
-          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
+          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-4 text-center sm:p-8">
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
-            <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : activeFilters ? "Try another retailer or clear your filters to see more prizes." : "Choose another category to see more prizes."}</p>
-            {removePriceLimit}
-            {searchTerm && !broaderSearch ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
-            {activeFilters ? <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link> : null}
+            {filterRecovery ?? <p className="mt-2 text-white/65">{activeFilters ? "Try adjusting your filters to see more prizes." : "Choose another category to see more prizes."}</p>}
+            {activeFilters && !filterRecovery ? <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link> : null}
           </section>
         ) : searchTerm ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
@@ -326,15 +324,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">
               {retryScope ? <>No “{searchTerm}” matches in {retryScope}.</> : <>We don&apos;t have “{searchTerm}” in the catalog yet.</>}
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
+            {filterRecovery ?? <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
               {retryScope
-                ? broaderSearch ? "You can also tell us what you’d like to see in this category." : "Try all search results, or tell us what you’d like to see in this category."
+                ? "Try adjusting your search or filters, or tell us what you’d like to see in this category."
                 : "We’re adding new rewards regularly, and what our customers ask for helps decide what comes next. Tell us what you’d love a chance to win."}
-            </p>
+            </p>}
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
-            {removePriceLimit}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              {retryScope && !broaderSearch ? <Link href={`${allSearchHref}#search-results`} className="zl-see-all">See all search results</Link> : null}
               <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
