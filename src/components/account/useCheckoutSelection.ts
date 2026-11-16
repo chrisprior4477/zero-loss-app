@@ -74,7 +74,6 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     const returning = query.has("choice") || query.get("resume") === "wallet";
     const initial = saved ?? { selected: [firstId], decline: !returning, needsReview: returning };
     // Restore the selection together before the customer can review it.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChoice(initial);
     setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));
     inMemory.current = { key, raw: JSON.stringify({ ...initial, available, slug, ownerId }) };
