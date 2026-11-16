@@ -1,0 +1,66 @@
+.attachment, .attached, .records, .history { display: grid; gap: 6px; min-width: 0; }
+.attached { padding: 10px 12px; border-radius: 8px; background: #e4f3ff; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.control, .close, .record {
+  min-width: 0;
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #dcefff;
+  color: #12436c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.controls .control { flex: 1 1 0; }
+.control[aria-pressed="true"] { background: #0966cf; color: #fff; }
+.control:disabled { opacity: .6; }
+.control:focus-visible, .close:focus-visible, .record:focus-visible { outline: 2px solid #0871e8; outline-offset: 2px; }
+.dialog {
+  position: fixed;
+  inset: 12px max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  width: min(500px, calc(100% - 24px));
+  height: fit-content;
+  max-width: none;
+  max-height: calc(100dvh - 24px - env(safe-area-inset-bottom));
+  margin: auto;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.dialog::backdrop { background: #08234280; backdrop-filter: blur(2px); }
+.sheet {
+  --corner: 18px;
+  --side: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+  background: #fffdfa;
+  color: #0d2348;
+}
+.heading { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.heading h2 { font-size: 19px; font-weight: 850; }
+.sheet .control, .sheet .close { min-height: 44px; }
+.close { display: grid; place-items: center; width: 44px; padding: 0; flex: none; font-size: 24px; line-height: 1; }
+.records { list-style: none; padding: 0; margin: 2px; }
+.record { display: grid; gap: 2px; width: 100%; text-align: left; background: #eef6fc; }
+.record:hover { background: #d6ecfa; }
+.recordHeading { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.recordHeading strong:first-child { min-width: 0; overflow-wrap: anywhere; }
+.recordHeading strong:last-child { flex: none; font-variant-numeric: tabular-nums; }
+.recordMeta, .attached small { display: block; color: #46627b; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
+.history p { margin: 4px 2px; color: #46627b; font-size: 13px; }
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .dialog {
+    --picker-top: calc(var(--site-header-height, 112px) + 8px);
+    top: var(--picker-top);
+    max-height: calc(100dvh - var(--picker-top) - max(12px, env(safe-area-inset-bottom)));
+  }
+}

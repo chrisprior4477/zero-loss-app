@@ -1,12 +1,59 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ save: vi.fn(), check: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ save: vi.fn(), check: vi.fn(), replace: vi.fn(), refresh: vi.fn(), records: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("@/lib/support/actions", () => ({ saveSupportCase: mocks.save, checkSupportMessage: mocks.check }));
+vi.mock("@/lib/support/record-actions", () => ({ loadSupportRecords: mocks.records }));
 import { SupportForm } from "./SupportForm";
 const caseId = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
+
+test("the in-form picker keeps the draft and preserves its exact order on an interrupted retry", async () => {
+  const { showModal, close } = HTMLDialogElement.prototype;
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
+  const base = { title: "Nintendo Switch", detail: "Best Buy", amount: 4900, date: "2026-11-14T22:45:00Z", status: "Card issued" };
+  const order = { ...base, kind: "order", id: "ord_ffffffff23456789" };
+  const transaction = { ...base, kind: "transaction", id: caseId, title: "Funds added", status: "Posted" };
+  mocks.records.mockImplementation(async kind => ({ records: [kind === "order" ? order : transaction], more: false }));
+  mocks.save.mockRejectedValueOnce(new Error("Interrupted")).mockResolvedValueOnce({ status: "saved", caseId });
+  mocks.check.mockResolvedValue({ status: "error", uncertain: true, canResend: true, message: "No saved message yet" });
+  const props = { ownerId: "account", requestKey: "support_request_001", allowRecordPicker: true };
+  try {
+    const view = render(<SupportForm {...props} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "Missing gift card" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "My message remains in this form." } });
+    fireEvent.click(screen.getByRole("button", { name: /Attach an order or transaction/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Nintendo Switch/ }));
+    expect(screen.getByText("Attached to your request")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wallet transactions" }));
+    expect(await screen.findByRole("button", { name: /Funds added/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "Missing gift card");
+    expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "My message remains in this form.");
+    fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    view.unmount();
+    render(<SupportForm {...props} />);
+    expect(screen.getByText("Nintendo Switch")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Resend same message" }));
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+    const first = mocks.save.mock.calls[0][1] as FormData;
+    const retry = mocks.save.mock.calls[1][1] as FormData;
+    expect(first.get("orderNumber")).toBe(order.id);
+    expect(first.get("transactionOrigin")).toBe("order:all");
+    expect(Object.fromEntries(retry)).toEqual(Object.fromEntries(first));
+  } finally {
+    HTMLDialogElement.prototype.showModal = showModal;
+    HTMLDialogElement.prototype.close = close;
+  }
+});
 test("transaction-linked form keeps the chosen transaction and exact retry after a dropped response", async () => {
   mocks.save.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "saved", caseId });
   mocks.check.mockResolvedValue({ status: "error", uncertain: true, canResend: true, message: "No saved message yet" });

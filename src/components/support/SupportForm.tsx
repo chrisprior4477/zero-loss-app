@@ -8,20 +8,25 @@ import styles from "@/components/help/help-tickets.module.css";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { supportReferencePrefix, type SupportDeposit } from "@/lib/support/references";
 import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft } from "@/lib/support/draft";
+import { SupportRecordPicker } from "./SupportRecordPicker";
 
 const field = `${styles.ticket} ${styles.field}`;
-type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string };
+type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
 
-function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "" }: Props) {
+function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
   const router = useRouter();
   const sending = useRef(false);
   const depositKey = deposit?.key;
   const initialDraft = (): SupportDraft => ({ requestKey, subject: depositKey ? "Question about this deposit" : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "", body: "", category: transactionId || depositKey ? "wallet" : rewardId ? "reward" : "other", caseStatus: "awaiting_customer", uncertain: false });
   const [draft, setDraft] = useState(initialDraft);
   const { subject, body, category, caseStatus } = draft;
+  const record = allowRecordPicker ? draft.record : undefined;
+  const pickedTransaction = record?.kind === "transaction" ? record.id : "";
+  const pickedOrder = record?.kind === "order" ? record.id : "";
+  const effectiveOrigin = pickedOrder ? "order:all" : pickedTransaction ? "wallet" : transactionOrigin;
   const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : "new");
   const attempted = useRef<FormData | null>(null);
   const restored = useRef(false);
@@ -35,17 +40,19 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       setDraft(saved);
       if (saved.uncertain) {
         const payload = new FormData();
-        Object.entries({ requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
+        const savedRecord = allowRecordPicker ? saved.record : undefined;
+        Object.entries({ requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: savedRecord?.kind === "transaction" ? savedRecord.id : transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
+        if (savedRecord?.kind === "order") payload.set("orderNumber", savedRecord.id);
         if (saved.transactionOrigin) payload.set("transactionOrigin", saved.transactionOrigin);
         attempted.current = payload;
       }
     }
-  }, [draftKey, caseId, transactionId, rewardId, depositKey, staff]);
+  }, [draftKey, caseId, transactionId, rewardId, depositKey, staff, allowRecordPicker]);
   function changeDraft(change: Partial<SupportDraft>) {
     const next = { ...draft, ...change };
     setDraft(next);
     const initial = initialDraft();
-    writeSupportDraft(draftKey, next.body || next.subject !== initial.subject || next.category !== initial.category || next.caseStatus !== initial.caseStatus || next.uncertain ? next : null);
+    writeSupportDraft(draftKey, next.body || next.record || next.subject !== initial.subject || next.category !== initial.category || next.caseStatus !== initial.caseStatus || next.uncertain ? next : null);
   }
   const [state, action, pending] = useActionState(async (previous: SupportActionState, data: FormData): Promise<SupportActionState> => {
     if (data.get("intent") === "check") {
@@ -73,7 +80,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     catch { return { status: "error", uncertain: true, message: "Connection interrupted. Your text is still here. Check the saved result below without creating a second request." }; }
     finally { sending.current = false; }
   }, { status: "idle" });
-  const uncertain = draft.uncertain || (state.status === "error" && state.uncertain);
+  const uncertain = draft.uncertain || (state.status === "error" && Boolean(state.uncertain));
   const locked = pending || uncertain;
   useEffect(() => {
     if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}${caseContext}#conversation`); router.refresh(); }
@@ -89,8 +96,9 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   }} className="space-y-4">
     <input type="hidden" name="requestKey" value={draft.requestKey} />
     <input type="hidden" name="caseId" value={caseId ?? ""} />
-    <input type="hidden" name="transactionId" value={transactionId ?? ""} />
-    {transactionOrigin && <input type="hidden" name="transactionOrigin" value={transactionOrigin} />}
+    <input type="hidden" name="transactionId" value={transactionId ?? pickedTransaction} />
+    {pickedOrder && <input type="hidden" name="orderNumber" value={pickedOrder} />}
+    {effectiveOrigin && <input type="hidden" name="transactionOrigin" value={effectiveOrigin} />}
     <input type="hidden" name="rewardId" value={rewardId ?? ""} />
     <input type="hidden" name="deposit" value={depositKey ?? ""} />
     {!caseId ? <>
@@ -99,8 +107,9 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       </select></span></label>
       <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
-    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, transactionOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
+    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
     <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
+    {allowRecordPicker ? <SupportRecordPicker record={record} onChange={record => changeDraft({ record })} timeZone={timeZone} disabled={locked} /> : null}
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
@@ -120,7 +129,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         startTransition(() => action(attempted.current!));
       }}>Resend same message</button> : null}
     </> : <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
-    {body || subject !== initialDraft().subject ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft()); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
+    {body || record || subject !== initialDraft().subject ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft()); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
     <p className="text-xs leading-5 opacity-70">Replies and status updates appear here and in Notifications. Submitting a case does not move funds or approve a refund.</p>
   </form>;
 }

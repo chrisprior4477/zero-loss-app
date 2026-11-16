@@ -29,6 +29,36 @@ test("creates an authenticated, transaction-linked case with a replay key", asyn
   expect(mocks.rpc).toHaveBeenCalledWith("create_support_case", { p_ledger_entry_id: transactionId, p_category: "wallet", p_subject: "Funding question", p_body: "Please check this transaction.", p_idempotency_key: "support_request_001" });
   expect(mocks.revalidate.mock.calls).toEqual([["/support"], ["/contact"], ["/account/notifications"]]);
 });
+
+test.each([true, false])("an order picked inside Support links only its verified payment (available: %s)", async available => {
+  const orderNumber = "ord_aa11223344556677";
+  const data = form();
+  data.delete("transactionId");
+  data.set("orderNumber", orderNumber);
+  data.set("transactionOrigin", "wallet");
+  const orderRead = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
+  const ledgerRead = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
+  for (const chain of [orderRead, ledgerRead]) {
+    chain.select.mockReturnValue(chain);
+    chain.eq.mockReturnValue(chain);
+  }
+  mocks.from.mockImplementation(table => table === "customer_orders" ? orderRead : ledgerRead);
+  orderRead.maybeSingle.mockResolvedValue({ data: available ? { provider_event_id: "exact-checkout-event" } : null, error: null });
+  ledgerRead.maybeSingle.mockResolvedValue({ data: { id: transactionId }, error: null });
+  const result = await saveSupportCase({ status: "idle" }, data);
+  expect(orderRead.eq.mock.calls).toEqual([["customer_id", "owner"], ["order_number", orderNumber]]);
+  if (!available) {
+    expect(result).toMatchObject({ status: "error" });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    return;
+  }
+  expect(ledgerRead.eq.mock.calls).toEqual([["customer_id", "owner"], ["source_event", "exact-checkout-event"], ["entry_type", "PURCHASE_DEBIT"]]);
+  expect(result).toEqual({ status: "saved", caseId });
+  expect(mocks.rpc).toHaveBeenCalledWith("create_support_case", expect.objectContaining({
+    p_ledger_entry_id: transactionId,
+    p_body: "Transaction opened from: order:all\n\nPlease check this transaction.",
+  }));
+});
 test("reply status authority stays in Supabase, never trusts a client role", async () => {
   const data = form(); data.set("caseId", caseId); data.set("status", "resolved");
   mocks.rpc.mockResolvedValue({ error: { code: "42501" } });

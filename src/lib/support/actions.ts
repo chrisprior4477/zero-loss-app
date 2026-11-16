@@ -6,9 +6,10 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { supportReferencePrefix } from "./references";
+import { getOrderSupportTransactionId } from "@/lib/account/order-support";
+import { supportOrderNumber, supportTransactionId as uuid } from "./records";
 
 export type SupportActionState = { status: "idle" } | { status: "error"; message: string; uncertain?: boolean; canResend?: boolean; field?: "subject" | "body" } | { status: "saved"; caseId: string };
-const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const key = /^[A-Za-z0-9_-]{16,128}$/;
 
 function bodyError(limit: number): SupportActionState {
@@ -34,8 +35,9 @@ export async function checkSupportMessage(requestKey: string, caseId?: string): 
 export async function saveSupportCase(_previous: SupportActionState, form: FormData): Promise<SupportActionState> {
   const caseId = String(form.get("caseId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
+  const orderNumber = String(form.get("orderNumber") ?? "");
   const rewardId = String(form.get("rewardId") ?? "");
-  const transactionOrigin = !caseId && (transactionId || rewardId) ? String(form.get("transactionOrigin") ?? "") : "";
+  const transactionOrigin = orderNumber ? "order:all" : !caseId && (transactionId || rewardId) ? String(form.get("transactionOrigin") ?? "") : "";
   const depositKey = String(form.get("deposit") ?? "");
   const body = String(form.get("body") ?? "").trim();
   const requestKey = String(form.get("requestKey") ?? "");
@@ -44,6 +46,7 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
   const status = String(form.get("status") ?? "open");
   if (!isPreviewDataEnvironment()) return { status: "error", message: "Support submission is unavailable in this environment." };
   if (!key.test(requestKey) || (caseId && !uuid.test(caseId)) || (transactionId && !uuid.test(transactionId)) || (rewardId && (!uuid.test(rewardId) || Boolean(transactionId || caseId))) ||
+    (orderNumber && (!supportOrderNumber.test(orderNumber) || Boolean(caseId || transactionId || rewardId || depositKey))) ||
     (depositKey && (!depositRequestKeyPattern.test(depositKey) || Boolean(caseId || transactionId || rewardId))) ||
     (!caseId && !["wallet", "entry", "reward", "account", "other"].includes(category)) ||
     !["open", "awaiting_customer", "resolved"].includes(status)) return { status: "error", message: "Please check the form details and try again." };
@@ -54,6 +57,8 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
     if (authError || !user) return { status: "error", message: "Sign in again before sending your request." };
+    const linkedTransaction = orderNumber ? await getOrderSupportTransactionId(db, user.id, orderNumber) : transactionId;
+    if (orderNumber && !linkedTransaction) return { status: "error", message: "We couldn’t verify the payment for this order. Choose another record or remove the attachment and send your request." };
     if (rewardId) {
       // Use the customer's own client and RLS; never trust the URL or form's ownership.
       const reward = await db.from("customer_rewards").select("id").eq("id", rewardId).eq("customer_id", user.id).maybeSingle();
@@ -67,7 +72,7 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     }
     const result = caseId
       ? await db.rpc("reply_support_case", { p_case_id: caseId, p_body: body, p_status: status, p_idempotency_key: requestKey })
-      : await db.rpc("create_support_case", { p_ledger_entry_id: transactionId || null, p_category: category, p_subject: subject, p_body: prefix + body, p_idempotency_key: requestKey });
+      : await db.rpc("create_support_case", { p_ledger_entry_id: linkedTransaction || null, p_category: category, p_subject: subject, p_body: prefix + body, p_idempotency_key: requestKey });
     if (result.error) {
       if (result.error.code === "P0001") return { status: "error", message: "Please wait a few minutes, or continue an existing case." };
       if (result.error.code === "42501") return { status: "error", message: "That case or transaction is unavailable for this account." };

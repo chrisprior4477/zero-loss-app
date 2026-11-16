@@ -1,3 +1,5 @@
+import { parseSupportRecord, type SupportRecord } from "./records";
+
 export type SupportDraft = {
   requestKey: string;
   subject: string;
@@ -6,6 +8,7 @@ export type SupportDraft = {
   caseStatus: string;
   uncertain: boolean;
   transactionOrigin?: string;
+  record?: SupportRecord;
 };
 
 const prefix = "zero-loss-support-draft:";
@@ -29,7 +32,10 @@ export function readSupportDraft(key: string | null): SupportDraft | null {
       || !["wallet", "entry", "reward", "account", "other"].includes(category)
       || !["open", "awaiting_customer", "resolved"].includes(caseStatus) || typeof uncertain !== "boolean") return null;
     const transactionOrigin = typeof saved.transactionOrigin === "string" ? saved.transactionOrigin : undefined;
-    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin };
+    const record = parseSupportRecord(saved.record);
+    // An uncertain retry must preserve the exact attachment it was sent with.
+    if (saved.record !== undefined && !record) return null;
+    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin, record };
   } catch { return null; }
 }
 
