@@ -49,6 +49,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
   const slugs = useMemo(() => savedSlugs.filter(slug => !hidden.has(slug)), [savedSlugs, hidden]);
   const [tab, setTab] = useState(initialTab);
+  const [favoriteFilter, setFavoriteFilter] = useState<"all" | "watching">("all");
   const [sharedView, setSharedView] = useState<SharedView>(initialSharedView);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
   const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
@@ -281,6 +282,14 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const missingFavoriteSlug = tab === "favorites" && available && !selectedSlug ? selection?.slug : undefined;
   const missingFavorite = missingFavoriteSlug ? productState(missingFavoriteSlug) : null;
   const { product: detailProduct, entryPriceCents: detailEntryPrice, status: detailStatus } = productState(selectedSlug ?? "");
+  const showFavoriteFilters = available && initialAlerts !== null && slugs.length > 0;
+  const watchedSlugs = showFavoriteFilters ? slugs.filter(slug => {
+    if (!alerts[slug]) return false;
+    const { product, status } = productState(slug);
+    return Boolean(product) && status?.remaining !== 0;
+  }) : [];
+  const watching = showFavoriteFilters && favoriteFilter === "watching";
+  const visibleFavorites = watching ? watchedSlugs : slugs;
   const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : `/account/favorites?item=${detailProduct.slug}`)
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
@@ -324,9 +333,19 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           </div> : null}
           {emailEnabled === false ? <p className={styles.notice}>Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference">Notifications</Link>.</p> : null}
           {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
+          {showFavoriteFilters ? <>
+            <div className={styles.listFilters} role="group" aria-label="Filter favorites">
+              <button type="button" aria-pressed={!watching} onClick={() => setFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
+              <button type="button" aria-pressed={watching} onClick={() => setFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
+            </div>
+            <p className={styles.note} aria-live="polite">{watching
+              ? `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`
+              : `${slugs.length} ${slugs.length === 1 ? "favorite" : "favorites"}`}</p>
+          </> : null}
           {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
             : !slugs.length ? <div className={styles.empty}><h2>No favorites yet</h2><p>Tap a product’s heart to keep it here.</p><Link href="/browse">Browse products →</Link></div>
-              : <div id="favorite-products" aria-label="Favorite products" className={styles.grid}>{slugs.map(slug => {
+            : !visibleFavorites.length ? <div className={styles.empty}><h2>No watched favorites</h2><p>Select All to find a favorite and turn on its 90% email alert.</p></div>
+              : <div id="favorite-products" aria-label="Favorite products" className={styles.grid}>{visibleFavorites.map(slug => {
                 const { product, status } = productState(slug);
                 return <article key={slug} className={styles.card}>{art(slug)}
                   <div className={styles.cardBody}><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2><button type="button" data-saved-item={slug} onClick={() => openItem(slug)}>{product?.title ?? "Product unavailable"}</button></h2>{price(slug)}</div>
@@ -335,7 +354,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
                 </article>;
               })}</div>}
         </> : <>
-          <div className={styles.shareFilters} role="group" aria-label="Shared prize status">
+          <div className={styles.listFilters} role="group" aria-label="Shared prize status">
             <button type="button" aria-pressed={sharedView === "available"} onClick={() => chooseSharedView("available")}>Available <span>{initialShares ? shares.length - declinedCount : "–"}</span></button>
             <button type="button" aria-pressed={sharedView === "declined"} onClick={() => chooseSharedView("declined")}>Declined <span>{initialShares ? declinedCount : "–"}</span></button>
           </div>

@@ -2,8 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SavedProductShare } from "@/lib/sharing/saved-shares";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
-const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn() }));
-vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: ["nike-court-shot-shoes"], available: true, isSignedIn: true, busySlugs: [], toggle: mocks.toggle }) }));
+const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn(), slugs: ["nike-court-shot-shoes"] }));
+vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: mocks.slugs, available: true, isSignedIn: true, busySlugs: [], toggle: mocks.toggle }) }));
 vi.mock("./FavoritesLandingScroll", () => ({ FavoritesLandingScroll: () => null }));
 vi.mock("@/lib/sharing/saved-share-actions", () => ({ setReceivedProductState: mocks.state }));
 vi.mock("@/lib/favorites/alert-actions", () => ({ setFavoriteCapacityAlert: mocks.alert, readFavoriteCapacityAlert: async () => true }));
@@ -13,6 +13,7 @@ const share: SavedProductShare = { id: "11111111-1111-4111-8111-111111111111", t
 function show(props: Partial<React.ComponentProps<typeof FavoritesView>> = {}) { return render(<FavoritesView availability={null} initialAlerts={{}} emailEnabled initialShares={[share]} {...props} />); }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.slugs = ["nike-court-shot-shoes"];
   window.history.replaceState({}, "", "/account/favorites");
   vi.stubGlobal("scrollTo", vi.fn());
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -101,6 +102,30 @@ test("favorites capacity alerts retain their own saved preference", async () => 
   fireEvent.click(screen.getByRole("checkbox", { name: /Email me when/ }));
   await waitFor(() => expect(mocks.alert).toHaveBeenCalledWith("nike-court-shot-shoes", true));
   expect(mocks.state).not.toHaveBeenCalled();
+});
+
+test("Watching shows only favorites with saved alerts and updates after an alert is turned off", async () => {
+  mocks.slugs = ["nike-court-shot-shoes", "playstation-5-slim"];
+  mocks.alert.mockResolvedValue({ ok: true, message: "Saved" });
+  show({ initialAlerts: { "playstation-5-slim": true }, emailEnabled: false });
+
+  fireEvent.click(screen.getByRole("button", { name: "Watching 1" }));
+  expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+  expect(screen.getByRole("checkbox", { name: /PlayStation/ })).toHaveProperty("checked", true);
+  expect(screen.getByText(/Favorite emails are paused/)).toBeTruthy();
+  expect(mocks.alert).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("checkbox", { name: /PlayStation/ }));
+  expect(await screen.findByRole("heading", { name: "No watched favorites" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Watching 0", pressed: true })).toBeTruthy();
+  expect(mocks.alert).toHaveBeenCalledExactlyOnceWith("playstation-5-slim", false);
+
+  fireEvent.click(screen.getByRole("button", { name: "All 2" }));
+  expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+  expect(screen.getByRole("checkbox", { name: /PlayStation/ })).toHaveProperty("checked", false);
+  fireEvent.click(screen.getByRole("tab", { name: "Shared with You 1" }));
+  expect(screen.queryByRole("group", { name: "Filter favorites" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Available 1" })).toBeTruthy();
 });
 
 test("an old closed-share link explains the unavailable prize without exposing it or claiming no shares", () => {
