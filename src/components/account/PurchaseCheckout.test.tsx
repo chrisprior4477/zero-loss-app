@@ -14,6 +14,7 @@ import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
 import { TimeZoneProvider } from "./TimeZoneProvider";
 import * as requireContext from "@/lib/wallet/wallet-funding-context";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
+import { ACCOUNT_CHANGED_EVENT } from "@/lib/account/account-state-events";
 const options: ActivityItem[] = Array.from({ length: 3 }, (_, i) => ({ entryId: `entry-${i}`, completionOptionId: `option-${i}`, slug: "nintendo-switch", title: "Nintendo Switch", retailer: "Best Buy", image: "/catalog/nintendo-switch-oled.jpg", status: "completion", rewardKind: "digital", priceCents: 40000, paidCents: 100, remainingCents: 39900, availability: "Available", completionExpiresAt: "2026-11-28T17:00:00Z" }));
 function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout ownerId="account-a" options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add funds: $260 to continue" })); return within(screen.getByRole("dialog")); }
@@ -623,6 +624,44 @@ test("checking a restored purchase reads the receipt before offering the same co
   expect(new URL(window.location.href).searchParams.get("receipt")).toBe(request.requestId);
   expect(mocks.replace).not.toHaveBeenCalled();
   expect(mocks.purchase.mock.calls[1][0]).toEqual(request);
+});
+
+test.each(["confirm", "recover"])("a verified purchase via %s refreshes account totals and releases the remaining offer", async mode => {
+  const purchaseResult = { status: "succeeded", cardReady: true, totalCents: 39900, href: "/account/wallet?rewardId=issued#reward-pass", rewardIds: ["issued"], purchasedCount: 1 };
+  if (mode === "confirm") mocks.purchase.mockResolvedValueOnce(purchaseResult);
+  else mocks.purchase.mockRejectedValueOnce(new Error("Response lost"));
+  const accountUpdated = vi.fn();
+  window.addEventListener(ACCOUNT_CHANGED_EVENT, accountUpdated, { once: true });
+  try {
+    const props = { ownerId: "account-a", initialBalance: 39900, cards: [], fundingAvailable: true };
+    const checkout = render(<PurchaseCheckout {...props} options={options.slice(0, 2)} />);
+    fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+    if (mode === "recover") {
+      const check = await screen.findByRole("button", { name: "Check this purchase" });
+      expect(accountUpdated).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      mocks.checkPurchase.mockResolvedValueOnce(purchaseResult);
+      fireEvent.click(check);
+    }
+    const receipt = await screen.findByRole("link", { name: "View purchase receipt" });
+    const request = mocks.purchase.mock.calls[0][0];
+    expect(receipt.getAttribute("href")).toBe(`/account/purchase-options/nintendo-switch?receipt=${request.requestId}`);
+    expect(accountUpdated).toHaveBeenCalledOnce();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+    expect(mocks.purchase).toHaveBeenCalledOnce();
+    checkout.unmount();
+    window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?option=entry-0");
+    const remaining = options.slice(0, 2).filter(option => !request.purchaseIds.includes(option.completionOptionId));
+    expect(remaining).toHaveLength(1);
+    render(<PurchaseCheckout {...props} options={remaining} initialBalance={0} />);
+    expect(screen.queryByText("Purchase status unknown")).toBeNull();
+    expect((screen.getByRole("button", { name: "Add funds: $399 to continue" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(mocks.purchase).toHaveBeenCalledOnce();
+  } finally {
+    window.removeEventListener(ACCOUNT_CHANGED_EVENT, accountUpdated);
+  }
 });
 
 test("a restored deposit check uses the original amount and does not fund or purchase automatically", async () => {

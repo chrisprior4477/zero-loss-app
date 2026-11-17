@@ -15,6 +15,7 @@ import { isFundingAmount } from "@/lib/payments/provider";
 import { depositWarning, type CheckoutDeposit } from "@/lib/payments/deposit-warning";
 import { formatUsdFromCents as usd } from "@/lib/wallet/money";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
+import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import { FundingCardPicker } from "@/components/wallet/FundingCardPicker";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
@@ -316,11 +317,17 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
   }
-  function recordRecoveredPurchase(result: { href: string; cardReady: boolean; totalCents: number; rewardIds?: string[]; purchasedCount?: number }) {
+  function recordCompletedPurchase(result: { href: string; cardReady: boolean; totalCents: number; rewardIds?: string[]; purchasedCount?: number }, request: BulkPurchaseRequest) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(attemptKey) ?? "null");
+      // A delayed response must not remove a newer attempt for this product.
+      if (saved?.purchase?.requestId === request.requestId) saveAttempt(null);
+    } catch { /* The verified receipt is still available from the server. */ }
     clearChoice();
-    const href = purchaseRequest && result.rewardIds ? purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId) : result.href;
-    setReceipt({ status: "ready", href, cardReady: result.cardReady, totalCents: result.totalCents ?? purchaseRequest?.totalCents ?? 0, purchasedCount: result.purchasedCount });
+    const href = result.rewardIds ? purchaseReceiptHref(request.slug, request.requestId) : result.href;
+    setReceipt({ status: "ready", href, cardReady: result.cardReady, totalCents: result.totalCents ?? request.totalCents, purchasedCount: result.purchasedCount });
     window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    notifyAccountChanged();
   }
 
   async function confirm(retry = false) {
@@ -332,13 +339,13 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
       if (result.status === "succeeded") {
-        if (retry) recordRecoveredPurchase(result);
-        else {
-          recordRecoveredPurchase(result);
+        recordCompletedPurchase(result, purchaseRequest);
+        if (!retry) {
           setRecovery("purchase");
           setOverlay(null);
           router.replace(purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId));
         }
+        router.refresh();
         return;
       }
       setError(result.recovery === "check" ? "" : result.message);
@@ -356,7 +363,11 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     setCheckingReceipt(true);
     try {
       const result = await checkDemoPurchaseReceipt(purchaseRequest.requestId, purchaseRequest.slug);
-      if (result.status === "succeeded") recordRecoveredPurchase(result);
+      if (result.status === "succeeded") {
+        recordCompletedPurchase(result, purchaseRequest);
+        rememberReceiptUrl(purchaseRequest.requestId);
+        router.refresh();
+      }
       else setReceipt({ status: result.status === "not_found" ? "unconfirmed" : "unavailable" });
     } catch { setReceipt({ status: "unavailable" }); }
     finally { inFlight.current = false; setBusy(false); setCheckingReceipt(false); }
@@ -374,7 +385,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         : receipt?.status === "unavailable" ? "We couldn’t verify the result. Try checking again."
         : "Check whether your purchase was saved before trying again."}</p>}
     </div>
-    {receipt?.status === "ready" ? <a href={receipt.href} className={styles.primary} onClick={() => saveAttempt(null)}>
+    {receipt?.status === "ready" ? <a href={receipt.href} className={styles.primary}>
       {receipt.purchasedCount ? "View purchase receipt" : receipt.cardReady ? "Open gift card" : "View completed purchases"}</a>
       : receipt?.status === "unconfirmed" && !busy ? <button type="button" className={styles.primary} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest.totalCents)}</button>
         : <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkPurchase()}>{busy ? checkingReceipt ? "Checking…" : "Confirming…" : "Check this purchase"}</button>}
