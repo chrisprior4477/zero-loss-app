@@ -22,6 +22,8 @@ test("a receipt opened from Payment deposits links back to the same deposit row"
     .toBe(`/account/wallet?view=history&transaction=${ledgerId}&depositList=1#transaction-${ledgerId}`);
   expect(screen.getByRole("link", { name: "Back to Payment deposits" }).getAttribute("href"))
     .toBe(`/account/wallet?view=history&panel=deposits&depositRow=${key}#payment-deposits`);
+  expect(screen.getByRole("status").textContent).not.toContain("Confirm your purchase");
+  expect(screen.queryByRole("link", { name: "View your purchase options" })).toBeNull();
 });
 
 test("opens the exact older receipt and offers the original purchase review without paying again", () => {

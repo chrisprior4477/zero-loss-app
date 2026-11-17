@@ -20,7 +20,15 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const router = useRouter();
   const sending = useRef(false);
   const depositKey = deposit?.key;
-  const initialDraft = (): SupportDraft => ({ requestKey, subject: depositKey ? "Question about this deposit" : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "", body: "", category: transactionId || depositKey ? "wallet" : rewardId ? "reward" : "other", caseStatus: "awaiting_customer", uncertain: false });
+  const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
+  const initialDraft = (): SupportDraft => ({
+    requestKey,
+    subject: depositKey ? "Question about this deposit" : attachedOrder ? "Question about this order" : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "",
+    body: "",
+    category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : "other",
+    caseStatus: "awaiting_customer",
+    uncertain: false,
+  });
   const [draft, setDraft] = useState(initialDraft);
   const { subject, body, category, caseStatus } = draft;
   const record = allowRecordPicker ? draft.record : undefined;
@@ -108,7 +116,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
     <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
-    <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
+    <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {attachedOrder ? "The selected order is already attached." : transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
     {allowRecordPicker ? <SupportRecordPicker record={record} onChange={record => changeDraft({ record })} timeZone={timeZone} disabled={locked} /> : null}
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>

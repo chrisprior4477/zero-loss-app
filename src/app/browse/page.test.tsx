@@ -221,6 +221,10 @@ describe("Browse search results", () => {
   test("Ending Soon switches the first-batch shortcut at batch four and opens the final 24", async () => {
     const filters = { sort: "ending-soon", maxValue: "100", available: "1" };
     const browse = async (batch: string) => render(await BrowsePage({ searchParams: Promise.resolve({ ...filters, batch }) }));
+    await browse("2");
+    expect(screen.getByRole("link", { name: "First 24" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Previous 24" })).toBeNull();
+    cleanup();
     await browse("3");
     expect(screen.getByRole("link", { name: "First 24" }).getAttribute("href")).toBe("/browse?sort=ending-soon&available=1&maxValue=100#search-results");
     expect(screen.getByRole("link", { name: "Previous 24" }).getAttribute("href")).toMatch(/batch=2#prize-/);

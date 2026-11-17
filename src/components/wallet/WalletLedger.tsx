@@ -79,6 +79,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const [through, setThrough] = useState("");
   const [appliedDates, setAppliedDates] = useState({ from: "", through: "" });
   const dateErrorId = useId();
+  const allTimeButton = useRef<HTMLButtonElement>(null);
   const invalidDateRange = reversedDates(from, through);
   const [showArchived, setShowArchived] = useState(() => !hideArchived && Boolean(selectedId && hiddenIds.includes(selectedId)));
   function close() {
@@ -375,13 +376,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <div className={styles.quickDates} role="group" aria-label="Quick date ranges">
           {([[0, "All time"], [1, "Today"], [7, "Last 7 days"], [30, "Last 30 days"]] as const).map(([days, label]) => {
             const range = days ? transactionDateRange(days, timeZone) : { from: "", through: "" };
-            return <button key={days} type="button" aria-pressed={from === range.from && through === range.through}
+            return <button key={days} type="button" ref={days === 0 ? allTimeButton : undefined} aria-pressed={from === range.from && through === range.through}
               onClick={() => { const next = days ? transactionDateRange(days, timeZone) : { from: "", through: "" }; changeDates(next.from, next.through); }}>{label}</button>;
           })}
         </div>
         <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => changeDates(event.target.value, through)} /></label>
         <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => changeDates(from, event.target.value)} /></label>
-        {(from || through) ? <button type="button" onClick={() => changeDates("", "")}>Clear dates</button> : null}
+        {(from || through) ? <button type="button" onClick={() => { changeDates("", ""); allTimeButton.current?.focus({ preventScroll: true }); }}>Clear dates</button> : null}
         {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date. Showing results from the last valid range.</p> : null}
       </div>
       {historyIncomplete && <p role="status">Only recent transactions loaded. Search and filters apply to the available history. <button type="button" onClick={() => { updateBookmark({}); window.location.reload(); }}>Retry full history</button></p>}

@@ -11,7 +11,7 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { ActivityDetailDialog } from "@/components/account/ActivityDetailDialog";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
-import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, isWalletReward, openEntriesAnchorId, walletRewards } from "@/lib/account/activity";
+import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, isWalletReward, openEntriesAnchorId, openPrizeOptions, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -93,6 +93,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       fundingReturn.selectionUnavailable = true;
     } else Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
   }
+  const stalePurchaseReturn = recoveryKey && fromEntry && fromEntry.status !== "active"
+    && !openPrizeOptions([fromEntry], fromEntry.slug).length;
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"
@@ -210,7 +212,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   }
   if (history) {
     const hiddenProducts = catalog && !catalog.unavailable ? catalog.hidden : new Set(resolvedCatalogSlugs(account.activity));
-    return <WalletOverview landOnBalance={query.landing === "balance" && !recoveryKey && !transaction?.requested} notificationReturnHref={validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined} hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} fromDeposits={query.panel === "deposits"} depositList={query.depositList === "1"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+    return <WalletOverview landOnBalance={query.landing === "balance" && !recoveryKey && !transaction?.requested} notificationReturnHref={validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined} hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} fromDeposits={query.panel === "deposits"} depositList={query.depositList === "1"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={stalePurchaseReturn ? undefined : fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
   }
   const focusCard = typeof query.card === "string" ? query.card : undefined;
   const expired = rewardView === "expired" && typeof query.expiredEntry === "string" && account.activity.source !== "unavailable"

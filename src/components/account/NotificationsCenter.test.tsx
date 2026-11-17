@@ -390,6 +390,7 @@ test("expanded notifications append to the page and the bottom read button saves
   expect(screen.getAllByRole("article")).toHaveLength(24);
   fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
   expect(screen.getAllByRole("article")).toHaveLength(26);
+  expect(document.activeElement).toBe(screen.getAllByRole("article")[24]);
   expect(document.getElementById("notification-tickets")?.style.maxHeight).toBe("");
   const bottomRead = screen.getByRole("button", { name: "Mark All as Read" });
   const close = screen.getByRole("button", { name: "Close" });

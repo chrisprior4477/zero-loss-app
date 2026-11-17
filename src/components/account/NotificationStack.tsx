@@ -36,7 +36,7 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
   const purchaseTitle = notification.itemTitle ?? "this submission";
 
   return <div className={styles.stack} data-stacked={stacked}>
-    <article className={styles.notification} data-tone={notification.tone} data-read={allRead} data-emphasis={notification.id === "account-email-confirmed" ? "email" : undefined}>
+    <article tabIndex={-1} className={styles.notification} data-tone={notification.tone} data-read={allRead} data-emphasis={notification.id === "account-email-confirmed" ? "email" : undefined}>
       <div className={styles.main}>
         <div className={styles.visual}>
           {notification.image ? <Image src={notification.image} alt="" fill sizes="64px" className={styles.productImage} /> : <AccountIcon className={styles.fallbackIcon} name={notification.visualLabel === "Support" ? "chat" : notification.tone === "wallet" ? "wallet" : notification.tone === "crew" ? "crew" : notification.tone === "account" ? "security" : "orders"} />}

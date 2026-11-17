@@ -4,8 +4,23 @@ import { BrowseFilters, FilterForm } from "./BrowseFilters";
 import { giftCardPartnerGroups } from "@/lib/catalog/gift-card-partners";
 import { retailerFilterGroups } from "@/lib/catalog/browse-filters";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const push = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 afterEach(cleanup);
+
+test("Apply filters clears the old query while keeping the active Ending Soon filters", () => {
+  render(<FilterForm id="clear-query"
+    filters={{ type: "all", retailer: "", availableOnly: true, sort: "fewest-left", minValue: null, maxValue: 100 }}
+    retailerGroups={[]} selectedRetailerGroup={null} selectedCategory="ending-soon" ticketsLeft="2-5"
+    searchTerm="Walmart" subcategory="" clearHref="/browse?category=ending-soon"
+  />);
+  fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+  const url = new URL(push.mock.lastCall![0], "https://example.test");
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    category: "ending-soon", ticketsLeft: "2-5", available: "1", sort: "fewest-left", maxValue: "100",
+  });
+});
 
 test("sorting keeps an open custom range until Apply filters", () => {
   const onNavigate = vi.fn();

@@ -90,6 +90,14 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const entryNumbers = useMemo(() => new Map(groupNotifications(enabledNotifications)
     .flatMap(group => group.notifications.map((notice, index) => [notice.id, index + 1] as const))), [enabledNotifications]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage, 0, "expand");
+  const focusNewUpdate = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const index = focusNewUpdate.current;
+    if (index === null || index >= batches.end) return;
+    focusNewUpdate.current = null;
+    const update = listRef.current?.children[index]?.querySelector("article");
+    update?.focus();
+  }, [batches.end, listRef]);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : key === "action" ? attentionNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications, attentionNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
@@ -426,6 +434,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
           })}</div>}
           {visible.length > 0 && <div className={styles.listActions}>
             {batches.remaining > 0 && <button type="button" aria-controls="notification-tickets" aria-expanded={batches.expanded} className={styles.showMore} onClick={() => {
+              if (batches.remaining <= batches.size) focusNewUpdate.current = batches.end;
               updateBookmark({ start: batches.end }); batches.more();
             }}>See more updates ({batches.remaining} remaining)</button>}
             <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>

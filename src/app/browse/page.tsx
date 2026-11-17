@@ -376,7 +376,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               )}
               {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
                 href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
-              {showEndingSoonShortcuts && (!tailBatch || tailStart > 0) && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+              {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
                 href={previousBatchHref}>Previous 24</Link>}
             </div>
           ) : nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}

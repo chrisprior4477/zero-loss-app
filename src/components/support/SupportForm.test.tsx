@@ -9,6 +9,35 @@ const caseId = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
 
+test("a paid order uses gift-card support defaults while retaining the exact transaction", () => {
+  const { container } = render(<SupportForm requestKey="support_request_001" transactionId={caseId} transactionOrigin="order:payment:details" />);
+  expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "Question about this order");
+  expect(screen.getByRole("combobox", { name: /What do you need help with/ })).toHaveProperty("value", "reward");
+  expect(container.querySelector('[name="transactionId"]')).toHaveProperty("value", caseId);
+});
+
+test("paging to older support records moves focus to the first new record", async () => {
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  const record = { title: "New deposit", detail: "Wallet", kind: "transaction", id: caseId, amount: 2500, date: "2026-11-14T22:45:00Z", status: "Posted" };
+  mocks.records.mockImplementation(async (kind, page) => ({
+    records: kind === "order" ? [] : [{ ...record, title: page === 0 ? "New deposit" : "Older deposit" }],
+    more: kind === "transaction" && page === 0,
+  }));
+  try {
+    render(<SupportForm requestKey="support_request_001" allowRecordPicker />);
+    fireEvent.click(screen.getByRole("button", { name: /Attach an order or transaction/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Wallet transactions" }));
+    const next = await screen.findByRole("button", { name: "Next" });
+    next.focus();
+    fireEvent.click(next);
+    const older = await screen.findByRole("button", { name: /Older deposit/ });
+    expect(document.activeElement).toBe(older);
+  } finally {
+    HTMLDialogElement.prototype.showModal = showModal;
+  }
+});
+
 test("the in-form picker keeps the draft and preserves its exact order on an interrupted retry", async () => {
   const { showModal, close } = HTMLDialogElement.prototype;
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };

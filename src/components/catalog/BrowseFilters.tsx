@@ -73,7 +73,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
-      const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
+      const value = key === "q" && filtersOnly && searchDraft.trim() ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
     if (voice.busy && !filtersOnly) return;

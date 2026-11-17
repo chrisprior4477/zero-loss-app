@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
-import { purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
+import { purchaseDepositKeyPattern, purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 import { depositSupportHref } from "@/lib/support/references";
 import { formatUsdFromCents as usd } from "@/lib/wallet/money";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
@@ -26,8 +26,9 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
   const [checking, startChecking] = useTransition();
   const [verified, setVerified] = useState<{ amount: number; balance: number; previousWallet: WalletSnapshot | null } | null>(null);
   const request = requests?.find(request => request.idempotencyKey === requestKey);
-  const fromCheckout = !!continueTo?.href.startsWith("/account/purchase-options/");
+  const fromCheckout = purchaseOptionReturnPath(continueTo?.href) !== null;
   const isPurchase = fromCheckout || purchaseDepositKeyPattern.test(requestKey);
+  const continuation = isPurchase && !fromCheckout ? undefined : continueTo;
   const supportHref = depositSupportHref(requestKey, fromCheckout ? continueTo?.href : undefined, fromDeposits, continueTo?.entryDepositReturn);
   const date = request && <DepositReceiptDate request={request} timeZone={timeZone} />;
   const credited = request?.reconciliation === "reconciled" && wallet
@@ -42,13 +43,12 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
     {verified && !fromCheckout && <DepositCreditedToast amount={verified.amount} />}
     <div className={paymentStyles.editor}>
       <h2 id="purchase-deposit-heading">{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
-      {continueTo && <p>{continueTo.title}</p>}
+      {continuation && <p>{continuation.title}</p>}
       {credited ? <DepositReceipt amount={credited.amount} date={date} tone="ready"
-        status={`Deposit credited to your wallet. ${wallet ? "Current balance" : "Last verified balance"}: ${usd(credited.balance)}.${isPurchase ? " Confirm your purchase separately." : ""}`}>
+        status={`Deposit credited to your wallet. ${wallet ? "Current balance" : "Last verified balance"}: ${usd(credited.balance)}.${fromCheckout ? " Confirm your purchase separately." : ""}`}>
         {request && <DepositCreditLink request={request} restoreLedgerView={restoreLedgerView} fromDeposits={fromDeposits} />}
-        {continueTo ? <ContinueAfterDeposit destination={continueTo} />
-          : isPurchase ? <Link href="/account/entries?filter=completion" className={paymentStyles.secondary}>View your purchase options</Link>
-            : !fromDeposits && <Link href="/account/wallet?view=history&panel=transactions#transactions" className={paymentStyles.secondary}>View wallet history</Link>}
+        {continuation ? <ContinueAfterDeposit destination={continuation} />
+          : !fromDeposits && <Link href="/account/wallet?view=history&panel=transactions#transactions" className={paymentStyles.secondary}>View wallet history</Link>}
       </DepositReceipt> : request?.reconciliation === "discrepancy" ? <DepositReceipt amount={request.amount} date={date} tone="review"
         status="This deposit needs review. Contact Support before adding more funds.">
         <Link href={supportHref} className={paymentStyles.secondary}>Contact Support</Link>

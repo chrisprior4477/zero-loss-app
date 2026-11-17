@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import help from "@/components/help/help-tickets.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { loadSupportRecords } from "@/lib/support/record-actions";
@@ -28,14 +28,26 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const results = useRef<HTMLDivElement>(null);
+  const focusResults = useRef(false);
   const request = useRef(0);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<SupportRecordPage | null>(null);
 
-  async function load(nextKind: SupportRecordKind, nextPage: number) {
+  useLayoutEffect(() => {
+    if (!result || !focusResults.current) return;
+    focusResults.current = false;
+    if (document.activeElement === document.body || document.activeElement === dialog.current) {
+      results.current?.querySelector("button")?.focus();
+      if (document.activeElement === document.body || document.activeElement === dialog.current) results.current?.focus();
+    }
+  }, [result]);
+
+  async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false) {
     const id = ++request.current;
+    focusResults.current = focusAfterLoad;
     setKind(nextKind);
     setPage(nextPage);
     setResult(null);
@@ -81,10 +93,10 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
           <button type="button" className={styles.control} aria-pressed={kind === "order"} onClick={() => { if (kind !== "order") void load("order", 0); }}>Orders</button>
           <button type="button" className={styles.control} aria-pressed={kind === "transaction"} onClick={() => { if (kind !== "transaction") void load("transaction", 0); }}>Wallet transactions</button>
         </div>
-        <div className={styles.history} aria-busy={!result}>
+        <div ref={results} tabIndex={-1} role="group" aria-label="Matching records" className={styles.history} aria-busy={!result}>
           {!result ? <p role="status">Loading records…</p> : "error" in result ? <>
             <p role="alert">{result.error}</p>
-            <button type="button" className={styles.control} onClick={() => void load(kind, page)}>Try again</button>
+            <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Try again</button>
           </> : result.records.length ? <ul className={styles.records}>
             {result.records.map(item => <li key={item.id}>
               <button type="button" className={styles.record} onClick={() => {
@@ -95,8 +107,8 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>
         {page > 0 || (result && "more" in result && result.more) ? <div className={styles.controls}>
-          {page > 0 ? <button type="button" className={styles.control} onClick={() => void load(kind, page - 1)}>Previous</button> : null}
-          {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1)}>Next</button> : null}
+          {page > 0 ? <button type="button" className={styles.control} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
+          {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1, true)}>Next</button> : null}
         </div> : null}
         <button type="button" className={styles.control} onClick={() => dialog.current?.close()}>Cancel</button>
       </div>

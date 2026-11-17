@@ -293,6 +293,7 @@ test("ignoring reversed dates preserves category and archive choices, and Clear 
   expect(screen.getByRole("alert")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=funding-after");
   fireEvent.click(screen.getByRole("button", { name: "Clear dates" }));
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "All time" }));
   expect(screen.queryByRole("alert")).toBeNull();
   expect((screen.getByLabelText("From date") as HTMLInputElement).value).toBe("");
   expect((screen.getByLabelText("To date") as HTMLInputElement).value).toBe("");
