@@ -166,7 +166,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   lastBatchParams.set("batch", "last");
   const showEndingSoonShortcuts = endingSoon && (batch > 1 || tailBatch > 0);
   const offerLastShortcut = batch >= 4 && !tailBatch;
-  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request-heading`;
+  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request`;
   const retryScope = [...new Set([filters.retailer || selectedRetailerGroup?.category, subcategory || selectedLabel].filter(Boolean))].join(" in ");
   const withoutBudget = new URLSearchParams(searchParamsForView);
   withoutBudget.delete("minValue");
@@ -349,7 +349,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </p>}
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
+              <Link href={requestHref} scroll={false} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>

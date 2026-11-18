@@ -349,7 +349,7 @@ describe("Browse search results", () => {
     const request = new URL(screen.getByRole("link", { name: /Request a product/i }).getAttribute("href")!, "https://example.test");
     expect(request.pathname).toBe("/contact/product-request");
     expect(request.searchParams.get("product")).toBe("kayak");
-    expect(request.hash).toBe("#product-request-heading");
+    expect(request.hash).toBe("#product-request");
     cleanup();
     render(await ProductRequestPage({ searchParams: Promise.resolve(Object.fromEntries(request.searchParams)) }));
     expect((screen.getByLabelText("What would you like to see?") as HTMLInputElement).value).toBe("kayak");
