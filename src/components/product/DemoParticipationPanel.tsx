@@ -412,7 +412,7 @@ export function DemoParticipationPanel({
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
       </div> : null}
 
-      {invalidQuantity !== null ? <p role="status" className="mt-3 text-sm">Enter at least one entry.</p> : null}
+      {invalidQuantity !== null ? <p role="status" className="mt-3 text-sm">Enter a whole number of tickets.</p> : null}
       {isSignedIn && !requestHead.ready ? <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm"><p>We couldn’t verify your latest saved submission. Refresh to check its status before entering again.</p><button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh entry status</button></div> : null}
       {!availabilityConfirmed && !uncertain ? (
         <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">

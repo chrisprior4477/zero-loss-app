@@ -71,7 +71,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
     <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
       <header className={styles.panelHeader}>
         <p className={styles.eyebrow}>A little inspiration for your next grocery run</p>
-        <h2 id="grocery-inspiration-heading">Follow your appetite.</h2>
+        <h2 id="grocery-inspiration-heading" tabIndex={-1}>Follow your appetite.</h2>
       </header>
       <div className={styles.shelves}>{["Easy favorites", "Make a night of it"].map((mood, index) => <div key={mood} className={styles.shelf}>
         <h3>{index === 0 ? "Keep it easy" : "Make a little occasion of it"}</h3>

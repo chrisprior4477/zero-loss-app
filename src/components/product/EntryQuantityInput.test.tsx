@@ -32,7 +32,8 @@ test("invalid and empty input cannot turn into an unintended ticket quantity", (
   const input = screen.getByRole("spinbutton") as HTMLInputElement;
   for (const value of ["1.25", "-2", "1e2", "2147483648", "999999999999999999999999"]) {
     fireEvent.change(input, { target: { value } });
-    expect(input.value).toBe("1");
+    expect(input.value).toBe(value);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
   }
   fireEvent.change(input, { target: { value: "" } });
   expect(input.value).toBe("");
@@ -44,6 +45,13 @@ test("invalid and empty input cannot turn into an unintended ticket quantity", (
   expect(input.value).toBe("0");
   fireEvent.keyDown(input, { key: "Escape" });
   expect(input.value).toBe("1");
+  fireEvent.change(input, { target: { value: "7" } });
+  fireEvent.change(input, { target: { value: "7." } });
+  fireEvent.change(input, { target: { value: "7.5" } });
+  expect(input.value).toBe("7.5");
+  expect(input.getAttribute("aria-invalid")).toBe("true");
+  fireEvent.change(input, { target: { value: "8" } });
+  expect(input.getAttribute("aria-valuenow")).toBe("8");
 });
 
 test("typing and arrow keys respect actual remaining capacity", () => {

@@ -2,6 +2,25 @@
 
 import { useLayoutEffect } from "react";
 
+let requestedFocus: string | null = null;
+
+function focusBrowseResults() {
+  const heading = document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
+  heading?.focus({ preventScroll: true });
+}
+
+export function requestBrowseResultsFocus(href: string) {
+  requestedFocus = href;
+  // Choosing the current category can leave the existing page mounted.
+  const destination = new URL(href, window.location.origin);
+  if (window.location.pathname !== destination.pathname || window.location.search !== destination.search) return;
+  requestAnimationFrame(() => {
+    if (requestedFocus !== href) return;
+    requestedFocus = null;
+    focusBrowseResults();
+  });
+}
+
 /** Settle the requested browse destination below the menu's closing animation. */
 export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "" }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string }) {
   useLayoutEffect(() => {
@@ -38,15 +57,18 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
             : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
+      const focusResults = requestedFocus !== null && window.location.href === new URL(requestedFocus, window.location.origin).href;
+      requestedFocus = null;
       const focusTarget = footerField ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
         document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
-        if (focusTarget && !focused) {
+        if ((focusTarget || focusResults) && !focused) {
           focused = true;
-          focusTarget.focus({ preventScroll: true });
+          if (focusTarget) focusTarget.focus({ preventScroll: true });
+          else focusBrowseResults();
         }
       };
       scroll();

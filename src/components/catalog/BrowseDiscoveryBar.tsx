@@ -14,6 +14,7 @@ import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import styles from "./browse-discovery.module.css";
 import { useBrowseResultsSearch } from "./BrowseResultsSearch";
+import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
@@ -111,8 +112,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     const url = new URL(href, "https://zeroloss.local");
     if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
     if (preserveSubcategory && props.subcategory) url.searchParams.set("subcategory", props.subcategory);
+    const destination = `${url.pathname}${url.search}#search-results`;
     close();
-    router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+    requestBrowseResultsFocus(destination);
+    router.push(destination, { scroll: false });
   }
   function choosePrizeCategory(value: string) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");

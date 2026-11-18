@@ -1,12 +1,23 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { SearchResultsAutoScroll } from "./SearchResultsAutoScroll";
+import { requestBrowseResultsFocus, SearchResultsAutoScroll } from "./SearchResultsAutoScroll";
 beforeEach(() => {
   window.history.replaceState(null, "", "/browse");
   vi.useFakeTimers();
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+});
+
+test("choosing a category transfers focus to the loaded results once", () => {
+  const destination = "/browse?category=electronics#search-results";
+  requestBrowseResultsFocus(destination);
+  window.history.replaceState(null, "", destination);
+  const view = render(<><div id="search-results"><h2 id="browse-results-heading" tabIndex={-1}>Electronics prize results</h2></div><SearchResultsAutoScroll searchKey="" mobileBrowseKey={destination} /></>);
+  expect(document.activeElement?.id).toBe("browse-results-heading");
+  view.unmount();
+  render(<><div id="search-results"><h2 id="browse-results-heading" tabIndex={-1}>Electronics prize results</h2></div><SearchResultsAutoScroll searchKey="" mobileBrowseKey={destination} /></>);
+  expect(document.activeElement).toBe(document.body);
 });
 
 test.each([

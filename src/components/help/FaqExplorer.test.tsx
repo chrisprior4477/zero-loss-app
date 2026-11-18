@@ -40,6 +40,7 @@ test("topics filter in place, zero results recover, and support always has a des
   expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe("/contact#message");
   fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
   expect(screen.getByRole("searchbox")).toHaveProperty("value", "");
+  expect(document.activeElement).toBe(screen.getByRole("searchbox"));
   expect(screen.getByRole("button", { name: "Wallet & funding" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("status").textContent).toContain(`${faqItems.filter(item => item.category === "wallet").length} answers`);
 });

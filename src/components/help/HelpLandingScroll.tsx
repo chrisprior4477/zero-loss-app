@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target }: { target: string; visitKey?: string }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias }: { target: string; visitKey?: string; landingAlias?: string }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -27,7 +27,7 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
           if (target === "faq-intro" && readFaqReturn(window.history.state, window.location.href)) return;
           const anchors = window.location.hash.slice(1).split("#");
           const [anchor] = anchors;
-          const id = anchor || target;
+          const id = anchor && anchor !== landingAlias ? anchor : target;
           if (anchors.length > 1 && !anchors.every(value => value === anchor)) return;
           const element = document.getElementById(id);
           if (!element) return;
@@ -57,6 +57,6 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
       window.removeEventListener("keydown", stop);
       document.documentElement.style.removeProperty("--help-header-height");
     };
-  }, [target, visitKey]);
+  }, [target, visitKey, landingAlias]);
   return null;
 }

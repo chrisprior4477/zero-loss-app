@@ -119,6 +119,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [pending, startTransition] = useTransition();
   const privacyDisabled = !available || pending;
   const groupToReveal = useRef<string | null>(null);
+  const groupToFocus = useRef<string | null>(null);
   const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}:${embedded ? "crew" : "settings"}` : null;
   const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const persistedGroupIds = new Set(baseline.groups.map(group => group.id));
@@ -163,7 +164,12 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       // Browser storage is only available after hydration.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (typeof draft?.newGroupName === "string" && draft.newGroupName.length <= 50) setNewGroupName(draft.newGroupName);
-      const editor = initialGroups.find(group => group.id === draft?.expanded);
+      const newGroups: unknown[] = Array.isArray(draft?.newGroups) ? draft.newGroups : [];
+      const created = newGroups.filter((group): group is CrewVisibilityGroup => {
+        if (!group || typeof group !== "object" || !("name" in group) || typeof group.name !== "string" || group.name.length > 50) return false;
+        const candidate = group as CrewVisibilityGroup;
+        return isCrewVisibilityGroup({ ...candidate, name: "Draft" }) && !initialGroups.some(saved => saved.id === candidate.id);
+      });
       const entries: unknown[] = Array.isArray(draft?.changes) ? draft.changes : [];
       const changes = entries.filter((change): change is { before: CrewVisibilityGroup; after: CrewVisibilityGroup } => {
         if (!change || typeof change !== "object" || !("before" in change) || !("after" in change) || !isCrewVisibilityGroup(change.before)) return false;
@@ -171,12 +177,13 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         return Boolean(after && typeof after.name === "string" && after.name.length <= 50 && after.id === change.before.id
           && isCrewVisibilityGroup({ ...after, name: change.before.name }) && initialGroups.some(group => group.id === after.id));
       });
-      if (changes.length) {
-        const { groups: restored, expectedGroups } = reconcileGroups(changes.map(change => change.after), changes.map(change => change.before), initialGroups);
+      if (changes.length || created.length) {
+        const { groups: restored, expectedGroups } = reconcileGroups([...changes.map(change => change.after), ...created], changes.map(change => change.before), initialGroups);
         // Hydrate this tab's draft and retain its saved baseline for conflict checks.
         setGroups(restored);
         setBaseline(current => ({ ...current, groups: expectedGroups }));
       }
+      const editor = [...initialGroups, ...created].find(group => group.id === draft?.expanded);
       if (editor) {
         groupToReveal.current = editor.id;
         setExpandedGroupId(editor.id);
@@ -191,8 +198,9 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       const after = groups.find(group => group.id === before.id);
       return after && !sameGroup(before, after) ? [{ before, after }] : [];
     });
+    const newGroups = groups.filter(group => !baseline.groups.some(before => before.id === group.id));
     try {
-      if (expandedGroupId || changes.length || newGroupName) sessionStorage.setItem(groupDraftKey, JSON.stringify({ expanded: expandedGroupId, changes, newGroupName }));
+      if (expandedGroupId || changes.length || newGroups.length || newGroupName) sessionStorage.setItem(groupDraftKey, JSON.stringify({ expanded: expandedGroupId, changes, newGroups, newGroupName }));
       else sessionStorage.removeItem(groupDraftKey);
     } catch { /* Editing remains available without tab storage. */ }
   }, [baseline.groups, expandedGroupId, groupDraftKey, groups, loadedDraftKey, newGroupName]);
@@ -211,6 +219,10 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   useEffect(() => {
     if (!groupToReveal.current) return;
     document.getElementById(`crew-group-${groupToReveal.current}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    if (groupToFocus.current === groupToReveal.current) {
+      document.getElementById(`crew-group-name-${groupToReveal.current}`)?.focus({ preventScroll: true });
+      groupToFocus.current = null;
+    }
     groupToReveal.current = null;
   }, [groups, expandedGroupId]);
 
@@ -239,6 +251,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     }
     const id = crypto.randomUUID();
     groupToReveal.current = id;
+    groupToFocus.current = id;
     setGroups((current) => [...current, { id, name, memberIds: [] }]);
     setExpandedGroupId(id);
     setEditorMessage(null);
@@ -417,7 +430,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
               <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => { setRemovingGroupId(null); setExpandedGroupId(expanded ? null : group.id); }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
                 {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
-                <label className={styles.groupName}>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
+                <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`} value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
                 <div className={styles.memberEditor}>
                   <div className={styles.memberPickerHeading}><strong>People in this group</strong><span>{group.memberIds.length ? "Use Remove to take someone out of this group." : "No one added yet."}</span></div>
                   {group.memberIds.length ? <div className={styles.memberChips}>{group.memberIds.map((id) => {

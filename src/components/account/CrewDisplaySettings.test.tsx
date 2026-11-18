@@ -12,6 +12,23 @@ const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
 const pick = "33333333-3333-4333-8333-333333333333";
 
+test("refresh restores an unsaved new group with the chosen members", () => {
+  const props = { ownerId: first, available: true, initialDiscoverable: false,
+    initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] },
+    initialGroups: [], initialEntryRules: {}, members: [{ id: second, name: "Sam" }], sharedPicks: [] };
+  const editor = render(<CrewDisplaySettings {...props} />);
+  fireEvent.change(screen.getByRole("textbox", { name: "New group name" }), { target: { value: "Game night" } });
+  fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
+  expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Group name" }));
+  fireEvent.click(screen.getByRole("button", { name: /Add Sam/ }));
+  editor.unmount();
+  render(<CrewDisplaySettings {...props} />);
+  expect(screen.getByRole("textbox", { name: "Group name" })).toHaveProperty("value", "Game night");
+  expect(screen.getByRole("button", { name: "Remove Sam from Game night" })).toBeTruthy();
+  expect(screen.getByText(/Not saved yet/)).toBeTruthy();
+  expect(saveCrewGroup).not.toHaveBeenCalled();
+});
+
 test("a refreshed group editor restores its draft and detects an edit saved in another tab", () => {
   const initial = { ownerId: first, available: true, initialDiscoverable: false,
     initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] },

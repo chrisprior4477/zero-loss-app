@@ -57,6 +57,22 @@ test("ordinary desktop sign-in leaves the introductory layout in place", () => {
   expect(scrollTo).not.toHaveBeenCalled();
 });
 
+test.each([
+  ["/account/profile", "#mailing-address-heading", "/account/profile#mailing-address-heading"],
+  ["/account/notifications?filter=account", "#alert-settings", "/account/notifications?filter=account#alert-settings"],
+  ["/account/profile#personal-details-heading", "#mailing-address-heading", "/account/profile#personal-details-heading"],
+  ["/account/profile", "#unknown", "/account/profile"],
+])("sign-in preserves account section links from the browser (%s, %s)", (returnTo, hash, expected) => {
+  window.history.replaceState(null, "", `/login${hash}`);
+  try {
+    render(<LoginForm returnTo={returnTo} />);
+    const form = screen.getByRole("button", { name: "Sign in" }).closest("form")!;
+    expect(new FormData(form).get("returnTo")).toBe(expected);
+  } finally {
+    window.history.replaceState(null, "", "/");
+  }
+});
+
 test("the password detour carries the selected prize and quantity back into the sign-in form", async () => {
   const destination = "/items/playstation-5-slim?quantity=4#enter-entry";
   const base = "https://example.test";

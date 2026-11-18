@@ -318,7 +318,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
-            {invalidQuantity !== null ? <span role="status">Enter at least one extra entry.</span> : null}
+            {invalidQuantity !== null ? <span role="status">Enter a whole number of tickets.</span> : null}
             {typedLimit === quantity && typedLimit === maxQuantity ? <span role="status">Only {typedLimit} more {typedLimit === 1 ? "entry is" : "entries are"} available. Your quantity was adjusted.</span> : null}
           </div> : null}
           {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview} disabled={invalidQuantity !== null}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}

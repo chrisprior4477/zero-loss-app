@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { authNavigationHref } from "@/lib/auth/entry-return";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { accountReturnPath } from "@/lib/auth/account-return";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { recoverAuthForm } from "./recover-auth-form";
 import {
   signInAction,
@@ -26,6 +27,11 @@ const signIn = recoverAuthForm<AuthActionState>(signInAction, () => ({
   message: "We couldn’t confirm your sign-in. Check your connection, re-enter your password, and try again.",
 }));
 
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
 export function LoginForm({
   initialError = null,
   initialNotice = null,
@@ -41,6 +47,11 @@ export function LoginForm({
   const notice = state.message ? null : initialNotice;
   const [email, setEmail] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
+  // An account redirect can inherit the original fragment in the browser.
+  const inheritedHash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
+  const destination = inheritedHash && returnTo && /^\/account\/(?:profile|notifications)(?:\?[^#]*)?$/.test(returnTo)
+    ? accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo
+    : returnTo;
 
   useEffect(() => {
     // Every mobile sign-in route should land on the form, including plain
@@ -61,7 +72,7 @@ export function LoginForm({
 
   return (
     <form action={formAction} onSubmit={() => setEmail(emailRef.current?.value ?? email)} className="space-y-5" noValidate>
-      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+      {destination ? <input type="hidden" name="returnTo" value={destination} /> : null}
       <div>
         <label
           htmlFor="email"
@@ -127,11 +138,11 @@ export function LoginForm({
       </button>
 
       <div className="flex flex-col items-center justify-between gap-3 text-sm sm:flex-row">
-        <Link href={authNavigationHref("/forgot-password", returnTo)} className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
+        <Link href={authNavigationHref("/forgot-password", destination)} className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
         <p className="text-white/50">
         Need an account?{" "}
         <Link
-          href={authNavigationHref("/signup", returnTo)}
+          href={authNavigationHref("/signup", destination)}
           className="font-bold text-cyan-300 underline-offset-4 hover:underline"
         >
           Sign up

@@ -16,10 +16,11 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, on
     onFocus={event => event.currentTarget.select()}
     onChange={event => {
       const text = event.currentTarget.value;
-      if (!/^[0-9]*$/.test(text)) return;
-      if (text === "" || /^0+$/.test(text)) { onInvalidDraft(text); return; }
       const next = Number(text);
-      if (!isEntryQuantity(next) || maximum < 1) return;
+      if (!/^[0-9]+$/.test(text) || !isEntryQuantity(next) || maximum < 1) {
+        onInvalidDraft(text);
+        return;
+      }
       const clamped = next > maximum;
       onInvalidDraft(null);
       onChange(clamped ? maximum : next, clamped);
