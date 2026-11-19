@@ -65,7 +65,7 @@ test("Browse search offers a direct category link while typing", () => {
   expect(within(searchField).getByRole("button", { name: "Go to search results" }).textContent).toBe("Go");
   const results = within(screen.getByRole("region", { name: "Matching retailer categories" }));
   expect(results.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
-    .toBe("/browse?partnerCategory=automotive#search-results");
+    .toBe("/browse?partnerCategory=automotive&q=spark+plugs#search-results");
 });
 
 test("Filter and sort suggestions retain Ending Soon and the selected price range", () => {
@@ -82,7 +82,7 @@ test("Filter and sort suggestions retain Ending Soon and the selected price rang
   const url = new URL(suggestion.getAttribute("href")!, "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
     category: "ending-soon", partnerCategory: "pharmacy", type: "gift-cards", available: "1",
-    minValue: "5", maxValue: "25", sort: "fewest-left",
+    minValue: "5", maxValue: "25", sort: "fewest-left", q: "beauty",
   });
   expect(url.hash).toBe("#search-results");
   fireEvent.click(suggestion, { ctrlKey: true });

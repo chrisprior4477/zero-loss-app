@@ -5,6 +5,7 @@ import { demoProducts } from "@/lib/catalog/demo-products";
 import {
   marketplaceCategories,
   marketplaceCategoryId,
+  type MarketplaceCategoryId,
   isGiftCardListing,
   isRetailerCollection,
   productMatchesMarketplaceCategory,
@@ -15,7 +16,7 @@ import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
-import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "@/components/catalog/BrowseDiscoveryBar";
+import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls, type BrowsePreviewProduct } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowseResultsLink, BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
@@ -108,6 +109,30 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
+  const endingSortIsImplicit = endingSoon && filters.sort === "fewest-left" && query.sort !== "fewest-left";
+  const previewMatches = searchTerm
+    ? searchTooLong ? [] : searchCatalogMatches(availableProducts, searchTerm, denomination, { includeLowerGiftCards: true }).map(match => match.product)
+    : availableProducts;
+  const exactEndingMatches = searchTerm && !searchTooLong && denomination.values.size
+    ? searchCatalogMatches(availableProducts, searchTerm, denomination, { includeLowerGiftCards: false }).map(match => match.product)
+    : previewMatches;
+  const previewCategoryIds: (MarketplaceCategoryId | "")[] = ["", ...marketplaceCategories.map(category => category.id)];
+  const categoryPreviews = Object.fromEntries(previewCategoryIds.map(id => {
+    const isEnding = id === "ending-soon";
+    const sort = isEnding && !endingSoon ? "fewest-left" : !isEnding && endingSortIsImplicit ? "featured" : filters.sort;
+    const matches = (isEnding ? exactEndingMatches : previewMatches)
+      .filter(product => !id || productMatchesMarketplaceCategory(product, id));
+    const matching = filterBrowseProducts(filterEndingSoonTickets(matches, isEnding ? ticketsLeft : null),
+      { ...filters, retailer: "", sort }, searchTerm, isEnding);
+    const sorted = id === "groceries" && !searchTerm && sort === "featured"
+      ? groceryStoreFirst(matching, discoveryGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
+      : matching;
+    const preview: BrowsePreviewProduct[] = sorted.slice(0, 10).map(product => ({
+      slug: product.slug, title: product.title, image: product.gallery[0].src,
+      remaining: availabilityStatus(product.capacity, product.sold).remaining,
+    }));
+    return [id, preview] as const;
+  }));
   const hasOpenResults = products.some(product => !hidden.has(product.slug));
   const includesLowerGiftCards = denomination.values.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
@@ -227,7 +252,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
           {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
-          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
+          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} />
           {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}

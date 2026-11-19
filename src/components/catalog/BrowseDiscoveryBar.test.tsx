@@ -20,6 +20,62 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
 
+test("Categories voice search can clear its draft or submit a product search with the current filters", () => {
+  let speak: ((text: string) => void) | undefined;
+  vi.stubGlobal("SpeechRecognition", class {
+    onresult: ((event: unknown) => void) | null = null;
+    constructor() { speak = text => this.onresult?.({ results: [[{ transcript: text }]] }); }
+    start() {}
+    stop() {}
+  });
+  render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} selectedCategory="everyday-items"
+    browseHref="/browse?category=everyday-items&maxValue=25&batch=3" />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  const picker = within(screen.getByRole("dialog"));
+  const field = picker.getByRole("searchbox");
+  fireEvent.click(picker.getByRole("button", { name: "Start voice search" }));
+  act(() => speak?.("Sony"));
+  expect(field).toHaveProperty("value", "Sony");
+  fireEvent.click(picker.getByRole("button", { name: "Clear search" }));
+  expect(field).toHaveProperty("value", "");
+  expect(navigation.replace).not.toHaveBeenCalled();
+  fireEvent.change(field, { target: { value: "Sony" } });
+  fireEvent.click(picker.getByRole("button", { name: "Go to search results" }));
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?category=everyday-items&maxValue=25&q=Sony#search-results", { scroll: false });
+});
+
+test("the wide picker expands one category and refines its own results with the current search", () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+  render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} searchTerm="Sony"
+    filters={{ ...props.filters, maxValue: 25 }}
+    previews={{ "everyday-items": [{ slug: "sample-sony", title: "Sony Starter Kit", image: "/catalog/sample.png", remaining: 12 }] }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  const picker = within(screen.getByRole("dialog"));
+  expect(picker.getAllByRole("button", { expanded: false })).toHaveLength(20);
+  fireEvent.click(picker.getByRole("button", { name: "Everyday Items" }));
+  const preview = within(picker.getByRole("region", { name: "Everyday Items product preview" }));
+  expect(preview.getByRole("link", { name: /Sony Starter Kit/ })).toBeTruthy();
+  expect(preview.getByRole("link", { name: /See all Everyday Items/ }).getAttribute("href"))
+    .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#search-results");
+  expect(navigation.replace).not.toHaveBeenCalled();
+  fireEvent.click(preview.getByRole("button", { name: "Refine search" }));
+  const filter = within(screen.getByRole("dialog", { name: "Filter & sort" }));
+  expect(filter.getByRole("searchbox", { name: "Search Everyday Items" })).toHaveProperty("value", "Sony");
+  fireEvent.click(filter.getByLabelText("$75 & below"));
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=75&category=everyday-items&q=Sony#search-results", { scroll: false });
+});
+
+test("typing on Browse before opening filters carries the same search into the filter dialog", () => {
+  render(<BrowseDiscoveryBar {...props} />);
+  fireEvent.change(within(searchForm()).getByRole("searchbox"), { target: { value: "Sony" } });
+  fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));
+  const filter = within(screen.getByRole("dialog"));
+  expect(filter.getByRole("searchbox")).toHaveProperty("value", "Sony");
+  fireEvent.change(filter.getByRole("searchbox"), { target: { value: "PlayStation" } });
+  fireEvent.click(filter.getByRole("radio", { name: "Highest prize value" }));
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?q=PlayStation&partnerCategory=gas&sort=value-high#search-results", { scroll: false });
+});
+
 test("Escape restores the applied marketplace query without navigating", () => {
   render(<BrowseDiscoveryBar {...props} searchTerm="Walmart" />);
   const input = within(searchForm()).getByRole("searchbox");

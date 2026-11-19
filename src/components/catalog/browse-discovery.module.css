@@ -30,11 +30,31 @@
 .pickerModes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .pickerModes button { min-height: 44px; background: #123d65; color: #c8eaff; font-size: 14px; font-weight: 850; cursor: pointer; }
 .pickerModes button[aria-pressed="true"] { background: #31e800; color: #052b21; }
-.pickerSearch { display: block; margin-bottom: 12px; }
-.pickerSearch input { width: 100%; min-height: 48px; padding: 10px 14px; border: 0; background: #fff; color: #0a1741; font-size: 16px; outline: 0; }
-.pickerSearch input:focus { background: #fff; color: #0a1741; }
-.pickerSearch input::placeholder { color: #536d8b; }
-.pickerSearch input:focus::placeholder { color: #536d8b; }
+.search.pickerSearch { margin-bottom: 12px; padding-inline: 12px; }
+.pickerSearch:focus-within { outline: 2px solid #56d8fb; }
+.wideDialog { width: min(1240px, 100%); }
+.wideChoices { display: grid; gap: 8px; padding: 2px; }
+.categoryRow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.categoryRow .choice { min-height: 48px; height: 48px; min-width: 0; margin: 0; padding: 6px 12px; font-size: 14px; line-height: 1.2; }
+.categoryRow .choice[aria-expanded="true"] { background: #31e800; }
+.categoryRow .choice[aria-current="true"][aria-expanded="false"] { background: #bfeeff; }
+.directory summary { padding: 10px 3px; color: #bfeeff; font-weight: 800; cursor: pointer; }
+.directory .categoryRow .choice { height: auto; min-height: 54px; }
+.preview { margin-top: 8px; padding: 12px; border: 1px solid #355976; border-radius: 12px; background: #081c36; }
+.previewHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.previewHeader h3 { font-weight: 900; }
+.previewHeader > span { border-radius: 20px; padding: 3px 8px; background: #d8f4ff; color: #073456; font-size: 12px; font-weight: 800; }
+.previewProducts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.previewProduct { display: flex; min-width: 0; flex-direction: column; gap: 4px; border-radius: 9px; padding: 6px; background: #fff; color: #0a1741; font-size: 13px; line-height: 1.23; }
+.previewProduct strong { overflow-wrap: anywhere; }
+.previewProduct small { margin-top: auto; color: #315878; font-size: 11px; font-weight: 700; }
+.previewImage { position: relative; height: 65px; overflow: hidden; border-radius: 6px; background: #eff3f7; }
+.previewImage img { object-fit: contain; }
+.previewActions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+.previewActions > * { display: inline-flex; min-height: 42px; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 9px; background: #31e800; color: #00132e; font-size: 13px; font-weight: 850; }
+.previewActions > button { background: #bfeeff; cursor: pointer; }
+.previewActions > *:hover, .previewProduct:hover { filter: brightness(1.08); }
+.previewActions > *:focus-visible, .previewProduct:focus-visible { outline: 2px solid #4cddff; outline-offset: 2px; }
 /* Both pickers use native momentum scrolling. Row snapping pulls against a
    finger swipe and prevents the free glide of a long retailer list. */
 .wheel { flex: 1; min-height: 120px; height: min(390px, 48dvh); overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scroll-snap-type: none; scroll-behavior: auto; scrollbar-width: thin; scrollbar-color: #8bdfff #123d65; padding: 2px 5px 8px 2px; }
@@ -84,7 +104,7 @@
 .batchShortcut:last-child { grid-column: 3; }
 .search button:focus-visible { outline: 2px solid #087feb; outline-offset: 2px; }
 .control:focus:not(:focus-visible), .choice:focus:not(:focus-visible) { outline: none; }
-.dialog, .sheetHeader > button, .pickerModes button, .pickerSearch input { border-radius: 12px; }
+.dialog, .sheetHeader > button, .pickerModes button { border-radius: 12px; }
 @media (max-width: 600px) { .dialog { border-radius: 18px 18px 0 0; } }
 .dialog .sheet { max-height:var(--popup-max-height); overflow-y:auto; }
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {

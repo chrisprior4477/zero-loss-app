@@ -23,22 +23,23 @@ export type BrowseFilterProps = {
   searchTerm: string;
   subcategory: string;
   clearHref: string;
+  initialSearch?: string;
   collapseOnDesktop?: boolean;
   onNavigate?: (destination: string) => void;
 };
 
-export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate }: BrowseFilterProps & { id: string }) {
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const selectingByKeyboard = useRef(false);
   const applyingPreset = useRef(false);
-  const [localDraft, setLocalDraft] = useState(searchTerm);
   const session = useBrowseResultsSearch();
+  const [localDraft, setLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
   const searchDraft = localDraft;
   const voice = useVoiceSearch(setLocalDraft);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const directoryMatches = showSearchSuggestions ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
     ? String(filters.maxValue) : filters.minValue !== null || filters.maxValue !== null ? "custom" : "all";
   const [mode, setMode] = useState(presetValue);
@@ -49,6 +50,10 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const issue = invalidAmount ? "Enter a whole dollar amount from $0 to $1,000,000."
     : reversed ? "Maximum must be at least the minimum." : "";
   const issueField = invalidAmount ?? "maxValue";
+  const clearUrl = new URL(clearHref, "https://zeroloss.local");
+  const retainedSearch = searchDraft.trim() || searchTerm;
+  if (retainedSearch) clearUrl.searchParams.set("q", retainedSearch);
+  const clearFiltersHref = `${clearUrl.pathname}${clearUrl.search}`;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -73,15 +78,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
-      const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
+      const draftValue = data.get(key)?.toString().trim() ?? "";
+      const value = key === "q" && filtersOnly ? draftValue || searchTerm : draftValue;
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
     if (voice.busy && !filtersOnly) return;
     voice.cancel();
-    if (!filtersOnly) {
-      session?.voice.cancel();
-      session?.setDraft(params.get("q") ?? "");
-    }
+    session?.voice.cancel();
+    session?.setDraft(params.get("q") ?? "");
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
     const destination = `/browse${params.size ? `?${params}` : ""}`;
@@ -119,16 +123,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}
       {selectedRetailerGroup ? <input type="hidden" name="partnerCategory" value={selectedRetailerGroup.id} /> : null}
       {filters.retailer ? <input type="hidden" name="retailer" value={filters.retailer} /> : null}
-      <div onFocusCapture={() => setSearchFocused(true)} onBlurCapture={event => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSearchFocused(false);
-      }}>
+      <div onFocusCapture={() => setShowSearchSuggestions(true)}>
         <label htmlFor={`${id}-search`} className="mb-2 block text-xs font-black uppercase tracking-[.1em] text-cyan-200">{scope ? `Search ${scope}` : "Search all prizes"}</label>
         <div className="flex min-h-11 w-full items-center rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] focus-within:outline focus-within:outline-2 focus-within:outline-cyan-300">
           <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-2 h-5 w-5 shrink-0 text-[#087feb]">
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
-          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
+          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none" />
           {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
           {searchDraft.trim() && !voice.busy ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
@@ -139,7 +141,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft)} onClick={event => {
+              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft, retainedSearch)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;
@@ -194,12 +196,13 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         </div>
       </fieldset>
       <button type="submit" data-apply-filters className="min-h-11 w-full rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">Apply filters</button>
-      <Link href={clearHref} onClick={event => {
+      <Link href={clearFiltersHref} onClick={event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setMode("all");
         setBounds({ minValue: "", maxValue: "" });
-        setLocalDraft(searchTerm);
-        if (onNavigate) { event.preventDefault(); onNavigate(`${clearHref}#search-results`); }
+        setLocalDraft(retainedSearch);
+        session?.setDraft(retainedSearch);
+        if (onNavigate) { event.preventDefault(); onNavigate(`${clearFiltersHref}#search-results`); }
       }} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>
   );
