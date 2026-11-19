@@ -6,6 +6,13 @@ import PrintFreeEntryPage from "./print/page";
 vi.mock("@/lib/account/context", () => ({ getAccountContext: vi.fn(async () => null) }));
 afterEach(cleanup);
 
+test("an unrecognized prize never substitutes the free-entry form for another prize", async () => {
+  render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "retired-prize" }) }));
+  expect(screen.getByRole("heading", { name: "Free-entry instructions unavailable" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to Browse" }).getAttribute("href")).toBe("/browse");
+  expect(screen.queryByRole("button", { name: "Print entry insert" })).toBeNull();
+});
+
 test.each([
   "/browse?category=electronics&sort=fewest-left",
   "/browse?q=coffee&available=1&minValue=25",

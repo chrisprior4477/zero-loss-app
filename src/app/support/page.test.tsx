@@ -61,7 +61,7 @@ test("later pages keep their place in history after accounting for waiting cases
 test("sign-in preserves a selected wallet transaction", async () => {
   mocks.account.mockResolvedValue(null);
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
-  expect(screen.getByRole("link", { name: "Sign in to get help" }).getAttribute("href")).toBe(`/login?next=${encodeURIComponent(`/support?transaction=${caseId}`)}`);
+  expect(screen.getByRole("link", { name: "Sign in to get help" }).getAttribute("href")).toBe(`/login?next=${encodeURIComponent(`/support?transaction=${caseId}#report-problem`)}`);
   expect(mocks.from).not.toHaveBeenCalled();
 });
 

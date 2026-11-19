@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { LoginCreateAccountLink, LoginForm } from "@/components/auth/LoginForm";
+import { AuthDestinationLink, LoginForm } from "@/components/auth/LoginForm";
 import { signInReturnPath } from "@/lib/auth/entry-return";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,7 +54,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <section id="login-form" className="scroll-mt-[163px] bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:scroll-mt-0 sm:p-9 lg:p-12">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">Welcome back</p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Sign in to Zero Loss.</h2>
-          <p className="mt-2 text-sm leading-6 text-white/60">New here? <LoginCreateAccountLink returnTo={returnTo} /></p>
+          <p className="mt-2 text-sm leading-6 text-white/60">New here? <AuthDestinationLink page="/signup" returnTo={returnTo} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</AuthDestinationLink></p>
           <div className="mt-7">
             <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} returnTo={returnTo} />
           </div>

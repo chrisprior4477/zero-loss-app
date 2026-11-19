@@ -8,7 +8,7 @@ const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 afterEach(cleanup);
 
-test("Apply filters clears the old query while keeping the active Ending Soon filters", () => {
+test("Apply filters preserves the applied query when the search draft is cleared", () => {
   render(<FilterForm id="clear-query"
     filters={{ type: "all", retailer: "", availableOnly: true, sort: "fewest-left", minValue: null, maxValue: 100 }}
     retailerGroups={[]} selectedRetailerGroup={null} selectedCategory="ending-soon" ticketsLeft="2-5"
@@ -18,8 +18,20 @@ test("Apply filters clears the old query while keeping the active Ending Soon fi
   fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
   const url = new URL(push.mock.lastCall![0], "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
-    category: "ending-soon", ticketsLeft: "2-5", available: "1", sort: "fewest-left", maxValue: "100",
+    category: "ending-soon", q: "Walmart", ticketsLeft: "2-5", available: "1", sort: "fewest-left", maxValue: "100",
   });
+});
+
+test("reapplying the current filters keeps a single results fragment", () => {
+  push.mockClear();
+  window.history.replaceState(null, "", "/browse?q=Walmart#search-results#search-results");
+  try {
+    render(<FilterForm id="same-filters" filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: null }}
+      retailerGroups={[]} selectedRetailerGroup={null} selectedCategory={null} searchTerm="Walmart" subcategory="" clearHref="/browse?q=Walmart" />);
+    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+    expect(window.location.hash).toBe("#search-results");
+    expect(push).not.toHaveBeenCalled();
+  } finally { window.history.replaceState(null, "", "/"); }
 });
 
 test("sorting keeps an open custom range until Apply filters", () => {

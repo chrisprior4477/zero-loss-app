@@ -74,6 +74,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const voice = useVoiceSearch(setDraft);
   const cancelVoice = voice.cancel;
   const searchInput = useRef<HTMLInputElement>(null);
+  const restoringSearchFocus = useRef(false);
   const emptyResults = useRef<HTMLDivElement>(null);
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
@@ -279,11 +280,15 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     setDraft(next);
     batches.reset();
   }
-  function closeSearch() {
+  function closeSearch(keepKeyboardFocus: boolean) {
     cancelVoice();
     setDraft(query);
     setEditing(false);
-    searchInput.current?.blur();
+    if (keepKeyboardFocus) {
+      restoringSearchFocus.current = true;
+      searchInput.current?.focus({ preventScroll: true });
+      restoringSearchFocus.current = false;
+    } else searchInput.current?.blur();
   }
   function resetFilters() {
     cancelVoice();
@@ -361,15 +366,15 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           applySearch(draft.trim());
           setSearchSubmissions(count => count + 1);
         }}
-        onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); closeSearch(); } }}>
+        onKeyDown={event => { if (event.key === "Escape" && (editing || event.target === searchInput.current)) { event.preventDefault(); closeSearch(true); } }}>
         <label htmlFor={`${dateErrorId}-search`}>Search transactions</label>
         <div className={styles.ledgerSearchField}>
           <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft}
-            onFocus={() => setEditing(true)} onChange={event => { cancelVoice(); setEditing(true); setDraft(event.target.value); }} />
+            onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { cancelVoice(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
           {draft.trim() && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
           <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
-          {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={closeSearch}>×</button> : null}
+          {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={event => closeSearch(event.detail === 0)}>×</button> : null}
         </div>
       </form>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">

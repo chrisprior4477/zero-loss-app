@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
-import { redirect } from "next/navigation";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
 import { freeEntryHref, productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
@@ -20,7 +19,11 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <p className="mt-3">We couldn’t check this prize. Try again to open its free-entry instructions.</p>
     <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={freeEntryHref(offering ?? "", from, parseEntryQuantity(rawQuantity), share)}>Try again</Link>
   </div>;
-  if (!product) redirect("/browse");
+  if (!product) return <div className="mx-auto max-w-3xl p-6 text-white">
+    <h1 className="text-2xl font-black">Free-entry instructions unavailable</h1>
+    <p className="mt-3">{offering ? "This prize is no longer available for entry." : "There are no open prizes to enter right now."}</p>
+    <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse"}>Back to Browse</Link>
+  </div>;
   const browseReturn = productBrowseReturnPath(from);
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
   const sharedToken = offering === product.slug && typeof share === "string" && shareUuid.test(share) ? share : undefined;

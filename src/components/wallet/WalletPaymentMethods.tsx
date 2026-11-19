@@ -51,7 +51,18 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const editorToken = isAdd ? availableToken : savedCard?.token;
   const panelOpen = isEdit || isAdd || panelHash === "#payment-methods";
   function showMethods() { openWalletPanel("#payment-methods"); }
-  function addCard() { setMessage(""); openWalletPanel(availableToken ? "#wallet-add-card" : "#payment-methods"); }
+  function addCard() {
+    setMessage("");
+    if (availableToken) {
+      openWalletPanel("#wallet-add-card");
+      return;
+    }
+    const firstEdit = document.getElementById(`edit-saved-card-${cards[0]?.token}`);
+    if (firstEdit) {
+      firstEdit.focus({ preventScroll: true });
+      revealWalletSection(firstEdit.id);
+    }
+  }
   useEffect(() => {
     const sync = () => {
       let hash = window.location.hash;

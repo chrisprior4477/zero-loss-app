@@ -3,7 +3,7 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition, type MouseEvent } from "react";
 import {
   getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest,
 } from "@/lib/crew/actions";
@@ -70,6 +70,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const [copyMessage, setCopyMessage] = useState("");
   const [incomingRequestSent, setIncomingRequestSent] = useState(false);
   const pickRequest = useRef(0);
+  const finderOpener = useRef<HTMLButtonElement>(null);
   const initialSampleSelected = useRef(false);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
@@ -102,13 +103,15 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     return { id: isRequester ? item.recipient_id : item.requester_id, name: isRequester ? item.recipient_name : item.requester_name };
   }
 
-  function focusCrewSearch() {
-    setFinding(current => !current);
+  function closeCrewSearch() {
+    setFinding(false);
+    finderOpener.current?.focus({ preventScroll: true });
   }
 
-  function openCrewSearch() {
+  function openCrewSearch(event: MouseEvent<HTMLButtonElement>, scroll = true) {
+    finderOpener.current = event.currentTarget;
     setFinding(true);
-    requestAnimationFrame(() => document.getElementById("crew-query")?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+    if (scroll) requestAnimationFrame(() => document.getElementById("crew-query")?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
   }
 
   useEffect(() => {
@@ -244,12 +247,12 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     <CrewLandingScroll ownerId={currentUserId} enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
     <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
-        <button type="button" aria-expanded={finding} onClick={focusCrewSearch}>Add people</button>
+        <button type="button" aria-expanded={finding} onClick={event => finding ? closeCrewSearch() : openCrewSearch(event, false)}>Add people</button>
       </header>
 
       {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
       {finding ? <div>
-        <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={() => setFinding(false)} />
+        <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
         <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
       </div> : null}
 

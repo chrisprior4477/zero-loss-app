@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { LoginCreateAccountLink, LoginForm } from "./LoginForm";
+import { AuthDestinationLink, LoginForm } from "./LoginForm";
 import ForgotPasswordPage from "@/app/forgot-password/page";
 import { signInAction } from "@/lib/auth/actions";
 
@@ -60,13 +60,15 @@ test("ordinary desktop sign-in leaves the introductory layout in place", () => {
 test.each([
   ["/account/profile", "#mailing-address-heading", "/account/profile#mailing-address-heading"],
   ["/account/profile", "#personalize-menu-heading", "/account/profile#personalize-menu-heading"],
+  ["/support", "#case-list", "/support#case-list"],
+  ["/support", "#report-problem", "/support#report-problem"],
   ["/account/notifications?filter=account", "#alert-settings", "/account/notifications?filter=account#alert-settings"],
   ["/account/profile#personal-details-heading", "#mailing-address-heading", "/account/profile#personal-details-heading"],
   ["/account/profile", "#unknown", "/account/profile"],
 ])("sign-in preserves account section links from the browser (%s, %s)", (returnTo, hash, expected) => {
   window.history.replaceState(null, "", `/login${hash}`);
   try {
-    render(<><LoginCreateAccountLink returnTo={returnTo} /><LoginForm returnTo={returnTo} /></>);
+    render(<><AuthDestinationLink page="/signup" returnTo={returnTo}>Create an account</AuthDestinationLink><LoginForm returnTo={returnTo} /></>);
     const form = screen.getByRole("button", { name: "Sign in" }).closest("form")!;
     expect(new FormData(form).get("returnTo")).toBe(expected);
     for (const name of ["Create an account", "Sign up"]) {

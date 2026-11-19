@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEventHandler, type ReactNode } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { samplePicks, type CrewActivityPick } from "@/components/home/SharedPicksConcept";
 import { useResolvedCatalogSlugs } from "@/components/home/OfferingAvailabilityProvider";
@@ -56,7 +56,7 @@ function PickCard({ pick, selectedKey }: { pick: CrewActivityPick; selectedKey: 
 export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, picks, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
   ownerId: string;
   people: CrewPersonCard[]; samples: SampleCrewName[]; selectedKey: string | null; picks: CrewActivityPick[]; loading: boolean; error: boolean; pending: boolean;
-  onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: () => void; onAdd: () => void;
+  onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: () => void; onAdd: MouseEventHandler<HTMLButtonElement>;
 }) {
   const space = useRef<HTMLElement>(null);
   useEffect(() => {

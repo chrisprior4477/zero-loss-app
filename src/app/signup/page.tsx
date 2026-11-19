@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { SignUpExperience } from "@/components/auth/SignUpExperience";
 import { BusinessOnboardingForm } from "@/components/auth/BusinessOnboardingForm";
 import { createClient } from "@/lib/supabase/server";
-import { signInReturnPath } from "@/lib/auth/entry-return";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 import { businessSignupPath, isBusinessDraft, type BusinessRecord } from "@/lib/business/application";
 
 export const metadata: Metadata = { title: "Sign up" };
@@ -26,7 +26,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
     }
     return (
       <div className="min-h-[calc(100vh-163px)] max-w-[100vw] overflow-x-hidden bg-[radial-gradient(circle_at_90%_10%,rgba(0,185,255,.14),transparent_28%),linear-gradient(145deg,#00132e,#031b44)] px-3 py-5 sm:px-6 sm:py-10 lg:px-8">
-        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm key={owner ?? "guest"} owner={owner} record={record} /></div>
+        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm key={owner ?? "guest"} owner={owner} record={record} personalSignupHref={authNavigationHref("/signup", returnTo === businessSignupPath ? null : returnTo)} /></div>
       </div>
     );
   }

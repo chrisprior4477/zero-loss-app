@@ -18,7 +18,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
 
   function chooseAccountPath(nextPath: AccountPath) {
     if (nextPath === "business") {
-      router.push("/signup?account=business");
+      router.push(returnTo && returnTo !== businessSignupPath ? `${businessSignupPath}&next=${encodeURIComponent(returnTo)}` : businessSignupPath);
       return;
     }
     flushSync(() => setAccountPath(nextPath));

@@ -118,7 +118,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <GiftCardFulfillmentNotice compact productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
       {participationPanel}
       <div className={entryStyles.more}>
-        {!hiddenPool ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={query.from} share={query.share}>Prefer to enter without a purchase?</FreeEntryLink> : null}
+        {!hiddenPool ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={transactionReturn ?? query.from} share={query.share}>Prefer to enter without a purchase?</FreeEntryLink> : null}
       </div>
     </section>
     </ProductEntrySelection>

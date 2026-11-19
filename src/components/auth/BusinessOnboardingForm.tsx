@@ -155,7 +155,7 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
   return draft;
 }
 
-export function BusinessOnboardingForm({ owner, record }: { owner: string | null; record: BusinessRecord | null }) {
+export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
   const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
     guestDraft, importGuest, dismissGuest, submitted, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft } = useBusinessApplication(owner, record, restoreListings);
@@ -165,6 +165,7 @@ export function BusinessOnboardingForm({ owner, record }: { owner: string | null
   const [finishing, setFinishing] = useState(false);
   const [staging, setStaging] = useState(false);
   const stagingLock = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const partnership = values.partnership as Partnership;
   const selected = partnerships.find(option => option.id === partnership) ?? partnerships[0];
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
@@ -217,7 +218,18 @@ export function BusinessOnboardingForm({ owner, record }: { owner: string | null
   }
   function next() {
     const identity = ["business_name","address_line_1","city","region","postal_code","country","contact_name","work_email","business_type","service_area"];
-    if (step === 0 && (identity.some(k => !String(values[k] ?? "").trim()) || missing.includes("Valid work email"))) { setErrors(["Complete the starred business fields and enter a valid work email"]); return; }
+    if (step === 0) {
+      const incomplete = identity.find(key => !String(values[key] ?? "").trim() || (key === "work_email" && missing.includes("Valid work email")));
+      if (incomplete) {
+        setErrors(["Complete the starred business fields and enter a valid work email"]);
+        const field = formRef.current?.elements.namedItem(incomplete);
+        if (field instanceof HTMLElement) {
+          field.focus({ preventScroll: true });
+          field.scrollIntoView?.({ block: "center" });
+        }
+        return;
+      }
+    }
     const detailsMissing = missing.filter(label => label !== "Rights to supply the attached materials");
     if (step === 2 && detailsMissing.length) { setErrors(detailsMissing); return; }
     setErrors([]); setStep(Math.min(4, step + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
@@ -248,7 +260,7 @@ export function BusinessOnboardingForm({ owner, record }: { owner: string | null
     <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
-      <form onSubmit={submitApplication} noValidate className="min-w-0">
+      <form ref={formRef} onSubmit={submitApplication} noValidate className="min-w-0">
         {recoveredDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4">
           <p>Your account has a newer draft. This tab also has unsaved edits.</p>
           <button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={reviewRecoveredDraft}>Review my unsaved edits</button>
@@ -269,7 +281,7 @@ export function BusinessOnboardingForm({ owner, record }: { owner: string | null
         <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={() => void save(draft)} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{saving ? "Saving to your account…" : draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
         <p className="mt-4 text-xs leading-5 text-white/40">{owner ? "Submitting sends your application to Zero Loss for review." : "Guest drafts and selected files stay on this device until you save them to your account."}</p>
       </fieldset></form>
-    </div><div className="mt-8 text-center"><Link href="/signup" className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
+    </div><div className="mt-8 text-center"><Link href={personalSignupHref} className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
   </div></BusinessEditor.Provider>;
 }
 

@@ -65,3 +65,17 @@ test("an explicit menu request always offers device-appropriate install guidance
   expect(await screen.findByLabelText("Install Zero Loss")).toBeTruthy();
   expect(screen.getByText(/Open your browser menu and choose Install Zero Loss or Add to Home Screen/)).toBeTruthy();
 });
+
+test("manual install instructions move focus and Escape returns it to the opener", () => {
+  vi.useFakeTimers();
+  render(<><button type="button">Account menu</button><InstallAppPrompt /></>);
+  const opener = screen.getByRole("button", { name: "Account menu" });
+  opener.focus();
+  fireEvent(window, new Event(INSTALL_APP_REQUEST_EVENT));
+  act(() => { vi.runOnlyPendingTimers(); });
+  const close = screen.getByRole("button", { name: "Dismiss install suggestion" });
+  expect(document.activeElement).toBe(close);
+  fireEvent.keyDown(close, { key: "Escape" });
+  expect(screen.queryByLabelText("Install Zero Loss")).toBeNull();
+  expect(document.activeElement).toBe(opener);
+});

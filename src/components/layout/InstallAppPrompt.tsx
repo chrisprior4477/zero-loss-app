@@ -52,6 +52,7 @@ export function InstallAppPrompt() {
   const [explicitRequest, setExplicitRequest] = useState(false);
   const [alreadyInstalled, setAlreadyInstalled] = useState(false);
   const nativePromptPending = useRef(false);
+  const closeButton = useRef<HTMLButtonElement>(null);
   const [installing, setInstalling] = useState(false);
 
   const offerInstall = useCallback(async () => {
@@ -142,6 +143,15 @@ export function InstallAppPrompt() {
   };
 
   const visible = explicitRequest || (interacted && !dismissed && !alreadyInstalled && (canPrompt || manualPlatform !== null));
+  useEffect(() => {
+    if (!explicitRequest || !showInstructions) return;
+    const previous = document.activeElement;
+    const frame = requestAnimationFrame(() => closeButton.current?.focus({ preventScroll: true }));
+    return () => {
+      cancelAnimationFrame(frame);
+      if (previous instanceof HTMLElement && previous.isConnected && previous !== document.body) previous.focus({ preventScroll: true });
+    };
+  }, [explicitRequest, showInstructions]);
   if (!visible) return null;
 
   const instructions = alreadyInstalled
@@ -153,14 +163,16 @@ export function InstallAppPrompt() {
         : "Open your browser menu and choose Install Zero Loss or Add to Home Screen.";
 
   return (
-    <aside aria-label="Install Zero Loss" aria-live="polite" className={`${popupStyles.notice} fixed inset-x-3 bottom-3 z-[110] mx-auto max-w-[430px] rounded-2xl border border-cyan-200/35 bg-[#03172f]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:mx-0`}>
+    <aside aria-label="Install Zero Loss" aria-live="polite" onKeyDown={event => {
+      if (event.key === "Escape") { event.preventDefault(); dismiss(); }
+    }} className={`${popupStyles.notice} fixed inset-x-3 bottom-3 z-[110] mx-auto max-w-[430px] rounded-2xl border border-cyan-200/35 bg-[#03172f]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:mx-0`}>
       <div className="flex items-start gap-3">
         <Image src="/icons/zeroloss-icon-64.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-extrabold text-white">Install Zero Loss</p>
           <p className="mt-1 text-[12px] leading-5 text-white/70">{showInstructions ? instructions : "Keep Zero Loss one tap away on this device."}</p>
         </div>
-        <button type="button" onClick={dismiss} aria-label="Dismiss install suggestion" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xl text-white/60 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
+        <button ref={closeButton} type="button" onClick={dismiss} aria-label="Dismiss install suggestion" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xl text-white/60 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
       </div>
       {!showInstructions && (
         <div className="mt-3 flex justify-end gap-2">

@@ -73,7 +73,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
-      const value = key === "q" && filtersOnly && searchDraft.trim() ? searchTerm : data.get(key)?.toString().trim() ?? "";
+      const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
     if (voice.busy && !filtersOnly) return;
@@ -85,7 +85,16 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
     onNavigate?.();
-    router.push(`/browse${params.size ? `?${params}` : ""}#search-results`, { scroll: false });
+    const destination = `/browse${params.size ? `?${params}` : ""}`;
+    const { pathname, search, hash } = window.location;
+    if (destination === pathname + search) {
+      if (hash !== "#search-results") {
+        window.history.pushState(window.history.state, "", `${destination}#search-results`);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
+      return;
+    }
+    router.push(`${destination}#search-results`, { scroll: false });
   };
 
   return (

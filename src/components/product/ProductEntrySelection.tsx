@@ -22,7 +22,6 @@ export function ProductEntrySelection({ slug, initialQuantity, remaining, childr
   }, [slug, maximum]);
   return <EntrySelection.Provider value={[quantity, next => {
     setQuantity(next);
-    if (window.history.state?.freeEntryDraft?.slug !== slug) return;
     try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next } }, ""); }
     catch { /* The visible selection still updates. */ }
   }]}>{children}</EntrySelection.Provider>;
@@ -38,10 +37,5 @@ export function FreeEntryLink({ slug, from, share, className, children }: {
   slug: string; from?: string | string[]; share?: unknown; className: string; children: ReactNode;
 }) {
   const selection = useContext(EntrySelection);
-  const quantity = selection?.[0];
-  return <Link href={freeEntryHref(slug, from, quantity, share)} className={className} onNavigate={() => {
-    if (quantity === undefined) return;
-    try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity } }, ""); }
-    catch { /* The instructions link still carries the selection. */ }
-  }}>{children}</Link>;
+  return <Link href={freeEntryHref(slug, from, selection?.[0], share)} className={className}>{children}</Link>;
 }

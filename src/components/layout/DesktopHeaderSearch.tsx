@@ -87,7 +87,14 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         if (navigate) { event.preventDefault(); navigate(searchResultsHref(query)); }
       }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSuggestions(false); }}
-      onKeyDown={event => { if (event.key === "Escape") { setSuggestions(false); if (onDismiss) { event.preventDefault(); voice.cancel(); onDismiss(); } } }}
+      onKeyDown={event => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        voice.cancel();
+        setQuery(initialQuery);
+        setSuggestions(false);
+        onDismiss?.();
+      }}
       className="relative mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
     >
       <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">

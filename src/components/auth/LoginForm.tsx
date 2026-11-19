@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
-import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { recoverAuthForm } from "./recover-auth-form";
 import {
   signInAction,
@@ -35,14 +35,16 @@ function subscribeToHash(onChange: () => void) {
 function useLoginDestination(returnTo: string | null) {
   // An account redirect can inherit the original fragment in the browser.
   const inheritedHash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
-  return inheritedHash && returnTo && /^\/account\/(?:profile|notifications)(?:\?[^#]*)?$/.test(returnTo)
+  return inheritedHash && returnTo && /^\/(?:account\/(?:profile|notifications)|support)(?:\?[^#]*)?$/.test(returnTo)
     ? accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo
     : returnTo;
 }
 
-export function LoginCreateAccountLink({ returnTo }: { returnTo: string | null }) {
+export function AuthDestinationLink({ returnTo, page, className, children }: {
+  returnTo: string | null; page: "/login" | "/signup" | "/forgot-password"; className?: string; children: ReactNode;
+}) {
   const destination = useLoginDestination(returnTo);
-  return <Link href={authNavigationHref("/signup", destination)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</Link>;
+  return <Link href={authNavigationHref(page, destination)} className={className}>{children}</Link>;
 }
 
 export function LoginForm({
