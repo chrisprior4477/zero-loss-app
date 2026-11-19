@@ -130,6 +130,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
+    if (reversedRange && (key === "minValue" || key === "maxValue")) continue;
     const value = query[key];
     if (value) searchParamsForView.set(key, value);
   }
