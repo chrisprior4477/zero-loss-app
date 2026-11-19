@@ -54,7 +54,9 @@ test("the wide picker expands one category and refines its own results with the 
   expect(picker.getAllByRole("button", { expanded: false })).toHaveLength(20);
   fireEvent.click(picker.getByRole("button", { name: "Everyday Items" }));
   const preview = within(picker.getByRole("region", { name: "Everyday Items product preview" }));
-  expect(preview.getByRole("link", { name: /Sony Starter Kit/ })).toBeTruthy();
+  const opening = preview.getByRole("link", { name: /Sony Starter Kit/ }).getAttribute("href");
+  expect(new URL(opening!, "https://example.test").searchParams.get("from"))
+    .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#prize-sample-sony");
   expect(preview.getByRole("link", { name: /See all Everyday Items/ }).getAttribute("href"))
     .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#search-results");
   expect(navigation.replace).not.toHaveBeenCalled();

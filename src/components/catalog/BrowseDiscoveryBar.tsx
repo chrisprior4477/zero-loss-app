@@ -228,7 +228,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>
       <div className={styles.previewHeader}><h3>{category.label}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
-        const destination = productHrefWithBrowseReturn(product.slug, href);
+        const destination = productHrefWithBrowseReturn(product.slug, href.replace("#search-results", `#prize-${product.slug}`));
         return <Link key={product.slug} className={styles.previewProduct} prefetch={false} href={destination}
           onNavigate={event => { event.preventDefault(); navigateFromPanel(destination); }}>
           <div className={styles.previewImage}><Image src={product.image} alt="" fill sizes="190px" /></div>
