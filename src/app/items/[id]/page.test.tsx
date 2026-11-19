@@ -58,7 +58,10 @@ test("a full pool closes the old shopping link but keeps its holder's receipt ac
     mocks.account.mockResolvedValue({ activity: { source: "customer-empty", activity: [] }, wallet: { scope: "demo" } });
     const props = { params: Promise.resolve({ id: slug }), searchParams: Promise.resolve({ from: "/rewards/best-buy" }) };
     mocks.requestHead.mockResolvedValue({ ready: true, requestId: null });
-    await expect(ItemPage(props)).rejects.toMatchObject({ digest: expect.stringContaining("/rewards/best-buy") });
+    const closed = render(await ItemPage(props));
+    expect(screen.getByRole("status").textContent).toMatch(/This offering is closed/);
+    expect(screen.getByRole("link", { name: /Back to Best Buy rewards/ }).getAttribute("href")).toBe("/rewards/best-buy#reward-values");
+    closed.unmount();
     mocks.requestHead.mockResolvedValue({ ready: true, requestId: "my-hold", validating: true });
     render(await ItemPage(props));
     expect(screen.getByText("Entry form")).toBeTruthy();

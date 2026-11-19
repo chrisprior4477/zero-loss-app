@@ -29,7 +29,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
     if (!pending && balanceCents !== null && !dialog.current?.open) dialog.current?.showModal();
     if (balanceCents === null && !pending && restoreFocus.current) {
       restoreFocus.current = false;
-      restoreDialogTrigger(trigger.current);
+      if (document.activeElement === document.body || document.activeElement === trigger.current) restoreDialogTrigger(trigger.current, true);
     }
   }, [balanceCents, pending]);
 
@@ -65,11 +65,15 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
       try {
         const preview = await previewDemoHistoryClear(kind);
         if (window.location.href !== origin) return;
-        if (preview.status === "error") { setNotice(preview.message); return; }
+        if (preview.status === "error") { restoreFocus.current = true; setNotice(preview.message); return; }
         requestKey.current = crypto.randomUUID();
         revision.current = preview.revision;
         setBalanceCents(preview.balanceCents);
-      } catch { setNotice("Unable to check demo history. Refresh and try again."); }
+      } catch {
+        if (window.location.href !== origin) return;
+        restoreFocus.current = true;
+        setNotice("Unable to check demo history. Reconnect and try again.");
+      }
     });
   }
 

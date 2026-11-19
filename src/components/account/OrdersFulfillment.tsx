@@ -41,6 +41,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
   const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : selectedRewardId || matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
   const selectionAnchor = selectedOrderNumber ? `order-${selectedOrderNumber}` : "fulfillment-records";
   const countLabel = (count: number) => complete ? String(count) : count ? `${count}+` : "—";
+  const filterLanding = visibleOrders.length ? "your-orders-heading" : "order-status-empty";
   const resultsCount = visibleOrders.length;
   const resultsLabel = showingPayments
     ? `${resultsCount} paid ${resultsCount === 1 ? "order" : "orders"}`
@@ -82,9 +83,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
 
       <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />
       {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="order-status-filters" landingAlias={selectionAnchor} settleAfterNavigation /> : null}
-      {filter === "exceptions" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
-        target={visibleOrders.length ? "your-orders-heading" : "order-status-empty"} focusTarget={visibleOrders.length ? "your-orders-heading" : "order-status-empty"}
-        initialTarget={visibleOrders.length ? "your-orders-heading" : "order-status-empty"} visitKey={`exceptions:${selectionComplete}`} allScreens /> : null}
+      {filter !== "all" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
+        target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
           <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading" tabIndex={-1}>Retailer gift-card fulfillment</h2></div>

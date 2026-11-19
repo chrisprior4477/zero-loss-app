@@ -60,6 +60,7 @@
 .preferenceChoice span { display: grid; gap: 3px; }
 .preferenceChoice strong { font-size: 16px; line-height: 1.2; }
 .preferenceChoice small { color: #486288; font-size: 12px; line-height: 1.25; }
+.preferenceChoice .preferenceError { font-weight: 700; color: #96321b; }
 .preferenceChoice input { width: 25px; height: 25px; flex: 0 0 25px; accent-color: #0076ff; cursor: pointer; }
 .preferenceChoice input:disabled { cursor: not-allowed; }
 

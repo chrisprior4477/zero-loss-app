@@ -8,7 +8,7 @@ const small = `(?:(?:${tens.join("|")})(?:[ -](?:${units.slice(1, 10).join("|")}
 const hundreds = `(?:(?:(?:a|${units.slice(1, 10).join("|")}) )?hundred(?: (?:and )?${small})?|${small})`;
 const words = `(?:(?:a|${hundreds}) thousand(?: (?:and )?${hundreds})?|${hundreds})`;
 const digits = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?`;
-const currency = new RegExp(String.raw`(?:\$\s*|\bUSD\s+)(${digits})(?:[ -]+(?:dollars?|USD)\b)?|\b(${digits})[ -]*(?:dollars?|USD)\b|\b(${words})[ -]+dollars?\b`, "gi");
+const currency = new RegExp(String.raw`(?:\$\s*|\bUSD\s+)(${digits})(?:[ -]+(?:dollars?|bucks?|USD)\b)?|\b(${digits})[ -]*(?:dollars?|bucks?|USD)\b|\b(${words})[ -]+(?:dollars?|bucks?)\b`, "gi");
 
 const initialCurrency = new RegExp(`^(?:${currency.source})`, "i");
 const initialDigits = new RegExp(`^(${digits})(?=\\s|$)`, "i");
@@ -56,6 +56,13 @@ function leadingAmount(text: string) {
   return Number.isFinite(amount) ? { amount, text: value.slice(match[0].length).trim() } : null;
 }
 
+const lowerBound = "above|over|more than|greater than|at least";
+const upperBound = "no more than|no higher than|under|below|less than|up to|at most";
+const boundPattern = new RegExp(`\\b(${upperBound}|${lowerBound})\\s+`, "i");
+const upperBoundPattern = new RegExp(`^(?:${upperBound})$`, "i");
+const inclusiveLower = /^(?:at least)$/i;
+const inclusiveUpper = /^(?:no more than|no higher than|up to|at most)$/i;
+
 type PrizeBudget = { minimum?: number; exclusiveMinimum?: boolean; maximum: number | null; inclusive: boolean };
 
 function searchBudget(normalized: string, products: readonly { retailer: string }[]): { text: string; budget: PrizeBudget } | null {
@@ -67,38 +74,60 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
     text: `${range[1]} ${last.text}`.trim(),
     budget: { minimum: Math.min(first.amount, last.amount), maximum: Math.max(first.amount, last.amount), inclusive: true },
   };
+  const bareRange = /^(.*?)(\$?\d[\d,.]*)\s*(?:to|through|-)\s*(\$?\d[\d,.]*)(?=\s|$)(.*)$/i.exec(normalized);
+  if (bareRange && (bareRange[2].startsWith("$") || bareRange[3].startsWith("$") || /\bgift card\b/i.test(normalized))) {
+    const low = leadingAmount(bareRange[2]);
+    const high = leadingAmount(bareRange[3]);
+    if (low && high) return {
+      text: `${bareRange[1]} ${bareRange[4]}`.trim(),
+      budget: { minimum: Math.min(low.amount, high.amount), maximum: Math.max(low.amount, high.amount), inclusive: true },
+    };
+  }
   const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above)|or more)\s*$/i.exec(normalized);
   const minimumValue = minimumPhrase ? extractValues(minimumPhrase[1], products) : null;
   if (minimumValue?.values.size === 1) {
     const minimum = [...minimumValue.values][0];
     if (Number.isFinite(minimum)) return { text: minimumValue.text, budget: { minimum, maximum: null, inclusive: true } };
   }
-  const lower = /^(.*?)\b(above|over|more than|greater than|at least)\s+(.+)$/i.exec(normalized);
-  const lowerAmount = lower && leadingAmount(lower[3]);
-  if (lower && lowerAmount) return {
-    text: `${lower[1]} ${lowerAmount.text}`.trim(),
-    budget: { minimum: lowerAmount.amount, exclusiveMinimum: lower[2].toLowerCase() !== "at least", maximum: null, inclusive: true },
-  };
-  const leading = /^(.*?)\b(under|below|less than|up to|at most)\s+(.+)$/i.exec(normalized);
-  const trailing = /^(.*)\b(?:and|or)\s+(under|below|less)\s*$/i.exec(normalized);
-  const boundText = leading?.[3].trim().replace(/[.!?]$/, "");
-  const bareBound = boundText?.match(new RegExp(`^(${digits})(?=\\s|$)`, "i"));
-  const parsedBound = bareBound && boundText ? { text: boundText.slice(bareBound[0].length).trim(), values: new Set([Number(bareBound[1].replaceAll(",", ""))]) } : boundText ? extractValues(boundText, []) : trailing ? extractValues(trailing[1], products) : null;
-  if (parsedBound?.values.size !== 1 || (boundText && parsedBound.text && !bareBound && !initialCurrency.test(boundText))) return null;
-  const maximum = [...parsedBound.values][0];
-  if (!Number.isFinite(maximum)) return null;
-  return {
-    text: (leading ? `${leading[1]} ${parsedBound.text}` : parsedBound.text).trim(),
-    budget: { maximum, inclusive: !leading || /^(?:up to|at most)$/i.test(leading[2]) },
-  };
+  const bound = boundPattern.exec(normalized);
+  const firstBound = bound && leadingAmount(normalized.slice(bound.index + bound[0].length).replace(/[.!?]$/, ""));
+  if (bound && firstBound) {
+    const firstIsUpper = upperBoundPattern.test(bound[1]);
+    const remainder = /^and\s+(.+)$/i.exec(firstBound.text);
+    const other = remainder && boundPattern.exec(remainder[1]);
+    const secondIsUpper = other && upperBoundPattern.test(other[1]);
+    const second = remainder && other?.index === 0 && secondIsUpper !== firstIsUpper
+      ? leadingAmount(remainder[1].slice(other[0].length)) : null;
+    const text = `${normalized.slice(0, bound.index)} ${second?.text ?? firstBound.text}`.trim();
+    const lower = firstIsUpper ? second?.amount : firstBound.amount;
+    return {
+      text,
+      budget: {
+        minimum: lower,
+        exclusiveMinimum: lower === undefined ? undefined : !inclusiveLower.test(firstIsUpper ? other?.[1] ?? "" : bound[1]),
+        maximum: firstIsUpper ? firstBound.amount : second?.amount ?? null,
+        inclusive: firstIsUpper ? inclusiveUpper.test(bound[1]) : second && other ? inclusiveUpper.test(other[1]) : true,
+      },
+    };
+  }
+  const trailing = /^(.*)\b(?:and|or)\s+(?:under|below|less)\s*$/i.exec(normalized);
+  const maximum = trailing && extractValues(trailing[1], products);
+  if (maximum?.values.size !== 1) return null;
+  const amount = [...maximum.values][0];
+  return Number.isFinite(amount) ? { text: maximum.text, budget: { maximum: amount, inclusive: true } } : null;
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
-  const normalized = query.replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
-  const range = normalized.length <= 512 ? searchBudget(normalized, products) : null;
+  let normalized = query.replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
+  if (normalized.length <= 512 && /\bgc\b/i.test(normalized)) {
+    const retailer = retailerName(extractValues(normalized.replace(/\bgc\b/gi, " "), products).text);
+    if (products.some(product => retailerName(product.retailer) === retailer)) normalized = normalized.replace(/\bgc\b/gi, "gift card");
+  }
+  const exactPhrase = normalized.replace(/\bonly\b[.!?]?/gi, " ").trim();
+  const strippedOnly = /\bonly\b/i.test(normalized);
+  const range = normalized.length <= 512 ? searchBudget(strippedOnly ? exactPhrase : normalized, products) : null;
   const budget = range?.budget ?? null;
-  const exactPhrase = normalized.replace(/\s+only[.!?]?\s*$/i, "");
-  const exact = exactPhrase !== normalized ? extractValues(exactPhrase, products) : null;
+  const exact = strippedOnly ? extractValues(exactPhrase, products) : null;
   const exactOnly = !budget && Boolean(exact?.values.size);
   const { text, values } = range
     ? { text: range.text, values: new Set<number>() }

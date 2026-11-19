@@ -17,10 +17,10 @@ export function openWalletPanel(hash: string, state: object | null = null, repla
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id, moveFocus = false) {
+export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id, moveFocus = false, keepFocusedControl = false) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const target = (window.innerWidth <= 767 ? document.getElementById(mobileId) : null) ?? document.getElementById(id);
-    if (!target) return;
+    if (!target || (keepFocusedControl && target.contains(document.activeElement))) return;
     const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
     window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - header - 12), behavior: "auto" });
     if (moveFocus) target.querySelector<HTMLElement>("h2[tabindex], h3[tabindex]")?.focus({ preventScroll: true });

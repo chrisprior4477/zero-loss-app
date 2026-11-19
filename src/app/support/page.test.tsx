@@ -299,12 +299,19 @@ test("conversation dates retain an international account's time zone without tec
   expect(screen.queryByText(/Asia\/Tokyo/)).toBeNull();
 });
 test("older conversation pages can navigate back without hiding the latest reply behind a limit", async () => {
-  const events = query([]);
+  const events = query([{ id: "older-reply", actor_kind: "staff", body: "Previous update", status: "open", created_at: "2026-11-19T12:00:00Z" }]);
   mocks.from.mockImplementation(table => table === "support_cases" ? query({ id: caseId, case_number: "sup_test", subject: "Funding question", status: "open", customer_id: own }) : events);
   render(await SupportPage({ searchParams: Promise.resolve({ case: caseId, messages: "2" }) }));
   expect(events.range).toHaveBeenCalledWith(50, 100);
   expect(screen.getByRole("link", { name: /Return to the latest messages/ }).getAttribute("href")).toBe(`/support?case=${caseId}#conversation`);
 });
+test("an obsolete empty conversation page returns to the latest replies", async () => {
+  const events = query([]);
+  mocks.from.mockImplementation(table => table === "support_cases" ? query({ id: caseId, case_number: "sup_test", subject: "Funding question", status: "open", customer_id: own }) : events);
+  await expect(SupportPage({ searchParams: Promise.resolve({ case: caseId, messages: "99" }) }))
+    .rejects.toMatchObject({ digest: expect.stringContaining(`/support?case=${caseId}#conversation`) });
+});
+
 test("a missing or unauthorized case never produces a reply form", async () => {
   mocks.from.mockReturnValue(query(null));
   render(await SupportPage({ searchParams: Promise.resolve({ case: caseId }) }));

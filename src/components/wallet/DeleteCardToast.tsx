@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
@@ -11,6 +11,13 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }:
   mobileCard?: string;
 }) {
   const description = useId();
+  const notice = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (busy || !message) return;
+    const error = notice.current;
+    const dialog = error?.closest("dialog");
+    if (error && (document.activeElement === document.body || document.activeElement === dialog)) error.focus();
+  }, [busy, message]);
   const [deadline] = useState(() => Date.now() + 30_000);
   const [seconds, setSeconds] = useState(30);
   useDialogBack(Boolean(mobileCard), onUndo, busy, true);
@@ -32,11 +39,11 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }:
       </div>
       <EntryUndoCountdown seconds={seconds} />
     </div>
-    {message ? <p role="alert">{message}</p> : null}
+    {message ? <p ref={notice} tabIndex={-1} role="alert">{message}</p> : null}
     <div className={styles.deleteToastActions}><button type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else onDelete(); }}>{busy ? "Deleting…" : "Yes, delete"}</button><button type="button" disabled={busy} onClick={onUndo}>Undo</button></div>
   </>;
   if (mobileCard) return <FundingNoticeDialog label="Delete saved card" description={description}
-    closeLabel="Keep saved card" onClose={onUndo} tone="delete" busy={busy}>
+    closeLabel="Keep saved card" onClose={onUndo} tone="delete" busy={busy} revealTrigger>
     <div className={styles.deleteDialogContent}>{content}</div>
   </FundingNoticeDialog>;
   return <div className={styles.deleteToast} role="status">{content}</div>;

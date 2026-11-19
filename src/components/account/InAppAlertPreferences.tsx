@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { setInAppAlertPreference } from "@/lib/account/notification-preference-actions";
 import type { NotificationPreferenceKey, NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -24,7 +25,10 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
   const errorId = useId();
   const changedControl = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
-    if (!saving && failedChoice && document.activeElement === document.body) changedControl.current?.focus();
+    const control = changedControl.current;
+    if (saving || !failedChoice || !control || (document.activeElement !== document.body && document.activeElement !== control)) return;
+    control.focus({ preventScroll: true });
+    revealBelowHeader(control.closest("label") ?? control);
   }, [saving, failedChoice]);
 
   function change(key: NotificationPreferenceKey, control: HTMLInputElement) {
@@ -53,11 +57,12 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
     <p>Choose which optional updates appear here. Your records remain in their account sections. Account and security notices stay on.</p>
     <div className={styles.preferenceGrid}>
       {choices.filter(choice => supportEnabled || choice.key !== "support_replies").map(choice => <label key={choice.key} className={styles.preferenceChoice}>
-        <span><strong>{choice.label}</strong><small>{choice.description}</small></span>
+        <span><strong>{choice.label}</strong><small>{choice.description}</small>
+          {failedChoice === choice.key && message ? <small id={errorId} role="alert" className={styles.preferenceError}>{message}</small> : null}</span>
         <input type="checkbox" checked={pendingChoice?.key === choice.key ? pendingChoice.enabled : initialPreferences?.[choice.key] !== false} onChange={event => change(choice.key, event.currentTarget)} aria-describedby={failedChoice === choice.key ? errorId : undefined} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
       </label>)}
     </div>
     {initialPreferences === null ? <p role="status">Alert settings are temporarily unavailable; all verified updates remain visible.</p> : null}
-    {message ? <p id={errorId} role={failedChoice ? "alert" : "status"} data-saving={pendingChoice !== null}>{message}</p> : null}
+    {message && !failedChoice ? <p role="status">{message}</p> : null}
   </section>;
 }

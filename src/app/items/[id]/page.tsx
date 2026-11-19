@@ -1,3 +1,4 @@
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { SharedProductControls } from "@/components/product/SharedProductControls";
 import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
@@ -56,7 +57,17 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
-  if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
+  if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) {
+    if (savedResult) redirect(savedResult.href);
+    const rewardShelf = browseReturnHref.startsWith("/rewards/");
+    const back = rewardShelf ? `${browseReturnHref.split("#")[0]}#reward-values` : browseReturnHref;
+    return <div className="mx-auto max-w-3xl px-5 py-9 text-white">
+      <HelpLandingScroll target="closed-prize" focusAnchor="closed-prize" />
+      <h1 id="closed-prize" tabIndex={-1} className="text-3xl font-black">{product.title}</h1>
+      <p role="status" className="mt-3 text-white/80">This offering is closed. Choose an available prize to enter.</p>
+      <Link href={back} className="mt-5 inline-block font-bold text-cyan-300 underline">← Back to {browseReturnLabel}</Link>
+    </div>;
+  }
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
   const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);

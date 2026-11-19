@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { checkSupportMessage, saveSupportCase, type SupportActionState } from "@/lib/support/actions";
@@ -50,6 +50,9 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const pickedOrder = record?.kind === "order" ? record.id : "";
   const effectiveOrigin = pickedOrder ? "order:all" : pickedTransaction ? "wallet" : transactionOrigin;
   const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : "new");
+  const lengthErrorId = useId();
+  const bodyLimit = 4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length;
+  const extraCharacters = Math.max(0, body.length - bodyLimit);
   const attempted = useRef<FormData | null>(null);
   const restored = useRef(false);
   useLayoutEffect(() => {
@@ -128,7 +131,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}${caseContext}#conversation`}>View your case →</Link></div>;
   return <form onSubmit={event => {
     event.preventDefault();
-    if (locked || sending.current) return;
+    if (locked || sending.current || extraCharacters > 0) return;
     const data = new FormData(event.currentTarget);
     data.set("requestKey", crypto.randomUUID());
     sending.current = true;
@@ -147,7 +150,11 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       </select></span></label>
       <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value, subjectEdited: allowRecordPicker })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
-    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
+    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={bodyLimit} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={extraCharacters > 0 || (state.status === "error" && state.field === "body") || undefined}
+        aria-describedby={["support-privacy", extraCharacters > 0 ? lengthErrorId : "", state.status === "error" && state.field === "body" ? "support-error" : ""].filter(Boolean).join(" ")} disabled={locked} /></span></label>
+    {extraCharacters > 0 ? <p id={lengthErrorId} role="alert" className="text-sm font-bold">
+      Trim {extraCharacters} {extraCharacters === 1 ? "character" : "characters"} to fit the {bodyLimit.toLocaleString("en-US")}-character limit.
+    </p> : null}
     <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {attachedOrder ? "The selected order is already attached." : transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
     {allowRecordPicker ? <SupportRecordPicker record={record} onChange={changeRecord} timeZone={timeZone} disabled={locked} /> : null}
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
@@ -168,7 +175,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         sending.current = true;
         startTransition(() => action(attempted.current!));
       }}>Resend same message</button> : null}
-    </> : <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
+    </> : <button type="submit" disabled={pending || extraCharacters > 0} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
     {hasDraftChanges(draft, initialDraft) ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={event => {
       const form = event.currentTarget.form;
       setDraft(initialDraft);

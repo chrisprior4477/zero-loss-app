@@ -33,7 +33,7 @@ export function CrewRail({ label, children, tools, kind, count }: { label: strin
     const observer = new ResizeObserver(update); observer.observe(element);
     return () => { observer.disconnect(); element.removeEventListener("scroll", update); };
   }, [count, rail]);
-  const controls = <div className={styles.railControls}>{tools}<span className={styles.railCount}>{count ? `${position.first} / ${count}` : "0"}</span><button type="button" aria-label={`Previous ${kind === "people" ? "Crew member" : "shared pick"}`} disabled={position.start} onClick={() => move(-1)}>←</button><button type="button" aria-label={`Next ${kind === "people" ? "Crew member" : "shared pick"}`} disabled={position.end} onClick={() => move(1)}>→</button></div>;
+  const controls = <div className={styles.railControls}>{tools}<span className={styles.railCount} aria-live="polite" aria-atomic="true">{count ? `${position.first} / ${count}` : "0"}</span><button type="button" aria-label={`Previous ${kind === "people" ? "Crew member" : "shared pick"}`} aria-disabled={position.start} onClick={() => { if (!position.start) move(-1); }}>←</button><button type="button" aria-label={`Next ${kind === "people" ? "Crew member" : "shared pick"}`} aria-disabled={position.end} onClick={() => { if (!position.end) move(1); }}>→</button></div>;
   return <div className={`${styles.carousel} ${kind === "people" ? styles.peopleCarousel : styles.picksCarousel}`}>
     {kind === "people" ? <div className={styles.peopleHeading}><h2>People in your Crew</h2>{controls}</div> : null}
     <div className={styles.railWindow}><div ref={rail} className={kind === "people" ? styles.peopleRail : styles.picksRail} role="group" aria-roledescription="carousel" aria-label={label} tabIndex={0}

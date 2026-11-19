@@ -12,7 +12,7 @@
 .connectedSpace { padding:18px; background:#0874ff; border-radius:18px; }
 .connectedSpace *, .shareDialog *, .finder * { box-sizing:border-box; }
 .connectedSpace button { font:inherit; cursor:pointer; }
-.connectedSpace button:disabled { cursor:default; opacity:.42; }
+.connectedSpace button:is(:disabled, [aria-disabled="true"]) { cursor:default; opacity:.42; }
 .connectedSpace :is(button,a,[tabindex]):focus-visible, .navigation :is(button,a):focus-visible { outline:3px solid #ff9b39; outline-offset:3px; }
 .peopleHeading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; color:#fff; }
 .peopleHeading h2 { font-size:18px; font-weight:850; letter-spacing:-.02em; }

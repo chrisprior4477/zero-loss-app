@@ -5,7 +5,7 @@ import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { createPortal } from "react-dom";
 import styles from "./whole-dollar-toast.module.css";
 
-export function FundingNoticeDialog({ label, description, closeLabel, onClose, children, tone, busy = false }: {
+export function FundingNoticeDialog({ label, description, closeLabel, onClose, children, tone, busy = false, revealTrigger = false }: {
   label: string;
   description: string;
   closeLabel: string;
@@ -13,6 +13,7 @@ export function FundingNoticeDialog({ label, description, closeLabel, onClose, c
   children: ReactNode;
   tone?: "credited" | "delete";
   busy?: boolean;
+  revealTrigger?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -31,9 +32,9 @@ export function FundingNoticeDialog({ label, description, closeLabel, onClose, c
       element.close();
       style.overflow = overflow;
       style.scrollbarGutter = scrollbarGutter;
-      restoreDialogTrigger(source);
+      restoreDialogTrigger(source, revealTrigger);
     };
-  }, []);
+  }, [revealTrigger]);
 
   return createPortal(
     <dialog ref={dialog} className={styles.dialog} aria-label={label} aria-describedby={description}

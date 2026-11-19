@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { restoreDialogTrigger, tabbableControls } from "@/components/account/dialog-keyboard";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import styles from "./wallet-roller-picker.module.css";
 
@@ -26,7 +27,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
   options: Choice[];
   value: string;
   onChange: (value: string) => void;
-  onClose: (restoreFocus?: boolean) => void;
+  onClose: (restoreFocus?: boolean, direction?: -1 | 1) => void;
 }) {
   const popup = useRef<HTMLDivElement>(null);
   const wheel = useRef<HTMLDivElement>(null);
@@ -106,7 +107,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
       }}
       onKeyDown={event => {
         if (event.key === "Escape") { event.preventDefault(); onClose(true); return; }
-        if (event.key === "Tab") { onClose(true); return; }
+        if (event.key === "Tab") { event.preventDefault(); onClose(true, event.shiftKey ? -1 : 1); return; }
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault(); choose(options[browseIndex.current]); return;
         }
@@ -144,10 +145,18 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   const unavailable = disabled || options.length === 0;
   useDialogBack(open && !unavailable, () => close(true), false, true, nestedHistory);
   if (unavailable && open) setOpen(false);
-  function close(restoreFocus = false) {
+  function close(restoreFocus = false, direction?: -1 | 1) {
     setOpen(false);
     if (restoreFocus) {
       const opener = trigger.current;
+      if (opener && direction) {
+        const modal = opener.closest("dialog[open], [role=dialog][aria-modal=true]");
+        const controls = tabbableControls(modal ?? document);
+        const index = controls.indexOf(opener);
+        const adjacent = controls[index + direction] ?? (modal ? controls.at(direction === 1 ? 0 : -1) : undefined);
+        restoreDialogTrigger(adjacent ?? opener, true);
+        return;
+      }
       opener?.focus({ preventScroll: true });
       requestAnimationFrame(() => {
         if (opener?.isConnected && document.activeElement === document.body) opener.focus({ preventScroll: true });

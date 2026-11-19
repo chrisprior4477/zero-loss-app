@@ -38,6 +38,30 @@ describe("catalog search", () => {
     expect(matches.length).toBeGreaterThan(0);
     expect(matches.every(product => product.value === 100 && product.title.includes("Gift Card") && product.retailer.startsWith("Walmart"))).toBe(true);
   });
+  test.each([
+    ["Walmart gift cards no more than $75", [25, 50, 75]],
+    ["Walmart gift cards at least $25 and under $75", [25, 50]],
+    ["Walmart gift cards under $75 and above $25", [50]],
+    ["Walmart gift cards $25 to $75", [25, 50, 75]],
+    ["Walmart gift cards above $50 only", [75, 100]],
+    ["Walmart gift cards 75 bucks", [75]],
+  ])("applies the requested prize values for %s", (query, expected) => {
+    const cards = searchCatalog(demoProducts, query);
+    expect(cards.every(card => card.retailer.startsWith("Walmart") && card.title.includes("Gift Card"))).toBe(true);
+    expect([...new Set(cards.map(card => card.value))].sort((a, b) => a - b)).toEqual(expected);
+  });
+
+  test.each(["Only $100 Walmart gift cards", "Walmart gift cards only $100"])("keeps exact-only meaning for %s", query => {
+    const results = searchCatalogMatches(demoProducts, query, undefined, { includeLowerGiftCards: true });
+    expect(results[0]?.product.slug).toBe("walmart-100-gift-card");
+    expect(results.every(result => result.product.value === 100)).toBe(true);
+  });
+
+  test("recognizes retailer gift-card shorthand and avoids unrelated App Store matches", () => {
+    expect(searchCatalog(demoProducts, "Home Depot GC")).toEqual(searchCatalog(demoProducts, "Home Depot gift card"));
+    expect(searchCatalog(demoProducts, "App Store giftcards")).toEqual([]);
+  });
+
   test("an exact-only gift-card query prioritizes the standard card and excludes lower values", () => {
     const results = searchCatalogMatches(demoProducts, "Walmart $100 gift card only", undefined, { includeLowerGiftCards: true });
     expect(results[0]?.product.slug).toBe("walmart-100-gift-card");

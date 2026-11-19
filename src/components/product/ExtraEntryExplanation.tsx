@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
+import { useDialogBack } from "@/components/account/useDialogBack";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./extra-entry-explanation.module.css";
 
 type Props = {
@@ -16,6 +18,7 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
   const close = useRef<HTMLButtonElement>(null);
   const details = useRef<HTMLDetailsElement>(null);
   const titleId = useId();
+  useDialogBack(true, onClose, false, true);
   const remaining = Math.max(0, productValue - entryPrice);
 
   useEffect(() => {
@@ -30,11 +33,11 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
     return () => {
       desktop?.removeEventListener("change", syncDetails);
       document.documentElement.style.overflow = overflow;
-      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      restoreDialogTrigger(previous);
     };
   }, []);
 
-  return <dialog ref={dialog} aria-labelledby={titleId} className={styles.ticket} onClose={onClose}
+  return <dialog ref={dialog} aria-labelledby={titleId} className={styles.ticket} onClose={onClose} onKeyDown={containDialogTab}
     onClick={event => { if (event.target === event.currentTarget) {
       const rect = event.currentTarget.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();

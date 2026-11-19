@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { CatalogRequestForm } from "@/components/catalog/CatalogRequestForm";
 
 export function ProductSuggestion({ ownerId }: { ownerId?: string }) {
@@ -12,8 +13,10 @@ export function ProductSuggestion({ ownerId }: { ownerId?: string }) {
       panel.current.open = true;
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        panel.current?.scrollIntoView({ block: "start" });
-        panel.current?.querySelector("input")?.focus({ preventScroll: true });
+        if (window.location.hash !== "#product-request") return;
+        const field = panel.current?.querySelector<HTMLElement>("#requested-item");
+        field?.focus({ preventScroll: true });
+        if (field) revealBelowHeader(field);
       });
     };
     revealTarget();

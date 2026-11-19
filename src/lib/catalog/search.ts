@@ -18,6 +18,7 @@ export function searchCatalogMatches(
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
+  const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size > 0;
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (!values.size || values.has(product.value)
@@ -25,6 +26,7 @@ export function searchCatalogMatches(
     && (budget?.minimum === undefined || (budget.exclusiveMinimum ? product.value > budget.minimum : product.value >= budget.minimum))
     && (budget?.maximum == null || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
     && (!giftCards || isGiftCardListing(product))
+    && (!appStoreGiftCard || /\b(?:app store|itunes)\b/.test(normalizeSearch(`${product.title} ${product.retailer}`)))
     && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
   const documents = candidates.map(product => {

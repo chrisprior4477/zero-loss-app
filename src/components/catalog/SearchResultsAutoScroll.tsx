@@ -3,7 +3,21 @@
 import { useLayoutEffect } from "react";
 
 type BrowseFocusTarget = "heading" | "ticket-range" | "first-prize" | "product-request";
-let requestedFocus: { href: string; target: BrowseFocusTarget } | null = null;
+let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
+
+function takeBrowseFocus() {
+  if (!requestedFocus) return null;
+  if (requestedFocus.expires < Date.now()) { requestedFocus = null; return null; }
+  const destination = new URL(requestedFocus.href, window.location.origin);
+  const current = new URL(window.location.href);
+  destination.searchParams.sort();
+  current.searchParams.sort();
+  if (current.pathname !== destination.pathname || current.search !== destination.search
+    || (destination.hash && current.hash && current.hash !== destination.hash)) return null;
+  const target = requestedFocus.target;
+  requestedFocus = null;
+  return target;
+}
 
 function focusBrowseResults(target: BrowseFocusTarget) {
   const destination = target === "ticket-range"
@@ -16,15 +30,15 @@ function focusBrowseResults(target: BrowseFocusTarget) {
 }
 
 export function requestBrowseResultsFocus(href: string, target: BrowseFocusTarget = "heading") {
-  const request = { href, target };
+  const request = { href, target, expires: Date.now() + 5000 };
   requestedFocus = request;
   // Choosing the current category can leave the existing page mounted.
   const destination = new URL(href, window.location.origin);
   if (window.location.pathname !== destination.pathname || window.location.search !== destination.search) return;
   requestAnimationFrame(() => {
     if (requestedFocus !== request) return;
-    requestedFocus = null;
-    focusBrowseResults(target);
+    const next = takeBrowseFocus();
+    if (next) focusBrowseResults(next);
   });
 }
 
@@ -64,14 +78,14 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
             : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
-      const focusResults = requestedFocus && window.location.href === new URL(requestedFocus.href, window.location.origin).href ? requestedFocus.target : null;
-      requestedFocus = null;
+      let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
       const focusTarget = footerField ?? invalidSearchInput ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
+        if (!focused) focusResults = takeBrowseFocus() ?? focusResults;
         if (!focused || (focusResults !== "first-prize" && focusResults !== "product-request")) {
           document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }

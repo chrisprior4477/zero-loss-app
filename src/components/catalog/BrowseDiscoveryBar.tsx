@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrowseResultsLink } from "./BrowsePrizeLink";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
@@ -197,9 +198,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link scroll={false} href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} onNavigate={() => requestBrowseResultsFocus(`${withoutBudget.pathname}${withoutBudget.search}#search-results`)} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` · ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
-      {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
-      {!props.filters.retailer && props.selectedRetailerGroup ? <Link href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</Link> : null}
-      {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
+      {props.filters.retailer ? <BrowseResultsLink target="heading" href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</BrowseResultsLink> : null}
+      {!props.filters.retailer && props.selectedRetailerGroup ? <BrowseResultsLink target="heading" href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</BrowseResultsLink> : null}
+      {activeCount > 0 || props.filters.retailer || props.subcategory ? <BrowseResultsLink target="heading" href={`${props.clearHref}#search-results`}>Clear filters</BrowseResultsLink> : null}
     </div> : null}
     {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
@@ -115,7 +116,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const revealSaveError = useRef(false);
   const [groupMessage, setGroupMessage] = useState("");
   const [groupMessageError, setGroupMessageError] = useState(false);
-  const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean } | null>(null);
+  const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean; field?: "name" } | null>(null);
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -277,7 +278,10 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     if (conflictingGroups.has(group.id)) return;
     const name = group.name.trim();
     if (!name || name.length > 50 || groups.some((item) => item.id !== group.id && item.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())) {
-      setEditorMessage({ id: group.id, text: "Give this group a unique name of 1–50 characters.", error: true });
+      setEditorMessage({ id: group.id, text: "Give this group a unique name of 1–50 characters.", error: true, field: "name" });
+      const field = document.getElementById(`crew-group-name-${group.id}`);
+      field?.focus({ preventScroll: true });
+      requestAnimationFrame(() => { if (field?.isConnected) revealBelowHeader(field); });
       return;
     }
     startTransition(async () => {
@@ -311,6 +315,11 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       discardGroup(group.id);
       setGroupMessage(`${group.name} removed.`);
       setGroupMessageError(false);
+      requestAnimationFrame(() => {
+        const field = document.getElementById("new-crew-group");
+        field?.focus({ preventScroll: true });
+        if (field) revealBelowHeader(field);
+      });
       return;
     }
     setEditorMessage(null);
@@ -442,7 +451,10 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
               <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => { setRemovingGroupId(null); setExpandedGroupId(expanded ? null : group.id); }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
                 {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
-                <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`} value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
+                <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`}
+                  aria-invalid={editorMessage?.id === group.id && editorMessage.field === "name" || undefined}
+                  aria-describedby={editorMessage?.id === group.id && editorMessage.field === "name" ? `crew-group-message-${group.id}` : undefined}
+                  value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setEditorMessage(current => current?.id === group.id && current.field === "name" ? null : current); setSaved(false); }} /></label>
                 <div className={styles.memberEditor}>
                   <div className={styles.memberPickerHeading}><strong>People in this group</strong><span>{group.memberIds.length ? "Use Remove to take someone out of this group." : "No one added yet."}</span></div>
                   {group.memberIds.length ? <div className={styles.memberChips}>{group.memberIds.map((id) => {
@@ -456,7 +468,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
                 {conflictingGroups.has(group.id) ? <div><p role="alert" className={styles.groupError}>This group changed in another tab. Your draft is still here. Load the saved version before editing it again.</p><button type="button" className={styles.addMember} disabled={!available || pending} onClick={() => loadSavedGroup(group.id)}>Load saved group</button></div> : null}
                 <div className={styles.groupActions}><button id={`remove-crew-group-${group.id}`} type="button" className={styles.removeGroup} onClick={() => requestGroupRemoval(group)} disabled={!available || pending || conflictingGroups.has(group.id)}>Remove group</button><button type="button" className={styles.saveGroup} onClick={() => saveGroup(group)} disabled={!available || pending || conflictingGroups.has(group.id)}>{pending ? "Saving…" : "Save group"}</button></div>
                 </>}
-                {editorMessage?.id === group.id ? <p role={editorMessage.error ? "alert" : "status"} className={editorMessage.error ? styles.groupError : styles.groupSaved}>{editorMessage.text}</p> : <p className={styles.groupHint}>Add or remove people, then choose Save group to apply this group’s changes.</p>}
+                {editorMessage?.id === group.id ? <p id={`crew-group-message-${group.id}`} role={editorMessage.error ? "alert" : "status"} className={editorMessage.error ? styles.groupError : styles.groupSaved}>{editorMessage.text}</p> : <p className={styles.groupHint}>Add or remove people, then choose Save group to apply this group’s changes.</p>}
               </div> : null}
             </div>;
           })}</div> : <p className={styles.emptyGroup}>No groups yet. Create a name below; it will open here so you can add people.</p>}

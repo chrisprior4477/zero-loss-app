@@ -71,7 +71,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchBudget = denomination.budget;
   const formatBudget = (value: number) => `$${value.toLocaleString("en-US")}`;
   const searchBudgetLabel = searchBudget?.minimum !== undefined
-    ? searchBudget.maximum === null ? searchBudget.exclusiveMinimum ? `above ${formatBudget(searchBudget.minimum)}` : `${formatBudget(searchBudget.minimum)} and up` : `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}`
+    ? searchBudget.maximum === null ? searchBudget.exclusiveMinimum ? `above ${formatBudget(searchBudget.minimum)}` : `${formatBudget(searchBudget.minimum)} and up` : !searchBudget.exclusiveMinimum && searchBudget.inclusive ? `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}` : `${searchBudget.exclusiveMinimum ? "above" : "at least"} ${formatBudget(searchBudget.minimum)} and ${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}`
     : searchBudget?.maximum != null ? `${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}` : null;
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const requestedFilters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
@@ -194,7 +194,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3 text-left">
       {priceMatchCount ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{priceMatchCount.toLocaleString("en-US")} {priceMatchCount === 1 ? "match is" : "matches are"} {outsideBudget}{categoryScope ? ` in ${categoryScope}` : ""}.</p>
-        <Link href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} prefetch={false} className={recoveryLinkClass}>Remove price filter</Link>
+        <BrowseResultsLink href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} target="heading" className={recoveryLinkClass}>Remove price filter</BrowseResultsLink>
       </div> : null}
       {broaderSearch ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{broaderSearch.count.toLocaleString("en-US")} {broaderSearch.count === 1 ? "match" : "matches"} outside {broaderScope}{budgetLabel ? ` · ${budgetLabel}` : ""}.</p>

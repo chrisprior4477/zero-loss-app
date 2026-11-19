@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { randomUUID } from "node:crypto";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SupportForm } from "@/components/support/SupportForm";
@@ -177,7 +178,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const validReward = typeof query.rewardId === "string" && uuid.test(query.rewardId) ? query.rewardId : null;
   const validDeposit = typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : null;
   const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page || query.view === "inbox" ? "#case-list" : validTransaction || validReward || validDeposit ? "#report-problem" : "");
-  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor="case-list" /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
+  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor={validCase ? "conversation" : "case-list"} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
   if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><AuthDestinationLink page="/forgot-password" returnTo={next} className={button}>Reset your password →</AuthDestinationLink></div><div id="report-problem" tabIndex={-1} className={`${card} ${styles.anchor}`}><p>Sign in to report a problem or view your private support cases.</p><AuthDestinationLink page="/login" returnTo={next} className={`${button} mt-4`}>Sign in to get help</AuthDestinationLink></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
@@ -236,6 +237,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     const headerContext = query.fromUpdates === "1" ? `&fromUpdates=1${query.updateCategory === "support" ? "&updateCategory=support" : ""}` : "";
     const linkedCaseContext = `${caseContext}${headerContext}${ownerCase ? alertContext : ""}${ownerCase && !supportCase.ledger_entry_id ? depositContext : ""}`;
     const caseHref = `/support?case=${validCase}${linkedCaseContext}`;
+    if (messagePage > 0 && !events.error && messages.length === 0) redirect(`${caseHref}#conversation`);
     const rewardId = /^Reward reference: ([a-f0-9-]{36})\n(?:Reward opened from: (?:all|processing|fulfilled|exceptions|payment)\n)?\n/i.exec(openingBody)?.[1];
     const depositId = /^Deposit reference: ([a-f0-9-]{36})\nDeposit amount: /i.exec(openingBody)?.[1];
     const reward = rewardId ? account.activity.activity.find(item => item.rewardId === rewardId) : undefined;
@@ -245,7 +247,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
       {notice && ownerCase && <Link href={notificationHref(alerts ?? "all", notice)} className={button}>Back to this update</Link>}
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
-      <h2 className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>
+      <h2 tabIndex={-1} className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>
       {charge && <div className={`${note} mt-3 text-sm`}><p>Linked wallet transaction: {charge.amount} · {charge.date}</p>
         {orderReturn && <Link href={orderReturn}>Back to this order</Link>}
         {ownerCase && (!orderReturn || !fromOrder) && <Link href={walletView ? walletSupportReturnHref(supportCase.ledger_entry_id, true) : `${walletTransactionsHref.split("#")[0]}&transaction=${supportCase.ledger_entry_id}#transaction-${supportCase.ledger_entry_id}`}>Back to this transaction</Link>}

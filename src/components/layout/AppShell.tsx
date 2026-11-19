@@ -48,7 +48,7 @@ export async function AppShell({ children }: AppShellProps) {
           .map(item => [item.completionOptionId, item.completionOptionStatus, item.status]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))))} /> : null}
       <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <Suspense fallback={null}><ReturnToUpdates /></Suspense>
-      <main id="main-content" className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 scroll-mt-[calc(var(--site-header-height,140px)+12px)] focus:outline-none">
         {children}
       </main>
       <SiteFooter demoSharing={isPreviewDataEnvironment() && account?.wallet?.scope === "demo"} />

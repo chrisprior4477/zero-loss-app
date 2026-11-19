@@ -14,7 +14,7 @@ import walletStyles from "./wallet-overview.module.css";
 import styles from "./wallet-payments.module.css";
 
 const emptyCards: DemoCard[] = [];
-function revealMethods() { revealWalletSection("payment-methods", "payment-methods", true); }
+function revealMethods() { revealWalletSection("payment-methods", "payment-methods", true, true); }
 export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection, walletId }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean; walletId?: string }) {
   const router = useRouter();
   const mobile = useMenuViewport() === "mobile";
@@ -25,6 +25,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const defaultErrorId = useId();
   const failedControl = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState("");
   const deleteRevision = useRef<string | undefined>(undefined);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
   const [preview, setPreview] = useState<{ walletId?: string; token?: DemoCardToken }>({});
@@ -88,7 +89,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
       const url = new URL(anchor.href);
       if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search || !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(url.hash)) return;
-      if (url.hash === "#balance" && anchor.closest(`#wallet-card-editor, #${fundingCardEditorId}`)) {
+      if (url.hash === "#balance" && anchor.closest(`#payment-methods, #${fundingCardEditorId}`)) {
         // The wallet's mobile landing handler may already own the scroll.
         requestAnimationFrame(() => {
           if (window.location.hash === "#balance") document.getElementById("balance")?.focus({ preventScroll: true });
@@ -134,8 +135,16 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   async function removeCard(token: DemoCardToken) {
     setBusy(true);
-    try { const result = await (deleteRevision.current ? deleteDemoPaymentMethod(token, deleteRevision.current) : deleteDemoPaymentMethod(token)); setMessage(result.message); if (result.status === "succeeded") { setCards(current => current.filter(card => card.token !== token)); if (expanded === token) selectPreview(); setDeleting(null); router.refresh(); } }
-    catch { setMessage("Could not confirm the card was removed. Refresh before trying again."); }
+    setDeleteMessage("");
+    try {
+      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(token, deleteRevision.current) : deleteDemoPaymentMethod(token));
+      if (result.status !== "succeeded") { setDeleteMessage(result.message); return; }
+      setMessage(result.message);
+      setCards(current => current.filter(card => card.token !== token));
+      if (expanded === token) selectPreview();
+      setDeleting(null);
+      router.refresh();
+    } catch { setDeleteMessage("Could not confirm the card was removed. Refresh before trying again."); }
     finally { setBusy(false); }
   }
   function acceptSavedCard(card: DemoCard) {
@@ -167,9 +176,9 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
           const next = expanded === card.token ? undefined : card.token;
           selectPreview(next);
           if (mobile) revealWalletSection(next ? `saved-art-${next}` : `saved-card-preview-${card.token}`);
-        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => { deleteRevision.current = card.revision; setDeleting(card.token); }}>Delete Card</button></div>
+        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => { deleteRevision.current = card.revision; setDeleteMessage(""); setDeleting(card.token); }}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
-        {deleting === card.token ? <DeleteCardToast key={card.token} mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
+        {deleting === card.token ? <DeleteCardToast key={card.token} mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>
       {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
       <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>

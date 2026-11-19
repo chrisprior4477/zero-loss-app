@@ -5,6 +5,7 @@ import Link from "next/link";
 import { faqCategories, filterFaqs, type FaqCategory } from "@/lib/help/faq";
 import { FaqAnswer } from "./FaqAnswer";
 import styles from "./help-tickets.module.css";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { faqReturnKey, readFaqReturn, type FaqReturn } from "@/lib/help/faq-return";
 
 export function FaqExplorer() {
@@ -90,6 +91,9 @@ export function FaqExplorer() {
         // Ignore a native toggle caused by restoring the same controlled state.
         if (next !== expanded) { updateBookmark({ expanded: next }); setExpanded(next); }
       }
-    }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{otherTopicMatches ? "No matches in this topic." : query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>{otherTopicMatches ? "Other topics have answers for this search." : "Try different words or contact Support."}</p><div className="mt-4 flex flex-wrap gap-3">{otherTopicMatches ? <button type="button" onClick={() => { changeCategory("all"); document.getElementById("faq-search")?.focus({ preventScroll: true }); }} className={`${styles.ticket} ${styles.button} ${styles.primary}`}>Search all topics</button> : null}<button type="button" onClick={clearQuery} className={`${styles.ticket} ${styles.button}`}>Clear search</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact Support</Link></div></div>}</div>
+    }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{otherTopicMatches ? "No matches in this topic." : query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>{otherTopicMatches ? "Other topics have answers for this search." : "Try different words or contact Support."}</p><div className="mt-4 flex flex-wrap gap-3">{otherTopicMatches ? <button type="button" onClick={() => { changeCategory("all");
+      const field = document.getElementById("faq-search");
+      field?.focus({ preventScroll: true });
+      requestAnimationFrame(() => { if (field && document.activeElement === field) revealBelowHeader(field); }); }} className={`${styles.ticket} ${styles.button} ${styles.primary}`}>Search all topics</button> : null}<button type="button" onClick={clearQuery} className={`${styles.ticket} ${styles.button}`}>Clear search</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact Support</Link></div></div>}</div>
   </section>;
 }

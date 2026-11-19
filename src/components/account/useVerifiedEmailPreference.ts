@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useLayoutEffect, useRef } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { readSavedEmailPreference } from "@/lib/account/read-saved-email-preference";
 import { useServerPreference } from "./useServerPreference";
 
@@ -13,6 +14,7 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
   save: (previous: T, data: FormData) => Promise<T>,
   initialState: T,
 ) {
+  const retryButton = useRef<HTMLButtonElement>(null);
   const preference = useServerPreference(initialEnabled);
   const revision = preference.snapshotRevision;
   const snapshot = useRef({ revision, value: initialEnabled });
@@ -50,5 +52,11 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
     : state.status === "succeeded" && preference.savedValue === null
       ? { status: "idle", message: "" }
       : state;
-  return { preference, action, pending, feedback };
+  useEffect(() => {
+    const button = retryButton.current;
+    if (pending || feedback.status !== "error" || !button || document.activeElement !== document.body) return;
+    button.focus({ preventScroll: true });
+    revealBelowHeader(button);
+  }, [pending, feedback.status]);
+  return { preference, action, pending, feedback, retryButton };
 }
