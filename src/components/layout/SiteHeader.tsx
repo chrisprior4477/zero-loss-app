@@ -7,9 +7,25 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { marketplaceCategoryHref, marketplaceCategoryId, productMatchesMarketplaceCategory } from "@/lib/catalog/navigation";
+import { filterCatalogSubcategory } from "@/lib/catalog/search";
+import { categorySubcategories } from "@/lib/home/placeholder-data";
+
+function indexDepartmentTopics() {
+  return Object.entries(categorySubcategories).flatMap(([department, topics]) => {
+    const category = marketplaceCategoryId(department);
+    if (!category || category === "ending-soon") return [];
+    const catalog = demoProducts.filter(product => productMatchesMarketplaceCategory(product, category));
+    return topics.map(topic => ({
+      href: marketplaceCategoryHref(department, topic),
+      matchingSlugs: filterCatalogSubcategory(catalog, topic).map(product => product.slug),
+    }));
+  });
+}
+let departmentTopics: ReturnType<typeof indexDepartmentTopics> | undefined;
 
 export async function SiteHeader() {
-  const { account, availability, hidden } = await getShoppingCatalog();
+  const { account, availability, hidden, unavailable } = await getShoppingCatalog();
   const activityState = account?.activity ?? { isPreview: false, activity: [], activeCount: null, source: "unavailable" as const };
   const endingSoonItems = demoProducts.filter(product => !hidden.has(product.slug)).map((product) => {
     const current = availability?.[product.slug];
@@ -24,7 +40,9 @@ export async function SiteHeader() {
       remaining: status.remaining,
     }));
 
-  return <ResponsiveSiteHeader endingSoonItems={endingSoonItems} hiddenSlugs={[...hidden]}
+  const unavailableTopics = unavailable ? [] : (departmentTopics ??= indexDepartmentTopics())
+    .filter(topic => topic.matchingSlugs.every(slug => hidden.has(slug))).map(topic => topic.href);
+  return <ResponsiveSiteHeader endingSoonItems={endingSoonItems} hiddenSlugs={[...hidden]} unavailableTopics={unavailableTopics}
       logo={<Link href="/" className="shrink-0" aria-label="ZeroLoss home">
           <Image
             src="/zeroloss-logo.svg"

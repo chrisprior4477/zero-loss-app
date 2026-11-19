@@ -1,5 +1,6 @@
 import { NotificationBannerPicker } from "@/components/account/NotificationBannerPicker";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
+import { accountLanguage } from "@/lib/account/locale";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
@@ -21,9 +22,10 @@ export const metadata: Metadata = { title: "Profile" };
 export default async function ProfilePage() {
   const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", "/account/profile"));
+  const t = accountLanguage(account.preferredLocale);
   const overview = { balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity };
   if (!account.profileSavedFields) {
-    return <AccountSettingsFrame active="profile" overview={overview}><ProfileReadBoundary key={account.userId}>{null}</ProfileReadBoundary></AccountSettingsFrame>;
+    return <AccountSettingsFrame active="profile" locale={account.preferredLocale} overview={overview}><ProfileReadBoundary key={account.userId}>{null}</ProfileReadBoundary></AccountSettingsFrame>;
   }
   const catalog = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
@@ -32,18 +34,18 @@ export default async function ProfilePage() {
   const previewSearchResults = Object.fromEntries(searchExamples.map(query => [query.toLowerCase(), searchCatalog(catalog, query).map(product => ({ title: product.title, image: product.gallery[0].src }))]));
   previewSearchResults["@ending-soon"] = catalog.filter(product => productMatchesMarketplaceCategory(product, "ending-soon")).sort((a, b) => (a.capacity - a.sold) - (b.capacity - b.sold)).map(product => ({ title: product.title, image: product.gallery[0].src }));
   previewSearchResults["@browse"] = catalog.map(product => ({ title: product.title, image: product.gallery[0].src }));
-  return <AccountSettingsFrame active="profile" overview={overview}>
+  return <AccountSettingsFrame active="profile" locale={account.preferredLocale} overview={overview}>
     <ProfileReadBoundary key={account.userId}>
     <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">
-      <div><span className={styles.eyebrow}>PERSONAL PROFILE</span><h2 id="profile-heading">Profile</h2><p>Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.</p></div>
+      <div><span className={styles.eyebrow}>{t("PERSONAL PROFILE", "PERFIL PERSONAL")}</span><h2 id="profile-heading">{t("Profile", "Perfil")}</h2><p>{t("Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.", "Administra tu identidad, tus datos de contacto, tu dirección y tus preferencias. Los cambios se guardan solo en tu cuenta.")}</p></div>
       <div className={styles.profileCard}><ProfilePhotoCard key={account.userId} accountId={account.userId} initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
-      <nav className={styles.profileShortcuts} aria-label="Profile shortcuts">
-        <strong>Jump to</strong>
+      <nav className={styles.profileShortcuts} aria-label={t("Profile shortcuts", "Accesos directos del perfil")}>
+        <strong>{t("Jump to", "Ir a")}</strong>
         <div>
-          <a href="#personal-details-heading">Personal info</a>
-          <a href="#contact-details-heading">Contact</a>
-          <a href="#mailing-address-heading">Mailing address</a>
-          <a href="#personalize-menu-heading">Appearance</a>
+          <a href="#personal-details-heading">{t("Personal info", "Información personal")}</a>
+          <a href="#contact-details-heading">{t("Contact", "Contacto")}</a>
+          <a href="#mailing-address-heading">{t("Mailing address", "Dirección postal")}</a>
+          <a href="#personalize-menu-heading">{t("Appearance", "Apariencia")}</a>
         </div>
       </nav>
     </section>

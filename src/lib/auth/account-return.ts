@@ -16,6 +16,7 @@ const matches = (pattern: RegExp) => (value: string) => pattern.test(value);
 type ReturnRoute = { query: Record<string, (value: string) => boolean>; hash?: RegExp };
 const routes: Record<string, ReturnRoute> = {
   "/contact": { query: {}, hash: /^#message$/ },
+  "/free-entry": { query: { offering: matches(slug), from: value => productBrowseReturnPath(value) !== null, share: matches(uuid), quantity: value => parseEntryQuantity(value) !== null }, hash: /^#free-entry-intro$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), checkout: matches(slug), receipt: matches(uuid), filter: oneOf("all", "active", "prize", "completion", "completed"), from: oneOf("purchase-options"), resume: oneOf("purchase") }, hash: /^#my-activity-filters$/ },
   "/account/declined-offers": { query: { offer: matches(uuid), filter: oneOf("active", "prize", "completion", "completed") }, hash: /^#declined-offer-[0-9a-f-]{36}$/i },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug), view: oneOf("available", "declined"), watch: oneOf("1") }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
@@ -54,6 +55,7 @@ export function accountReturnPath(value: unknown): string | null {
     if (seen.has(key) || !Object.hasOwn(route.query, key) || !route.query[key](entry)) return null;
     seen.add(key);
   }
+  if (url.pathname === "/free-entry" && !seen.has("offering")) return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("depositList") && !(url.searchParams.get("view") === "history" && url.searchParams.has("transaction"))) return null;
   if (url.pathname === "/support" && (url.searchParams.has("checkoutReturn") || url.searchParams.has("entryReturn") || url.searchParams.has("depositList")) && !(url.searchParams.has("case") || url.searchParams.has("deposit"))) return null;
   if (url.pathname.startsWith("/account/entries/") && url.searchParams.has("walletView") && !url.searchParams.has("transaction")) return null;

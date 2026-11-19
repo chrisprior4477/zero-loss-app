@@ -6,6 +6,8 @@ const dollars = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
 const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:dollars?|USD))?$`, "i");
 const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?:\s+(?:dollars?|USD)\b)?(?=\s|$)`, "gi");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
+const markedAmount = String.raw`[+−-]?\s*\$\s*${dollars}`;
+const labeledAlternatives = new RegExp(String.raw`(${markedAmount}(?:\s+or\s+${markedAmount})+)(?=\s|$)`, "i");
 
 function amountCents(token: string) {
   const [whole, fraction = ""] = token.replace(/[^\d.]/g, "").split(".");
@@ -20,8 +22,9 @@ function amountMatch(token: string) {
 
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[]): T[] {
-  const query = rawQuery.trim();
-  if (!query) return entries;
+  const trimmed = rawQuery.trim();
+  if (!trimmed) return entries;
+  const query = trimmed.replace(/[.!?,]+$/, "") || trimmed;
   if (amountOnly.test(query)) {
     const matches = amountMatch(query);
     return entries.filter(entry => matches(entry.amount));
@@ -33,26 +36,32 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     return entries.filter(entry => matches.some(match => match(entry.amount)));
   }
 
+  const labeled = labeledAlternatives.exec(query);
+  const matchingAnyAmount = labeled?.[1].split(/\s+or\s+/i).map(value => amountMatch(value.trim()));
   const amounts: ReturnType<typeof amountMatch>[] = [];
-  let text = query.replace(amountInText, (_, token: string) => {
+  let text = (labeled ? query.replace(labeled[0], " ") : query).replace(amountInText, (_, token: string) => {
     amounts.push(amountMatch(token.trim()));
     return " ";
   });
-  if (amounts.length === 0 && /\b(?:dollars?|USD)\b/i.test(query)) {
-    const spoken = searchDenominations(query, []);
+  const explicitSign = /\b(minus|negative|plus|positive)\s+(?=(?:[a-z -]+|\d+(?:\.\d+)?)\s+(?:dollars?|bucks?)\b)/i.exec(text);
+  if (amounts.length === 0 && !matchingAnyAmount && /\b(?:dollars?|bucks?|USD)\b/i.test(query)) {
+    const spoken = searchDenominations(explicitSign ? text.replace(explicitSign[0], "") : text, []);
     if (!spoken.budget && spoken.values.size) {
       text = spoken.text;
-      for (const value of spoken.values) amounts.push(amountMatch(String(value)));
+      const sign = explicitSign ? /^(?:minus|negative)$/i.test(explicitSign[1]) ? "-" : "+" : "";
+      for (const value of spoken.values) amounts.push(amountMatch(sign + value));
     }
   }
   const normalizedText = normalizeSearch(text);
   const entryPurchasesOnly = /\bposted entries\b/.test(normalizedText);
-  const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase").split(" ").filter(Boolean);
+  const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase")
+    .replace(/\b(refund|purchase|deposit)s\b/g, "$1").replace(/\bentries\b/g, "entry").split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);
-  const mayBeGiftCardTitle = amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);
-  if (!terms.length && !amounts.length) return [];
+  const mayBeGiftCardTitle = !matchingAnyAmount && !explicitSign && amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);
+  if (!terms.length && !amounts.length && !matchingAnyAmount) return [];
   return entries.filter(entry => {
     if (entryPurchasesOnly && entry.entry_type !== "ENTRY_DEBIT") return false;
+    if (matchingAnyAmount && !matchingAnyAmount.some(matches => matches(entry.amount))) return false;
     if (mayBeGiftCardTitle && entry.product) {
       const title = normalizeSearch(entry.product.title);
       const value = faceValue.exec(entry.product.title)?.[1];

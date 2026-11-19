@@ -33,13 +33,6 @@ function textField(formData: FormData, name: string, maxLength: number) {
   return trimmed;
 }
 
-function isCalendarDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
-}
-
 export async function saveProfileDetails(
   _previous: SaveProfileDetailsResult,
   formData: FormData,
@@ -62,7 +55,7 @@ export async function saveProfileDetails(
     const timezone = typeof formData.get("timezone") === "string" ? textField(formData, "timezone", 64) : "";
     if (displayName.length < 2) throw new Error("Enter the name you want displayed on your account.");
     if (!legalFirstName || !legalLastName) throw new Error("Enter your legal first and last name.");
-    if (!isCalendarDate(dateOfBirth) || !isAtLeastAge(dateOfBirth)) {
+    if (!isAtLeastAge(dateOfBirth)) {
       throw new Error(`Enter a valid birth date showing that you are at least ${MIN_ACCOUNT_AGE_YEARS}.`);
     }
     if (phoneNumber && (!/^[0-9+().\-\s]{7,32}$/.test(phoneNumber) || phoneNumber.replace(/\D/g, "").length < 7)) {

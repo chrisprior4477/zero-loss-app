@@ -15,8 +15,9 @@ export function isAtLeastAge(
   }
 
   const [year, month, day] = dateOfBirth.split("-").map(Number);
-  const birthUtc = Date.UTC(year, month - 1, day);
-  if (Number.isNaN(birthUtc)) {
+  const birth = new Date(0);
+  const birthUtc = birth.setUTCFullYear(year, month - 1, day);
+  if (year < 1 || birth.getUTCFullYear() !== year || birth.getUTCMonth() !== month - 1 || birth.getUTCDate() !== day) {
     return false;
   }
 

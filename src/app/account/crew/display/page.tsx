@@ -44,7 +44,7 @@ export default async function CrewDisplayPage() {
     return { id: entry.id, title: item?.title ?? entry.offering_slug.replaceAll("-", " "), retailer: item?.retailer ?? "Zero Loss", image: item?.image ?? null };
   });
 
-  return <AccountSettingsFrame active="sharing" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}><CrewDisplaySettings
+  return <AccountSettingsFrame active="sharing" locale={account.preferredLocale} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}><CrewDisplaySettings
     withinAccountSettings
     ownerId={account.userId}
     available={available}

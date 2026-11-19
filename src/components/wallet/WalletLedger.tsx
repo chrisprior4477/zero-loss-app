@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountLocale } from "@/components/account/TimeZoneProvider";
+
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,8 +40,8 @@ function description(entry: LedgerEntryRow) {
   return [...ledgerDescription(entry.entry_type, entry.product?.title), "Posted"];
 }
 
-function dateLabel(value: string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" }).format(new Date(value));
+function dateLabel(value: string, timeZone: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" }).format(new Date(value));
 }
 
 function inDateRange(entries: LedgerEntryRow[], from: string, through: string, timeZone: string) {
@@ -65,6 +67,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
 }
 
 export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, notificationReturnHref }: { notificationReturnHref?: string; depositList?: boolean; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+  const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [query, setQuery] = useState("");
@@ -331,7 +334,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const selected = entry.id === selectedId;
     return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
       ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
-      <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
+      <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone, locale)}</time>
       <span className={styles.ledgerVisuals}>
         {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
         <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
@@ -412,7 +415,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <summary className={styles.stackSummary} data-layers={Math.min(3, rows.length - 1)}>
               <span className={styles.stackLayer} aria-hidden="true" />
               <span className={styles.stackFace}>
-                <time dateTime={first.created_at}>{dateLabel(first.created_at, timeZone)}</time>
+                <time dateTime={first.created_at}>{dateLabel(first.created_at, timeZone, locale)}</time>
                 {image && <span className={styles.ledgerVisuals}><span className={styles.ledgerProduct}><Image src={image.image} alt="" width={43} height={43} sizes="43px" /></span></span>}
                 <span className={styles.ledgerDescription}>
                   <strong>{hold ? "Entry reservation released" : `${rows.length} entry purchases`}</strong>

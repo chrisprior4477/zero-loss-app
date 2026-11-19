@@ -43,6 +43,22 @@ async function captureBoth(index = 0) {
   return dialog;
 }
 
+test("browser Back closes the camera, releases its stream, and returns to the trigger", async () => {
+  render(<MobileCardCamera token="demo_card_5556" onSaved={vi.fn()} />);
+  const trigger = screen.getByRole("button", { name: "Use camera" });
+  fireEvent.click(trigger);
+  await screen.findByRole("button", { name: "Take front photo" });
+  expect(window.history.state?.zeroLossDialogNested).toBeTruthy();
+
+  act(() => {
+    window.history.replaceState(null, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  expect(screen.queryByRole("dialog", { name: "Sample card camera" })).toBeNull();
+  expect(stop).toHaveBeenCalledOnce();
+  expect(document.activeElement).toBe(trigger);
+});
+
 test.each(["funding-top", "funding-bottom", "methods"])("full sample camera explains the existing card update and preserves defaults from %s", async entry => {
   const cards = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token: fixture.token, lastFour: fixture.lastFour, isDefault: index === 0, isDepositDefault: index === 1 }));
   window.history.replaceState(null, "", "#payment-methods");

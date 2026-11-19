@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PrintSheetButton } from "./PrintSheetButton";
 
@@ -29,9 +30,10 @@ export function Barcode({ value }: { value: string }) {
   return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
 }
 
-type Props = { offeringTitle: string; offeringSlug: string; intro?: ReactNode; footer?: ReactNode; initialLegalName?: string; initialAccountReference?: string };
+type Props = { offeringTitle: string; offeringSlug: string; intro?: ReactNode; footer?: ReactNode; initialLegalName?: string; initialAccountReference?: string; signInHref?: string };
+type PrintDraft = { offering: string; owner: string; name: string; account: string; revision: number };
 
-export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "" }: Props) {
+export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "", signInHref }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
   const postcard = useRef<HTMLDivElement>(null);
@@ -42,19 +44,26 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const printTrigger = useRef<HTMLButtonElement>(null);
   const backButton = useRef<HTMLButtonElement>(null);
   const instructionScroll = useRef<number | null>(null);
+  const latestDraft = useRef<PrintDraft | null>(null);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${accountReference}`), [accountReference, offeringSlug]);
 
   useEffect(() => {
     const restoreView = () => {
       const showingPrint = window.location.hash === printPreviewHash;
-      if (showingPrint) {
-        const saved = window.history.state?.zeroLossPrintDraft;
-        if (saved?.offering === offeringSlug && saved.owner === initialAccountReference && typeof saved.name === "string" && typeof saved.account === "string") {
-          setName(saved.name.slice(0, 80));
-          setAccountReference(initialAccountReference || saved.account.slice(0, 80));
-        }
-        if (instructionScroll.current === null) instructionScroll.current = typeof saved?.scroll === "number" ? saved.scroll : window.scrollY;
+      const saved = window.history.state?.zeroLossPrintDraft;
+      if (saved?.offering === offeringSlug && saved.owner === initialAccountReference && typeof saved.name === "string" && typeof saved.account === "string") {
+        const revision = typeof saved.revision === "number" ? saved.revision : 0;
+        if (!latestDraft.current || latestDraft.current.revision <= revision) latestDraft.current = { ...saved, revision };
       }
+      const current = latestDraft.current;
+      if (current?.offering === offeringSlug && current.owner === initialAccountReference) {
+        setName(current.name.slice(0, 80));
+        setAccountReference(initialAccountReference || current.account.slice(0, 80));
+        if (showingPrint && (saved?.revision ?? -1) < current.revision) {
+          window.history.replaceState({ ...window.history.state, zeroLossPrintDraft: { ...current, scroll: saved?.scroll } }, "");
+        }
+      }
+      if (showingPrint && instructionScroll.current === null) instructionScroll.current = typeof saved?.scroll === "number" ? saved.scroll : window.scrollY;
       setPrintPreview(showingPrint);
     };
     const scrollRestoration = window.history.scrollRestoration;
@@ -68,11 +77,21 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     };
   }, [offeringSlug, initialAccountReference]);
 
+  function updateDraft(nextName: string, nextAccount: string) {
+    setName(nextName);
+    setAccountReference(nextAccount);
+    latestDraft.current = {
+      offering: offeringSlug, owner: initialAccountReference, name: nextName, account: nextAccount,
+      revision: Math.max(Date.now(), (latestDraft.current?.revision ?? 0) + 1),
+    };
+  }
+
   function openPrintPreview() {
     if (window.location.hash === printPreviewHash) return;
     instructionScroll.current = window.scrollY;
     window.history.pushState({ ...window.history.state, zeroLossPrintPreview: true, zeroLossPrintDraft: {
-      offering: offeringSlug, owner: initialAccountReference, name: name.slice(0, 80), account: accountReference.slice(0, 80), scroll: instructionScroll.current,
+      offering: offeringSlug, owner: initialAccountReference, name: name.slice(0, 80), account: accountReference.slice(0, 80),
+      revision: latestDraft.current?.revision ?? 0, scroll: instructionScroll.current,
     } }, "", printPreviewHash);
     setPrintPreview(true);
   }
@@ -83,7 +102,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       setPrintPreview(false);
       return;
     }
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
     setPrintPreview(false);
   }
 
@@ -108,8 +127,10 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     <div className="mx-auto max-w-4xl">
     {intro}
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
-      <label className="text-sm font-bold">Your full legal name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
-      <label className="text-sm font-bold">Zero Loss account reference<input value={accountReference} onChange={(event) => setAccountReference(event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+      <label className="text-sm font-bold">Your full legal name<input value={name} maxLength={80} onChange={(event) => updateDraft(event.target.value, accountReference)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+      <div><label className="block text-sm font-bold">Zero Loss account reference<input value={accountReference} maxLength={80} onChange={(event) => updateDraft(name, event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+        {signInHref ? <Link className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300 underline" href={signInHref}>Sign in to fill your account reference</Link> : null}
+      </div>
     </div>
 
     <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>{addressSide ? "Address side" : "Entry side"}</button></div>

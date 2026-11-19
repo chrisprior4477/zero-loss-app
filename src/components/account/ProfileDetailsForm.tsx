@@ -1,5 +1,6 @@
 "use client";
 
+import { accountLanguage, accountLocale } from "@/lib/account/locale";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AccountIcon } from "./AccountIcon";
@@ -28,8 +29,6 @@ export type ProfileDetails = {
   timezone: string | null;
   savedFields?: ProfileSavedFields;
 };
-
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as const;
 
 function timeZoneLocation(zone: string) {
   return (zone.split("/").at(-1) ?? zone).replaceAll("_", " ");
@@ -69,28 +68,31 @@ function daysInMonth(year: string, month: string) {
   return new Date(Number(year), Number(month), 0).getDate();
 }
 
-function ProfileDateOfBirth({ defaultValue, onClear }: { defaultValue: string | null; onClear: () => void }) {
+function ProfileDateOfBirth({ defaultValue, onClear, locale }: { defaultValue: string | null; onClear: () => void; locale: string }) {
+  const t = accountLanguage(locale);
+  const monthFormat = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" });
   const initial = useMemo(() => splitDate(defaultValue), [defaultValue]);
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
   const [day, setDay] = useState(initial.day);
   const maximumYear = new Date().getFullYear() - 18;
-  const years = useMemo(() => Array.from({ length: 103 }, (_, index) => maximumYear - index), [maximumYear]);
+  const years = Array.from({ length: 103 }, (_, index) => String(maximumYear - index));
+  if (initial.year && !years.includes(initial.year)) years.push(initial.year);
   const maximumDay = daysInMonth(year, month);
   const validDay = Number(day) <= maximumDay ? day : "";
   const dateValue = year && month && validDay ? `${year}-${month.padStart(2, "0")}-${validDay.padStart(2, "0")}` : "";
   const clear = () => { setYear(""); setMonth(""); setDay(""); onClear(); };
 
   return <fieldset className={styles.dateField}>
-    <legend>Date of birth</legend>
+    <legend>{t("Date of birth", "Fecha de nacimiento")}</legend>
     <div className={styles.dateSelects}>
-      <label><span className="sr-only">Birth month</span><select aria-label="Birth month" value={month} required onChange={event => setMonth(event.target.value)}><option value="">Month</option>{MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</select></label>
-      <label><span className="sr-only">Birth day</span><select aria-label="Birth day" value={validDay} required onChange={event => setDay(event.target.value)}><option value="">Day</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-      <label><span className="sr-only">Birth year</span><select aria-label="Birth year" value={year} required onChange={event => setYear(event.target.value)}><option value="">Year</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-      <button type="button" className={styles.clearButton} aria-label="Clear date of birth" onClick={clear}>×</button>
+      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth day", "Día de nacimiento")}</span><select aria-label={t("Birth day", "Día de nacimiento")} value={validDay} required onChange={event => setDay(event.target.value)}><option value="">{t("Day", "Día")}</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => setYear(event.target.value)}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <button type="button" className={styles.clearButton} aria-label={t("Clear date of birth", "Borrar fecha de nacimiento")} onClick={clear}>×</button>
     </div>
     <input type="hidden" name="date_of_birth" value={dateValue} />
-    <small>On a phone, these open your device’s native scrolling selectors.</small>
+    <small>{t("On a phone, these open your device’s native scrolling selectors.", "En un teléfono, estos campos abren los selectores del dispositivo.")}</small>
   </fieldset>;
 }
 
@@ -103,6 +105,8 @@ async function saveProfile(previous: SaveProfileDetailsResult, formData: FormDat
 }
 
 export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
+  const [locale, setLocale] = useState(() => accountLocale(details.preferredLocale));
+  const t = accountLanguage(locale);
   const [showFeedback, setShowFeedback] = useState(false);
   const [baseline, setBaseline] = useState(() => profileEditBaseline({
     display_name: details.displayName, legal_first_name: details.legalFirstName, legal_last_name: details.legalLastName,
@@ -113,6 +117,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const [state, action, pending] = useActionState(async (previous: SaveProfileDetailsResult, data: FormData) => {
     const result = await saveProfile(previous, data);
     if (result.status === "succeeded" && result.appliedFields) {
+      if (result.appliedFields.preferred_locale) setLocale(accountLocale(result.appliedFields.preferred_locale));
       setBaseline(previous => ({
         fields: Object.fromEntries(profileFields.map(key => [key, data.has(key) ? String(data.get(key) ?? "") : previous.fields[key]])) as typeof previous.fields,
         saved: { ...previous.saved, ...result.appliedFields },
@@ -183,7 +188,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     if (data.get("timezone") === "") data.delete("timezone");
     setShowFeedback(true);
     startTransition(() => action(data));
-  }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onChange={() => setShowFeedback(false)} onInput={event => {
+  }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label={t("Edit profile", "Editar perfil")} onChange={() => setShowFeedback(false)} onInput={event => {
     setShowFeedback(false);
     const data = new FormData(event.currentTarget);
     const next = { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
@@ -192,36 +197,36 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     setAddress(next);
   }}>
     <input type="hidden" name="profile_baseline" value={JSON.stringify(baseline)} />
-    <fieldset className={styles.editableFields} disabled={pending} aria-label="Profile details" aria-busy={pending}>
+    <fieldset className={styles.editableFields} disabled={pending} aria-label={t("Profile details", "Datos del perfil")} aria-busy={pending}>
     <section className={styles.formSection} aria-labelledby="personal-details-heading">
-      <header><span>01</span><div><h2 id="personal-details-heading">Personal information</h2><p>Use a display name or alias, and keep your legal identity details accurate.</p></div></header>
+      <header><span>01</span><div><h2 id="personal-details-heading">{t("Personal information", "Información personal")}</h2><p>{t("Use a display name or alias, and keep your legal identity details accurate.", "Usa un nombre visible o un alias y mantén tus datos legales actualizados.")}</p></div></header>
       <div className={styles.fieldGrid}>
-        <Field label="Display name" name="display_name" defaultValue={details.displayName} autoComplete="nickname" className={styles.fullField} required />
-        <Field label="Legal first name" name="legal_first_name" defaultValue={details.legalFirstName} autoComplete="given-name" required />
-        <Field label="Legal last name" name="legal_last_name" defaultValue={details.legalLastName} autoComplete="family-name" required />
-        <div className={styles.fullField}><ProfileDateOfBirth defaultValue={details.dateOfBirth} onClear={() => setShowFeedback(false)} /></div>
+        <Field label={t("Display name", "Nombre visible")} name="display_name" defaultValue={details.displayName} autoComplete="nickname" className={styles.fullField} required />
+        <Field label={t("Legal first name", "Nombre legal")} name="legal_first_name" defaultValue={details.legalFirstName} autoComplete="given-name" required />
+        <Field label={t("Legal last name", "Apellido legal")} name="legal_last_name" defaultValue={details.legalLastName} autoComplete="family-name" required />
+        <div className={styles.fullField}><ProfileDateOfBirth locale={locale} defaultValue={details.dateOfBirth} onClear={() => setShowFeedback(false)} /></div>
       </div>
-      <p className={styles.identityNote}><AccountIcon name="security" /> Legal identity changes are saved only to your signed-in profile and are never exposed through direct database writes.</p>
+      <p className={styles.identityNote}><AccountIcon name="security" /> {t("Legal identity changes are saved only to your signed-in profile and are never exposed through direct database writes.", "Los cambios de identidad legal se guardan solo en tu perfil.")}</p>
     </section>
 
     <section className={styles.formSection} aria-labelledby="contact-details-heading">
-      <header><span>02</span><div><h2 id="contact-details-heading">Contact details</h2><p>Keep your email and phone information current.</p></div></header>
+      <header><span>02</span><div><h2 id="contact-details-heading">{t("Contact details", "Datos de contacto")}</h2><p>{t("Keep your email and phone information current.", "Mantén actualizados tu correo electrónico y tu teléfono.")}</p></div></header>
       <div className={styles.fieldGrid}>
-        <div className={styles.field}><label htmlFor="profile-email">Email address</label><div className={styles.inputWrap}><input id="profile-email" readOnly value={details.email ?? "Not available"} aria-label="Email address" /><small className={details.emailConfirmed ? styles.verified : styles.pending}>{details.emailConfirmed ? "✓ Verified" : "Confirmation pending"}</small></div></div>
-        <Field label="Phone number" name="phone_number" defaultValue={details.phone} type="tel" autoComplete="tel" placeholder="(555) 555-0123" />
+        <div className={styles.field}><label htmlFor="profile-email">{t("Email address", "Correo electrónico")}</label><div className={styles.inputWrap}><input id="profile-email" readOnly value={details.email ?? t("Not available", "No disponible")} aria-label={t("Email address", "Correo electrónico")} /><small className={details.emailConfirmed ? styles.verified : styles.pending}>{details.emailConfirmed ? t("✓ Verified", "✓ Verificado") : t("Confirmation pending", "Confirmación pendiente")}</small></div></div>
+        <Field label={t("Phone number", "Número de teléfono")} name="phone_number" defaultValue={details.phone} type="tel" autoComplete="tel" placeholder="(555) 555-0123" />
       </div>
     </section>
 
     <section className={styles.formSection} aria-labelledby="mailing-address-heading">
-      <header><span>03</span><div><h2 id="mailing-address-heading">Mailing address</h2><p>Add the address you use for account correspondence and eligible fulfillment.</p></div></header>
+      <header><span>03</span><div><h2 id="mailing-address-heading">{t("Mailing address", "Dirección postal")}</h2><p>{t("Add the address you use for account correspondence and eligible fulfillment.", "Agrega la dirección para la correspondencia de tu cuenta y las entregas que correspondan.")}</p></div></header>
       <div className={styles.fieldGrid}>
-        <Field label="Street address" name="address_line_1" defaultValue={details.addressLine1} autoComplete="address-line1" placeholder="125 Market Street" className={styles.fullField} hint={requiredFields.includes("D") ? "Include your suburb or district in your street address." : undefined} />
-        <Field label="Apartment, suite, or unit (optional)" name="address_line_2" defaultValue={details.addressLine2} autoComplete="address-line2" className={styles.fullField} />
-        <Field label="City" name="city" defaultValue={details.city} autoComplete="address-level2" hint={!requiredFields.includes("C") ? `Optional for ${address.country}.` : undefined} />
-        <Field label="State or region" name="region" defaultValue={details.region} autoComplete="address-level1" hint={!requiredFields.includes("S") ? `Optional for ${address.country}.` : undefined} />
-        <Field label="ZIP or postal code" name="postal_code" defaultValue={details.postalCode} autoComplete="postal-code" hint={!requiredFields.includes("Z") ? `Optional for ${address.country}. Leave blank if your address has no postal code.` : undefined} />
+        <Field label={t("Street address", "Dirección")} name="address_line_1" defaultValue={details.addressLine1} autoComplete="address-line1" placeholder="125 Market Street" className={styles.fullField} hint={requiredFields.includes("D") ? "Include your suburb or district in your street address." : undefined} />
+        <Field label={t("Apartment, suite, or unit (optional)", "Apartamento, oficina o unidad (opcional)")} name="address_line_2" defaultValue={details.addressLine2} autoComplete="address-line2" className={styles.fullField} />
+        <Field label={t("City", "Ciudad")} name="city" defaultValue={details.city} autoComplete="address-level2" hint={!requiredFields.includes("C") ? `Optional for ${address.country}.` : undefined} />
+        <Field label={t("State or region", "Estado o región")} name="region" defaultValue={details.region} autoComplete="address-level1" hint={!requiredFields.includes("S") ? `Optional for ${address.country}.` : undefined} />
+        <Field label={t("ZIP or postal code", "Código postal")} name="postal_code" defaultValue={details.postalCode} autoComplete="postal-code" hint={!requiredFields.includes("Z") ? `Optional for ${address.country}. Leave blank if your address has no postal code.` : undefined} />
         <div className={styles.field}>
-          <label htmlFor="profile-country">Country</label>
+          <label htmlFor="profile-country">{t("Country", "País")}</label>
           <div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div>
           {completeAddress ? (
             <div ref={lookupFeedback} tabIndex={-1} className={styles.addressZone}>
@@ -250,9 +255,9 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     </section>
 
     <section className={styles.formSection} aria-labelledby="profile-preferences-heading">
-      <header><span>04</span><div><h2 id="profile-preferences-heading">Language preferences</h2><p>Choose the language used for account information.</p></div></header>
+      <header><span>04</span><div><h2 id="profile-preferences-heading">{t("Language preferences", "Preferencias de idioma")}</h2><p>{t("Choose the language used for account information.", "Elige el idioma para la información de tu cuenta.")}</p></div></header>
       <div className={styles.fieldGrid}>
-        <div className={styles.field}><label htmlFor="profile-language">Language</label><div className={styles.inputWrap}><select id="profile-language" name="preferred_locale" defaultValue={details.preferredLocale ?? "en-US"}><option value="en-US">English (United States)</option><option value="en-GB">English (United Kingdom)</option><option value="es-US">Español (Estados Unidos)</option></select></div></div>
+        <div className={styles.field}><label htmlFor="profile-language">{t("Language", "Idioma")}</label><div className={styles.inputWrap}><select id="profile-language" name="preferred_locale" defaultValue={details.preferredLocale ?? "en-US"}><option value="en-US">English (United States)</option><option value="en-GB">English (United Kingdom)</option><option value="es-US">Español (Estados Unidos)</option></select></div></div>
       </div>
     </section>
 
@@ -260,8 +265,8 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     {showFeedback && !pending && state.status !== "idle" ? <p ref={saveFeedback} tabIndex={state.status === "error" ? -1 : undefined} role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
     {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
-      <button type="submit" disabled={pending || (addressChanged && completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>
-      <Link href="/account/security">Back to Account &amp; Security</Link>
+      <button type="submit" disabled={pending || (addressChanged && completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? t("Saving profile…", "Guardando perfil…") : t("Save profile", "Guardar perfil")}<AccountIcon name="arrow" /></button>
+      <Link href="/account/security">{t("Back to Account & Security", "Volver a Cuenta y seguridad")}</Link>
     </div>
   </form>;
 }

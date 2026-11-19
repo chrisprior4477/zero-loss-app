@@ -36,6 +36,17 @@ function extractValues(query: string, products: readonly { retailer: string }[])
     return " ";
   });
   if (values.size) return { text: remainder.replace(/\bfor\s+like\b/gi, " ").trim(), values };
+  const alternatives = /\b(?:gift card|gc)\b/i.test(query)
+    ? new RegExp(String.raw`\b${digits}(?:\s+(?:or|and)\s+${digits})+\b`, "i").exec(query)
+    : null;
+  if (alternatives) {
+    const text = query.replace(alternatives[0], " ").trim();
+    const qualifier = normalizeSearch(text).replace(/\b(?:gift card|gc|for|from|at)\b/g, " ").trim().replace(/\s+/g, " ");
+    if (!qualifier || products.some(product => retailerName(product.retailer) === retailerName(qualifier))) {
+      for (const amount of alternatives[0].split(/\s+(?:or|and)\s+/i)) values.add(Number(amount.replaceAll(",", "")));
+      return { text, values };
+    }
+  }
   const bare = query.match(new RegExp(`(?:^|\\s)(${digits})(?=\\s|$)`));
   if (bare) {
     const text = query.replace(bare[0], " ").trim();
@@ -56,16 +67,26 @@ function leadingAmount(text: string) {
   return Number.isFinite(amount) ? { amount, text: value.slice(match[0].length).trim() } : null;
 }
 
-const lowerBound = "above|over|more than|greater than|at least";
-const upperBound = "no more than|no higher than|under|below|less than|up to|at most";
+const inclusiveLowerPhrases = "at least|no less than|not less than|no lower than|not below";
+const inclusiveUpperPhrases = "no more than|no higher than|not over|not above|not more than|up to|at most";
+const lowerBound = inclusiveLowerPhrases + "|above|over|more than|greater than";
+const upperBound = inclusiveUpperPhrases + "|under|below|less than";
 const boundPattern = new RegExp(`\\b(${upperBound}|${lowerBound})\\s+`, "i");
 const upperBoundPattern = new RegExp(`^(?:${upperBound})$`, "i");
-const inclusiveLower = /^(?:at least)$/i;
-const inclusiveUpper = /^(?:no more than|no higher than|up to|at most)$/i;
+const inclusiveLower = new RegExp(`^(?:${inclusiveLowerPhrases})$`, "i");
+const inclusiveUpper = new RegExp(`^(?:${inclusiveUpperPhrases})$`, "i");
 
 type PrizeBudget = { minimum?: number; exclusiveMinimum?: boolean; maximum: number | null; inclusive: boolean };
 
 function searchBudget(normalized: string, products: readonly { retailer: string }[]): { text: string; budget: PrizeBudget } | null {
+  const plusMinimum = new RegExp(String.raw`^(.*?)(\$\s*${digits})\s*\+(?=\s|$)(.*)$`, "i").exec(normalized);
+  if (plusMinimum) {
+    const minimum = leadingAmount(plusMinimum[2])?.amount;
+    if (minimum !== undefined) return {
+      text: (plusMinimum[1] + " " + plusMinimum[3]).trim(),
+      budget: { minimum, maximum: null, inclusive: true },
+    };
+  }
   const range = /^(.*?)(?:\bpriced\s+)?\b(between|from)\s+(.+)$/i.exec(normalized);
   const first = range && leadingAmount(range[3]);
   const connector = range?.[2].toLowerCase() === "from" ? /^to\s+/i : /^and\s+/i;
@@ -110,7 +131,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       },
     };
   }
-  const trailing = /^(.*)\b(?:and|or)\s+(?:under|below|less)\s*$/i.exec(normalized);
+  const trailing = /^(.*?)(?:\b(?:and|or)|&)\s+(?:under|below|less)\s*$/i.exec(normalized);
   const maximum = trailing && extractValues(trailing[1], products);
   if (maximum?.values.size !== 1) return null;
   const amount = [...maximum.values][0];
@@ -118,10 +139,12 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
-  let normalized = query.replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
+  let normalized = query.trim().replace(/[.!?]+$/, "").replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
   if (normalized.length <= 512 && /\bgc\b/i.test(normalized)) {
-    const retailer = retailerName(extractValues(normalized.replace(/\bgc\b/gi, " "), products).text);
-    if (products.some(product => retailerName(product.retailer) === retailer)) normalized = normalized.replace(/\bgc\b/gi, "gift card");
+    const expanded = normalized.replace(/\bgc\b/gi, "gift card");
+    const amountText = searchBudget(expanded, products)?.text ?? extractValues(expanded, products).text;
+    const retailer = retailerName(normalizeSearch(amountText).replace(/\bgift card\b/g, "").trim());
+    if (products.some(product => retailerName(product.retailer) === retailer)) normalized = expanded;
   }
   const exactPhrase = normalized.replace(/\bonly\b[.!?]?/gi, " ").trim();
   const strippedOnly = /\bonly\b/i.test(normalized);

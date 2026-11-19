@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export function PrintSheetButton({ offering, name, account, reference }: {
   offering: string; name: string; account: string; reference: string;
@@ -9,6 +9,10 @@ export function PrintSheetButton({ offering, name, account, reference }: {
   const [error, setError] = useState("");
   const [pdfLink, setPdfLink] = useState("");
   const openingRef = useRef(false);
+  const fallbackUrl = useRef("");
+  useEffect(() => () => {
+    if (fallbackUrl.current) URL.revokeObjectURL(fallbackUrl.current);
+  }, []);
 
   async function openPdf(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,6 +22,8 @@ export function PrintSheetButton({ offering, name, account, reference }: {
     setOpening(true);
     setError("");
     setPdfLink("");
+    if (fallbackUrl.current) URL.revokeObjectURL(fallbackUrl.current);
+    fallbackUrl.current = "";
     // Open synchronously so browsers treat the new tab as a user gesture.
     const popup = window.open("", "_blank");
     if (popup) {
@@ -31,9 +37,13 @@ export function PrintSheetButton({ offering, name, account, reference }: {
         throw new Error("PDF unavailable");
       }
       const url = URL.createObjectURL(await response.blob());
-      window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
-      if (popup && !popup.closed) popup.location.replace(url);
-      else setPdfLink(url);
+      if (popup && !popup.closed) {
+        window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+        popup.location.replace(url);
+      } else {
+        fallbackUrl.current = url;
+        setPdfLink(url);
+      }
     } catch {
       popup?.close();
       window.focus();

@@ -25,7 +25,9 @@ const selectClassName =
   "w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]";
 
 function daysInMonth(year: number, month: number): number {
-  return new Date(year, month, 0).getDate();
+  const date = new Date(0);
+  date.setUTCFullYear(year, month, 0);
+  return date.getUTCDate();
 }
 
 function pad2(value: number): string {
@@ -40,7 +42,7 @@ function buildIsoDate(
   if (year === "" || month === "" || day === "") {
     return "";
   }
-  return `${year}-${pad2(month)}-${pad2(day)}`;
+  return `${String(year).padStart(4, "0")}-${pad2(month)}-${pad2(day)}`;
 }
 
 function parseInitial(iso: string | undefined): {
@@ -91,6 +93,8 @@ export function DateOfBirthSelects({
   const years = useMemo(() => yearOptions(), []);
 
   const [year, setYear] = useState<number | "">(initial.year);
+  const [manualYear, setManualYear] = useState(initial.year !== "" && !years.includes(initial.year));
+  const [yearText, setYearText] = useState(initial.year === "" ? "" : String(initial.year).padStart(4, "0"));
   const [month, setMonth] = useState<number | "">(initial.month);
   const [day, setDay] = useState<number | "">(initial.day);
 
@@ -170,11 +174,13 @@ export function DateOfBirthSelects({
           <select
             id={id("dob_year")}
             required
-            value={year === "" ? "" : String(year)}
+            value={manualYear ? "manual" : year === "" ? "" : String(year)}
             className={selectClassName}
             onChange={(event) => {
-              const nextYear =
-                event.target.value === "" ? "" : Number(event.target.value);
+              const manual = event.target.value === "manual";
+              const nextYear = manual || !event.target.value ? "" : Number(event.target.value);
+              setManualYear(manual);
+              setYearText("");
               setYear(nextYear);
               setDay((current) => clampDay(current, nextYear, month));
             }}
@@ -185,9 +191,20 @@ export function DateOfBirthSelects({
                 {value}
               </option>
             ))}
+            <option value="manual">Enter an earlier year</option>
           </select>
         </div>
       </div>
+      {manualYear && <label className="mt-2 block text-sm" htmlFor={id("dob_year_input")}>
+        Enter your birth year
+        <input id={id("dob_year_input")} className={selectClassName} value={yearText} inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required onChange={event => {
+          const text = event.target.value.replace(/\D/g, "").slice(0, 4);
+          const nextYear = text.length === 4 && Number(text) > 0 ? Number(text) : "";
+          setYearText(text);
+          setYear(nextYear);
+          setDay(current => clampDay(current, nextYear, month));
+        }} />
+      </label>}
 
       <input
         id={id("date_of_birth")}

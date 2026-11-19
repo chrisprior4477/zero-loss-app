@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { DEMO_CARD_COLORS, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoCardArtwork } from "./DemoCardArtwork";
@@ -41,6 +42,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   token: DemoCardToken; savedCard?: DemoCard; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const guide = useRef<HTMLDivElement>(null);
@@ -53,6 +55,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   const [futureTransactions, setFutureTransactions] = useState(makeDefault);
   const [futureDeposits, setFutureDeposits] = useState(makeDepositDefault);
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
   const [cameraStatus, setCameraStatus] = useState<"off" | "starting" | "live">("off");
   const [front, setFront] = useState<number[] | null>(null);
   const [artwork, setArtwork] = useState<Artwork | null>(null);
@@ -106,7 +109,14 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     }
   }
   function reset() { captureVersion.current++; decodingVersion.current = null; stopCamera(); setFront(null); setArtwork(null); setBack(false); setBusy(false); setError(""); if (input.current) input.current.value = ""; }
-  function close() { if (savingRef.current) return; reset(); dialog.current?.close(); }
+  function close() {
+    if (savingRef.current) return true;
+    reset();
+    dialog.current?.close();
+    setOpen(false);
+    trigger.current?.focus({ preventScroll: true });
+  }
+  useDialogBack(open, close, saving, true, true);
   function acceptColors(colors: number[]) {
     if (front) { setArtwork([...front, ...colors] as Artwork); stopCamera(); }
     else setFront(colors);
@@ -148,7 +158,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     finally { savingRef.current = false; setSaving(false); }
   }
   return <>
-    <button type="button" className={styles.trigger} disabled={disabled || saving} aria-label="Use camera" onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); void startCamera(); }}>
+    <button type="button" ref={trigger} className={styles.trigger} disabled={disabled || saving} aria-label="Use camera" onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); setOpen(true); void startCamera(); }}>
       <span className={styles.camera} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5 9.5 3h5L16 5h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /><circle cx="12" cy="13" r="4" /></svg></span><span className={styles.label} aria-hidden="true">Use camera</span>
     </button>
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-label="Sample card camera" onCancel={event => { event.preventDefault(); close(); }}>

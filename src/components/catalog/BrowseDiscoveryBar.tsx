@@ -28,6 +28,18 @@ type BrowsePanel = "categories" | "filters";
 type ControlsPosition = "top" | "bottom";
 type PrizeCategoryChoice = { id: MarketplaceCategoryId | ""; label: string };
 export type BrowsePreviewProduct = { slug: string; title: string; image: string; remaining: number };
+type PreviewResume = { destination: string; category: string; position: ControlsPosition; expires: number };
+let pendingPreview: PreviewResume | null = null;
+
+function rememberPreview(destination: string, category: string, position: ControlsPosition) {
+  pendingPreview = { destination, category, position, expires: Date.now() + 10_000 };
+}
+
+function comparableBrowseHref(href: string) {
+  const url = new URL(href, "https://zeroloss.local");
+  url.searchParams.sort();
+  return url.pathname + url.search;
+}
 
 export function BrowseDiscoveryFooterControls() {
   const controls = useContext(BrowseControlsContext);
@@ -46,6 +58,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const pickerInput = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLElement>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
+  const topCategories = useRef<HTMLButtonElement>(null);
+  const bottomCategories = useRef<HTMLButtonElement>(null);
   const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
   const panel = openPanel?.panel;
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
@@ -121,6 +135,17 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (panel === "categories" && preview !== null) previewRef.current?.scrollIntoView?.({ block: "nearest" });
   }, [panel, preview]);
 
+  useLayoutEffect(() => {
+    const resume = pendingPreview;
+    if (!desktop || !resume || resume.expires < Date.now() || resume.destination !== comparableBrowseHref(props.browseHref)) return;
+    pendingPreview = null;
+    opener.current = (resume.position === "top" ? topCategories : bottomCategories).current;
+    // A filter navigation replaces the component with the newly filtered results.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreview(resume.category);
+    setOpenPanel({ panel: "categories", position: resume.position });
+  }, [desktop, props.browseHref]);
+
   function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
     voice.cancel();
@@ -129,26 +154,36 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     setRefining(null);
     setQuery(""); setMode("categories"); setOpenPanel({ panel: next, position });
   }
-  function close() {
+  function close(returnToPreview = true) {
     pickerVoice.cancel();
     if (panel === "filters" && session?.editor === "filters") {
       session.voice.cancel();
       session.setEditor(null);
     }
+    if (returnToPreview && refining && panel === "filters") {
+      setRefining(null);
+      setOpenPanel(current => current && { ...current, panel: "categories" });
+      return true as const;
+    }
     setOpenPanel(null);
   }
-  const endPanelHistory = useDialogBack(Boolean(panel), close, false, true);
+  const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true);
   function navigateFromPanel(destination: string) {
-    close();
+    if (panel === "filters" && refining && openPanel) {
+      const target = comparableBrowseHref(destination);
+      if (target === comparableBrowseHref(props.browseHref)) { close(); return; }
+      rememberPreview(target, refining.category ?? "", openPanel.position);
+    }
+    close(false);
     if (new URL(destination, window.location.origin).href !== window.location.href) {
       endPanelHistory(true);
       if (destination.startsWith("/browse")) requestBrowseResultsFocus(destination);
       router.replace(destination, { scroll: false });
     }
   }
-  function choose(href: string, preserveSubcategory = false) {
+  function choose(href: string, preserveSubcategory = false, replacementSearch = props.searchTerm) {
     const url = new URL(href, "https://zeroloss.local");
-    if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
+    if (replacementSearch) url.searchParams.set("q", replacementSearch);
     if (preserveSubcategory && props.subcategory) url.searchParams.set("subcategory", props.subcategory);
     const destination = `${url.pathname}${url.search}#search-results`;
     navigateFromPanel(destination);
@@ -251,7 +286,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
 
   const retailerCategoryChoices = distinctGroups.map(group => <button type="button" key={group.id} className={styles.choice}
     aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined}
-    onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory, "", props.ticketsLeft))}>
+    onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory, "", props.ticketsLeft), false,
+      query.trim() && !searchTextMatches(group.category, query) && group.options.some(option => searchTextMatches(option.label, query))
+        ? query.trim() : props.searchTerm)}>
     <span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span>
   </button>);
 
@@ -264,7 +301,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   } : props;
 
   const controls = (position: ControlsPosition) => <>
-    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
+    <button ref={position === "top" ? topCategories : bottomCategories} type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
       <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
     </button>
     <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters" && openPanel?.position === position} onClick={event => open("filters", position, event.currentTarget)}>
@@ -298,7 +335,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     </div> : null}
     {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog} ${wideCategories && mode === "categories" ? styles.wideDialog : ""}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>
-        <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? wideCategories ? "Choose a category to preview its prizes." : "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={close}>×</button></header>
+        <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? wideCategories ? "Choose a category to preview its prizes." : "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label={refining && panel === "filters" ? "Back to category preview" : "Close browse options"} onClick={() => close()}>×</button></header>
         {panel === "categories" ? <>
           <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => setMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => setMode("retailers")}>Retailers</button></div>
           <form role="search" aria-label="Find a category or retailer" className={`${styles.search} ${styles.pickerSearch}`} onSubmit={submitPickerSearch}>

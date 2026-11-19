@@ -150,7 +150,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "request-product", category: "support", question: "Can I suggest a product or retailer?",
     answer: "Yes. Send a product request with the item or retailer you would like to see and any useful details. Requests are saved for review; submitting a suggestion does not reserve an item or guarantee it will be added.",
-    keywords: "catalog search cannot find brand suggestion recommend", action: { label: "Suggest a product", href: "/contact/product-request#requested-item" },
+    keywords: "catalog search cannot find brand suggestion recommend", action: { label: "Suggest a product", href: "/contact/product-request?origin=faq#requested-item" },
   },
   {
     id: "mvp", category: "support", question: "Are the money and gift-card codes in this MVP real?",

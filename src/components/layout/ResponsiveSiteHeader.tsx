@@ -18,6 +18,7 @@ type Props = {
   accountMenu: ReactNode;
   endingSoonItems: { title: string; href: string; remaining: number }[];
   hiddenSlugs: string[];
+  unavailableTopics?: string[];
   preview?: { layout?: MenuLayout; expanded: boolean; query: string; pageCategoriesInPreviewBody?: boolean; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
 };
 
@@ -27,7 +28,7 @@ export function ResponsiveSiteHeader(props: Props) {
   return props.preview ? header : <Suspense fallback={header}><SharedHeaderSearchDraft>{header}</SharedHeaderSearchDraft></Suspense>;
 }
 
-function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
+function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, unavailableTopics, preview }: Props) {
   const menu = useMenuLayout();
   const viewport = useMenuViewport();
   const layout = preview ? (preview.layout ?? menu.layout) : menu.layouts[viewport ?? "mobile"];
@@ -88,7 +89,7 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
     return () => document.removeEventListener("pointerdown", dismissOutside, true);
   }, [expanded, layout, pathname, preview]);
 
-  const categories = <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} />;
+  const categories = <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} unavailableTopics={unavailableTopics} preview={Boolean(preview)} />;
   const searchProps = {
     inputId: preview ? "preview-mobile-header-search" : "mobile-header-search",
     active: layout === "classic" ? undefined : expanded,
@@ -127,7 +128,7 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
     {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-menu-viewport={viewport ?? undefined} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
-      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showPinnedShortcuts={!hasStickyShoppingShortcuts(layout)} />
+      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} unavailableTopics={unavailableTopics} preview={Boolean(preview)} showPinnedShortcuts={!hasStickyShoppingShortcuts(layout)} />
     </div> : null}
   </>;
 }

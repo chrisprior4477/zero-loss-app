@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { accountLanguage, accountLocale } from "@/lib/account/locale";
 import { AccountIcon } from "./AccountIcon";
 import { ChangePasswordControl } from "./ChangePasswordControl";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
@@ -20,22 +21,23 @@ type AccountSecurityDashboardProps = {
   phone: string | null;
   overview?: AccountSettingsOverview;
   timeZone?: string;
+  locale?: string | null;
 };
 
 type GlyphName = "lock" | "shield" | "device" | "clock" | "person" | "card" | "key" | "alert" | "check";
 
-function formatDate(value: string | null, timeZone: string) {
-  if (!value) return "Not available";
+function formatDate(value: string | null, timeZone: string, locale: string) {
+  if (!value) return accountLanguage(locale)("Not available", "No disponible");
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(date);
+  if (Number.isNaN(date.getTime())) return accountLanguage(locale)("Not available", "No disponible");
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone }).format(date);
 }
 
-function formatDateTime(value: string | null, timeZone: string) {
+function formatDateTime(value: string | null, timeZone: string, locale: string) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return { iso: date.toISOString(), label: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(date) };
+  return { iso: date.toISOString(), label: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(date) };
 }
 
 function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; title: string; status: string; children: React.ReactNode }) {
@@ -49,9 +51,11 @@ function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; ti
   </details>;
 }
 
-export function AccountSecurityDashboard({ accountId, displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview, timeZone = "America/New_York" }: AccountSecurityDashboardProps) {
+export function AccountSecurityDashboard({ accountId, displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview, timeZone = "America/New_York", locale }: AccountSecurityDashboardProps) {
+  const language = accountLocale(locale);
+  const t = accountLanguage(language);
   const emailLabel = email ?? "Email not available";
-  const signIn = formatDateTime(lastSignInAt, timeZone);
+  const signIn = formatDateTime(lastSignInAt, timeZone, language);
 
   return <div className={styles.page} data-settings-scroll-scope>
     <AccountSettingsLandingScroll target="account-settings-intro" />
@@ -59,17 +63,17 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
 
       <header id="account-settings-intro" className={styles.heading}>
-        <h1>Account &amp; Security</h1>
-        <p>Your account. Your control.</p>
+        <h1>{t("Account & Security", "Cuenta y seguridad")}</h1>
+        <p>{t("Your account. Your control.", "Tú controlas tu cuenta.")}</p>
       </header>
 
       <div className={styles.mainGrid}>
-        <AccountSettingsNav active="security" />
+        <AccountSettingsNav active="security" locale={language} />
 
         <section className={styles.mainTicket} aria-labelledby="security-heading" id="security-controls">
           <header className={styles.ticketHeading}>
-            <h2 id="security-heading">Sign-in &amp; Security</h2>
-            <p>Manage how you sign in and keep your account secure.</p>
+            <h2 id="security-heading">{t("Sign-in & Security", "Inicio de sesión y seguridad")}</h2>
+            <p>{t("Manage how you sign in and keep your account secure.", "Administra el inicio de sesión y protege tu cuenta.")}</p>
           </header>
 
           <div className={styles.identityRow}>
@@ -127,7 +131,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
         </section>
         <section className={styles.lowerTicket} aria-labelledby="personal-info-heading">
           <header><h2 id="personal-info-heading">Personal information</h2><Link href="/account/profile#personal-details-heading">Edit profile <AccountIcon name="arrow" /></Link></header>
-          <dl><div><dt>Name</dt><dd>{displayName}</dd></div><div><dt>Email</dt><dd>{emailLabel}</dd></div><div><dt>Phone</dt><dd>{phone ?? "Not added"}</dd></div><div><dt>Member since</dt><dd>{formatDate(memberSince, timeZone)}</dd></div></dl>
+          <dl><div><dt>{t("Name", "Nombre")}</dt><dd>{displayName}</dd></div><div><dt>{t("Email", "Correo electrónico")}</dt><dd>{emailLabel}</dd></div><div><dt>{t("Phone", "Teléfono")}</dt><dd>{phone ?? t("Not added", "Sin añadir")}</dd></div><div><dt>{t("Member since", "Cuenta creada")}</dt><dd>{formatDate(memberSince, timeZone, language)}</dd></div></dl>
         </section>
         <section className={styles.lowerTicket} aria-labelledby="crew-heading">
           <header><h2 id="crew-heading">Crew &amp; sharing</h2><Link href="/account/crew?tab=picks#sharing">Manage sharing <AccountIcon name="arrow" /></Link></header>

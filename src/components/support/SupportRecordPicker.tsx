@@ -1,5 +1,7 @@
 "use client";
 
+import { useDialogBack } from "@/components/account/useDialogBack";
+
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import help from "@/components/help/help-tickets.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -35,6 +37,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<SupportRecordPage | null>(null);
+  useDialogBack(open, () => { dialog.current?.close(); }, false, true);
 
   useLayoutEffect(() => {
     if (!result || !focusResults.current) return;

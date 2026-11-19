@@ -170,6 +170,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchHref = `/browse${searchParamsForView.size ? `?${searchParamsForView}` : ""}`;
   const canSuggestRecovery = !products.length && !unavailable && !searchTooLong;
   let broaderSearch: { href: string; count: number } | null = null;
+  let broaderWithoutBudget: { href: string; count: number } | null = null;
   if (canSuggestRecovery && searchTerm && (selectedCategory || subcategory || selectedRetailerGroup)) {
     const params = new URLSearchParams(searchParamsForView);
     for (const key of ["category", "subcategory", "partnerCategory", "ticketsLeft"]) params.delete(key);
@@ -181,6 +182,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     const broaderMatches = searchCatalogMatches(searchableProducts, searchTerm, denomination, { includeLowerGiftCards: true });
     const broaderProducts = filterBrowseProducts(broaderMatches.map(({ product }) => product), broaderFilters, searchTerm);
     if (broaderProducts.length) broaderSearch = { href: `/browse?${params}#search-results`, count: broaderProducts.length };
+    else if (budgetLabel) {
+      params.delete("minValue");
+      params.delete("maxValue");
+      const count = filterBrowseProducts(broaderMatches.map(({ product }) => product),
+        { ...broaderFilters, minValue: null, maxValue: null }, searchTerm).length;
+      if (count) broaderWithoutBudget = { href: `/browse?${params}#search-results`, count };
+    }
   }
   const returnParams = new URLSearchParams(searchParamsForView);
   if (tailBatch || batch > 1) returnParams.set("batch", tailBatch ? tailBatchValue(tailBatch) : String(batch));
@@ -215,7 +223,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     ? filters.minValue ? `outside the ${budgetLabel} prize-value filter` : `above $${filters.maxValue.toLocaleString("en-US")}`
     : filters.minValue !== null ? `below $${filters.minValue.toLocaleString("en-US")}` : "";
   const recoveryLinkClass = "inline-flex min-h-11 max-w-full items-center justify-center rounded-lg bg-cyan-200 px-4 py-2 text-sm font-bold text-[#102e50] hover:bg-cyan-100";
-  const filterRecovery = priceMatchCount || broaderSearch ? (
+  const widerRecovery = priceMatchCount ? null : broaderWithoutBudget;
+  const filterRecovery = priceMatchCount || broaderSearch || widerRecovery ? (
     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3 text-left">
       {priceMatchCount ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{priceMatchCount.toLocaleString("en-US")} {priceMatchCount === 1 ? "match is" : "matches are"} {outsideBudget}{categoryScope ? ` in ${categoryScope}` : ""}.</p>
@@ -225,8 +234,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <p className="mb-2 text-sm text-white/85">{broaderSearch.count.toLocaleString("en-US")} {broaderSearch.count === 1 ? "match" : "matches"} outside {broaderScope}{budgetLabel ? ` · ${budgetLabel}` : ""}.</p>
         <BrowseResultsLink href={broaderSearch.href} target="heading" className={recoveryLinkClass}>Search all categories</BrowseResultsLink>
       </div> : null}
+      {widerRecovery ? <div className="min-w-0">
+        <p className="mb-2 text-sm text-white/85">{widerRecovery.count.toLocaleString("en-US")} {widerRecovery.count === 1 ? "match" : "matches"} across all categories without the prize-value filter.</p>
+        <BrowseResultsLink href={widerRecovery.href} target="heading" className={recoveryLinkClass}>Search all categories at any value</BrowseResultsLink>
+      </div> : null}
     </div>
   ) : null;
+  const parentCategoryParams = new URLSearchParams(searchParamsForView);
+  parentCategoryParams.delete("subcategory");
+  const parentCategoryHref = `/browse${parentCategoryParams.size ? `?${parentCategoryParams}` : ""}#search-results`;
+  const deviceTopic = /^(?:laptops|tablets)$/i.test(subcategory);
+  const relatedDeviceRewardsOnly = deviceTopic && products.length > 0 && products.every(isGiftCardListing);
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
     const { remaining } = availabilityStatus(product.capacity, product.sold);
@@ -285,6 +303,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         ) : null}
 
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
+        {subcategory && !products.length && !unavailable ? <BrowseResultsLink href={parentCategoryHref} target="heading" className="mt-2 inline-flex min-h-11 items-center font-bold text-cyan-200 underline">
+          Back to {selectedLabel ?? "all Browse results"}
+        </BrowseResultsLink> : null}
+        {relatedDeviceRewardsOnly ? <p role="status" className="mt-3 text-sm text-cyan-100">No pictured {subcategory.toLowerCase()} match. The options below are related retailer gift cards.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
         {invalidSearch ? <p role="alert" className="mt-4 text-sm font-bold text-orange-100">Try a search such as “Amazon gift card” or “headphones.”</p> : searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
@@ -322,7 +344,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     </div>
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#087feb] sm:text-xs">{product.retailer}</p>
                     <h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
-                    {relatedRetailers.has(product.slug) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
+                    {relatedRetailers.has(product.slug) || (deviceTopic && isGiftCardListing(product)) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
                     {open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
                       <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>

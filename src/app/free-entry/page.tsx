@@ -7,6 +7,7 @@ import { getAccountContext } from "@/lib/account/context";
 import { freeEntryHref, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { shareUuid } from "@/lib/sharing/saved-shares";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
@@ -59,7 +60,8 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
 
   return (
-    <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference} intro={<>
+    <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference}
+      signInHref={account ? undefined : authNavigationHref("/login", freeEntryHref(product.slug, browseReturn, quantity, sharedToken) + "#free-entry-intro")} intro={<>
         <Link href={backHref} scroll={false} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
         <HelpLandingScroll target="" visitKey={product.slug} focusAnchor="free-entry-intro" />
         <FreeEntryInstructions prizeSelected />

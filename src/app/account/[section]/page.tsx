@@ -79,6 +79,7 @@ export default async function LiveAccountSection({
     return <AccountSecurityDashboard
       accountId={account.userId}
       timeZone={account.timezone}
+      locale={account.preferredLocale}
       displayName={account.displayName}
       initials={account.initials}
       email={account.email}

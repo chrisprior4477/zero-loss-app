@@ -36,29 +36,6 @@ const desktopCategories = [
   "Games & Puzzles",
 ] as const;
 
-const desktopCategoryItems: Record<string, readonly string[]> = {
-  ...categorySubcategories,
-  Groceries: [
-    "Grocery Gift Cards",
-    "Meal Kits",
-    "Coffee & Tea",
-    "Snack Boxes",
-    "Beverages",
-    "Pantry Staples",
-    "Fresh Produce Credit",
-    "Bulk Essentials",
-    "Convenience Bundles",
-  ],
-  Gas: [
-    "Gas Cards",
-    "Fuel Rewards",
-    "Road-Trip Bundles",
-    "Convenience Store Credit",
-    "Car Washes",
-    "EV Charging",
-  ],
-};
-
 type EndingSoonMenuItem = { title: string; href: string; remaining: number };
 
 function CurrentCategory({ onChange }: { onChange: (category: string | null) => void }) {
@@ -81,10 +58,11 @@ function focusCategoryItem(menu: HTMLElement | null, key: string, current?: Even
   return true;
 }
 
-export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], preview = false, showPinnedShortcuts = true }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; preview?: boolean; showPinnedShortcuts?: boolean }) {
+export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], unavailableTopics = [], preview = false, showPinnedShortcuts = true }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; unavailableTopics?: string[]; preview?: boolean; showPinnedShortcuts?: boolean }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
+  const emptyTopics = new Set(unavailableTopics);
   const navRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const railGroupRef = useRef<HTMLDivElement>(null);
@@ -211,7 +189,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
         href: `/items/${product.slug}?from=${encodeURIComponent(marketplaceCategoryHref(category))}`, remaining: null })) : [];
     const items = !isOpen ? [] : category === "Ending Soon"
       ? endingSoonItems.map((item) => ({ label: item.title, href: item.href, remaining: item.remaining }))
-      : (desktopCategoryItems[category] ?? []).filter(item => category !== "All" || !isResolvedCatalogHref(endingSoonItemHrefs[item], resolved)).map((item) => ({
+      : (categorySubcategories[category] ?? []).filter(item => category !== "All" || !isResolvedCatalogHref(endingSoonItemHrefs[item], resolved)).map((item) => ({
           label: item,
           href: category === "All" && endingSoonItemHrefs[item]
             ? `${endingSoonItemHrefs[item]}?from=${encodeURIComponent("/browse")}`
@@ -279,6 +257,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
                 >
                   <span>{item.label}</span>
                   {item.remaining !== null ? <span className="shrink-0 text-xs text-cyan-300">{item.remaining} left</span> : null}
+                  {emptyTopics.has(item.href) ? <span className="text-right text-xs text-cyan-100/75">No current offers</span> : null}
                 </Link>
                 ))}
                 {category === "Ending Soon" && !items.length ? <p className="col-span-full py-2 text-sm text-white/70">No offers are near capacity right now.</p> : null}

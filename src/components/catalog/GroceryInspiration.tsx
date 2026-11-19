@@ -39,9 +39,21 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
   const shelf = useRef<HTMLElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
-  const returnParams = new URLSearchParams(browseHref.split("?")[1]);
-  if (selected) returnParams.set("groceryIdea", selected.id);
-  const returnHref = `/browse?${returnParams}`;
+  function ideaHref(theme: GroceryTheme) {
+    const url = new URL(browseHref, "https://zeroloss.local");
+    url.searchParams.set("groceryIdea", theme.id);
+    return url.pathname + url.search;
+  }
+  useLayoutEffect(() => {
+    function restoreIdea() {
+      if (window.location.pathname !== "/browse") return;
+      const idea = new URLSearchParams(window.location.search).get("groceryIdea");
+      setSelected(groceryThemes.find(theme => theme.id === idea) ?? null);
+    }
+    restoreIdea();
+    window.addEventListener("popstate", restoreIdea);
+    return () => window.removeEventListener("popstate", restoreIdea);
+  }, [initialIdea]);
   useLayoutEffect(() => {
     if (!selected) return;
     const element = dialog.current;
@@ -49,6 +61,10 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
     const overflow = document.body.style.overflow;
     const rootOverflow = document.documentElement.style.overflow;
     element?.showModal();
+    const focusedOffer = window.history.state?.zeroLossGroceryOffer;
+    const previousOffer = Array.from(element?.querySelectorAll<HTMLAnchorElement>("[data-grocery-offer]") ?? [])
+      .find(link => link.dataset.groceryOffer === focusedOffer);
+    previousOffer?.focus();
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     return () => {
@@ -58,14 +74,22 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, [selected]);
-  function choose(theme: GroceryTheme) { opener.current = document.activeElement as HTMLElement; setSelected(theme); }
+  function choose(theme: GroceryTheme) {
+    opener.current = document.activeElement as HTMLElement;
+    window.history.pushState({ ...window.history.state, zeroLossGroceryIdea: theme.id, zeroLossGroceryOffer: null }, "", ideaHref(theme));
+    setSelected(theme);
+  }
   function dismissIdea() {
+    setSelected(null);
+    if (selected && window.history.state?.zeroLossGroceryIdea === selected.id) {
+      window.history.back();
+      return;
+    }
     const url = new URL(window.location.href);
     if (url.searchParams.has("groceryIdea")) {
       url.searchParams.delete("groceryIdea");
       window.history.replaceState(window.history.state, "", url);
     }
-    setSelected(null);
   }
   return <>
     <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
@@ -78,7 +102,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
         <GroceryRail label={index === 0 ? "Easy grocery ideas" : "Occasion grocery ideas"}>{groceryThemes.filter(theme => theme.mood === mood).map(theme => <ThemeCard key={theme.id} theme={theme} onChoose={() => choose(theme)} />)}</GroceryRail>
       </div>)}</div>
     </section>
-    {selected ? <dialog ref={dialog} className={styles.dialog} aria-labelledby="grocery-theme-title" onCancel={dismissIdea} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) dismissIdea(); }}>
+    {selected ? <dialog ref={dialog} className={styles.dialog} aria-labelledby="grocery-theme-title" onCancel={event => { event.preventDefault(); dismissIdea(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) dismissIdea(); }}>
       <div className={styles.dialogBody}>
         <button type="button" className={styles.close} aria-label="Close grocery idea" onClick={dismissIdea}>×</button>
         <div className={styles.dialogPhoto}><Image src={groceryThemeImage(selected.id)} alt="" fill sizes="(max-width: 640px) 100vw, 560px" className={styles.foodImage} /></div>
@@ -86,7 +110,9 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
           <span className={styles.eyebrow}>Your next grocery run, reimagined</span>
           <h2 id="grocery-theme-title">{selected.title}</h2><p>{selected.ingredients}</p>
           <h3>Make it happen with a grocery gift card</h3>
-          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} href={productHrefWithBrowseReturn(offer.slug, returnHref)}>
+          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} data-grocery-offer={offer.slug}
+            href={productHrefWithBrowseReturn(offer.slug, ideaHref(selected))}
+            onNavigate={() => window.history.replaceState({ ...window.history.state, zeroLossGroceryOffer: offer.slug }, "")}>
             <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span>
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>
           <p className={styles.disclaimer}>Choose your groceries at the retailer. Pictures are inspiration; the reward is a gift card.</p>

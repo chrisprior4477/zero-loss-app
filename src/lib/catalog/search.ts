@@ -19,7 +19,7 @@ export function searchCatalogMatches(
   if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
   const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
-  const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size > 0;
+  const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
@@ -77,6 +77,11 @@ export function searchCatalog(products: readonly DemoProduct[], query: string) {
 export function filterCatalogSubcategory(products: readonly DemoProduct[], subcategory: string): DemoProduct[] {
   if (!subcategory) return [...products];
   const topics = subcategory.replace(/&amp;/g, "&").split(/\s*&\s*/);
-  const matching = new Set(topics.flatMap(topic => searchCatalogMatches(products, topic).map(match => match.product.slug)));
+  const matching = new Set(topics.flatMap(topic => {
+    const candidates = /^(?:tvs?|televisions?)$/i.test(topic.trim())
+      ? products.filter(product => isGiftCardListing(product) || /\b(?:tv|television)\b/i.test(product.title))
+      : products;
+    return searchCatalogMatches(candidates, topic).map(match => match.product.slug);
+  }));
   return products.filter(product => matching.has(product.slug));
 }

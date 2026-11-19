@@ -5,7 +5,7 @@ import type { FaqItem } from "@/lib/help/faq";
 import styles from "./help-tickets.module.css";
 
 export function FaqAnswer({ item, expanded, onToggle }: { item: FaqItem; expanded?: boolean; onToggle?: (open: boolean) => void }) {
-  return <details data-faq-id={item.id} open={expanded} onToggle={event => onToggle?.(event.currentTarget.open)} className={`${styles.ticket} ${styles.answer}`}>
+  return <details id={`faq-${item.id}`} data-faq-id={item.id} open={expanded} onToggle={event => onToggle?.(event.currentTarget.open)} className={`${styles.ticket} ${styles.answer}`}>
     <summary className={styles.question}>
       {item.question}<span aria-hidden="true" className={styles.plus}>+</span>
     </summary>

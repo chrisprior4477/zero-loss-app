@@ -281,6 +281,8 @@ export const shopByPriceTiers = [
  *   "Home Essentials" (itself) removed.
  */
 export const categorySubcategories: Record<string, readonly string[]> = {
+  Groceries: ["Grocery Gift Cards", "Meal Kits", "Coffee & Tea", "Snack Boxes", "Beverages", "Pantry Staples", "Fresh Produce Credit", "Bulk Essentials", "Convenience Bundles"],
+  Gas: ["Gas Cards", "Fuel Rewards", "Road-Trip Bundles", "Convenience Store Credit", "Car Washes", "EV Charging"],
   "Groceries & Gas": [
     "Gas Cards",
     "Grocery Gift Cards",

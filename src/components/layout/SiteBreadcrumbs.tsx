@@ -6,14 +6,14 @@ import { breadcrumbItems } from "@/lib/navigation/breadcrumbs";
 import { HomeIcon } from "./HomeIcon";
 
 /** One compact escape route, shared by every non-home page. */
-export function SiteBreadcrumbs({ product }: { product?: { slug: string; title: string } }) {
+export function SiteBreadcrumbs({ product }: { product?: { slug: string; title: string; returnHref?: string } }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   if (!pathname || !searchParams) return null;
   // The product page renders its own trail using its server-resolved title.
   // The shared shell skips it, avoiding a guessed title and a hydration-time update.
   if (pathname.startsWith("/items/") ? pathname !== `/items/${product?.slug}` : product) return null;
-  const items = breadcrumbItems(pathname, searchParams, product?.title);
+  const items = breadcrumbItems(pathname, searchParams, product?.title, product?.returnHref);
   if (!items.length) return null;
 
   return <nav aria-label="Breadcrumb" className="border-b border-cyan-300/15 bg-[#061d35] px-4 py-1.5 text-[12px] leading-5 text-cyan-100 sm:px-6 sm:text-[13px] lg:px-10 print:hidden">

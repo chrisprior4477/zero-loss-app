@@ -113,7 +113,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 
-  return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title }} /><div className={entryStyles.page}>
+  return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title, returnHref: browseReturnHref }} /><div className={entryStyles.page}>
     {!hiddenPool ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
     <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>

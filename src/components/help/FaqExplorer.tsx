@@ -34,7 +34,11 @@ export function FaqExplorer() {
     function cancel() { cancelAnimationFrame(first); cancelAnimationFrame(second); timers.splice(0).forEach(clearTimeout); }
     function interrupt() { interrupted = true; cancel(); }
     function restore() {
-      const saved = readFaqReturn(window.history.state, window.location.href);
+      const saved = readFaqReturn(window.history.state, window.location.href) ??
+        (window.location.hash === "#faq-request-product" ? {
+          href: window.location.href, query: "", category: "all" as const, expanded: ["request-product"], collapsed: [],
+          scrollY: 0, answer: "request-product", answerTop: 0, answerLink: "/contact/product-request?origin=faq#requested-item",
+        } : null);
       if (!saved) return;
       setQuery(saved.query); setCategory(saved.category); setExpanded(saved.expanded);
       setCollapsed(saved.collapsed ?? []);
@@ -57,10 +61,10 @@ export function FaqExplorer() {
       };
       align(); for (const delay of [150, 400, 900]) timers.push(window.setTimeout(align, delay));
     }
-    restore(); window.addEventListener("popstate", restore); window.addEventListener("pageshow", restore);
+    restore(); window.addEventListener("popstate", restore); window.addEventListener("pageshow", restore); window.addEventListener("hashchange", restore);
     for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.addEventListener(name, interrupt, { passive: true });
     return () => {
-      cancel(); window.removeEventListener("popstate", restore); window.removeEventListener("pageshow", restore);
+      cancel(); window.removeEventListener("popstate", restore); window.removeEventListener("pageshow", restore); window.removeEventListener("hashchange", restore);
       for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.removeEventListener(name, interrupt);
     };
   }, []);
