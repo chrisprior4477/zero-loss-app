@@ -92,8 +92,8 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
 
   useEffect(() => {
     // A manually opened share belongs to the page where it was opened.
-    if (manualShareLocation.current === window.location.pathname + window.location.search) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const current = `${pathname}${search ? `?${search}` : ""}`;
+    if (manualShareLocation.current === current) return;
     setManualProduct(null);
     shareTrigger.current = null;
   }, [pathname, search]);
@@ -109,7 +109,8 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     const openSharing = (event: Event) => {
       const product: unknown = (event as CustomEvent).detail;
       if (!isProductShareItem(product)) return;
-      manualShareLocation.current = window.location.pathname + window.location.search;
+      const query = new URLSearchParams(window.location.search).toString();
+      manualShareLocation.current = `${window.location.pathname}${query ? `?${query}` : ""}`;
       shareTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setShareRequest(null); setManualProduct(product);
     };
