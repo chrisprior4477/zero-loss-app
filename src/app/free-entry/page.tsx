@@ -21,7 +21,7 @@ function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: bool
       <ol className="mt-4 space-y-3 text-sm leading-6 text-white/75">
         <li><strong className="text-white">1.</strong> {prizeSelected ? "Confirm the offering shown below. If you are signed in, your saved legal name and demo account reference appear automatically; check them before printing." : "Choose a prize in Browse, then open its free-entry instructions for the prize-specific preview."}</li>
         <li><strong className="text-white">2.</strong> Print the sheet, cut around the dotted outline, and securely attach the insert to a standard rectangular postcard.</li>
-        <li><strong className="text-white">3.</strong> Keep the entry barcode uncovered, flat, and readable. Secure the insert at its edges and keep the postal markings clear.</li>
+        <li><strong className="text-white">3.</strong> Keep the entry barcode uncovered, flat, and readable. Secure the insert at its edges. Do not place tape over either the Zero Loss barcode or postal markings.</li>
         <li><strong className="text-white">4.</strong> Add one current domestic postcard stamp. USPS currently lists standard postcard postage at $0.65; verify the rate when mailing.</li>
         <li><strong className="text-white">5.</strong> Mail only after the Official Rules publish the processing address, entry period, received-by deadline, and per-person limit.</li>
       </ol>

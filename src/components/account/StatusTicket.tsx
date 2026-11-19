@@ -57,21 +57,21 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
   if (variant === "wallet" && (actionHref || actionDisabled)) {
     return (
       <article className={className} aria-label={label} data-size={size}>
-        <Link href={href} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
+        <Link href={href} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
           {information}
         </Link>
         <span className={styles.perforation} aria-hidden="true" />
         {actionDisabled ? (
           <button type="button" disabled title="Funding is not available" className={`${styles.action} ${styles.disabledAction}`}><span>{action}</span>{arrow}</button>
         ) : (
-          <Link href={actionHref!} onClick={onNavigate} className={styles.action}><span>{action}</span>{arrow}</Link>
+          <Link href={actionHref!} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.action}><span>{action}</span>{arrow}</Link>
         )}
       </article>
     );
   }
 
   return (
-    <Link className={className} href={href} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${actionLabel}`} data-size={size}>
+    <Link className={className} href={href} replace={Boolean(onNavigate)} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${actionLabel}`} data-size={size}>
       <span className={styles.information}>{information}</span>
       <span className={styles.perforation} aria-hidden="true" />
       <span className={styles.action}>

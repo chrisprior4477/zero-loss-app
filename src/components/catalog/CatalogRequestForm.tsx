@@ -93,7 +93,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       setShowFeedback(true);
       startTransition(() => formAction(formData));
     }} className="space-y-5 [&_:invalid]:scroll-mt-[calc(var(--site-header-height,140px)+16px)]">
-      <input type="hidden" name="sourceQuery" value={initialProduct} />
+      <input type="hidden" name="sourceQuery" value={originalQuery ? originalQuery.slice(0, 160) : initialProduct} />
       {originalQuery ? <div className="rounded-xl border border-cyan-300/35 p-4">
         <p className="text-sm font-bold text-white">Your original search</p>
         <p className="mt-1 break-words text-sm text-white/75">{originalQuery}</p>

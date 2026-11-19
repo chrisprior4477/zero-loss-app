@@ -40,7 +40,7 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
       <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "If this is on, we'll email you when an entered prize pool closes and its result is ready. You'll also find the result in Notifications."}</p>
-    {showFeedback && !pending && feedback.status === "succeeded" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
+    {showFeedback && !pending && feedback.status !== "idle" && !showError ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
       : !showError && preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
   </section>;
 }

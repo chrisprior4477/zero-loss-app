@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -80,7 +80,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
-  useDialogBack(open, () => setOpen(false), false, true);
+  const endDrawerHistory = useDialogBack(open, () => setOpen(false));
+  const dismiss = useCallback(() => { endDrawerHistory(); setOpen(false); }, [endDrawerHistory]);
 
   useEffect(() => {
     // Includes browser Back/Forward and query-only navigation.
@@ -126,7 +127,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
       if (event.defaultPrevented || document.querySelector("dialog[open]")) return;
       if (event.key === "Escape") {
         event.preventDefault();
-        setOpen(false);
+        dismiss();
         return;
       }
       if (event.key !== "Tab") return;
@@ -154,7 +155,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
       window.removeEventListener("keydown", handleKeyDown);
       (previouslyFocused?.isConnected ? previouslyFocused : trigger)?.focus();
     };
-  }, [open]);
+  }, [open, dismiss]);
 
   const close = () => setOpen(false);
   const openWallet = () => {
@@ -162,7 +163,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
     close();
   };
   const requestInstall = () => {
-    setOpen(false);
+    dismiss();
     window.dispatchEvent(new Event(INSTALL_APP_REQUEST_EVENT));
   };
   const state = activityState.source === "unavailable" ? { ...activityState, activity: [], activeCount: null } : activityState;
@@ -201,32 +202,32 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
 
       {open && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[120]" role="presentation">
-          <button type="button" tabIndex={-1} aria-hidden="true" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
+          <button type="button" tabIndex={-1} aria-hidden="true" onClick={dismiss} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
           <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>
-                <Link href="/account/profile#profile-intro" onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
+                <Link href="/account/profile#profile-intro" replace onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
                   <DrawerAvatar avatar={resolvedMenuVisibility ? resolvedAvatar : null} initials={initials} size="large" />
                   <span><strong>{shownName}</strong><small>Your account</small></span>
                 </Link>
                 <span id={titleId} className="sr-only">Your Zero Loss account menu</span>
                 <div className={styles.accountActions}>
-                  <Link href={openEntriesHref} onClick={close} title={ticketLabel} aria-label={ticketLabel} className={styles.ticketLink}>
+                  <Link href={openEntriesHref} replace onClick={close} title={ticketLabel} aria-label={ticketLabel} className={styles.ticketLink}>
                     <EntryTicket count={state.activeCount} />
                   </Link>
-                  <Link href="/account/notifications" onClick={close} aria-label="Open notifications" className={styles.notificationLink}><AccountIcon name="bell" /></Link>
-                  <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className={styles.closeButton}>
+                  <Link href="/account/notifications" replace onClick={close} aria-label="Open notifications" className={styles.notificationLink}><AccountIcon name="bell" /></Link>
+                  <button ref={closeRef} type="button" onClick={dismiss} aria-label="Close account menu" className={styles.closeButton}>
                     <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M7 7 25 25M25 7 7 25" /></svg>
                   </button>
                 </div>
               </div>
             ) : (
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
-                <Link href="/signup" onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+                <Link href="/signup" replace onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                 </Link>
               <div className="min-w-0 flex-1"><h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2><p className="text-[12px] text-white/55">Sign in or create an account</p></div>
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl font-light text-white hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
+              <button ref={closeRef} type="button" onClick={dismiss} aria-label="Close account menu" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl font-light text-white hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
             </div>
             )}
 
@@ -248,14 +249,14 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   <div className={styles.promo}><span className={styles.promoIcon} aria-hidden="true"><span className={styles.promoMark} /></span><strong>Real prizes. Real possibilities.</strong></div>
                 </div>
                 <div className={styles.utilityWrap}>
-                  <Link href="/signup?account=business" onClick={close} className={styles.installButton}><AccountIcon name="layers" /><span>Business application</span><AccountIcon name="chevron" /></Link>
+                  <Link href="/signup?account=business" replace onClick={close} className={styles.installButton}><AccountIcon name="layers" /><span>Business application</span><AccountIcon name="chevron" /></Link>
                   <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 </div>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
                 <nav aria-label="Shop categories" className="zl-noscroll flex gap-2 overflow-x-auto pb-1">
                   {marketplaceCategories.map((category) => (
-                    <Link key={category.id} href={marketplaceCategoryHref(category.id)} onClick={close} className="shrink-0 rounded-full border border-cyan-200/20 bg-white/5 px-3 py-2 text-[11px] font-bold text-white hover:border-cyan-300 hover:text-cyan-300">
+                    <Link key={category.id} href={marketplaceCategoryHref(category.id)} replace onClick={close} className="shrink-0 rounded-full border border-cyan-200/20 bg-white/5 px-3 py-2 text-[11px] font-bold text-white hover:border-cyan-300 hover:text-cyan-300">
                       {category.label}
                     </Link>
                   ))}
@@ -278,17 +279,17 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   </div>
                 </div>
 
-                <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
-                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login?focus=email#login-form" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
+                <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} replace onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
+                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login?focus=email#login-form" replace onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
                 <Link href="/how-it-works" onClick={close} className="grid min-h-11 w-full place-items-center rounded-xl border border-[#ff7a2d] bg-[#ff630f] px-4 text-sm font-black text-white transition hover:bg-[#ff7a2d]">How It Works</Link>
-                <Link href={accountRoutes.favorites} onClick={close} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-[#082848] px-4 text-sm font-bold text-cyan-100"><span aria-hidden="true" className="text-lg text-[#31e800]">♡</span>Favorites &amp; Sent to You</Link>
+                <Link href={accountRoutes.favorites} replace onClick={close} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-[#082848] px-4 text-sm font-bold text-cyan-100"><span aria-hidden="true" className="text-lg text-[#31e800]">♡</span>Favorites &amp; Sent to You</Link>
               </section>}
 
               {!showAccountContent ? <div className="mt-3 border-t border-cyan-200/15 pt-3">
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span>Help, Rules & Policies</span><span aria-hidden="true" className="text-cyan-300">{moreOpen ? "⌄" : "›"}</span>
                 </button>
-                {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
+                {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} replace onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
               </div> : null}
             </div>
             {showAccountContent ? (

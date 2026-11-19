@@ -145,7 +145,13 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   if (unavailable && open) setOpen(false);
   function close(restoreFocus = false) {
     setOpen(false);
-    if (restoreFocus) trigger.current?.focus({ preventScroll: true });
+    if (restoreFocus) {
+      const opener = trigger.current;
+      opener?.focus({ preventScroll: true });
+      requestAnimationFrame(() => {
+        if (opener?.isConnected && document.activeElement === document.body) opener.focus({ preventScroll: true });
+      });
+    }
   }
   return <div className={styles.picker}>
     <span id={`${id}-label`} className={styles.label}>{label}</span>

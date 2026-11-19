@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffectEvent, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffectEvent, useLayoutEffect, useRef } from "react";
 
 const stateKey = "zeroLossDialog";
 
@@ -35,10 +35,10 @@ export function useDialogBack(open: boolean, onClose: () => void, blocked = fals
       });
     };
   }, [open, consumeOnUnmount]);
-  return () => {
+  return useCallback(() => {
     const current = marker.current;
     if (current && window.location.href === current.href && window.history.state?.[stateKey] === current.id) {
       window.history.back();
     }
-  };
+  }, []);
 }

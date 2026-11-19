@@ -21,6 +21,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const [shareRequest, setShareRequest] = useState<EntryRequest | null>(null);
   const [manualProduct, setManualProduct] = useState<ProductShareItem | null>(null);
   const shareDestination = useRef<string | null>(null);
+  const manualShareLocation = useRef<string | null>(null);
   const dismissed = useRef(new Set<string>());
   const shareTrigger = useRef<HTMLElement | null>(null);
   const [now, setNow] = useState(0);
@@ -84,12 +85,14 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
       try { sessionStorage.setItem(shareDismissalKey(accountId, shareRequest.requestId), "1"); } catch { /* Storage is optional, not an entry record. */ }
     }
     setShareRequest(null); setManualProduct(null);
+    manualShareLocation.current = null;
     if (shareTrigger.current?.isConnected) shareTrigger.current.focus({ preventScroll: true });
     shareTrigger.current = null;
   }, [accountId, shareRequest]);
 
   useEffect(() => {
     // A manually opened share belongs to the page where it was opened.
+    if (manualShareLocation.current === window.location.pathname + window.location.search) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setManualProduct(null);
     shareTrigger.current = null;
@@ -106,6 +109,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     const openSharing = (event: Event) => {
       const product: unknown = (event as CustomEvent).detail;
       if (!isProductShareItem(product)) return;
+      manualShareLocation.current = window.location.pathname + window.location.search;
       shareTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setShareRequest(null); setManualProduct(product);
     };

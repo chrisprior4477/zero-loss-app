@@ -81,12 +81,22 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
   useEffect(() => {
+    let interrupted = false;
     function focusIntro() {
-      if (window.location.hash === "#notifications-intro") headingRef.current?.querySelector("h1")?.focus({ preventScroll: true });
+      if (!interrupted && window.location.hash === "#notifications-intro") headingRef.current?.querySelector("h1")?.focus({ preventScroll: true });
     }
+    const stop = () => { interrupted = true; };
     const frame = requestAnimationFrame(focusIntro);
-    window.addEventListener("hashchange", focusIntro);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener("hashchange", focusIntro); };
+    const settle = window.setTimeout(focusIntro, 250);
+    window.addEventListener("pointerdown", stop, { passive: true });
+    window.addEventListener("keydown", stop);
+    const hashChanged = () => { interrupted = false; focusIntro(); };
+    window.addEventListener("hashchange", hashChanged);
+    return () => {
+      cancelAnimationFrame(frame); window.clearTimeout(settle);
+      window.removeEventListener("pointerdown", stop); window.removeEventListener("keydown", stop);
+      window.removeEventListener("hashchange", hashChanged);
+    };
   }, []);
   const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);

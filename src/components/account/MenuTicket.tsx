@@ -17,7 +17,7 @@ type MenuTicketProps = {
 export function MenuTicket({ title, description, href, imageSrc, artworkTreatment = "zoom", onNavigate, active = false, wrapTitle = false }: MenuTicketProps) {
   return (
     <span className={styles.shadow}>
-      <Link href={href} onClick={onNavigate} className={styles.ticket} aria-label={title} aria-current={active ? "page" : undefined}>
+      <Link href={href} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.ticket} aria-label={title} aria-current={active ? "page" : undefined}>
         <span className={styles.artworkFrame} data-treatment={artworkTreatment}><Image src={imageSrc} alt="" width={108} height={60} unoptimized className={styles.artwork} /></span>
         <span className={styles.perforation} aria-hidden="true" />
         <span className={styles.copy} data-wrap-title={wrapTitle || undefined}>
