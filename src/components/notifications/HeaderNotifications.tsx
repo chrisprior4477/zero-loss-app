@@ -10,6 +10,7 @@ import { useNotifications } from "./NotificationProvider";
 import { NotificationBanner, previewMessages } from "./NotificationBanner";
 import { groupedActivityUpdates, headerCategories, headerCategory, headerCategoryIds, headerCounts, headerDestinations, notificationMessages, notificationDestination, type HeaderCategory } from "@/lib/account/header-notifications";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import styles from "./notifications.module.css";
 export function HeaderNotifications({ children }: { children: ReactNode }) {
   const value = useNotifications();
@@ -23,6 +24,8 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<HeaderCategory | null>(null);
   const [bannerCategory, setBannerCategory] = useState<HeaderCategory | null>(null);
   const warmed = useRef(new Map<string, number>());
+  const endUpdatesHistory = useDialogBack(Boolean(value?.open), () => { keyboardOpened.current = true; value?.setOpen(false); });
+  function closeUpdates() { endUpdatesHistory(); value?.setOpen(false); }
   useEffect(() => {
     const openSupport = () => setSelected("support");
     window.addEventListener("zero-loss-open-support-updates", openSupport);
@@ -61,7 +64,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     if (href) { value.setOpen(false); router.push(notificationDestination(href, current)); }
     try {
       if (ids.length) await value.markRead(ids);
-      if (!href) value.setOpen(false);
+      if (!href) closeUpdates();
     } catch { setError("Your alert could not be marked as read. It is still available in updates."); }
     finally { if (!href) setBusy(false); }
   }
@@ -100,8 +103,8 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
         {!value?.bannerHidden || value.preferencesPreviewActive ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
-    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
-      <div className={styles.dialogHeading}><h2 id="header-updates-title">Your updates</h2><button type="button" aria-label="Close updates" onClick={() => value?.setOpen(false)}>×</button></div>
+    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={closeUpdates} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) closeUpdates(); }}>
+      <div className={styles.dialogHeading}><h2 id="header-updates-title">Your updates</h2><button type="button" aria-label="Close updates" onClick={closeUpdates}>×</button></div>
       <nav className={styles.categories} data-count={categories.length} aria-label="Update categories">
         {categories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key, true)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
       </nav>
@@ -120,8 +123,8 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       <div className={styles.footer}>
         {unread.length ? <button disabled={busy} type="button" onClick={() => void act(unread.map(n => n.id))}>{busy ? "Saving…" : "Mark all as read"}</button> : null}
-        <Link href="/account/notifications#notifications-intro" onClick={() => value?.setOpen(false)}>All notifications</Link>
-        {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); value?.setOpen(false); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
+        <Link href="/account/notifications#notifications-intro" replace onNavigate={() => value?.setOpen(false)}>All notifications</Link>
+        {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); closeUpdates(); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
       </div>
     </dialog>
     {error && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`} role="alert"><span>{error}</span><button type="button" onClick={() => value?.setOpen(true)}>Open updates</button><button type="button" aria-label="Dismiss notification message" onClick={() => setError("")}>×</button></div> : null}

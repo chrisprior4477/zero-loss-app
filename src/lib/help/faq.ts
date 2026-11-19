@@ -162,7 +162,7 @@ export const faqItems: FaqItem[] = [
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
 
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
-  const normalize = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replaceAll("can't", "cannot");
+  const normalize = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
   const normalized = normalize(query).replace(/[^a-z0-9\s-]/g, " ").replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund");
   const words = normalized.trim().split(/[\s-]+/).filter(word => word && !faqFiller.has(word));
   const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;

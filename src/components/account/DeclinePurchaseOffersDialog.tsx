@@ -21,9 +21,9 @@ function declineDeadline() {
 
 type Phase = "recover" | "confirm" | "working" | "undo" | "undoing" | "error" | "leaving";
 
-export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose, ownerId, recovering = false }:  {
+export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose, ownerId, recovering = false, handleBrowserBack = false }:  {
   item: ActivityItem; ownerId?: string; recovering?: boolean; offeredOptionIds: string[]; selectedOptionIds?: string[] | null;
-  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose?: () => void;
+  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose?: () => void; handleBrowserBack?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>(recovering ? "recover" : "confirm");
@@ -208,7 +208,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
       <li key={id}><strong>{ticketLabels[id] ?? `Offer #${id}`}</strong><span>{label}</span></li>)}</ul>;
   }
   const finishLabel = returnToRemaining ? "View remaining offers" : "Finish";
-  return <PurchaseDialog title={title} onClose={dismiss} closeDisabled={busy}
+  return <PurchaseDialog title={title} onClose={dismiss} closeDisabled={busy} handleBrowserBack={handleBrowserBack}
     closeLabel={phase === "confirm" ? (selective ? "Close and return to selection" : `Close and keep my ${offerWord}`) : (returnToRemaining ? "Close and view remaining offers" : "View Declined Offers")} className={styles.dialog}>
     <div className={styles.product}>
       <Image src={item.image} alt={item.title} width={70} height={70} />

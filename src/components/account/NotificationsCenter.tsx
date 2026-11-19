@@ -80,6 +80,14 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    function focusIntro() {
+      if (window.location.hash === "#notifications-intro") headingRef.current?.querySelector("h1")?.focus({ preventScroll: true });
+    }
+    const frame = requestAnimationFrame(focusIntro);
+    window.addEventListener("hashchange", focusIntro);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("hashchange", focusIntro); };
+  }, []);
   const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
   const attentionNotifications = useMemo(() => enabledNotifications.filter(notification => notification.category === "action" || !read.has(notification.id) || notification.id === focusedNotice), [enabledNotifications, read, focusedNotice]);
@@ -393,7 +401,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header id="notifications-intro" ref={headingRef} className={styles.header}>
-        <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
+        <div><h1 tabIndex={-1}>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
           <button type="button" onClick={markAllRead} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read

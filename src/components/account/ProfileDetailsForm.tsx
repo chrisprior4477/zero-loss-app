@@ -121,6 +121,20 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     return result;
   }, { status: "idle" });
   const saveFeedback = useRef<HTMLParagraphElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    function confirmSectionChange(event: MouseEvent) {
+      if (!form.current || event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || (link.target && link.target !== "_self") || link.origin !== window.location.origin || link.pathname === window.location.pathname) return;
+      if (!link.closest("#account-settings-sections") && !(form.current.contains(link) && link.pathname === "/account/security")) return;
+      const data = new FormData(form.current);
+      const dirty = profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim());
+      if (dirty && !window.confirm("You have unsaved profile changes. Leave this section and discard them?")) event.preventDefault();
+    }
+    document.addEventListener("click", confirmSectionChange, true);
+    return () => document.removeEventListener("click", confirmSectionChange, true);
+  }, [baseline]);
   useEffect(() => {
     if (showFeedback && !pending && state.status === "error" && document.activeElement === document.body) {
       saveFeedback.current?.focus();
@@ -152,10 +166,17 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [address.country, address.region, address.postalCode, completeAddress, lookupKey, lookupAttempt]);
   const currentLookup = completeAddress && lookup?.key === lookupKey ? lookup : null;
+  const retryLookup = useRef(false);
+  const lookupFeedback = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!retryLookup.current || !currentLookup) return;
+    retryLookup.current = false;
+    if (document.activeElement === document.body) lookupFeedback.current?.focus();
+  }, [currentLookup]);
   const fallbackZones = currentLookup && !currentLookup.zone ? currentLookup.options : [];
   // Dispatch the action ourselves so React's automatic form reset cannot discard
   // the draft when the server returns a validation error. Native validation stays.
-  return <form action={action} onSubmit={event => {
+  return <form ref={form} action={action} onSubmit={event => {
     event.preventDefault();
     if (pending) return;
     const data = new FormData(event.currentTarget);
@@ -203,13 +224,13 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
           <label htmlFor="profile-country">Country</label>
           <div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div>
           {completeAddress ? (
-            <div className={styles.addressZone}>
+            <div ref={lookupFeedback} tabIndex={-1} className={styles.addressZone}>
               <p role="status" className={styles.addressZoneStatus}>
                 {!currentLookup ? "Checking your address time zone…" : currentLookup.zone ? (
                   <>Time zone for this address · <strong>{timeZoneLocation(currentLookup.zone)}, {address.country}</strong></>
                 ) : null}
               </p>
-              {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}
+              {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { retryLookup.current = true; setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}
               {currentLookup && !currentLookup.failed && !currentLookup.zone ? (
                 <div className={styles.field}>
                   <label htmlFor="address-timezone">Time zone for your address</label>

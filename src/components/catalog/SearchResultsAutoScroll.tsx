@@ -2,27 +2,30 @@
 
 import { useLayoutEffect } from "react";
 
-let requestedFocus: string | null = null;
+let requestedFocus: { href: string; target: "heading" | "ticket-range" } | null = null;
 
-function focusBrowseResults() {
-  const heading = document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
-  heading?.focus({ preventScroll: true });
+function focusBrowseResults(target: "heading" | "ticket-range") {
+  const destination = target === "ticket-range"
+    ? document.querySelector<HTMLElement>('[aria-label="Tickets remaining"] [aria-current="true"]')
+    : document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
+  destination?.focus({ preventScroll: true });
 }
 
-export function requestBrowseResultsFocus(href: string) {
-  requestedFocus = href;
+export function requestBrowseResultsFocus(href: string, target: "heading" | "ticket-range" = "heading") {
+  const request = { href, target };
+  requestedFocus = request;
   // Choosing the current category can leave the existing page mounted.
   const destination = new URL(href, window.location.origin);
   if (window.location.pathname !== destination.pathname || window.location.search !== destination.search) return;
   requestAnimationFrame(() => {
-    if (requestedFocus !== href) return;
+    if (requestedFocus !== request) return;
     requestedFocus = null;
-    focusBrowseResults();
+    focusBrowseResults(target);
   });
 }
 
 /** Settle the requested browse destination below the menu's closing animation. */
-export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "" }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string }) {
+export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string; invalidSearch?: boolean }) {
   useLayoutEffect(() => {
     let cancelled = false;
     let first = 0;
@@ -57,9 +60,10 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
             : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
-      const focusResults = requestedFocus !== null && window.location.href === new URL(requestedFocus, window.location.origin).href;
+      const focusResults = requestedFocus && window.location.href === new URL(requestedFocus.href, window.location.origin).href ? requestedFocus.target : null;
       requestedFocus = null;
-      const focusTarget = footerField ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
+      const focusTarget = footerField ?? invalidSearchInput ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
@@ -68,7 +72,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
         if ((focusTarget || focusResults) && !focused) {
           focused = true;
           if (focusTarget) focusTarget.focus({ preventScroll: true });
-          else focusBrowseResults();
+          else if (focusResults) focusBrowseResults(focusResults);
         }
       };
       scroll();
@@ -88,6 +92,6 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey, mobileBrowseKey, groceryKey]);
+  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch]);
   return null;
 }

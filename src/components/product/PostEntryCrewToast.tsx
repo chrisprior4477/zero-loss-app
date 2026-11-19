@@ -12,6 +12,7 @@ import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, isCompleteSharePhone as validPhone, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import { normalizeCrewContactPhone, type CrewGroupContact, type CrewVisibilityGroup } from "@/lib/crew/visibility";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { CrewGroupRemovalCountdown } from "@/components/account/CrewGroupRemovalCountdown";
 import type { EntryRequest } from "@/lib/entries/request";
 import { ShareIcon } from "./ShareIcon";
@@ -40,6 +41,7 @@ type CrewDelivery = { ok: boolean; message: string; groupCount?: number };
 const recentDeliveries = new Map<string, Promise<CrewDelivery>>();
 
 export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false }: Props) {
+  useDialogBack(focusOnOpen, onClose, false, true);
   const initialItem = product ?? { slug: request!.slug, title: request!.title };
   const [item, setItem] = useState<ProductShareItem>(initialItem);
   const [step, setStep] = useState<Step>("home");

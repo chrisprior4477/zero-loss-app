@@ -7,14 +7,23 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
   useLayoutEffect(() => {
     let cancelled = false;
     const fromCrew = new URLSearchParams(window.location.search).get("from")?.startsWith("/account/crew");
-    const needsSettling = !fromCrew || window.location.hash === "#enter-entry";
+    const needsSettling = !fromCrew || ["#enter-entry", "#entry-action"].includes(window.location.hash);
     let first = 0, second = 0;
     let settle: ReturnType<typeof setTimeout>;
+    let focused = false;
     const align = () => {
-      const hash = window.location.hash;
-      if (hash && hash !== "#enter-entry" && hash !== "#product-entry-card") return;
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
-      const scroll = () => { if (!cancelled) document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" }); };
+      const scroll = () => {
+        if (cancelled) return;
+        const hash = window.location.hash;
+        if (hash && !["#enter-entry", "#product-entry-card", "#entry-action"].includes(hash)) return;
+        const action = hash === "#entry-action" ? document.getElementById("entry-action") : null;
+        if (action) {
+          const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+          window.scrollTo({ top: Math.max(0, window.scrollY + action.getBoundingClientRect().top - header - 12), behavior: "instant" });
+          if (!focused) { action.focus({ preventScroll: true }); focused = true; }
+        } else document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      };
       scroll();
       if (!needsSettling) return;
       first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
@@ -25,7 +34,7 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(align);
     if (header && needsSettling) observer?.observe(header);
     const stopObserving = setTimeout(() => observer?.disconnect(), 1500);
-    const navigate = () => { cancelled = false; align(); };
+    const navigate = () => { cancelled = false; focused = false; align(); };
     const stop = () => { cancelled = true; observer?.disconnect(); };
     window.addEventListener("hashchange", navigate);
     window.addEventListener("pointerdown", stop, { passive: true });

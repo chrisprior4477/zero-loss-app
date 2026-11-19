@@ -257,9 +257,16 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         if (hasSaved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a
         // details button for a record still present in the authorized list.
-        if (hasSaved ? saved.openId !== anchorId : !initialDetailsId) return;
         const ticket = Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-ticket]") ?? [])
           .find(element => element.id === `reward-${anchorId}`);
+        if (hasSaved ? saved.openId !== anchorId : !initialDetailsId) {
+          if (initialAnchorId === anchorId) {
+            const action = ticket?.querySelector<HTMLAnchorElement>("[data-order-reward-action]");
+            action?.focus({ preventScroll: true });
+            action?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+          }
+          return;
+        }
         const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
         if (anchor) {
           if (!hasSaved) rememberPage(anchorId, null);
@@ -432,7 +439,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
               {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
               {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
             </dl>
-            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>

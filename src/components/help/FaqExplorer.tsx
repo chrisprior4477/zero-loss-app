@@ -38,6 +38,7 @@ export function FaqExplorer() {
       setQuery(saved.query); setCategory(saved.category); setExpanded(saved.expanded);
       setCollapsed(saved.collapsed ?? []);
       cancel(); interrupted = false;
+      let focused = false;
       const align = () => {
         if (interrupted) return;
         cancelAnimationFrame(first); cancelAnimationFrame(second);
@@ -47,6 +48,10 @@ export function FaqExplorer() {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, saved.answerTop) : saved.scrollY;
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+          if (!focused && saved.answerLink) {
+            const link = Array.from(answer?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === saved.answerLink);
+            if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
+          }
         }); });
       };
       align(); for (const delay of [150, 400, 900]) timers.push(window.setTimeout(align, delay));
@@ -65,7 +70,8 @@ export function FaqExplorer() {
     const answer = anchor.closest<HTMLElement>("[data-faq-id]");
     const saved: FaqReturn = { href: window.location.href, query, category, collapsed,
       expanded: Array.from(panel.current?.querySelectorAll<HTMLDetailsElement>("details[open][data-faq-id]") ?? []).map(element => element.dataset.faqId!),
-      scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0 };
+      scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0,
+      answerLink: answer ? anchor.getAttribute("href") ?? undefined : undefined };
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
   }}>
     <div className={`${styles.ticket} ${styles.panel}`}>

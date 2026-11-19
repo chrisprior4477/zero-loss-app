@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import styles from "./wallet-roller-picker.module.css";
 
 type Choice = { value: string; label: string; detail?: string };
@@ -140,6 +141,7 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   const trigger = useRef<HTMLButtonElement>(null);
   const selected = options.find(option => option.value === value);
   const unavailable = disabled || options.length === 0;
+  useDialogBack(open && !unavailable, () => close(true), false, true);
   if (unavailable && open) setOpen(false);
   function close(restoreFocus = false) {
     setOpen(false);

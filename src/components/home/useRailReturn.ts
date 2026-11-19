@@ -55,11 +55,16 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
       const saved = bookmark()?.rows[id] ?? (anchorHref ? { left: 0, anchor: anchorHref, inset: 4 } : null);
       if (!saved || !Number.isFinite(saved.left) || saved.left < 0 || !Number.isFinite(saved.inset)) return;
       restoring = true;
+      let focused = false;
       const align = () => {
         if (!restoring || !track?.clientWidth) return;
         const anchor = typeof saved.anchor === "string" ? children().find(child => links(child).some(link => link.getAttribute("href") === saved.anchor)) : null;
         const left = anchor ? track.scrollLeft + anchor.getBoundingClientRect().left - track.getBoundingClientRect().left - saved.inset : saved.left;
         track.scrollLeft = Math.max(0, Math.min(left, track.scrollWidth - track.clientWidth));
+        if (retailer && !focused) {
+          const link = Array.from(track.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === retailer);
+          if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
+        }
       };
       align();
       frame = requestAnimationFrame(align);

@@ -22,7 +22,8 @@ export function searchCatalogMatches(
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
-    && (!budget || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
+    && (budget?.minimum === undefined || product.value >= budget.minimum)
+    && (budget?.maximum == null || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
     && (!giftCards || isGiftCardListing(product))
     && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));

@@ -21,7 +21,15 @@ type Props = {
   availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
   initialSharedView?: SharedView;
+  initialFavoriteFilter?: FavoriteFilter;
 };
+type FavoriteFilter = "all" | "watching";
+function favoritesHref(filter: FavoriteFilter, slug?: string) {
+  const params = new URLSearchParams();
+  if (slug) params.set("item", slug);
+  if (filter === "watching") params.set("watch", "1");
+  return `/account/favorites${params.size ? `?${params}` : ""}`;
+}
 type Selection = { slug: string; shareId?: never } | { shareId: string; slug?: never } | null;
 type SharePatch = Partial<Pick<SavedProductShare, "viewedAt" | "declinedAt">>;
 const sharePatchFields = ["viewedAt", "declinedAt"] as const;
@@ -30,7 +38,7 @@ function savedListPosition(state: unknown): ListPosition | null {
   if (!state || typeof state !== "object" || !("zeroLossFavoritesReturn" in state)) return null;
   const value = state.zeroLossFavoritesReturn;
   if (!value || typeof value !== "object" || !("href" in value) || !("target" in value) || !("top" in value)) return null;
-  return (value.href === "/account/favorites" || value.href === sharedWithYouHref || value.href === savedShareHref(undefined, "declined"))
+  return (value.href === favoritesHref("all") || value.href === favoritesHref("watching") || value.href === sharedWithYouHref || value.href === savedShareHref(undefined, "declined"))
     && typeof value.target === "string" && typeof value.top === "number" && Number.isFinite(value.top) && value.top >= 0
     ? { href: value.href, target: value.target, top: value.top } : null;
 }
@@ -43,13 +51,13 @@ function restoreListPosition(target?: string, top?: number) {
   });
 }
 
-export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available" }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all" }: Props) {
   const timeZone = useAccountTimeZone();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
   const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
   const slugs = useMemo(() => savedSlugs.filter(slug => !hidden.has(slug)), [savedSlugs, hidden]);
   const [tab, setTab] = useState(initialTab);
-  const [favoriteFilter, setFavoriteFilter] = useState<"all" | "watching">("all");
+  const [favoriteFilter, setFavoriteFilter] = useState(initialFavoriteFilter);
   const [sharedView, setSharedView] = useState<SharedView>(initialSharedView);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
   const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
@@ -121,8 +129,12 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   function chooseTab(next: "favorites" | "shared") {
     listPosition.current = null;
     setSkipFreshLanding(false);
-    setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites", true);
+    setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? savedShareHref(undefined, sharedView) : favoritesHref(favoriteFilter), true);
     revealHeading();
+  }
+  function chooseFavoriteFilter(next: FavoriteFilter) {
+    setFavoriteFilter(next);
+    if (next !== favoriteFilter) location(favoritesHref(next), true);
   }
   function chooseSharedView(next: SharedView) {
     listPosition.current = null;
@@ -148,6 +160,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       const query = new URLSearchParams(window.location.search);
       const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
       const nextView = query.get("view") === "declined" ? "declined" : "available";
+      const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
       const shareId = nextTab === "shared" ? query.get("share") : null;
       const slug = query.get("item");
       const nextSelected = shareId ? { shareId }
@@ -156,15 +169,16 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       setSkipFreshLanding(restoreScroll && !nextSelected && Boolean(previousPosition));
       listPosition.current = savedListPosition(state);
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
+      if (nextTab === "favorites") setFavoriteFilter(nextFavoriteFilter);
       if (!restoreScroll) return;
-      if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : "/account/favorites")) {
+      if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(nextFavoriteFilter))) {
         restoreListPosition(previousPosition.target, previousPosition.top);
       }
     }
     // A restored Next.js page can mount after popstate using the cached list's
     // props. The browser location still carries the exact item it returned to.
     const params = new URLSearchParams(window.location.search);
-    if (listPosition.current || params.has("item") || params.has("share") || params.has("view")) restoreHistory(window.history.state, false);
+    if (listPosition.current || params.has("item") || params.has("share") || params.has("view") || params.has("watch")) restoreHistory(window.history.state, false);
     const onPopState = (event: PopStateEvent) => restoreHistory(event.state, true);
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -181,17 +195,17 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     return () => cancelAnimationFrame(frame);
   }, [selectedSlug, selectedShare?.id]);
   function openItem(slug: string, shareId?: string) {
-    listPosition.current = { href: tab === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites", target: shareId ?? slug, top: window.scrollY };
+    listPosition.current = { href: tab === "shared" ? savedShareHref(undefined, sharedView) : favoritesHref(favoriteFilter), target: shareId ?? slug, top: window.scrollY };
     setSelected(shareId ? { shareId } : { slug }); setMessage("");
     // Keep the list in history; Next.js copies its router state into this entry.
-    window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId, sharedView) : `/account/favorites?item=${encodeURIComponent(slug)}`);
+    window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId, sharedView) : favoritesHref(favoriteFilter, slug));
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
       .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
   }
   function back(keepCurrentView = false) {
     const target = selection?.shareId ?? selection?.slug;
     const nextView = keepCurrentView || !selectedShare ? sharedView : selectedShare.declinedAt ? "declined" : "available";
-    const href = tab === "shared" ? savedShareHref(undefined, nextView) : "/account/favorites";
+    const href = tab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(favoriteFilter);
     if (savedListPosition(window.history.state)?.href === href) {
       window.history.back();
       return;
@@ -293,7 +307,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   }) : [];
   const watching = showFavoriteFilters && favoriteFilter === "watching";
   const visibleFavorites = watching ? watchedSlugs : slugs;
-  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : `/account/favorites?item=${detailProduct.slug}`)
+  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : favoritesHref(favoriteFilter, detailProduct.slug))
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding} />
@@ -338,8 +352,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
           {showFavoriteFilters ? <>
             <div className={styles.listFilters} role="group" aria-label="Filter favorites">
-              <button type="button" aria-pressed={!watching} onClick={() => setFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
-              <button type="button" aria-pressed={watching} onClick={() => setFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
+              <button type="button" aria-pressed={!watching} onClick={() => chooseFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
+              <button type="button" aria-pressed={watching} onClick={() => chooseFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
             </div>
             <p className={styles.note} aria-live="polite">{watching
               ? `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`

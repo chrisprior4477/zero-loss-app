@@ -22,6 +22,7 @@ type Props = {
 
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const params = await searchParams;
+  if (!params.offering) redirect("/free-entry");
   const product = await freeEntryProduct(params.offering);
   if (product === undefined) {
     const instructions = freeEntryHref(params.offering ?? "", params.from, parseEntryQuantity(params.quantity), params.share);

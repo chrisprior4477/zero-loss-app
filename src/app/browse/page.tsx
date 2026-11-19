@@ -17,7 +17,7 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
-import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
+import { BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
@@ -50,6 +50,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   });
   const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
   const searchTooLong = catalogSearchTooLong(searchTerm);
+  const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const endingSoon = selectedCategory === "ending-soon";
   const ticketsLeft = endingSoon ? parseEndingSoonTicketRange(query.ticketsLeft) : null;
@@ -67,6 +68,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const denomination = searchDenominations(searchTooLong ? "" : searchTerm, demoProducts);
+  const searchBudget = denomination.budget;
+  const formatBudget = (value: number) => `$${value.toLocaleString("en-US")}`;
+  const searchBudgetLabel = searchBudget?.minimum !== undefined
+    ? searchBudget.maximum === null ? `${formatBudget(searchBudget.minimum)} and up` : `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}`
+    : searchBudget?.maximum != null ? `${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}` : null;
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const requestedFilters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const reversedRange = requestedFilters.minValue !== null && requestedFilters.maxValue !== null
@@ -210,7 +216,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <div>
             <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
             <p className="mt-2 text-white/65">
-              {searchTooLong ? "Shorten your search to see matching prizes." : searchTerm
+              {invalidSearch ? "Enter a product or retailer name to search." : searchTooLong ? "Shorten your search to see matching prizes." : searchTerm
                 ? <>{products.length} {products.length === 1 ? "product" : "products"}{!broaderSearch && directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="text-white">“{searchTerm}”</strong></>
                 : "Choose a product to see its entry details and current availability."}
             </p>
@@ -223,7 +229,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
-          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
+          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} />
           {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">
@@ -256,11 +262,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
-        {searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
+        {invalidSearch ? <p role="alert" className="mt-4 text-sm font-bold text-orange-100">Try a search such as “Amazon gift card” or “headphones.”</p> : searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
           <p aria-live="polite" className="text-sm font-bold text-white/75">{endingSoon || products.length > batchSize
             ? tailBatch === 1 ? `Showing the last ${visibleProducts.length} of ${products.length} ${resultNoun}`
               : tailBatch ? `Showing ${tailStart + 1}–${tailEnd} of ${products.length} ${resultNoun}` : `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
-            : `${products.length} ${resultNoun} shown`}{denomination.budget ? <span className="ml-2">· Prize value {denomination.budget.inclusive ? "up to" : "under"} ${denomination.budget.maximum.toLocaleString("en-US")}</span> : denomination.values.size > 0 &&
+            : `${products.length} ${resultNoun} shown`}{searchBudgetLabel ? <span className="ml-2">· Prize value {searchBudgetLabel}</span> : denomination.values.size > 0 &&
               <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
           {appliedFilters.length ? <ul aria-label="Applied filters" className="flex min-w-0 flex-wrap gap-1.5">
             {[...new Set(appliedFilters)].map(label => <li key={label} className="max-w-full rounded-full bg-[#d5f1ff] px-2.5 py-1 text-xs font-bold break-words text-[#123e68]">{label}</li>)}
@@ -272,11 +278,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             if (range.value) params.set("ticketsLeft", range.value);
             else params.delete("ticketsLeft");
             const selected = range.value === ticketsLeft;
-            return <Link key={range.value ?? "all"} href={`/browse?${params}#search-results`} prefetch={false} scroll={false}
-              aria-current={selected ? "true" : undefined}
+            return <EndingSoonRangeLink key={range.value ?? "all"} href={`/browse?${params}#search-results`} selected={selected}
               className={`flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl px-1 text-xs font-extrabold sm:text-sm ${selected ? "bg-[#ff7800] text-[#061e3d]" : "bg-[#c8efff] text-[#123e68] hover:bg-cyan-100"}`}>
               {range.label}
-            </Link>;
+            </EndingSoonRangeLink>;
           })}
         </nav> : null}
         {products.length ? (
@@ -310,7 +315,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             })}
           </section>
         ) : null}
-        {searchTooLong ? null : !hasOpenResults && savedMatches.length ? (
+        {searchTooLong || invalidSearch ? null : !hasOpenResults && savedMatches.length ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>

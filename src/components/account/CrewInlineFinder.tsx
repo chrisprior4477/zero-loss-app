@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { inviteToCrew, inviteToCrewById, inviteToCrewByPhone, searchCrewByName, type CrewSearchPerson } from "@/lib/crew/actions";
 import { addSampleCrewPreview, sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { ShareIcon } from "@/components/product/ShareIcon";
@@ -19,6 +19,13 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState<string[]>([]);
   const request = useRef(0);
+  const findButton = useRef<HTMLButtonElement>(null);
+  const focusRetry = useRef(false);
+  useEffect(() => {
+    if (busy || !focusRetry.current) return;
+    focusRetry.current = false;
+    if (document.activeElement === document.body) findButton.current?.focus();
+  }, [busy]);
   const validationId = useId();
   const [invalid, setInvalid] = useState(false);
 
@@ -42,8 +49,11 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
       if (request.current !== turn) return;
       const matching = sampleCrewPeople.filter(person => person.name.toLowerCase().includes(value.toLowerCase()));
       setPeople(result.people); setSamples(matching);
+      if (!result.ok) focusRetry.current = true;
       if (!result.ok || (!result.people.length && !matching.length)) setMessage(result.message);
-    } catch { if (request.current === turn) setMessage("Search couldn’t connect. Try again."); }
+    } catch {
+      if (request.current === turn) { focusRetry.current = true; setMessage("Search couldn’t connect. Try again."); }
+    }
     finally { if (request.current === turn) setBusy(false); }
   }
 
@@ -71,7 +81,7 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
     <div className={styles.finderHeading}><div><span className={styles.eyebrow}>MAKE THE CONNECTION</span><h2>Add someone to your Crew</h2></div><button type="button" className={styles.iconButton} aria-label="Close people search" onClick={onClose}>×</button></div>
     <form onSubmit={find}>
       <label htmlFor="crew-query">Name, email, or phone</label>
-      <div className={styles.findRow}><input type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
+      <div className={styles.findRow}><input type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
     </form>
     <div className={styles.findResults} aria-live="polite">
       {target ? <article className={styles.findResult}><span className={styles.contactSymbol}><ShareIcon name={target.kind === "email" ? "mail" : "message"} /></span><div><strong>{target.value}</strong><small>Private contact lookup</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(target.value)} onClick={() => void add(target.value, () => target.kind === "email" ? inviteToCrew(target.value) : inviteToCrewByPhone(target.value))}>{sent.includes(target.value) ? "Saved" : "Add to Crew"}</button></article> : null}

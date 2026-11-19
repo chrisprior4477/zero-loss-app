@@ -1,7 +1,7 @@
 import { faqCategories, faqItems, type FaqCategory } from "./faq";
 
 export const faqReturnKey = "zeroLossFaqReturn";
-export type FaqReturn = { href: string; query: string; category: FaqCategory; expanded: string[]; collapsed?: string[]; scrollY: number; answer: string | null; answerTop: number };
+export type FaqReturn = { href: string; query: string; category: FaqCategory; expanded: string[]; collapsed?: string[]; scrollY: number; answer: string | null; answerTop: number; answerLink?: string };
 
 export function readFaqReturn(state: unknown, href: string): FaqReturn | null {
   const saved = state && typeof state === "object" ? (state as Record<string, unknown>)[faqReturnKey] as Partial<FaqReturn> | undefined : undefined;
@@ -10,6 +10,7 @@ export function readFaqReturn(state: unknown, href: string): FaqReturn | null {
     || !saved.expanded.every(id => faqItems.some(item => item.id === id))
     || (saved.collapsed !== undefined && (!Array.isArray(saved.collapsed) || !saved.collapsed.every(id => faqItems.some(item => item.id === id))))
     || (saved.answer !== null && !faqItems.some(item => item.id === saved.answer))
+    || (saved.answerLink !== undefined && (typeof saved.answerLink !== "string" || saved.answerLink.length > 2048))
     || typeof saved.scrollY !== "number" || !Number.isFinite(saved.scrollY) || saved.scrollY < 0
     || typeof saved.answerTop !== "number" || !Number.isFinite(saved.answerTop)) return null;
   return saved as FaqReturn;

@@ -15,10 +15,11 @@ type Props = { initialProduct?: string; ownerId?: string; scope?: string };
 
 export function CatalogRequestForm({ initialProduct = "", ownerId, scope }: Props) {
   const draftKey = catalogRequestDraftKey(ownerId, initialProduct, scope);
-  return <CatalogRequestSession key={draftKey} initialProduct={initialProduct} draftKey={draftKey} />;
+  const longQuery = initialProduct.length > 160;
+  return <CatalogRequestSession key={draftKey} initialProduct={longQuery ? "" : initialProduct} originalQuery={longQuery ? initialProduct : ""} draftKey={draftKey} />;
 }
 
-function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: string; draftKey: string }) {
+function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { initialProduct: string; originalQuery: string; draftKey: string }) {
   const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
   const [draft, setDraft] = useState(initialDraft);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -93,6 +94,10 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
       startTransition(() => formAction(formData));
     }} className="space-y-5 [&_:invalid]:scroll-mt-[calc(var(--site-header-height,140px)+16px)]">
       <input type="hidden" name="sourceQuery" value={initialProduct} />
+      {originalQuery ? <div className="rounded-xl border border-cyan-300/35 p-4">
+        <p className="text-sm font-bold text-white">Your original search</p>
+        <p className="mt-1 break-words text-sm text-white/75">{originalQuery}</p>
+      </div> : null}
       <div>
         <label htmlFor="requested-item" className="text-sm font-bold text-white">What would you like to see?</label>
         <input
@@ -103,12 +108,14 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
           required
           minLength={2}
           maxLength={160}
+          aria-describedby={originalQuery ? "requested-item-limit" : undefined}
           value={draft.requestedItem}
           onChange={event => changeDraft({ requestedItem: event.target.value })}
           disabled={pending}
           placeholder="Example: Kayaks, concert tickets, or running shoes"
           className="mt-2 min-h-12 w-full scroll-mt-44 rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
+        {originalQuery ? <p id="requested-item-limit" className="mt-2 text-sm text-white/75">Use up to 160 characters for the title. You can add more detail in Notes.</p> : null}
       </div>
       <div>
         <label htmlFor="request-email" className="text-sm font-bold text-white">Email</label>

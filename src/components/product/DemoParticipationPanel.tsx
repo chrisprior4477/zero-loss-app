@@ -451,12 +451,12 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy || !requestHead.ready || (!uncertain && invalidQuantity !== null)} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
+          <button id="entry-action" type="submit" disabled={entryBusy || !requestHead.ready || (!uncertain && invalidQuantity !== null)} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>
       ) : (
-        <Link href={invalidQuantity === null ? entryLoginHref : "/login"} onClick={() => { if (invalidQuantity === null) rememberEntry(quantity, "sign-in"); }} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
+        <Link id="entry-action" href={invalidQuantity === null ? entryLoginHref : "/login"} onClick={() => { if (invalidQuantity === null) rememberEntry(quantity, "sign-in"); }} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
           Sign in to enter
         </Link>
       )}

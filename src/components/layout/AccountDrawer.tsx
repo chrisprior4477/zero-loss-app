@@ -17,6 +17,7 @@ import { SignOutForm } from "@/components/auth/SignOutForm";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
 import { useAccountProfileShortcut } from "./useAccountProfileShortcut";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
 type AccountDrawerProps = {
@@ -79,6 +80,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
+  useDialogBack(open, () => setOpen(false), false, true);
 
   useEffect(() => {
     // Includes browser Back/Forward and query-only navigation.

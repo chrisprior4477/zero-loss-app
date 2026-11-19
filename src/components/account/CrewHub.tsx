@@ -68,6 +68,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const origin = useSyncExternalStore(subscribeToOrigin, getBrowserOrigin, getServerOrigin);
   const inviteUrl = ownInviteToken && origin ? `${origin}/account/crew?invite=${ownInviteToken}` : "";
   const [copyMessage, setCopyMessage] = useState("");
+  const inviteField = useRef<HTMLInputElement>(null);
   const [incomingRequestSent, setIncomingRequestSent] = useState(false);
   const pickRequest = useRef(0);
   const finderOpener = useRef<HTMLButtonElement>(null);
@@ -126,6 +127,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       setCopyMessage("Invite link copied. Anyone who opens it can join your Crew and leave at any time.");
     } catch {
       setCopyMessage("Copy was blocked by your browser. Select the link above and copy it manually.");
+      inviteField.current?.focus();
+      inviteField.current?.select();
     }
   }
 
@@ -253,7 +256,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
       {finding ? <div>
         <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
-        <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
+        <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input ref={inviteField} aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
       </div> : null}
 
       {incomingInviteToken ? <section className={styles.incomingInvite} aria-label="Crew invite request"><div><strong>Someone invited you to connect</strong><p>Join to receive their shared finds. Your own picks stay private until you choose to share back, and you can leave at any time.</p></div><button type="button" disabled={pending || incomingRequestSent} onClick={requestFromInviteLink}>{incomingRequestSent ? "Joined" : "Join Crew"}</button></section> : null}

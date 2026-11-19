@@ -6,6 +6,12 @@ import PrintFreeEntryPage from "./print/page";
 vi.mock("@/lib/account/context", () => ({ getAccountContext: vi.fn(async () => null) }));
 afterEach(cleanup);
 
+test("general free-entry instructions wait for the reader to choose a prize", async () => {
+  render(await FreeEntryPage({ searchParams: Promise.resolve({}) }));
+  expect(screen.getByRole("link", { name: /Browse prizes/ }).getAttribute("href")).toBe("/browse#search-results");
+  expect(screen.queryByRole("button", { name: "Print entry insert" })).toBeNull();
+});
+
 test("an unrecognized prize never substitutes the free-entry form for another prize", async () => {
   render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "retired-prize" }) }));
   expect(screen.getByRole("heading", { name: "Free-entry instructions unavailable" })).toBeTruthy();
@@ -30,7 +36,7 @@ test.each([
 
 test("free-entry rejects unsafe return destinations", async () => {
   render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", from: "https://evil.test/browse" }) }));
-  expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro");
+  expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro#entry-action");
 });
 
 test("seven unsubmitted entries survive the instructions and print-preview round trip", async () => {
@@ -40,7 +46,7 @@ test("seven unsubmitted entries survive the instructions and print-preview round
     render(await FreeEntryPage({ searchParams: Promise.resolve(query) }));
     const back = new URL(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")!, "https://example.test");
     expect(back.pathname).toBe("/items/airpods-pro");
-    expect(back.hash).toBe("#enter-entry");
+    expect(back.hash).toBe("#entry-action");
     expect(back.searchParams.get("quantity")).toBe("7");
     expect(back.searchParams.get("share")).toBe(query.share);
     expect(back.searchParams.get("from")).toBe(query.from);
@@ -55,5 +61,5 @@ test("seven unsubmitted entries survive the instructions and print-preview round
 
 test.each(["0", "-1", "7.5", "2147483648", ["2", "7"]].map(quantity => ({ quantity })))("invalid quantity $quantity cannot become a return selection", async ({ quantity }) => {
   render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", quantity }) }));
-  expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro");
+  expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro#entry-action");
 });

@@ -111,6 +111,8 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [removalFailures, setRemovalFailures] = useState(0);
   const restoreRemovalFocus = useRef<string | null>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
+  const saveError = useRef<HTMLParagraphElement>(null);
+  const revealSaveError = useRef(false);
   const [groupMessage, setGroupMessage] = useState("");
   const [groupMessageError, setGroupMessageError] = useState(false);
   const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean } | null>(null);
@@ -367,6 +369,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         discoverable, discovery, defaultRule, entryRules: after,
         expected: { discoverable: baseline.discoverable, discovery: baseline.discovery, defaultRule: baseline.defaultRule, entryRules: before },
       }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined, conflict: false }));
+      revealSaveError.current = !result.ok;
       setMessage(result.message);
       setSaved(result.ok);
       if (result.ok) {
@@ -381,6 +384,15 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       } else if (result.conflict) router.refresh();
     });
   }
+
+  useEffect(() => {
+    if (pending || !revealSaveError.current) return;
+    revealSaveError.current = false;
+    if (document.activeElement === document.body) {
+      saveError.current?.focus({ preventScroll: true });
+      saveError.current?.scrollIntoView?.({ block: "center", behavior: "instant" });
+    }
+  }, [message, pending]);
 
   return <div className={`${styles.page} ${embedded ? styles.embedded : withinAccountSettings ? styles.withinSettings : ""}`}>
     <div className={styles.shell}>
@@ -417,7 +429,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
           </div>
         </div>
         <p role="status" className={pending ? styles.saving : saved && message ? styles.success : undefined}>{pending ? "Privacy settings are temporarily locked while this save finishes." : saved ? message : null}</p>
-        {!pending && !saved && message ? <p role="alert" className={styles.error}>{message}</p> : null}
+        {!pending && !saved && message ? <p ref={saveError} tabIndex={-1} role="alert" className={styles.error}>{message}</p> : null}
       </section> : null}
 
       {section !== "privacy" ? <section id="crew-groups" className={styles.ticket} aria-labelledby="groups-title">

@@ -65,6 +65,14 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const singleOffer = options.length === 1;
   const offerDetailsId = useId();
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
+  const offerDetailsBody = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!offerDetailsOpen) return;
+    const details = offerDetailsBody.current;
+    if (details && details.getBoundingClientRect().bottom > (window.visualViewport?.height ?? window.innerHeight)) {
+      details.scrollIntoView?.({ block: "center", behavior: "instant" });
+    }
+  }, [offerDetailsOpen]);
   const { selected, decline, available, needsReview, handoffId, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
@@ -435,7 +443,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         <button type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => setOfferDetailsOpen(open => !open)}>
           Offer details<AccountIcon name="chevron" />
         </button>
-        <div id={offerDetailsId} className={styles.offerDetailsBody} hidden={!offerDetailsOpen}>
+        <div ref={offerDetailsBody} id={offerDetailsId} className={styles.offerDetailsBody} hidden={!offerDetailsOpen}>
           <strong>{ticketLabels[item.completionOptionId!]}</strong>
           <dl>
             <div><dt>Entry credit</dt><dd>{usd(item.paidCents)} applied</dd></div>
@@ -450,7 +458,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <div className={styles.utility}>{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels}
+    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack
       selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact handleBrowserBack closeDisabled={busy || checkingReceipt} centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}

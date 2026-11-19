@@ -24,8 +24,13 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const url = new URL(value, "https://zeroloss.local");
     const keys = [...url.searchParams.keys()];
     const item = url.searchParams.get("item");
-    if (!url.hash && keys.length === 1 && item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item)) {
-      return `/account/favorites?item=${item}`;
+    const watching = url.searchParams.get("watch") === "1";
+    if (!url.hash && new Set(keys).size === keys.length && keys.every(key => key === "item" || key === "watch")
+      && (!url.searchParams.has("watch") || watching) && (item === null || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item))) {
+      const params = new URLSearchParams();
+      if (item) params.set("item", item);
+      if (watching) params.set("watch", "1");
+      return `/account/favorites${params.size ? `?${params}` : ""}`;
     }
     const share = url.searchParams.get("share");
     if (url.hash || url.searchParams.get("tab") !== "shared"

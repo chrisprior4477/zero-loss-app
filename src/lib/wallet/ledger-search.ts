@@ -27,6 +27,12 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     return entries.filter(entry => matches(entry.amount));
   }
 
+  const alternatives = query.split(/\s+or\s+/i);
+  if (alternatives.length > 1 && alternatives.every(amount => amountOnly.test(amount))) {
+    const matches = alternatives.map(amountMatch);
+    return entries.filter(entry => matches.some(match => match(entry.amount)));
+  }
+
   const amounts: ReturnType<typeof amountMatch>[] = [];
   let text = query.replace(amountInText, (_, token: string) => {
     amounts.push(amountMatch(token.trim()));
@@ -39,11 +45,14 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       for (const value of spoken.values) amounts.push(amountMatch(String(value)));
     }
   }
-  const terms = normalizeSearch(text).split(" ").filter(Boolean);
+  const normalizedText = normalizeSearch(text);
+  const entryPurchasesOnly = /\bposted entries\b/.test(normalizedText);
+  const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase").split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);
   const mayBeGiftCardTitle = amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);
   if (!terms.length && !amounts.length) return [];
   return entries.filter(entry => {
+    if (entryPurchasesOnly && entry.entry_type !== "ENTRY_DEBIT") return false;
     if (mayBeGiftCardTitle && entry.product) {
       const title = normalizeSearch(entry.product.title);
       const value = faceValue.exec(entry.product.title)?.[1];

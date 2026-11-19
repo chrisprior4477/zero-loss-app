@@ -21,6 +21,15 @@ describe("catalog search", () => {
     expect(searchCatalog(sample, "Walmart $25")).toEqual([]);
     expect(searchCatalog(demoProducts, "AirPods Pro 3")[0]?.slug).toBe("airpods-pro");
   });
+  test.each([
+    ["Walmart gift cards $75 and up", [75, 100]],
+    ["Walmart gift cards between $25 and $75", [25, 50, 75]],
+    ["Walmart gift cards between twenty-five dollars and seventy-five dollars", [25, 50, 75]],
+  ])("uses inclusive natural-language prize bounds for %s", (query, amounts) => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.every(product => product.retailer.startsWith("Walmart") && product.title.includes("Gift Card"))).toBe(true);
+    expect([...new Set(matches.map(product => product.value))].sort((a, b) => a - b)).toEqual(amounts);
+  });
   test.each(["Walmart 100 gift card", "100 Walmart gift cards", "Walmart $100 gift card"])("applies a gift-card denomination in either word order: %s", query => {
     const matches = searchCatalog(demoProducts, query);
     expect(matches.length).toBeGreaterThan(0);

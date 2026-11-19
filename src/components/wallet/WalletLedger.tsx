@@ -301,6 +301,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     setAppliedDates({ from: "", through: "" });
     batches.reset();
     searchInput.current?.focus({ preventScroll: true });
+    searchInput.current?.scrollIntoView?.({ block: "center", behavior: "instant" });
   }
   function changeDates(nextFrom: string, nextThrough: string) {
     setFrom(nextFrom);
