@@ -83,9 +83,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
       const url = new URL(anchor.href);
       if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search || !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(url.hash)) return;
-      event.preventDefault();
-      openWalletPanel(url.hash);
-      if (url.hash === "#balance") document.getElementById("balance")?.focus({ preventScroll: true });
+      event.preventDefault(); openWalletPanel(url.hash);
     };
     sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", sync); document.addEventListener("click", click, true);
     return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); document.removeEventListener("click", click, true); };

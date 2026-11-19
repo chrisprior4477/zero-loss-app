@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -35,7 +35,9 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
           if (disposed || interrupted) return;
           // Older profile shortcuts should retain the four section buttons too.
           const id = requestedId === landingAlias ? target : requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
-          const destination = (id && document.getElementById(id)) || document.getElementById(target);
+          const useCompactTarget = compactTarget && (!id || id === target) && window.matchMedia?.("(max-width: 700px)").matches;
+          const destination = (useCompactTarget ? document.getElementById(compactTarget) : null)
+            || (id && document.getElementById(id)) || document.getElementById(target);
           if (!destination) return;
           const bounds = destination.getBoundingClientRect();
           const delta = bounds.top - accountLandingTop(measure(), window.visualViewport?.height ?? window.innerHeight, bounds.height, destination.dataset.landingAlign === "center");
@@ -111,6 +113,6 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, initialTarget, landingAlias, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
+  }, [target, initialTarget, landingAlias, compactTarget, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
   return null;
 }

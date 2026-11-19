@@ -98,7 +98,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const historyTarget = focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {landingTarget ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} settleAfterNavigation allScreens />
+    {landingTarget ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
     <div className={overview.shell}>
       <header className={overview.heading}>
