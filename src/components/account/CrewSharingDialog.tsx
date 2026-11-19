@@ -1,12 +1,15 @@
 "use client";
 import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { restoreDialogTrigger } from "./dialog-keyboard";
+import { useDialogBack } from "./useDialogBack";
 import { createPortal } from "react-dom";
 import styles from "./crew-shared-picks.module.css";
 
-export function CrewSharingDialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+export function CrewSharingDialog({ title, children, onClose, onBack = onClose, busy = false }: { title: string; children: ReactNode; onClose: () => void; onBack?: () => void | true; busy?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
+  useDialogBack(true, onBack, busy, true);
   useLayoutEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -26,7 +29,7 @@ export function CrewSharingDialog({ title, children, onClose }: { title: string;
       document.documentElement.style.overflow = overflow;
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
-      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      restoreDialogTrigger(previous);
     };
   }, []);
   useLayoutEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
@@ -21,6 +21,9 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [cards, setCards] = useState(savedCards);
   const [panelHash, setPanelHash] = useState("");
   const [message, setMessage] = useState("");
+  const [defaultError, setDefaultError] = useState<{ token: DemoCardToken; message: string } | null>(null);
+  const defaultErrorId = useId();
+  const failedControl = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const deleteRevision = useRef<string | undefined>(undefined);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
@@ -66,12 +69,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     }
   }
   useEffect(() => {
+    let lastSyncedHref = "";
     const sync = () => {
       let hash = window.location.hash;
       if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#funding-amount", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }
+      lastSyncedHref = window.location.href;
       setPanelHash(hash);
       if (hash === "#payment-methods") revealMethods();
       else if (hash === "#wallet-add-card" || hash.startsWith(savedCardEditPrefix)) revealWalletSection("wallet-card-editor", "wallet-card-editor", true);
@@ -93,8 +98,10 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       event.preventDefault();
       openWalletPanel(url.hash);
     };
-    sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", sync); document.addEventListener("click", click, true);
-    return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); document.removeEventListener("click", click, true); };
+    // A confirmation can close on Back without changing the wallet destination.
+    const onPop = () => { if (window.location.href !== lastSyncedHref) sync(); };
+    sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", onPop); document.addEventListener("click", click, true);
+    return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", onPop); document.removeEventListener("click", click, true); };
   }, [initialSection]);
   useLayoutEffect(() => {
     if (!panelOpen) return;
@@ -105,16 +112,24 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     }
     revealMethods();
   }, [panelOpen, editorToken, isEdit, isAdd, unavailable]);
-  async function setDefault(card: DemoCard, value: boolean) {
-    setBusy(true); setMessage("");
-    if (!card.revision) { setMessage("Refresh your saved cards before changing the default."); setBusy(false); router.refresh(); return; }
+  useEffect(() => {
+    if (busy || !defaultError) return;
+    if (document.activeElement === document.body) failedControl.current?.focus();
+  }, [busy, defaultError]);
+  async function setDefault(card: DemoCard, control: HTMLInputElement) {
+    const value = control.checked;
+    failedControl.current = control;
+    const reportError = (message: string) => setDefaultError({ token: card.token, message });
+    setBusy(true); setMessage(""); setDefaultError(null);
+    if (!card.revision) { reportError("Refresh your saved cards before changing the default."); setBusy(false); router.refresh(); return; }
     const data = new FormData(); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
     data.set("cardRevision", card.revision);
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
-      if (result.status !== "idle") setMessage(result.message);
+      if (result.status === "error") reportError(result.message);
+      if (result.status === "succeeded") setMessage(result.message);
       if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
-    } catch { setMessage("Your preference could not be saved. Please try again."); }
+    } catch { reportError("Your preference could not be saved. Please try again."); }
     finally { setBusy(false); }
   }
   async function removeCard(token: DemoCardToken) {
@@ -146,7 +161,8 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       </div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
-        <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
+        <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} aria-describedby={defaultError?.token === card.token ? defaultErrorId : undefined} onChange={event => void setDefault(card, event.currentTarget)} />Use as my default payment method</label>
+        {defaultError?.token === card.token ? <p id={defaultErrorId} role="alert" className={styles.notice}>{defaultError.message}</p> : null}
         <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} id={`edit-saved-card-${card.token}`} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" id={`saved-card-preview-${card.token}`} className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => {
           const next = expanded === card.token ? undefined : card.token;
           selectPreview(next);

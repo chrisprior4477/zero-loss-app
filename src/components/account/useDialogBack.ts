@@ -3,14 +3,21 @@
 import { useCallback, useEffectEvent, useLayoutEffect, useRef } from "react";
 
 const stateKey = "zeroLossDialog";
+const programmaticReturns = new WeakMap<Event, { key: string; id: string; href: string }>();
+
+function consumeHistoryStep(key: string, id: string, href: string) {
+  window.addEventListener("popstate", event => programmaticReturns.set(event, { key, id, href }), { once: true, capture: true });
+  window.history.back();
+}
 
 /** Give a transient review its own history step without changing its URL. */
-export function useDialogBack(open: boolean, onClose: () => void, blocked = false, consumeOnUnmount = false) {
+export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false) {
+  const key = nested ? stateKey + "Nested" : stateKey;
   const marker = useRef<{ id: string; href: string } | null>(null);
   const closeOnBack = useEffectEvent(() => {
-    if (!blocked) onClose();
-    else if (marker.current) {
-      window.history.pushState({ ...window.history.state, [stateKey]: marker.current.id }, "", marker.current.href);
+    const keepOpen = blocked || onClose() === true;
+    if (keepOpen && marker.current) {
+      window.history.pushState({ ...window.history.state, [key]: marker.current.id }, "", marker.current.href);
     }
   });
   useLayoutEffect(() => {
@@ -18,11 +25,18 @@ export function useDialogBack(open: boolean, onClose: () => void, blocked = fals
     const href = window.location.href;
     const id = crypto.randomUUID();
     marker.current = { id, href };
-    const state = { ...window.history.state, [stateKey]: id };
-    if (window.history.state?.[stateKey]) window.history.replaceState(state, "", href);
+    const state = { ...window.history.state, [key]: id };
+    if (window.history.state?.[key]) window.history.replaceState(state, "", href);
     else window.history.pushState(state, "", href);
-    const back = () => {
-      if (window.location.href === href && window.history.state?.[stateKey] !== id) closeOnBack();
+    const back = (event: PopStateEvent) => {
+      if (window.location.href !== href || window.history.state?.[key] === id) return;
+      const previous = programmaticReturns.get(event);
+      if (previous?.key === key && previous.href === href && previous.id !== id) {
+        // A new dialog can mount before the previous dialog's history step finishes closing.
+        window.history.pushState({ ...window.history.state, [key]: id }, "", href);
+        return;
+      }
+      closeOnBack();
     };
     window.addEventListener("popstate", back);
     return () => {
@@ -31,14 +45,18 @@ export function useDialogBack(open: boolean, onClose: () => void, blocked = fals
       // Timed dismissals also consume their temporary step. A route change
       // or a new dialog has its own history and must never be walked back.
       if (consumeOnUnmount) queueMicrotask(() => {
-        if (window.location.href === href && window.history.state?.[stateKey] === id) window.history.back();
+        if (window.location.href === href && window.history.state?.[key] === id) consumeHistoryStep(key, id, href);
       });
     };
-  }, [open, consumeOnUnmount]);
-  return useCallback(() => {
+  }, [open, consumeOnUnmount, key]);
+  return useCallback((replace = false) => {
     const current = marker.current;
-    if (current && window.location.href === current.href && window.history.state?.[stateKey] === current.id) {
-      window.history.back();
+    if (current && window.location.href === current.href && window.history.state?.[key] === current.id) {
+      if (replace) {
+        const state = { ...window.history.state };
+        delete state[key];
+        window.history.replaceState(state, "", current.href);
+      } else consumeHistoryStep(key, current.id, current.href);
     }
-  }, []);
+  }, [key]);
 }

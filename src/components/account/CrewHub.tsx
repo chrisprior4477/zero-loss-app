@@ -59,6 +59,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const { tab, selectTab } = useCrewTab(initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
   const [sharing, setSharing] = useState(false);
+  const shareOpener = useRef<HTMLButtonElement>(null);
   const [message, setMessage] = useState("");
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(selectedMemberId);
@@ -246,7 +247,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
-    {tab === "privacy" && <AccountSettingsLandingScroll target="crew-privacy" initialTarget="crew-privacy" allScreens settleAfterNavigation />}
+    {tab === "privacy" && <AccountSettingsLandingScroll target="crew-privacy" initialTarget="crew-privacy" focusTarget="discover-title" allScreens settleAfterNavigation />}
     <CrewLandingScroll ownerId={currentUserId} enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
     <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
@@ -278,10 +279,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId); }}
           onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
-          onShare={() => setSharing(true)} onAdd={openCrewSearch} />
+          onShare={event => { shareOpener.current = event.currentTarget; setSharing(true); }} onAdd={openCrewSearch} />
         <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={openCrewSearch}>Add people +</button></section>
       </> : null}
-      {sharing ? <CrewSharePicker products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
+      {sharing ? <CrewSharePicker opener={shareOpener} products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
         <CrewDisplaySettings key={currentUserId} ownerId={currentUserId} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />

@@ -82,7 +82,20 @@ export function RewardHistoryCarousel({ children, focusRow }: { children: ReactN
     }}
     onScrollEnd={event => { if (!drag.current) restoreSnap(event.currentTarget); }}
     onWheel={event => restoreSnap(event.currentTarget)}
-    onKeyDown={event => restoreSnap(event.currentTarget)}
+    onKeyDown={event => {
+      const rail = event.currentTarget;
+      restoreSnap(rail);
+      if (event.key !== "Tab" || event.shiftKey || event.target !== rail) return;
+      const bounds = rail.getBoundingClientRect();
+      const current = Array.from(rail.querySelectorAll<HTMLAnchorElement>(":scope > a")).find(link => {
+        const card = link.getBoundingClientRect();
+        return card.width > 0 && Math.min(card.right, bounds.right) - Math.max(card.left, bounds.left) >= card.width / 2;
+      });
+      if (current) {
+        event.preventDefault();
+        current.focus({ preventScroll: true });
+      }
+    }}
     onClickCapture={event => {
       if (!suppressClick.current) return;
       suppressClick.current = false;

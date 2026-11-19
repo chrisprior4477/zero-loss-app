@@ -22,10 +22,11 @@ test("the Headphones menu filters Electronics and preserves its return path", as
 vi.mock("@/lib/account/context", () => ({ getAccountContext: account.get }));
 
 vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));
-const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 beforeEach(() => {
   navigation.push.mockClear();
+  navigation.replace.mockClear();
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
   Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -296,14 +297,14 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy" }) }));
     fireEvent.click(topOptions().getByRole("button", { name: "Categories" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Gift Cards.*Browse prizes/ }));
-    expect(navigation.push).toHaveBeenLastCalledWith("/browse?category=gift-cards&q=Best+Buy#search-results", { scroll: false });
+    expect(navigation.replace).toHaveBeenLastCalledWith("/browse?category=gift-cards&q=Best+Buy#search-results", { scroll: false });
 
     cleanup();
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "gift-cards", q: "Best Buy", maxValue: "75" }) }));
     expect(screen.getByRole("searchbox", { name: "Search Gift Cards" })).toHaveProperty("value", "Best Buy");
     fireEvent.click(topOptions().getByRole("button", { name: /Filter & sort/ }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("radio", { name: "Highest prize value" }));
-    expect(navigation.push).toHaveBeenLastCalledWith("/browse?maxValue=75&category=gift-cards&q=Best+Buy&sort=value-high#search-results", { scroll: false });
+    expect(navigation.replace).toHaveBeenLastCalledWith("/browse?maxValue=75&category=gift-cards&q=Best+Buy&sort=value-high#search-results", { scroll: false });
   });
 
   test("hides this account's closed demo prizes in browsing and restores them after reset", async () => {
@@ -473,7 +474,7 @@ describe("Browse search results", () => {
     expect(panel.queryByRole("combobox")).toBeNull();
     fireEvent.change(panel.getByRole("searchbox", { name: "Find a category or retailer" }), { target: { value: "spark plugs" } });
     fireEvent.click(panel.getByRole("button", { name: /Automotive/ }));
-    expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive&q=paper+towels#search-results", { scroll: false });
+    expect(navigation.replace).toHaveBeenCalledWith("/browse?partnerCategory=automotive&q=paper+towels#search-results", { scroll: false });
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(9);
   });
 

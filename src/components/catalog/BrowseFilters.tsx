@@ -24,7 +24,7 @@ export type BrowseFilterProps = {
   subcategory: string;
   clearHref: string;
   collapseOnDesktop?: boolean;
-  onNavigate?: () => void;
+  onNavigate?: (destination: string) => void;
 };
 
 export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
@@ -84,8 +84,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     }
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
-    onNavigate?.();
     const destination = `/browse${params.size ? `?${params}` : ""}`;
+    if (onNavigate) { onNavigate(`${destination}#search-results`); return; }
     const { pathname, search, hash } = window.location;
     if (destination === pathname + search) {
       if (hash !== "#search-results") {
@@ -128,7 +128,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
-          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.cancel(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
+          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
           {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
           {searchDraft.trim() && !voice.busy ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
@@ -143,7 +143,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;
-                onNavigate?.();
+                if (onNavigate) { event.preventDefault(); onNavigate(`${event.currentTarget.pathname}${event.currentTarget.search}#search-results`); }
               }} className="flex min-h-10 items-center justify-between gap-2 rounded-lg px-2 py-1 text-sm font-bold text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300">
                 <span>{group.category}</span><span aria-hidden="true">→</span>
               </Link>
@@ -199,7 +199,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         setMode("all");
         setBounds({ minValue: "", maxValue: "" });
         setLocalDraft(searchTerm);
-        onNavigate?.();
+        if (onNavigate) { event.preventDefault(); onNavigate(`${clearHref}#search-results`); }
       }} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>
   );

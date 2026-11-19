@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { setInAppAlertPreference } from "@/lib/account/notification-preference-actions";
 import type { NotificationPreferenceKey, NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -20,16 +20,27 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
   const [pendingChoice, setPendingChoice] = useState<{ key: NotificationPreferenceKey; enabled: boolean } | null>(null);
   const [message, setMessage] = useState("");
   const [saving, startTransition] = useTransition();
+  const [failedChoice, setFailedChoice] = useState<NotificationPreferenceKey | null>(null);
+  const errorId = useId();
+  const changedControl = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!saving && failedChoice && document.activeElement === document.body) changedControl.current?.focus();
+  }, [saving, failedChoice]);
 
-  function change(key: NotificationPreferenceKey, enabled: boolean) {
+  function change(key: NotificationPreferenceKey, control: HTMLInputElement) {
+    const enabled = control.checked;
+    changedControl.current = control;
+    setFailedChoice(null);
     setPendingChoice({ key, enabled });
     setMessage("");
     startTransition(async () => {
       try {
         const result = await setInAppAlertPreference(key, enabled);
         if (result.ok) onSaved(key, enabled);
+        else setFailedChoice(key);
         setMessage(result.message);
       } catch {
+        setFailedChoice(key);
         setMessage("We couldn’t confirm your alert choice. Please try again.");
       } finally {
         setPendingChoice(null);
@@ -43,10 +54,10 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
     <div className={styles.preferenceGrid}>
       {choices.filter(choice => supportEnabled || choice.key !== "support_replies").map(choice => <label key={choice.key} className={styles.preferenceChoice}>
         <span><strong>{choice.label}</strong><small>{choice.description}</small></span>
-        <input type="checkbox" checked={pendingChoice?.key === choice.key ? pendingChoice.enabled : initialPreferences?.[choice.key] !== false} onChange={event => change(choice.key, event.target.checked)} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
+        <input type="checkbox" checked={pendingChoice?.key === choice.key ? pendingChoice.enabled : initialPreferences?.[choice.key] !== false} onChange={event => change(choice.key, event.currentTarget)} aria-describedby={failedChoice === choice.key ? errorId : undefined} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
       </label>)}
     </div>
     {initialPreferences === null ? <p role="status">Alert settings are temporarily unavailable; all verified updates remain visible.</p> : null}
-    {message ? <p role="status" data-saving={pendingChoice !== null}>{message}</p> : null}
+    {message ? <p id={errorId} role={failedChoice ? "alert" : "status"} data-saving={pendingChoice !== null}>{message}</p> : null}
   </section>;
 }

@@ -73,7 +73,7 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
     <input id={inputId} ref={field} type="search" name="q" value={draft} placeholder={label}
-      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (editing) voice.cancel(); else edit(); setDraft(event.target.value); }} />
+      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined); }}>×</button> : null}
     {draft.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}

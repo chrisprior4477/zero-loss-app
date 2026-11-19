@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { useRouter } from "next/navigation";
 import { checkDemoBalanceClear, clearDemoBalance, previewDemoBalanceClear } from "@/lib/wallet/demo-balance-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -19,12 +21,14 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   const requestKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (balanceCents !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
+    if (!pending && balanceCents !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
     if (balanceCents === null && !pending && restoreFocus.current) {
       restoreFocus.current = false;
-      trigger.current?.focus({ preventScroll: true });
+      restoreDialogTrigger(trigger.current);
     }
   }, [balanceCents, pending]);
+
+  useDialogBack(balanceCents !== null, closeDialog, pending, true);
 
   function closeDialog() {
     restoreFocus.current = true;

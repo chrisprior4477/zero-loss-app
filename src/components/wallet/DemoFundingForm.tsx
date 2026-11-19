@@ -716,6 +716,16 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
           if (!isOpen && request.id === focusId) clearReceiptLink();
           setReceipt(next);
           remember(batches.start, batches.size, allDeposits, next);
+          if (isOpen && !desktop && event.currentTarget.matches(":focus-within")) {
+            const details = event.currentTarget;
+            requestAnimationFrame(() => {
+              if (!details.isConnected || !details.open) return;
+              const action = Array.from(details.querySelectorAll("a")).at(-1);
+              if (action && action.getBoundingClientRect().bottom > (window.visualViewport?.height ?? window.innerHeight) - 12) {
+                action.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+              }
+            });
+          }
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
           <p>Request {request.id}</p><DepositCreditLink request={request} fromDeposits />

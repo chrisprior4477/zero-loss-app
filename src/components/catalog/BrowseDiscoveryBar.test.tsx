@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "./BrowseDiscoveryBar";
 import type { BrowseFilterProps } from "./BrowseFilters";
 
-const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 const props: BrowseFilterProps & { browseHref: string } = {
   browseHref: "/browse?partnerCategory=gas", searchTerm: "", subcategory: "", clearHref: "/browse", selectedCategory: null,
@@ -13,6 +13,7 @@ const props: BrowseFilterProps & { browseHref: string } = {
 };
 beforeEach(() => {
   navigation.push.mockReset();
+  navigation.replace.mockReset();
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   HTMLDialogElement.prototype.close = function () { this.open = false; };
 });
@@ -46,7 +47,7 @@ test("the category picker keeps the search and drops the previous retailer when 
   const picker = within(screen.getByRole("dialog"));
   fireEvent.change(picker.getByRole("searchbox"), { target: { value: "Beauty" } });
   fireEvent.click(picker.getByRole("button", { name: /Beauty.*Browse prizes/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?category=beauty&q=PlayStation#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?category=beauty&q=PlayStation#search-results", { scroll: false });
 });
 
 test("All categories exits the selected collection while keeping the selected budget", () => {
@@ -54,7 +55,7 @@ test("All categories exits the selected collection while keeping the selected bu
     filters={{ ...props.filters, maxValue: 50 }} />);
   fireEvent.click(screen.getByRole("button", { name: "Categories" }));
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /All categories/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50&q=makeup#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=50&q=makeup#search-results", { scroll: false });
 });
 
 test("View all returns to the full prize category after selecting a retailer", () => {
@@ -94,14 +95,14 @@ test.each(["value-high", "fewest-left", "price-low"] as const)("changing departm
     filters={{ ...props.filters, sort, maxValue: 100 }} />);
   fireEvent.click(screen.getByRole("button", { name: "Categories" }));
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Health.*Browse prizes/ }));
-  expect(navigation.push).toHaveBeenCalledWith(`/browse?category=health&maxValue=100&sort=${sort}#search-results`, { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith(`/browse?category=health&maxValue=100&sort=${sort}#search-results`, { scroll: false });
 });
 
 test("choosing Ending Soon retains its usual near-capacity ordering", () => {
   render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} filters={{ ...props.filters, sort: "value-high" }} />);
   fireEvent.click(screen.getByRole("button", { name: "Categories" }));
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Ending Soon.*Browse prizes/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?sort=ending-soon#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?sort=ending-soon#search-results", { scroll: false });
 });
 
 function openPriceFilters() {
@@ -117,7 +118,7 @@ test("keyboard price selection waits for Apply filters", () => {
   fireEvent.click(form.getByRole("radio", { name: "$50 & below" }));
   expect(navigation.push).not.toHaveBeenCalled();
   fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
 });
 
 test("correcting either custom bound validates the current pair and applies the inclusive range", () => {
@@ -137,7 +138,7 @@ test("correcting either custom bound validates the current pair and applies the 
   fireEvent.change(from, { target: { value: "25" } });
   expect(form.queryByText("Maximum must be at least the minimum.")).toBeNull();
   fireEvent.click(apply);
-  expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=25&maxValue=50#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?minValue=25&maxValue=50#search-results", { scroll: false });
 });
 
 test("fractional drafts cannot apply or prevent switching to a preset", () => {
@@ -148,7 +149,7 @@ test("fractional drafts cannot apply or prevent switching to a preset", () => {
   fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
   expect(navigation.push).not.toHaveBeenCalled();
   fireEvent.click(form.getByLabelText("$75 & below"));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=75#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=75#search-results", { scroll: false });
 });
 
 test("the dollar wheel saves zero, can clear a bound, and Cancel keeps the current selection", () => {
@@ -171,7 +172,7 @@ test("the dollar wheel saves zero, can clear a bound, and Cancel keeps the curre
   fireEvent.click(within(screen.getByRole("listbox", { name: "Minimum prize value" })).getByRole("option", { name: "$0" }));
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
   fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=0#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?minValue=0#search-results", { scroll: false });
 });
 
 test("Go searches within a retailer category and the X clears a draft without submitting", () => {
@@ -265,7 +266,7 @@ test("the scrolling category picker accepts misspellings and keeps its destinati
   const dialog = screen.getByRole("dialog");
   fireEvent.change(within(dialog).getByRole("searchbox"), { target: { value: "atuo" } });
   fireEvent.click(within(dialog).getByRole("button", { name: /Automotive/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?partnerCategory=automotive#search-results", { scroll: false });
 });
 
 

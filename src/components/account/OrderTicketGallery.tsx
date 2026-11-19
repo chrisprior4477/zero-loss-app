@@ -70,12 +70,8 @@ function CopyIcon() {
 }
 
 function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: { alertContext: string; filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void; phone: boolean }) {
-  const endDialogHistory = useDialogBack(true, onClose);
-  function closeDetails() {
-    endDialogHistory();
-    onClose();
-  }
-  const dismissDetails = useEffectEvent(closeDetails);
+  const closeDetails = onClose;
+  const dismissDetails = useEffectEvent(onClose);
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -213,8 +209,11 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   const rail = useRef<HTMLDivElement>(null);
   const drag = useRef<TicketDrag | null>(null);
   const suppressTicketClick = useRef(false);
+  const detailsOrigin = useRef<HTMLButtonElement | null>(null);
+  const pagingFocus = useRef<string | null>(null);
   const railPosition = useRef<{ step: number; fraction: number } | null>(null);
   const canPage = !selected && lastPage > 0;
+  const endDetailsHistory = useDialogBack(Boolean(selected), closeDetails);
 
   function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null, position?: number) {
     if (window.location.pathname !== "/account/orders") return;
@@ -232,7 +231,8 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
 
   useLayoutEffect(() => {
     let frame = 0;
-    function restorePage() {
+    function restorePage(event?: Event) {
+      if (event?.type === "popstate" && detailsOrigin.current?.isConnected && window.location.pathname === "/account/orders") return;
       const saved = window.history.state?.zeroLossOrderTickets;
       const hasSaved = saved?.href === window.location.href && orders.some(order => order.rewardId === saved.anchor)
         && Number.isFinite(saved.scrollY) && saved.scrollY >= 0;
@@ -270,6 +270,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
         if (anchor) {
           if (!hasSaved) rememberPage(anchorId, null);
+          detailsOrigin.current = anchor;
           setOpened({ id: anchorId, anchor });
         }
       });
@@ -313,16 +314,32 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
     return () => observer.disconnect();
   }, []);
 
-  function changePage(page: number) {
+  function changePage(page: number, byKeyboard = false) {
     const anchor = orders[page * size]?.rewardId;
     const track = rail.current;
     if (!anchor || !track) return;
     setPageAnchor(anchor);
     rememberPage(anchor, null, page);
     const left = pageOffset(track, page);
+    if (byKeyboard) {
+      pagingFocus.current = anchor;
+      track.scrollLeft = left;
+      syncView(track);
+      return;
+    }
     if (track.scrollTo && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) track.scrollTo({ left, behavior: "smooth" });
     else track.scrollLeft = left;
   }
+
+  useLayoutEffect(() => {
+    if (!pagingFocus.current) return;
+    const card = document.getElementById("reward-" + pagingFocus.current);
+    const firstAction = card?.querySelector<HTMLButtonElement>("[data-order-details]");
+    if (!firstAction || card?.inert) return;
+    pagingFocus.current = null;
+    firstAction.focus({ preventScroll: true });
+    firstAction.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [currentPage, view]);
 
   function syncView(track: HTMLDivElement) {
     const step = pageOffset(track, 1);
@@ -383,6 +400,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
+    detailsOrigin.current = anchor;
     setPageAnchor(id);
     setOpened({ id, anchor });
     rememberPage(id, null);
@@ -390,8 +408,13 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
 
   function closeDetails() {
     const anchor = opened?.anchor;
+    endDetailsHistory();
     setOpened(null);
-    if (anchor) requestAnimationFrame(() => { if (anchor.isConnected) anchor.focus({ preventScroll: true }); });
+    if (anchor) requestAnimationFrame(() => {
+      if (detailsOrigin.current !== anchor) return;
+      detailsOrigin.current = null;
+      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    });
     rememberPage(opened?.id ?? pageAnchor, null);
   }
 
@@ -448,6 +471,6 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
       </div>
       {selected && opened ? <OrderDetails alertContext={fromNotification ? `&from=notifications${alertContext}` : ""} key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
-    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasPrevious || undefined} onClick={() => { if (hasPrevious) changePage(previousPage); }}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasNext || undefined} onClick={() => { if (hasNext) changePage(nextPage); }}><AccountIcon name="chevron" /></button></div></nav>
+    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasPrevious || undefined} onClick={event => { if (hasPrevious) changePage(previousPage, event.detail === 0); }}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasNext || undefined} onClick={event => { if (hasNext) changePage(nextPage, event.detail === 0); }}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
 }

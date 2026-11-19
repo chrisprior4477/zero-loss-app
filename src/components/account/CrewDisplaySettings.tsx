@@ -403,7 +403,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       {!available ? <p role="alert" className={styles.unavailable}>Sharing settings are temporarily unavailable. Nothing has been changed.</p> : null}
 
       {(!embedded || section === "privacy") && section !== "groups" ? <section id="crew-privacy" className={styles.ticket} aria-labelledby="discover-title">
-        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title">Can people find me?</h2><p>These are on by default. Email and phone matches require the full address or number. Search never shows those details, your picks, or your wallet.</p></div></div>
+        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title" tabIndex={-1}>Can people find me?</h2><p>These are on by default. Email and phone matches require the full address or number. Search never shows those details, your picks, or your wallet.</p></div></div>
         {discoveryFields}
       </section> : null}
 

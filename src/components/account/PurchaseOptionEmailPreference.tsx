@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { setPurchaseOptionEmailPreference, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 import { useVerifiedEmailPreference } from "./useVerifiedEmailPreference";
 import styles from "./showroom.module.css";
@@ -20,6 +20,10 @@ export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabl
   const enabled = preference.value ?? false;
   const setEnabled = preference.setValue;
   const [showFeedback, setShowFeedback] = useState(false);
+  const saveButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!pending && showFeedback && feedback.status === "error" && document.activeElement === document.body) saveButton.current?.focus();
+  }, [pending, showFeedback, feedback]);
   return <section id="purchase-option-email-preference" className={styles.outcomeEmail} data-placement="account" aria-labelledby="purchase-option-email-heading">
     <h3 id="purchase-option-email-heading">Purchase-option reminders</h3>
     <form onSubmit={event => {
@@ -30,7 +34,7 @@ export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabl
       startTransition(() => action(data));
     }}>
       <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} disabled={initialEnabled === null || pending} /> Email me when my open purchase option is nearing its deadline</label>
-      <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
+      <button ref={saveButton} type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your purchase options remain in My Activity." : "If this is on, we’ll remind you at 7 days and 24 hours before an open option ends. Turning it off does not change the option or its deadline."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>

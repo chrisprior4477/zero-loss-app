@@ -169,7 +169,15 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         startTransition(() => action(attempted.current!));
       }}>Resend same message</button> : null}
     </> : <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
-    {hasDraftChanges(draft, initialDraft) ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
+    {hasDraftChanges(draft, initialDraft) ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={event => {
+      const form = event.currentTarget.form;
+      setDraft(initialDraft);
+      attempted.current = null;
+      writeSupportDraft(draftKey, null);
+      const first = form?.querySelector<HTMLElement>("select[name=category], input[name=subject], textarea[name=body]");
+      first?.focus({ preventScroll: true });
+      first?.scrollIntoView?.({ block: "center", behavior: "instant" });
+    }}>Clear draft</button> : null}
     <p className="text-xs leading-5 opacity-70">Replies and status updates appear here and in Notifications. Submitting a case does not move funds or approve a refund.</p>
   </form>;
 }

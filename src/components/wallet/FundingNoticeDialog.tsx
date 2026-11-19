@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { createPortal } from "react-dom";
 import styles from "./whole-dollar-toast.module.css";
 
@@ -30,7 +31,7 @@ export function FundingNoticeDialog({ label, description, closeLabel, onClose, c
       element.close();
       style.overflow = overflow;
       style.scrollbarGutter = scrollbarGutter;
-      if (source?.isConnected) source.focus({ preventScroll: true });
+      restoreDialogTrigger(source);
     };
   }, []);
 

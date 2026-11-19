@@ -24,10 +24,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect(returnTo ?? "/");
   }
 
-  const initialError =
-    params.error === "verification_failed"
-      ? "Email verification failed or expired. Request a new link by signing up again, or contact support."
-      : null;
+  const verificationFailed = params.error === "verification_failed";
+  const initialError = verificationFailed ? "Email verification failed or expired. Enter your email to request a new link below." : null;
   const initialNotice =
     params.verified === "1"
       ? "Email verified. Sign in to continue."
@@ -56,7 +54,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Sign in to Zero Loss.</h2>
           <p className="mt-2 text-sm leading-6 text-white/60">New here? <AuthDestinationLink page="/signup" returnTo={returnTo} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</AuthDestinationLink></p>
           <div className="mt-7">
-            <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} returnTo={returnTo} />
+            <LoginForm allowResend={verificationFailed} initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} returnTo={returnTo} />
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-white/40">Signing in does not create an entry or make a purchase.</p>
         </section>

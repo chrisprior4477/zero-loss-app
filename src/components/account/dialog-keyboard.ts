@@ -14,3 +14,20 @@ export function containDialogTab(event: KeyboardEvent<HTMLElement>) {
     event.preventDefault(); first.focus();
   }
 }
+
+/** Keep the trigger focused after the browser settles its Back navigation. */
+export function restoreDialogTrigger(trigger?: HTMLElement | null) {
+  if (!trigger?.isConnected) return;
+  const href = window.location.href;
+  const fragment = document.getElementById(window.location.hash.slice(1));
+  trigger.focus({ preventScroll: true });
+  function restoreIfLost() {
+    const active = document.activeElement;
+    // Native hash restoration can focus the containing section after popstate.
+    const focusWasLost = active === document.body || (active === fragment && fragment?.contains(trigger ?? null));
+    if (trigger?.isConnected && window.location.href === href && focusWasLost
+      && !document.querySelector("dialog[open], [role=dialog][aria-modal=true]")) trigger.focus({ preventScroll: true });
+  }
+  requestAnimationFrame(restoreIfLost);
+  window.setTimeout(restoreIfLost, 100);
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./wallet-payments.module.css";
@@ -12,6 +13,7 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }:
   const description = useId();
   const [deadline] = useState(() => Date.now() + 30_000);
   const [seconds, setSeconds] = useState(30);
+  useDialogBack(Boolean(mobileCard), onUndo, busy, true);
   useEffect(() => {
     if (busy) return;
     const timer = window.setInterval(() => {

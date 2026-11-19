@@ -4,6 +4,8 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import photoStyles from "./profile-photo.module.css";
 
 import Image from "next/image";
+import { restoreDialogTrigger } from "./dialog-keyboard";
+import { useDialogBack } from "./useDialogBack";
 import { ChangeEvent, MouseEvent, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
@@ -120,6 +122,7 @@ export function ProfilePhotoCard({
     setEditing(false);
   }, []);
   const [saving, setSaving] = useState(false);
+  useDialogBack(editing, closeEditor, saving, true);
   const [error, setError] = useState<string | null>(null);
   const [savedVisibility, setSavedVisibility] = useState({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
   if (savedVisibility.source !== initialVisibility) {
@@ -187,7 +190,7 @@ export function ProfilePhotoCard({
       document.removeEventListener("keydown", handleKeys);
       document.body.style.overflow = bodyOverflow;
       document.documentElement.style.overflow = rootOverflow;
-      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      restoreDialogTrigger(trigger);
     };
   }, [editing, closeEditor]);
 

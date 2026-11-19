@@ -2,16 +2,20 @@
 
 import { useLayoutEffect } from "react";
 
-let requestedFocus: { href: string; target: "heading" | "ticket-range" } | null = null;
+type BrowseFocusTarget = "heading" | "ticket-range" | "first-prize" | "product-request";
+let requestedFocus: { href: string; target: BrowseFocusTarget } | null = null;
 
-function focusBrowseResults(target: "heading" | "ticket-range") {
+function focusBrowseResults(target: BrowseFocusTarget) {
   const destination = target === "ticket-range"
     ? document.querySelector<HTMLElement>('[aria-label="Tickets remaining"] [aria-current="true"]')
-    : document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
-  destination?.focus({ preventScroll: true });
+    : target === "first-prize" ? document.querySelector<HTMLElement>("article[id^=prize-]")
+    : target === "product-request" ? document.getElementById("request-a-product") : null;
+  const targetElement = destination ?? document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
+  if (destination && (target === "first-prize" || target === "product-request")) destination.scrollIntoView?.({ block: "start", behavior: "instant" });
+  targetElement?.focus({ preventScroll: true });
 }
 
-export function requestBrowseResultsFocus(href: string, target: "heading" | "ticket-range" = "heading") {
+export function requestBrowseResultsFocus(href: string, target: BrowseFocusTarget = "heading") {
   const request = { href, target };
   requestedFocus = request;
   // Choosing the current category can leave the existing page mounted.
@@ -68,7 +72,9 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
-        document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
+        if (!focused || (focusResults !== "first-prize" && focusResults !== "product-request")) {
+          document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
+        }
         if ((focusTarget || focusResults) && !focused) {
           focused = true;
           if (focusTarget) focusTarget.focus({ preventScroll: true });

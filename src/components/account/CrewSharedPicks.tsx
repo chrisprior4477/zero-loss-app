@@ -73,7 +73,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   const [review, setReview] = useState<{ before?: string; entries: OwnCrewEntry[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const inFlight = useRef(false);
-  const listTop = useRef<HTMLHeadingElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   const isShared = (entry: OwnCrewEntry) => entrySharedInScope(entry, scope, defaultRule, rules);
   const buckets = useMemo(() => {
     const map = new Map<string, OwnCrewEntry[]>();
@@ -155,7 +155,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   </div> : null;
   return <section className={styles.root} id="sharing" aria-labelledby="my-shared-picks-heading">
     <div className={styles.sectionHeading}>
-      <h2 id="my-shared-picks-heading" ref={listTop}>My Shared Picks Cleanup</h2>
+      <h2 id="my-shared-picks-heading">My Shared Picks Cleanup</h2>
       <button type="button" className={styles.privacy} onClick={onPrivacy}>Privacy Settings</button>
     </div>
     <div className={styles.groupPicker}>
@@ -174,7 +174,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
       <button type="button" disabled={disabled} onClick={() => { setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
     </div>
     {status}
-    <div className={styles.list}>
+    <div ref={list} className={styles.list}>
       {shown.slice(0, visible).map(({ key, all, rows }) => {
         const item = all[0], sharedCount = all.filter(isShared).length, open = expanded === key;
         return <div key={key} className={styles.stack} data-stacked={all.length > 1}>
@@ -206,14 +206,21 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     </div>
     {!shown.length ? <p className={styles.empty}>{sharedOnly ? "No shared picks in this view. Turn off Shared only to see your private entries." : "You don’t have entries to share in this view yet."}</p> : null}
     {shown.length > visible ? <button type="button" className={styles.orange} onClick={() => setVisible(n => n + 5)}>Show more · {shown.length - visible} {shown.length - visible === 1 ? "prize" : "prizes"}</button> : null}
-    {visible > 5 ? <button type="button" className={styles.blue} onClick={() => { resetList(); listTop.current?.scrollIntoView({ block: "start" }); }}>Close to first five</button> : null}
+    {visible > 5 ? <button type="button" className={styles.blue} onClick={() => { resetList();
+      const first = list.current?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+      first?.focus({ preventScroll: true });
+      first?.scrollIntoView?.({ block: "center", behavior: "instant" }); }}>Close to first five</button> : null}
     {picker ? <CrewSharingDialog title="Shared with" onClose={() => setPicker(false)}>
       <div className={styles.mobileGroupList} role="group" aria-label="Sharing audiences">
         <button type="button" aria-pressed={scope === "crew"} onClick={() => { selectScope("crew"); setPicker(false); }}>Your Crew<span>Whole Crew or individually chosen people</span></button>
         {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { selectScope(g.id); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}
       </div>
     </CrewSharingDialog> : null}
-    {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }}>
+    {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }} busy={pending}
+      onBack={() => {
+        if (cleanup === "review") { setCleanup("choose"); return true; }
+        setCleanup(null);
+      }}>
       <div className={styles.cleanup}>
         <div className={styles.scope}><small>CLEAN UP SHARING TO</small><h3>{cleanupLabel}</h3></div>
         {!cleanupAvailable ? <p role="alert">This group is no longer available. Nothing will be cleaned up. Close this review and choose a current audience.</p> : null}

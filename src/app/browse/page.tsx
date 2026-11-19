@@ -17,7 +17,7 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
-import { BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
+import { BrowseResultsLink, BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
@@ -359,7 +359,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </p>}
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
+              <Link id="request-a-product" href={requestHref} className="scroll-mt-[calc(var(--site-header-height,163px)+12px)] inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>
@@ -380,10 +380,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {endingSoon ? (
             <div className={browseStyles.batchActions} role="group" aria-label="Ending Soon prize batches">
               {showEndingSoonShortcuts && (
-                <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+                <BrowseResultsLink target={offerLastShortcut ? undefined : "first-prize"} className={browseStyles.batchShortcut}
                   href={offerLastShortcut ? `/browse?${lastBatchParams}#prize-${products[products.length - batchSize].slug}` : firstBatchHref}>
                   {offerLastShortcut ? "Last 24" : "First 24"}
-                </Link>
+                </BrowseResultsLink>
               )}
               {nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
                 href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { MAX_PRIZE_VALUE } from "@/lib/catalog/browse-filters";
 import styles from "./prize-dollar-field.module.css";
 
@@ -97,11 +98,12 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
   const isMinimum = name === "minValue";
   const title = isMinimum ? "Minimum prize value" : "Maximum prize value";
   const unsetLabel = isMinimum ? "No minimum" : "No maximum";
+  useDialogBack(open, close, false, true, true);
   const amount = Number(value);
   const usable = Number.isInteger(amount) && amount >= 0 && amount <= MAX_PRIZE_VALUE;
   function close() {
     setOpen(false);
-    trigger.current?.focus({ preventScroll: true });
+    requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }));
   }
   return <div className={styles.field}>
     <label id={`${id}-label`} htmlFor={id}>{isMinimum ? "From ($)" : "To ($)"}</label>

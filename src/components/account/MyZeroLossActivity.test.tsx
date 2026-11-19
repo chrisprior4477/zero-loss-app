@@ -621,14 +621,14 @@ test("gallery controls follow scroll boundaries and honor reduced motion", () =>
   fireEvent.scroll(track);
   const previous = screen.getByRole("button", { name: "Previous product" }) as HTMLButtonElement;
   const next = screen.getByRole("button", { name: "Next product" }) as HTMLButtonElement;
-  expect(previous.disabled).toBe(true);
-  expect(next.disabled).toBe(false);
+  expect(previous.getAttribute("aria-disabled")).toBe("true");
+  expect(next.getAttribute("aria-disabled")).toBe("false");
   fireEvent.click(next);
   expect(scrollBy).toHaveBeenCalledWith({ left: 300, behavior: "instant" });
   track.scrollLeft = 900;
   fireEvent.scroll(track);
-  expect(next.disabled).toBe(true);
-  expect(previous.disabled).toBe(false);
+  expect(next.getAttribute("aria-disabled")).toBe("true");
+  expect(previous.getAttribute("aria-disabled")).toBe("false");
   expect(screen.getByText("4 / 4")).toBeTruthy();
   vi.unstubAllGlobals();
 });

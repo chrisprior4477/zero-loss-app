@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ResendVerificationForm } from "./ResendVerificationForm";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -16,6 +17,7 @@ const initialState: AuthActionState = {
 };
 
 type LoginFormProps = {
+  allowResend?: boolean;
   initialError?: string | null;
   initialNotice?: string | null;
   focusOnMount?: boolean;
@@ -48,6 +50,7 @@ export function AuthDestinationLink({ returnTo, page, className, children }: {
 }
 
 export function LoginForm({
+  allowResend = false,
   initialError = null,
   initialNotice = null,
   focusOnMount = false,
@@ -91,7 +94,7 @@ export function LoginForm({
     return () => window.cancelAnimationFrame(frame);
   }, [focusOnMount]);
 
-  return (
+  return (<>
     <form action={formAction} onSubmit={() => {
       restoreErrorFocus.current = true;
       setEmail(emailRef.current?.value ?? email);
@@ -175,5 +178,6 @@ export function LoginForm({
         </p>
       </div>
     </form>
-  );
+    {allowResend ? <ResendVerificationForm email={email} returnTo={destination} /> : null}
+  </>);
 }

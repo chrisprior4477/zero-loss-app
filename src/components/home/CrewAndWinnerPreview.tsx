@@ -265,7 +265,7 @@ export function CrewAndWinnerPreview() {
         <div className={styles.headingRow}>
           <div>
             <span className={styles.eyebrow}>STORIES WORTH SHARING</span>
-            <h2 id="meet-winners-heading" className={styles.title}>Meet our winners</h2>
+            <h2 id="meet-winners-heading" className={styles.title + " scroll-mt-[calc(var(--site-header-height,163px)+12px)]"}>Meet our winners</h2>
             <p className={styles.intro}>A place for real people to share their moments, when they choose to.</p>
           </div>
           <div className={styles.arrows} aria-label="Winner story carousel controls">

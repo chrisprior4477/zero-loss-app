@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type MouseEventHandler, type ReactNode } from "react";
+import { useEffect, useRef, useState, type RefObject, type MouseEventHandler, type ReactNode } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { samplePicks, type CrewActivityPick } from "@/components/home/SharedPicksConcept";
 import { useResolvedCatalogSlugs } from "@/components/home/OfferingAvailabilityProvider";
@@ -12,6 +12,8 @@ import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 import type { CrewPersonCard } from "./CrewPeopleCarousel";
 import styles from "./crew-connected.module.css";
 import { useCrewCarousel } from "./useCrewCarousel";
+import { restoreDialogTrigger } from "./dialog-keyboard";
+import { useDialogBack } from "./useDialogBack";
 import { crewPickHref, crewViewReturnKey, readCrewPickDestination, readCrewViewReturn, type CrewViewReturn } from "@/lib/crew/view-return";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 
@@ -56,7 +58,7 @@ function PickCard({ pick, selectedKey }: { pick: CrewActivityPick; selectedKey: 
 export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, picks, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
   ownerId: string;
   people: CrewPersonCard[]; samples: SampleCrewName[]; selectedKey: string | null; picks: CrewActivityPick[]; loading: boolean; error: boolean; pending: boolean;
-  onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: () => void; onAdd: MouseEventHandler<HTMLButtonElement>;
+  onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: MouseEventHandler<HTMLButtonElement>; onAdd: MouseEventHandler<HTMLButtonElement>;
 }) {
   const space = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -162,13 +164,23 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
   </section>;
 }
 
-export function CrewSharePicker({ products, onClose }: { products: CrewActivityPick[]; onClose: () => void }) {
+export function CrewSharePicker({ products, onClose, opener }: { products: CrewActivityPick[]; onClose: () => void; opener?: RefObject<HTMLButtonElement | null> }) {
   const hidden = useResolvedCatalogSlugs();
   const choices = products.filter(product => !hidden.has(product.slug));
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
-  return <dialog ref={dialog} className={styles.shareDialog} aria-labelledby="crew-share-title" onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  useDialogBack(true, onClose, false, true);
+  const handingOff = useRef(false);
+  useEffect(() => {
+    const element = dialog.current;
+    const trigger = opener?.current;
+    element?.showModal();
+    return () => {
+      element?.close();
+      if (!handingOff.current) restoreDialogTrigger(trigger);
+    };
+  }, [opener]);
+  return <dialog ref={dialog} className={styles.shareDialog} aria-labelledby="crew-share-title" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <header><div><small>PASS IT ON</small><h2 id="crew-share-title">What caught your eye?</h2></div><button type="button" aria-label="Close share picker" onClick={onClose}>×</button></header><p>Choose a find, then choose who to share it with.</p>
-    <div className={styles.shareChoices}>{choices.length ? choices.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} onClick={() => { dialog.current?.close(); onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product })); }}><ShareIcon name="share" /> Share</button></article>) : <Link href="/browse">Find an open prize to share →</Link>}</div>
+    <div className={styles.shareChoices}>{choices.length ? choices.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} onClick={() => { handingOff.current = true; dialog.current?.close(); onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product })); }}><ShareIcon name="share" /> Share</button></article>) : <Link href="/browse">Find an open prize to share →</Link>}</div>
   </dialog>;
 }

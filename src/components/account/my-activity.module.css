@@ -173,7 +173,7 @@
 .continueShopping:hover { background: #67f33f; }
 .carouselButtons { display: flex; align-items: center; gap: 12px; }
 .arrowButton { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #77c9ff; border-radius: 50%; background: #113a66; color: #fff; }
-.arrowButton:disabled { opacity: .38; cursor: default; }
+.arrowButton[aria-disabled="true"] { opacity: .38; cursor: default; }
 .previousIcon { transform: rotate(180deg); }
 .position { color: #d6e8f8; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 

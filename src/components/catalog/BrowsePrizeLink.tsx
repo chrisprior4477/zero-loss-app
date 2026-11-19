@@ -4,6 +4,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 
+export function BrowseResultsLink({ href, className, target, children }: { href: string; className?: string; target?: Parameters<typeof requestBrowseResultsFocus>[1]; children: ReactNode }) {
+  return <Link href={href} prefetch={false} scroll={false} className={className} onNavigate={() => { if (target) requestBrowseResultsFocus(href, target); }}>{children}</Link>;
+}
+
 export function EndingSoonRangeLink({ href, selected, className, children }: { href: string; selected: boolean; className: string; children: ReactNode }) {
   return <Link href={href} prefetch={false} scroll={false} className={className} aria-current={selected ? "true" : undefined}
     onNavigate={() => requestBrowseResultsFocus(href, "ticket-range")}>{children}</Link>;

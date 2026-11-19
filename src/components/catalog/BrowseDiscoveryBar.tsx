@@ -9,7 +9,8 @@ import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
-import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
@@ -54,6 +55,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   withoutRetailerGroup.searchParams.delete("partnerCategory");
   withoutRetailerGroup.searchParams.delete("batch");
   const withoutBudget = new URL(props.browseHref, "https://zeroloss.local");
+  withoutBudget.searchParams.delete("batch");
   withoutBudget.searchParams.delete("minValue");
   withoutBudget.searchParams.delete("maxValue");
   const budgetLabel = browsePrizeValueLabel(props.filters);
@@ -94,7 +96,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
-      opener.current?.focus({ preventScroll: true });
+      restoreDialogTrigger(opener.current);
     };
   }, [panel]);
 
@@ -109,14 +111,21 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     }
     setOpenPanel(null);
   }
+  const endPanelHistory = useDialogBack(Boolean(panel), close, false, true);
+  function navigateFromPanel(destination: string) {
+    close();
+    if (new URL(destination, window.location.origin).href !== window.location.href) {
+      endPanelHistory(true);
+      requestBrowseResultsFocus(destination);
+      router.replace(destination, { scroll: false });
+    }
+  }
   function choose(href: string, preserveSubcategory = false) {
     const url = new URL(href, "https://zeroloss.local");
     if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
     if (preserveSubcategory && props.subcategory) url.searchParams.set("subcategory", props.subcategory);
     const destination = `${url.pathname}${url.search}#search-results`;
-    close();
-    requestBrowseResultsFocus(destination);
-    router.push(destination, { scroll: false });
+    navigateFromPanel(destination);
   }
   function choosePrizeCategory(value: string) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
@@ -179,20 +188,20 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.cancel(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.reset(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
     </form>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
-      {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
+      {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link scroll={false} href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} onNavigate={() => requestBrowseResultsFocus(`${withoutBudget.pathname}${withoutBudget.search}#search-results`)} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` · ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       {!props.filters.retailer && props.selectedRetailerGroup ? <Link href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</Link> : null}
       {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
     </div> : null}
-    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={close} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
+    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>
         <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={close}>×</button></header>
         {panel === "categories" ? <>
@@ -209,12 +218,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
                 return <div key={option.value}>
                   <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value, props.ticketsLeft), true)}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
                   {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
-                    ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)}>View {option.label} across all categories</Link> : null}
+                    ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)} onNavigate={event => { event.preventDefault(); navigateFromPanel(allCategoriesRetailerHref(option.value)); }}>View {option.label} across all categories</Link> : null}
                 </div>;
               })}
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0 ? <p className={styles.noMatches}>No match. Try another category or brand.</p> : null}
           </div>
-        </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={close} /></div>}
+        </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div>}
       </div>
     </dialog> : null}
   </div>

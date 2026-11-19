@@ -4,6 +4,8 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { useRouter } from "next/navigation";
 import { clearOwnDemoEntries, previewDemoEntryReset } from "@/lib/account/demo-entry-reset-actions";
 import styles from "./clear-all-entries-button.module.css";
@@ -21,12 +23,14 @@ export function ClearAllEntriesButton() {
   const requestKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (entryCount !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
+    if (!pending && entryCount !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
     if (entryCount === null && !pending && restoreFocus.current) {
       restoreFocus.current = false;
-      trigger.current?.focus({ preventScroll: true });
+      restoreDialogTrigger(trigger.current);
     }
   }, [entryCount, pending]);
+
+  useDialogBack(entryCount !== null, closeDialog, pending, true);
 
   function closeDialog() {
     restoreFocus.current = true;

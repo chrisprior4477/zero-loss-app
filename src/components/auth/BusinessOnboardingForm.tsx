@@ -1,5 +1,6 @@
 "use client";
 
+import { containDialogTab } from "@/components/account/dialog-keyboard";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Link from "next/link";
@@ -163,6 +164,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
   const [finishing, setFinishing] = useState(false);
+  const [unsavedDestination, setUnsavedDestination] = useState<string | null>(null);
   const [staging, setStaging] = useState(false);
   const stagingLock = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -257,11 +259,24 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     setFinishing(true);
     try { await save(draft, true); } finally { setFinishing(false); }
   }
-  const accountLink = (page: "/login" | "/signup", label: string) => <Link className="font-bold text-cyan-200 underline" href={authNavigationHref(page, businessSignupPath)} onClick={event => {
-    event.preventDefault();
-    void save(draft).then(ok => { if (ok) router.push(authNavigationHref(page, businessSignupPath)); });
-  }}>{label}</Link>;
-  const accountPrompt = !owner && <p className="my-4 text-sm">{accountLink("/login", "Sign in")} or {accountLink("/signup", "create an account")} to save and submit your business application.</p>;
+  const accountLink = (page: "/login" | "/signup", label: string) => {
+    const destination = authNavigationHref(page, businessSignupPath);
+    return <Link className="font-bold text-cyan-200 underline" href={destination} onNavigate={event => {
+      event.preventDefault();
+      setUnsavedDestination(null);
+      void save(draft).then(ok => {
+        if (ok) router.push(destination);
+        else setUnsavedDestination(destination);
+      }).catch(() => setUnsavedDestination(destination));
+    }}>{label}</Link>;
+  };
+  const accountPrompt = !owner && <div className="my-4 text-sm">
+    <p>{accountLink("/login", "Sign in")} or {accountLink("/signup", "create an account")} to save and submit your business application.</p>
+    {unsavedDestination ? <div className="mt-2">
+      <p role="alert">This browser couldn’t save your draft. Your details are still on this page.</p>
+      <Link className="font-bold text-cyan-200 underline" href={unsavedDestination}>Continue without saving this draft →</Link>
+    </div> : null}
+  </div>;
 
   if (submitted) return <div className="rounded-3xl border border-cyan-300/30 bg-[#073153] p-6 text-white">
     <h1 className="text-3xl font-black">Application submitted for review</h1>
@@ -413,6 +428,19 @@ function FlyerProof({ partnership, enlarged = false, generated = false }: { part
 
 function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
   const [openProof, setOpenProof] = useState<"postcard" | "flyer" | null>(null);
+  const proofTrigger = useRef<HTMLButtonElement>(null);
+  const proofClose = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!openProof) return;
+    const trigger = proofTrigger.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    proofClose.current?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, [openProof]);
   const [editorOpen, setEditorOpen] = useState<"postcard" | "flyer" | null>(null);
   const { draft, setDraft } = useEditor();
   const generated = draft.values.proof_generated === true;
@@ -427,7 +455,10 @@ function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
     setEditorOpen(null);
   };
   const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={() => setEditorOpen(format)} className="mt-3 block w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-center text-sm font-black text-cyan-100">Don&apos;t like the design? Edit it · {redos} free redo{redos === 1 ? "" : "s"}</button>;
-  return <><div className="mt-5 flex justify-center gap-2"><button type="button" onClick={() => setGenerated(false)} className={`rounded-full px-4 py-2 text-xs font-black ${!generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>Original uploaded image</button><button type="button" onClick={() => setGenerated(true)} className={`rounded-full px-4 py-2 text-xs font-black ${generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>AI-created variation</button></div><div className="mt-6 space-y-8"><section><button type="button" onClick={() => setOpenProof("postcard")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge landscape postcard preview"><PostcardProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[520px]"><strong className="block">Landscape table card</strong><span className="mt-1 block text-xs leading-5 text-white/50">A finished sideways 4 × 6 card. Click it to inspect the design.</span>{editorButton("postcard")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=cards&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#00b9ff] px-4 py-3 text-center text-sm font-black text-[#00132e]">Download landscape card PDF</a></div></section><section><button type="button" onClick={() => setOpenProof("flyer")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge full-page flyer preview"><FlyerProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[360px]"><strong className="block">Full-page promotional flyer</strong><span className="mt-1 block text-xs leading-5 text-white/50">Click the finished 8½ × 11 proof to inspect it.</span>{editorButton("flyer")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=flyer&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#ff630f] px-4 py-3 text-center text-sm font-black text-white">Download full-page flyer PDF</a></div></section></div>{openProof && <div role="dialog" aria-modal="true" aria-label={`${openProof} enlarged preview`} className={`${popupStyles.overlay} fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8`}><button type="button" onClick={() => setOpenProof(null)} className={`${popupStyles.overlayClose} fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white`} aria-label="Close enlarged preview">×</button><div className={`${popupStyles.surface} m-auto w-full py-12`}>{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
+  return <><div className="mt-5 flex justify-center gap-2"><button type="button" onClick={() => setGenerated(false)} className={`rounded-full px-4 py-2 text-xs font-black ${!generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>Original uploaded image</button><button type="button" onClick={() => setGenerated(true)} className={`rounded-full px-4 py-2 text-xs font-black ${generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>AI-created variation</button></div><div className="mt-6 space-y-8"><section><button type="button" onClick={event => { proofTrigger.current = event.currentTarget; setOpenProof("postcard"); }} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge landscape postcard preview"><PostcardProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[520px]"><strong className="block">Landscape table card</strong><span className="mt-1 block text-xs leading-5 text-white/50">A finished sideways 4 × 6 card. Click it to inspect the design.</span>{editorButton("postcard")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=cards&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#00b9ff] px-4 py-3 text-center text-sm font-black text-[#00132e]">Download landscape card PDF</a></div></section><section><button type="button" onClick={event => { proofTrigger.current = event.currentTarget; setOpenProof("flyer"); }} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge full-page flyer preview"><FlyerProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[360px]"><strong className="block">Full-page promotional flyer</strong><span className="mt-1 block text-xs leading-5 text-white/50">Click the finished 8½ × 11 proof to inspect it.</span>{editorButton("flyer")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=flyer&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#ff630f] px-4 py-3 text-center text-sm font-black text-white">Download full-page flyer PDF</a></div></section></div>{openProof && <div role="dialog" onKeyDown={event => {
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpenProof(null); }
+    else containDialogTab(event);
+  }} aria-modal="true" aria-label={`${openProof} enlarged preview`} className={`${popupStyles.overlay} fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8`}><button ref={proofClose} type="button" onClick={() => setOpenProof(null)} className={`${popupStyles.overlayClose} fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white`} aria-label="Close enlarged preview">×</button><div className={`${popupStyles.surface} m-auto w-full py-12`}>{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
 }
 
 function ReviewStep({ partnership, demoCase, values, change, selectedTitle, mainProposal, missing }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void; selectedTitle: string; mainProposal: string; missing: string[] }) {

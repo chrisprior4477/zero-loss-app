@@ -313,9 +313,9 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
       <Link href="/" className={styles.continueShopping}>Continue shopping</Link>
       {canClearDemoEntries ? <ClearAllEntriesButton /> : null}
       {groups.length > 1 ? <div className={styles.carouselButtons}>
-        <button type="button" onClick={() => move(-1)} disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>
+        <button type="button" onClick={() => { if (view.previous) move(-1); }} aria-disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>
         <span className={styles.position} aria-live="polite" aria-atomic="true">{view.start === view.end ? view.start + 1 : `${view.start + 1}–${view.end + 1}`} / {groups.length}</span>
-        <button type="button" onClick={() => move(1)} disabled={!view.next} aria-controls={galleryId} aria-label="Next product" className={styles.arrowButton}><AccountIcon name="chevron" /></button>
+        <button type="button" onClick={() => { if (view.next) move(1); }} aria-disabled={!view.next} aria-controls={galleryId} aria-label="Next product" className={styles.arrowButton}><AccountIcon name="chevron" /></button>
       </div> : null}
       </div>
     </div>
