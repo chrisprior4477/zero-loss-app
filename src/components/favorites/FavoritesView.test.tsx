@@ -274,7 +274,7 @@ test("browser Back restores the Favorites list and position, Forward reopens the
   act(() => window.history.back());
   await waitFor(() => expect(window.location.pathname + window.location.search).toBe("/account/favorites"));
   await waitFor(() => expect(screen.queryByRole("button", { name: "Back to list" })).toBeNull());
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Nike Men's Court Shot Shoes" })));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" })));
   expect(window.scrollTo).toHaveBeenCalledWith({ top: 420, behavior: "instant" });
   act(() => window.history.forward());
   await waitFor(() => expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy());

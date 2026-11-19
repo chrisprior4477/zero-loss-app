@@ -23,6 +23,9 @@ describe("catalog search", () => {
   });
   test.each([
     ["Walmart gift cards $75 and up", [75, 100]],
+    ["Walmart gift cards at least $75", [75, 100]],
+    ["Walmart gift cards above $75", [100]],
+    ["Walmart gift cards priced from $50 to $75", [50, 75]],
     ["Walmart gift cards between $25 and $75", [25, 50, 75]],
     ["Walmart gift cards between twenty-five dollars and seventy-five dollars", [25, 50, 75]],
   ])("uses inclusive natural-language prize bounds for %s", (query, amounts) => {
@@ -35,6 +38,21 @@ describe("catalog search", () => {
     expect(matches.length).toBeGreaterThan(0);
     expect(matches.every(product => product.value === 100 && product.title.includes("Gift Card") && product.retailer.startsWith("Walmart"))).toBe(true);
   });
+  test("an exact-only gift-card query prioritizes the standard card and excludes lower values", () => {
+    const results = searchCatalogMatches(demoProducts, "Walmart $100 gift card only", undefined, { includeLowerGiftCards: true });
+    expect(results[0]?.product.slug).toBe("walmart-100-gift-card");
+    expect(results.every(({ product }) => product.value === 100)).toBe(true);
+  });
+  test.each([
+    ["TJ Maxx $100", "T.J.Maxx $100"],
+    ["TJMaxx $100", "T.J.Maxx $100"],
+    ["CVS eGift Card", "CVS gift card"],
+  ])("finds the same cards for %s as %s", (alias, query) => {
+    const expected = searchCatalog(demoProducts, query).map(product => product.slug);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(searchCatalog(demoProducts, alias).map(product => product.slug)).toEqual(expected);
+  });
+
   test.each(["Home Depot 25", "Home Depot $25", "Home Depot twenty‑five dollars"])("recognizes a Home Depot denomination in %s", query => {
     const matches = searchCatalog(demoProducts, query);
     expect(matches.map(product => product.title)).toEqual(["$25 The Home Depot Gift Card"]);

@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { checkDemoHistoryReset, clearDemoWalletHistory, previewDemoHistoryClear, type DemoHistoryKind } from "@/lib/wallet/demo-history-actions";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./demo-history-clear-button.module.css";
 
@@ -22,13 +23,13 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
   const revision = useRef<string | undefined>(undefined);
   const requestKey = useRef<string | null>(null);
   const label = kind === "transactions" ? "Clear All Demo Transactions" : "Delete All Demo Deposits";
-  useDialogBack(kind === "transactions" && balanceCents !== null, close, pending, true);
+  useDialogBack(balanceCents !== null, close, pending, true);
 
   useEffect(() => {
-    if (balanceCents !== null && !dialog.current?.open) dialog.current?.showModal();
+    if (!pending && balanceCents !== null && !dialog.current?.open) dialog.current?.showModal();
     if (balanceCents === null && !pending && restoreFocus.current) {
       restoreFocus.current = false;
-      trigger.current?.focus({ preventScroll: true });
+      restoreDialogTrigger(trigger.current);
     }
   }, [balanceCents, pending]);
 

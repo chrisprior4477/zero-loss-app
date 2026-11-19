@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./entry-ticket-browser.module.css";
 
 export type SavedTicket = {
@@ -169,17 +170,17 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
         <span className={styles.wheelLabel}>Swipe ↕</span>
       </div>
       <div className={styles.nearby}>
-        <p className={styles.current}>Entry {ticket.number} of {count}</p>
+        <p className={styles.current} aria-live="polite" aria-atomic="true">Entry {ticket.number} of {count}</p>
         <div className={styles.navigator}>
-          <button type="button" className={styles.arrow} aria-label="Previous entry" disabled={index === 0} onClick={() => choose(index - 1)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
+          <button type="button" className={styles.arrow} aria-label="Previous entry" aria-disabled={index === 0} onClick={() => { if (index > 0) choose(index - 1); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
           <div className={styles.ticketWindow} role="group" aria-label="Nearby entry tickets">
             {visibleTickets.map((item, itemIndex) => ticketButton(item, windowStart + itemIndex))}
           </div>
-          <button type="button" className={styles.arrow} aria-label="Next entry" disabled={index === count - 1} onClick={() => choose(index + 1)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg></button>
+          <button type="button" className={styles.arrow} aria-label="Next entry" aria-disabled={index === count - 1} onClick={() => { if (index < count - 1) choose(index + 1); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg></button>
         </div>
       </div>
     </div> : null}
-    <article ref={cardRef} id={`saved-entry-${ticket.number}`} className={`${styles.entryCard} ${count === 1 ? styles.singleCard : ""}`} aria-label={`Entry ${ticket.number} of ${count}`} aria-live="polite" aria-atomic="true">
+    <article ref={cardRef} id={`saved-entry-${ticket.number}`} className={`${styles.entryCard} ${count === 1 ? styles.singleCard : ""}`} aria-label={`Entry ${ticket.number} of ${count}`}>
       <div className={styles.image}><Image src={ticket.image} alt={ticket.title} fill sizes="(max-width: 600px) 60px, 80px" /></div>
       <div className={styles.details}>
         <div className={styles.kicker}><span className={styles.number}>{ticket.number}</span><span>ENTRY {ticket.number} OF {count}</span></div>
@@ -205,7 +206,11 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
       {showAll ? <div className={styles.allEntries} id={`${id}-all`}>
         <p>All {count} entries · Tap a ticket to view its details.</p>
         <div className={styles.allGrid} role="group" aria-label={`All ${count} saved entries`}>{tickets.map((item, itemIndex) => ticketButton(item, itemIndex, true))}</div>
-        <button type="button" className={styles.collapse} onClick={() => { expand(false); expandRef.current?.focus({ preventScroll: true }); expandRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" }); }}>Hide all entries <span aria-hidden="true">⌃</span></button>
+        <button type="button" className={styles.collapse} onClick={() => {
+          expand(false);
+          expandRef.current?.focus({ preventScroll: true });
+          requestAnimationFrame(() => { if (expandRef.current) revealBelowHeader(expandRef.current); });
+        }}>Hide all entries <span aria-hidden="true">⌃</span></button>
       </div> : null}
     </> : null}
   </section>

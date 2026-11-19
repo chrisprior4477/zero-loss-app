@@ -19,6 +19,7 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState<string[]>([]);
   const request = useRef(0);
+  const queryField = useRef<HTMLInputElement>(null);
   const findButton = useRef<HTMLButtonElement>(null);
   const focusRetry = useRef(false);
   useEffect(() => {
@@ -64,24 +65,31 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
     finally { setBusy(false); setSending(false); }
   }
 
+  function returnFromContacts(control: HTMLElement | null) {
+    if (!control?.isConnected) return;
+    control.focus({ preventScroll: true });
+    control.scrollIntoView?.({ block: "center", behavior: "instant" });
+  }
+
   async function chooseContact() {
     const picker = (navigator as Navigator & { contacts?: { select: (properties: string[], options: { multiple: boolean }) => Promise<{ name?: string[]; email?: string[]; tel?: string[] }[]> } }).contacts;
     setInvalid(false);
-    if (!picker?.select) { setMessage("This browser doesn’t offer phone contacts. Enter a name, email, or phone instead."); return; }
+    if (!picker?.select) { setMessage("This browser doesn’t offer phone contacts. Enter a name, email, or phone instead."); returnFromContacts(queryField.current); return; }
     try {
       const [contact] = await picker.select(["name", "email", "tel"], { multiple: false });
-      if (!contact) return;
+      if (!contact) { returnFromContacts(queryField.current); return; }
       request.current += 1; setPeople([]); setSamples([]); setTarget(null);
       setQuery(contact.email?.[0] || contact.tel?.[0] || contact.name?.[0] || "");
       setMessage("Contact selected. Press Find, then Add to Crew. Your address book was not uploaded.");
-    } catch { setMessage("No contact was selected. You can type their details instead."); }
+      returnFromContacts(findButton.current);
+    } catch { setMessage("No contact was selected. You can type their details instead."); returnFromContacts(queryField.current); }
   }
 
   return <section className={styles.finder} aria-label="Find someone for your Crew">
     <div className={styles.finderHeading}><div><span className={styles.eyebrow}>MAKE THE CONNECTION</span><h2>Add someone to your Crew</h2></div><button type="button" className={styles.iconButton} aria-label="Close people search" onClick={onClose}>×</button></div>
     <form onSubmit={find}>
       <label htmlFor="crew-query">Name, email, or phone</label>
-      <div className={styles.findRow}><input type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
+      <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
     </form>
     <div className={styles.findResults} aria-live="polite">
       {target ? <article className={styles.findResult}><span className={styles.contactSymbol}><ShareIcon name={target.kind === "email" ? "mail" : "message"} /></span><div><strong>{target.value}</strong><small>Private contact lookup</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(target.value)} onClick={() => void add(target.value, () => target.kind === "email" ? inviteToCrew(target.value) : inviteToCrewByPhone(target.value))}>{sent.includes(target.value) ? "Saved" : "Add to Crew"}</button></article> : null}

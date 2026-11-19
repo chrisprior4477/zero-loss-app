@@ -262,7 +262,7 @@ test("a failed save restores unread status and explains the failure", async () =
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
   render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
-  expect(await screen.findAllByText("Read status could not be saved.")).toHaveLength(2);
+  expect(await screen.findAllByText("Read status could not be saved.")).toHaveLength(1);
   await waitFor(() => expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(false));
   await waitFor(() => expect(document.querySelectorAll('[data-read="true"]')).toHaveLength(0));
 });

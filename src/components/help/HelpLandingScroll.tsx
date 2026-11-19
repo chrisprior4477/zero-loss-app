@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string; focusAnchorPrefix?: string }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -29,11 +29,12 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           const [anchor] = anchors;
           const id = anchor && anchor !== landingAlias ? anchor : target;
           if (anchors.length > 1 && !anchors.every(value => value === anchor)) return;
+          if (focusAnchorPrefix && !id.startsWith(focusAnchorPrefix)) return;
           const element = document.getElementById(id);
           if (!element) return;
           if (anchors.length > 1) window.history.replaceState(window.history.state, "", `#${id}`);
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
-          if (focusReport && id === "report-problem") {
+          if ((focusReport && id === "report-problem") || (anchor && id === focusAnchor) || focusAnchorPrefix) {
             (element.querySelector<HTMLElement>("h2[tabindex]") ?? element).focus({ preventScroll: true });
           }
         });
@@ -41,6 +42,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     };
     // Font metrics can rewrap the heading/navigation after hydration. Measure only
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
+    if (focusAnchor && window.location.hash === `#${focusAnchor}`) reveal();
     if (document.fonts) void document.fonts.ready.then(reveal);
     else reveal();
     const navigate = () => { interrupted = false; reveal(); };
@@ -60,6 +62,6 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
       window.removeEventListener("keydown", stop);
       document.documentElement.style.removeProperty("--help-header-height");
     };
-  }, [target, visitKey, landingAlias, focusReport]);
+  }, [target, visitKey, landingAlias, focusReport, focusAnchor, focusAnchorPrefix]);
   return null;
 }

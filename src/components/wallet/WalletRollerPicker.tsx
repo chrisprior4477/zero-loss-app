@@ -13,6 +13,7 @@ type PickerProps = {
   options: Choice[];
   value: string;
   disabled?: boolean;
+  nestedHistory?: boolean;
   onChange: (value: string) => void;
 };
 const ROW_HEIGHT = 48;
@@ -134,14 +135,14 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
   </div>, document.body);
 }
 
-export function WalletRollerPicker({ id: providedId, label, placeholder, options, value, disabled = false, onChange }: PickerProps) {
+export function WalletRollerPicker({ id: providedId, label, placeholder, options, value, disabled = false, nestedHistory = false, onChange }: PickerProps) {
   const uniqueId = useId();
   const id = providedId ?? uniqueId;
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const selected = options.find(option => option.value === value);
   const unavailable = disabled || options.length === 0;
-  useDialogBack(open && !unavailable, () => close(true), false, true);
+  useDialogBack(open && !unavailable, () => close(true), false, true, nestedHistory);
   if (unavailable && open) setOpen(false);
   function close(restoreFocus = false) {
     setOpen(false);

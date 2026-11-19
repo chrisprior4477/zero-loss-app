@@ -147,12 +147,14 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
       action={formAction}
       onInvalidCapture={event => {
         const field = event.target;
-        if (!(field instanceof HTMLElement)) return;
-        requestAnimationFrame(() => {
-          if (document.activeElement !== field) return;
-          const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
-          if (field.getBoundingClientRect().top < header + 12) field.scrollIntoView({ block: "center" });
-        });
+        if (!(field instanceof HTMLElement) || event.currentTarget.querySelector(":invalid") !== field) return;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!field.isConnected || !field.matches(":invalid")) return;
+          const active = document.activeElement;
+          if (active !== field && active !== document.body) return;
+          field.focus({ preventScroll: true });
+          field.scrollIntoView?.({ block: "center", behavior: "instant" });
+        }));
       }}
       className={compact ? "space-y-4" : "space-y-5"}
       onSubmit={(event) => {

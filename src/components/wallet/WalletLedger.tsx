@@ -371,7 +371,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <label htmlFor={`${dateErrorId}-search`}>Search transactions</label>
         <div className={styles.ledgerSearchField}>
           <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft}
-            onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { cancelVoice(); setEditing(true); setDraft(event.target.value); }} />
+            onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { voice.reset(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
           {draft.trim() && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
           <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />

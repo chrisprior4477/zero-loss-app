@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { requestPasswordResetAction, type PasswordRecoveryState } from "@/lib/auth/actions";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { signInReturnPath } from "@/lib/auth/entry-return";
 
 const initialState: PasswordRecoveryState = { status: "idle", message: null };
@@ -26,7 +27,10 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
     if (pending || !restoreSubmitFocus.current) return;
     restoreSubmitFocus.current = false;
     if (feedback.status !== "error") return;
-    if (emailField.current && !emailField.current.validity.valid) emailField.current.focus();
+    if (emailField.current && !emailField.current.validity.valid) {
+      emailField.current.focus({ preventScroll: true });
+      revealBelowHeader(emailField.current);
+    }
     else if (document.activeElement === document.body) submitButton.current?.focus();
   }, [pending, feedback]);
 

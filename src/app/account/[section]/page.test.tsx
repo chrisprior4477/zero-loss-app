@@ -109,7 +109,7 @@ test("ordinary Orders navigation still shows the full paginated list", async () 
   expect(screen.getByText("1–2 of 9")).toBeTruthy();
   expect(screen.queryByText("SELECTED ORDER")).toBeNull();
   expect(mocks.support).not.toHaveBeenCalled();
-  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Choose a transaction to report" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=transactions#transactions");
+  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Choose a transaction to report" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=transactions&fromOrders=1#transactions");
 });
 
 test("an exact reward selection resolves its own order, while mismatched selections do not", async () => {

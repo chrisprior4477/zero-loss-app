@@ -1,7 +1,7 @@
 "use client";
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { recordReceivedProduct } from "@/lib/sharing/saved-share-actions";
@@ -9,7 +9,9 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import { updateSharedProductReceiving } from "@/lib/sharing/receiving-actions";
 import type { SharedProductContext } from "@/lib/sharing/receiving";
-import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
+import { revealBelowHeader } from "@/lib/account/landing-position";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./shared-product-controls.module.css";
 export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = false }: { slug: string; initial: SharedProductContext | null; signedIn: boolean; saveOnReturn?: boolean }) {
   const [saved, setSaved] = useState<{ source: SharedProductContext | null; context: SharedProductContext } | null>(null);
@@ -27,6 +29,18 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
   const leaving = membershipChoice === "leave";
   const dialog = useRef<HTMLDialogElement>(null);
   const [savingItem, setSavingItem] = useState(false);
+  const [legacyCrew, setLegacyCrew] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const statusId = useId();
+  const saveTrigger = useRef<HTMLButtonElement>(null);
+  useDialogBack(Boolean(dialogKind), () => setDialogKind(null), busy, true);
+  useEffect(() => {
+    if (savingItem || !saveFailed || dialogKind || !saveTrigger.current) return;
+    const button = saveTrigger.current;
+    if (document.activeElement !== document.body && document.activeElement !== button) return;
+    button.focus({ preventScroll: true });
+    revealBelowHeader(button);
+  }, [dialogKind, saveFailed, savingItem]);
   const router = useRouter();
   const returnPath = `/items/${slug}${initial ? `?share=${initial.token}` : "?shared=1"}`;
   function signIn() { router.push(authNavigationHref("/signup", returnPath)); }
@@ -42,11 +56,11 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
   async function saveItem() {
     if (!signedIn) { router.push(authNavigationHref("/signup", `${returnPath}&saveShared=1`)); return; }
     if (savingItem) return;
-    setSavingItem(true); setMessage("");
+    setSavingItem(true); setMessage(""); setLegacyCrew(false); setSaveFailed(false);
     try {
       const result = await recordReceivedProduct(slug, context?.token ?? null, true);
-      if (result.ok) router.push(result.href); else setMessage(result.message);
-    } catch { setMessage("This shared item could not be saved. Please try again."); }
+      if (result.ok) router.push(result.href); else { setMessage(result.message); setSaveFailed(true); }
+    } catch { setMessage("This shared item could not be saved. Please try again."); setSaveFailed(true); }
     finally { setSavingItem(false); }
   }
   useEffect(() => {
@@ -65,7 +79,7 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
     if (!element || !dialogKind) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element.showModal();
-    return () => { element.close(); trigger?.focus({ preventScroll: true }); };
+    return () => { element.close(); restoreDialogTrigger(trigger); };
   }, [dialogKind]);
   async function save(receiving: boolean, sharing: boolean | null) {
     if (!context || busy) return;
@@ -90,12 +104,12 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
   return <section className={styles.controls} aria-label="Shared item options">
     {context ? <p>Shared by <strong>{context.sender}</strong>{context.demo ? " · Demo share" : context.isGroup ? ` · ${context.scope}` : ""}</p> : <p>A pick shared with you</p>}
     <div className={styles.buttons}>
-      <button type="button" disabled={savingItem} onClick={() => void saveItem()}>{savingItem ? "Saving…" : "Save to Shared with You"}</button>
-      <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn(); else if (context) setDialogKind(context.receiving ? "leave" : "rejoin"); else setMessage("This older link doesn’t identify a Crew. Manage your memberships in Your Crew."); }}>{context?.receiving ? `Leave ${scope}` : `${context?.hasChoice ? "Rejoin" : "Join"} ${scope}`}</button>
-      <button type="button" onClick={() => { if (!signedIn) signIn(); else { setReceiveDraft(null); setShareBackDraft(null); setDialogKind("options"); } }}>Sharing options</button>
+      <button ref={saveTrigger} aria-describedby={saveFailed && !dialogKind ? statusId : undefined} type="button" disabled={savingItem} onClick={() => void saveItem()}>{savingItem ? "Saving…" : "Save to Shared with You"}</button>
+      <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn(); else if (context) setDialogKind(context.receiving ? "leave" : "rejoin"); else { setSaveFailed(false); setLegacyCrew(true); setMessage("This older link doesn’t identify a Crew."); } }}>{context?.receiving ? `Leave ${scope}` : `${context?.hasChoice ? "Rejoin" : "Join"} ${scope}`}</button>
+      <button type="button" onClick={() => { if (!signedIn) signIn(); else { setReceiveDraft(null); setShareBackDraft(null); setLegacyCrew(false); setSaveFailed(false); setMessage(""); setDialogKind("options"); } }}>Sharing options</button>
     </div>
-    {message && !dialogKind ? <p role="status" className={styles.status}>{message}</p> : null}
-    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { if (busy) event.preventDefault(); else setDialogKind(null); }} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
+    {message && !dialogKind ? <p id={statusId} role="status" className={styles.status}>{message}{legacyCrew ? <> <Link href="/account/crew" className="underline">Open Your Crew</Link></> : null}</p> : null}
+    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!busy) setDialogKind(null); }} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
       <div className={styles.heading}><h2 id="shared-choice-heading">{membershipChoice ? `${leaving ? "Leave" : "Rejoin"} ${scope}?` : "Sharing options"}</h2><button type="button" aria-label="Close sharing options" disabled={busy} onClick={() => setDialogKind(null)}>×</button></div>
       {context?.demo ? <p>This demo saves your choices for this sample share only. It does not contact anyone or share your picks.</p> : null}
       {membershipChoice ? <><p>{leaving ? "Stop receiving shares from this Crew or group. Items already sent to you stay in Shared with You, and you can rejoin from this link." : "Receive the picks they share with you again. This does not share your own picks."}</p><button className={styles.save} type="button" disabled={busy || !context} onClick={() => void save(!leaving, null)}>{busy ? "Saving…" : leaving ? "Leave" : "Rejoin"}</button></> : context ? <>

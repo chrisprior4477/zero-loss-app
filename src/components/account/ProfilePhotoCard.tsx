@@ -9,6 +9,7 @@ import { useDialogBack } from "./useDialogBack";
 import { ChangeEvent, MouseEvent, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
@@ -133,6 +134,24 @@ export function ProfilePhotoCard({
   const crewVisible = pendingVisibility?.surface === "crew" ? pendingVisibility.enabled : savedVisibility.value.crew;
   const savingVisibility = pendingVisibility !== null;
   const [visibilityMessage, setVisibilityMessage] = useState<{ error: boolean; text: string } | null>(null);
+  const visibilityTrigger = useRef<HTMLInputElement | null>(null);
+  const savePhotoTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const trigger = visibilityTrigger.current;
+    if (savingVisibility || !visibilityMessage?.error || !trigger) return;
+    visibilityTrigger.current = null;
+    if (!trigger.isConnected || (document.activeElement !== document.body && document.activeElement !== trigger)) return;
+    trigger.focus({ preventScroll: true });
+    revealBelowHeader(trigger);
+  }, [savingVisibility, visibilityMessage]);
+  useEffect(() => {
+    const button = savePhotoTrigger.current;
+    if (!editing || saving || !error || !button) return;
+    if (editorRef.current?.contains(document.activeElement) && document.activeElement !== button && document.activeElement !== editorRef.current) return;
+    button.focus({ preventScroll: true });
+    editorRef.current?.querySelector<HTMLElement>('[role="alert"]')?.scrollIntoView?.({ block: "nearest" });
+    button.scrollIntoView?.({ block: "nearest" });
+  }, [editing, error, saving]);
   const previousMenuVisible = useRef(menuVisible);
   useEffect(() => {
     mounted.current = true;
@@ -194,17 +213,19 @@ export function ProfilePhotoCard({
     };
   }, [editing, closeEditor]);
 
-  async function changeVisibility(surface: PhotoVisibilitySurface, enabled: boolean) {
+  async function changeVisibility(surface: PhotoVisibilitySurface, trigger: HTMLInputElement) {
+    const enabled = trigger.checked;
+    visibilityTrigger.current = trigger;
     setPendingVisibility({ surface, enabled });
     setVisibilityMessage({ error: false, text: "Saving photo choice…" });
     try {
       const result = await saveProfilePhotoVisibility(surface, enabled);
-      if (!result.ok) throw new Error(result.message);
+      if (!result.ok) { setVisibilityMessage({ error: true, text: result.message }); return; }
       setSavedVisibility(current => ({ ...current, value: { ...current.value, [surface]: enabled } }));
       notifyAccountChanged();
       setVisibilityMessage({ error: false, text: "Photo choice saved." });
-    } catch (caught) {
-      setVisibilityMessage({ error: true, text: caught instanceof Error ? caught.message : "Your photo choice could not be saved." });
+    } catch {
+      setVisibilityMessage({ error: true, text: "We couldn’t confirm your photo visibility change. Please try again." });
     } finally {
       setPendingVisibility(null);
     }
@@ -215,7 +236,9 @@ export function ProfilePhotoCard({
     const formData = new FormData();
     formData.set("photo", new File([blob], "avatar.webp", { type: "image/webp" }));
     formData.set("profile_owner", accountId);
-    const result = await saveProfilePhoto(formData);
+    const result = await saveProfilePhoto(formData).catch(() => {
+      throw new Error("We couldn’t confirm your photo was saved. Your crop is still here. Please try again.");
+    });
     if (!result.ok) throw new Error(result.message);
     if (!mounted.current) return;
 
@@ -379,11 +402,11 @@ export function ProfilePhotoCard({
           <legend className="sr-only">Where to show your photo</legend>
           <p className="mb-2 text-sm font-extrabold">Where to show your photo</p>
           <label className="flex min-h-12 cursor-pointer items-start gap-3 py-2 text-sm font-bold">
-            <input type="checkbox" checked={menuVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("menu", event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
+            <input type="checkbox" checked={menuVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("menu", event.currentTarget)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
             <span>Show my photo in the account menu<span className="mt-0.5 block text-xs font-normal text-[#506b8e]">The round photo in the header changes immediately.</span></span>
           </label>
           <label className="flex min-h-12 cursor-pointer items-start gap-3 py-2 text-sm font-bold">
-            <input type="checkbox" checked={crewVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("crew", event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
+            <input type="checkbox" checked={crewVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("crew", event.currentTarget)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
             <span>Show my photo to My Crew<span className="mt-0.5 block text-xs font-normal text-[#506b8e]">Connected Crew members see it in My Crew.</span></span>
           </label>
           {visibilityMessage ? <p role={visibilityMessage.error ? "alert" : "status"} className={`mt-2 text-xs font-semibold ${visibilityMessage.error ? "text-[#a6321a]" : "text-[#087443]"}`}>{visibilityMessage.text}</p> : null}
@@ -450,7 +473,7 @@ export function ProfilePhotoCard({
                 <button type="button" onClick={closeEditor} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
                   Cancel
                 </button>
-                <button type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
+                <button ref={savePhotoTrigger} type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
                   {saving ? "Saving…" : "Save photo"}
                 </button>
               </div>

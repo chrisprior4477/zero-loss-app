@@ -64,13 +64,13 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     <div className={styles.declinedHeader}>
       <div className={styles.declinedIntro}>
-        <Link href={activityReturn} className={styles.declinedBack}>← My Activity</Link>
+        <Link href={activityReturn} scroll={false} className={styles.declinedBack}>← My Activity</Link>
         <p className={styles.eyebrow}>DECLINED OFFERS</p>
         <h1 className={styles.heading}>If you change your mind</h1>
         <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
-        <Link href={activityReturn}>Return to My Activity</Link>
+        <Link href={activityReturn} scroll={false}>Return to My Activity</Link>
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
@@ -80,7 +80,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
     {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={declinedOfferHref(offerId, filter)}>Try again</a></div>
-      : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn}>Back to My Activity →</Link></div>
+      : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn} scroll={false}>Back to My Activity →</Link></div>
       : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
         const multiple = offers.length > 1;

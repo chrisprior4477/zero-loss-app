@@ -1,3 +1,4 @@
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,6 +27,7 @@ export default async function RewardBrandPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
+      <HelpLandingScroll target="" visitKey={brand.slug} focusAnchorPrefix="prize-" />
       <div className="mx-auto max-w-6xl">
         <Link href={popularRewardsReturnHref(brand.slug)} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Popular Rewards</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Popular Reward · Digital fulfillment</p>
@@ -50,7 +52,7 @@ export default async function RewardBrandPage({ params }: Props) {
             </>;
             return open ? (
               <Link key={amount} id={`prize-${slug}`} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
-            ) : <article key={amount} id={`prize-${slug}`} className={cardClass}>{card}</article>;
+            ) : <article key={amount} tabIndex={-1} id={`prize-${slug}`} className={cardClass}>{card}</article>;
           })}
         </section>
 

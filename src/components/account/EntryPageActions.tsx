@@ -4,6 +4,7 @@ import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, undoEntryLabel, type EntryRequest } from "@/lib/entries/request";
@@ -304,7 +305,14 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   }
 
   return <>
-    <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
+    <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={event => {
+      const trigger = event.currentTarget;
+      setNextOpen(!nextOpen);
+      if (!nextOpen) requestAnimationFrame(() => {
+        const panel = trigger.nextElementSibling;
+        if (panel instanceof HTMLElement && trigger.getAttribute("aria-expanded") === "true") revealBelowHeader(panel);
+      });
+    }}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
     {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
     <div className={styles.actionGrid}>
       <section className={`${styles.actionPanel} ${styles.entryActionPanel}`} aria-labelledby="add-entries-title">

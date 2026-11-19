@@ -455,7 +455,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
       {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
-      <div className={styles.utility}>{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
+      <div className={styles.utility}>{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack
@@ -475,7 +475,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
             <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>Open wallet</Link>
           </>}
         </section> : <>
-        <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); setNotice(""); }} /></div>
+        <div className={styles.cardChoice}><FundingCardPicker nestedHistory tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); setNotice(""); }} /></div>
         {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
           const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId);
           if (href) rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });

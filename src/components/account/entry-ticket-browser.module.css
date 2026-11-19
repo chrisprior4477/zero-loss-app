@@ -15,7 +15,7 @@
 .navigator { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 5px; }
 .arrow { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 50%; background: #fff; padding: 0; color: #075181; cursor: pointer; }
 .arrow svg { width: 19px; height: 19px; }
-.arrow:disabled { color: #9eb9ca; cursor: default; }
+.arrow[aria-disabled="true"] { color: #9eb9ca; cursor: default; }
 .ticketWindow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; min-width: 0; }
 .smallTicket, .entryCard, .countTicket { --corner: 14px; --side: 10px; --cutouts: radial-gradient(circle at left top, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at right top, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at left bottom, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at right bottom, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at left center, transparent var(--side), #000 calc(var(--side) + .8px)), radial-gradient(circle at right center, transparent var(--side), #000 calc(var(--side) + .8px)); -webkit-mask-image: var(--cutouts); mask-image: var(--cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; }
 .smallTicket { --corner: 8px; --side: 5px; display: flex; min-width: 0; width: 100%; height: 42px; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 0; background: #b7e7ff; padding: 5px 3px; color: #103a65; font: inherit; font-size: 19px; font-weight: 950; line-height: 1; cursor: pointer; font-variant-numeric: tabular-nums; }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
 import { getCrewRequestStatus, respondToCrewRequest } from "@/lib/crew/actions";
@@ -76,6 +77,16 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
+  const [readMessageLocation, setReadMessageLocation] = useState<"top" | "bottom">("top");
+  const readTrigger = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (savingRead || !readMessage || !readTrigger.current) return;
+    const trigger = readTrigger.current;
+    readTrigger.current = null;
+    if (!trigger.isConnected || (document.activeElement !== document.body && document.activeElement !== trigger)) return;
+    trigger.focus({ preventScroll: true });
+    revealBelowHeader(trigger);
+  }, [readMessage, savingRead]);
   const failedReadKey = userId ? `zero-loss-notification-read-retry:${userId}` : null;
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
@@ -342,10 +353,12 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     });
   }
 
-  function markAllRead() {
+  function markAllRead(trigger: HTMLButtonElement, location: "top" | "bottom") {
     const ids = enabledNotifications.map((notification) => notification.id).filter((id) => !read.has(id));
     if (!ids.length || !readAvailable) return;
     setReadMessage("");
+    setReadMessageLocation(location);
+    readTrigger.current = trigger;
     setLocallyRead((previous) => new Set([...previous, ...ids]));
     startReadTransition(async () => {
       const failed: string[] = [];
@@ -362,7 +375,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
           return next;
         });
         setReadMessage(message);
-      }
+      } else readTrigger.current = null;
     });
   }
 
@@ -413,7 +426,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
       <header id="notifications-intro" ref={headingRef} className={styles.header}>
         <div><h1 tabIndex={-1}>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
-          <button type="button" onClick={markAllRead} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
+          <button type="button" onClick={event => markAllRead(event.currentTarget, "top")} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read
           </button>
           <a href="#alert-settings"><AccountIcon name="settings" /> Alert settings</a>
@@ -422,7 +435,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
 
       {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
-      {readMessage ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
+      {readMessage && readMessageLocation === "top" ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
       {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
@@ -465,8 +478,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
               focusNewUpdate.current = batches.end;
               updateBookmark({ start: batches.end }); batches.more();
             }}>See more updates ({batches.remaining} remaining)</button>}
-            <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>
-            {readMessage && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
+            <button type="button" onClick={event => markAllRead(event.currentTarget, "bottom")} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>
+            {readMessage && readMessageLocation === "bottom" && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
             {(batches.expanded || batches.size > groupsPerPage) && <button type="button" aria-controls="notification-tickets" aria-expanded onClick={() => {
               if (focusedNotice) clearExactNotice();
               updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });

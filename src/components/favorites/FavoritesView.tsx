@@ -14,6 +14,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { readFavoriteCapacityAlert, setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
 import { readReceivedProductState, setReceivedProductState } from "@/lib/sharing/saved-share-actions";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./favorites.module.css";
 
 type Props = {
@@ -33,22 +34,27 @@ function favoritesHref(filter: FavoriteFilter, slug?: string) {
 type Selection = { slug: string; shareId?: never } | { shareId: string; slug?: never } | null;
 type SharePatch = Partial<Pick<SavedProductShare, "viewedAt" | "declinedAt">>;
 const sharePatchFields = ["viewedAt", "declinedAt"] as const;
-type ListPosition = { href: string; target: string; top: number };
+type ListPosition = { href: string; target: string; top: number; artwork?: boolean };
 function savedListPosition(state: unknown): ListPosition | null {
   if (!state || typeof state !== "object" || !("zeroLossFavoritesReturn" in state)) return null;
   const value = state.zeroLossFavoritesReturn;
   if (!value || typeof value !== "object" || !("href" in value) || !("target" in value) || !("top" in value)) return null;
   return (value.href === favoritesHref("all") || value.href === favoritesHref("watching") || value.href === sharedWithYouHref || value.href === savedShareHref(undefined, "declined"))
     && typeof value.target === "string" && typeof value.top === "number" && Number.isFinite(value.top) && value.top >= 0
-    ? { href: value.href, target: value.target, top: value.top } : null;
+    ? { href: value.href, target: value.target, top: value.top, artwork: "artwork" in value && value.artwork === true } : null;
 }
-function restoreListPosition(target?: string, top?: number) {
-  requestAnimationFrame(() => {
-    const button = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-saved-item]")).find(element => element.dataset.savedItem === target);
-    button?.focus({ preventScroll: true });
+function restoreListPosition(target?: string, top?: number, artwork = false) {
+  const href = window.location.href;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (window.location.href !== href) return;
+    const selector = artwork ? "[data-saved-artwork]" : "[data-saved-item]";
+    const button = Array.from(document.querySelectorAll<HTMLButtonElement>(selector))
+      .find(element => (artwork ? element.dataset.savedArtwork : element.dataset.savedItem) === target);
     if (top !== undefined) window.scrollTo({ top, behavior: "instant" });
-    else button?.scrollIntoView?.({ block: "nearest" });
-  });
+    if (!button) return;
+    button.focus({ preventScroll: true });
+    revealBelowHeader(button);
+  }));
 }
 
 export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all" }: Props) {
@@ -172,7 +178,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       if (nextTab === "favorites") setFavoriteFilter(nextFavoriteFilter);
       if (!restoreScroll) return;
       if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(nextFavoriteFilter))) {
-        restoreListPosition(previousPosition.target, previousPosition.top);
+        restoreListPosition(previousPosition.target, previousPosition.top, previousPosition.artwork);
       }
     }
     // A restored Next.js page can mount after popstate using the cached list's
@@ -194,8 +200,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     });
     return () => cancelAnimationFrame(frame);
   }, [selectedSlug, selectedShare?.id]);
-  function openItem(slug: string, shareId?: string) {
-    listPosition.current = { href: tab === "shared" ? savedShareHref(undefined, sharedView) : favoritesHref(favoriteFilter), target: shareId ?? slug, top: window.scrollY };
+  function openItem(slug: string, shareId?: string, artwork = false) {
+    listPosition.current = { href: tab === "shared" ? savedShareHref(undefined, sharedView) : favoritesHref(favoriteFilter), target: shareId ?? slug, top: window.scrollY, artwork };
     setSelected(shareId ? { shareId } : { slug }); setMessage("");
     // Keep the list in history; Next.js copies its router state into this entry.
     window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId, sharedView) : favoritesHref(favoriteFilter, slug));
@@ -283,7 +289,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     const product = getDemoProduct(slug);
     const artwork = product ? <Image src={product.gallery[0].src} alt={product.title} fill sizes={large ? "(max-width: 640px) 90vw, 420px" : "(max-width: 640px) 50vw, 25vw"} className="object-contain p-2" /> : <span>Product unavailable</span>;
     return <div className={`${styles.art} ${large ? styles.largeArt : ""}`}>
-      {large ? artwork : <button type="button" className={styles.artButton} aria-label={`View ${product?.title ?? "shared product"}`} onClick={() => openItem(slug, shareId)}>{artwork}</button>}
+      {large ? artwork : <button type="button" className={styles.artButton} aria-label={`View ${product?.title ?? "shared product"}`} data-saved-artwork={shareId ?? slug} onClick={() => openItem(slug, shareId, true)}>{artwork}</button>}
       <FavoriteButton itemName={product?.title ?? "this product"} itemHref={`/items/${slug}`} size="large" className={styles.heart} />
     </div>;
   }

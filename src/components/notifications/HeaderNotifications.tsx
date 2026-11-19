@@ -17,10 +17,24 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const markAllTrigger = useRef<HTMLButtonElement>(null);
+  const markAllFailed = useRef(false);
   const keyboardOpened = useRef(false);
   const list = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (busy || !markAllFailed.current) return;
+    markAllFailed.current = false;
+    const element = dialog.current;
+    const button = markAllTrigger.current;
+    if (!value?.open || !element || !button) return;
+    if (!element.contains(document.activeElement) || document.activeElement === element) button.focus({ preventScroll: true });
+    if (document.activeElement === button) {
+      element.querySelector<HTMLElement>("[data-header-read-error]")?.scrollIntoView?.({ block: "nearest" });
+      button.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [busy, value?.open]);
   const [selected, setSelected] = useState<HeaderCategory | null>(null);
   const [bannerCategory, setBannerCategory] = useState<HeaderCategory | null>(null);
   const warmed = useRef(new Map<string, number>());
@@ -65,7 +79,10 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     try {
       if (ids.length) await value.markRead(ids);
       if (!href) closeUpdates();
-    } catch { setError("Your alert could not be marked as read. It is still available in updates."); }
+    } catch {
+      if (!href) markAllFailed.current = true;
+      setError(href ? "Your alert could not be marked as read. It is still available in updates." : "We couldn’t mark all updates as read. Try again.");
+    }
     finally { if (!href) setBusy(false); }
   }
   function choose(category: HeaderCategory, acknowledge = false) {
@@ -120,9 +137,9 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
             </button>) : <p className={styles.empty}>No unread {current === "support" ? "support updates" : "shared picks"}. {current === "support" ? <Link href="/support#case-list" onClick={() => value?.setOpen(false)}>View my support cases →</Link> : null}</p>}
         </section>
       </div>
-      {error ? <p role="alert" className={styles.error}>{error}</p> : null}
+      {error ? <p role="alert" data-header-read-error className={styles.error}>{error}</p> : null}
       <div className={styles.footer}>
-        {unread.length ? <button disabled={busy} type="button" onClick={() => void act(unread.map(n => n.id))}>{busy ? "Saving…" : "Mark all as read"}</button> : null}
+        {unread.length ? <button ref={markAllTrigger} disabled={busy} type="button" onClick={() => void act(unread.map(n => n.id))}>{busy ? "Saving…" : "Mark all as read"}</button> : null}
         <Link href="/account/notifications#notifications-intro" replace onNavigate={() => value?.setOpen(false)}>All notifications</Link>
         {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); closeUpdates(); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
       </div>

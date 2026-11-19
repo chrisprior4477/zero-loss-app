@@ -71,7 +71,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchBudget = denomination.budget;
   const formatBudget = (value: number) => `$${value.toLocaleString("en-US")}`;
   const searchBudgetLabel = searchBudget?.minimum !== undefined
-    ? searchBudget.maximum === null ? `${formatBudget(searchBudget.minimum)} and up` : `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}`
+    ? searchBudget.maximum === null ? searchBudget.exclusiveMinimum ? `above ${formatBudget(searchBudget.minimum)}` : `${formatBudget(searchBudget.minimum)} and up` : `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}`
     : searchBudget?.maximum != null ? `${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}` : null;
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const requestedFilters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
@@ -198,7 +198,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </div> : null}
       {broaderSearch ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{broaderSearch.count.toLocaleString("en-US")} {broaderSearch.count === 1 ? "match" : "matches"} outside {broaderScope}{budgetLabel ? ` · ${budgetLabel}` : ""}.</p>
-        <Link href={broaderSearch.href} prefetch={false} className={recoveryLinkClass}>Search all categories</Link>
+        <BrowseResultsLink href={broaderSearch.href} target="heading" className={recoveryLinkClass}>Search all categories</BrowseResultsLink>
       </div> : null}
     </div>
   ) : null;

@@ -13,16 +13,16 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength) return [];
-  const { text, values, budget, merchant } = denomination;
+  const { text, values, budget, exactOnly, merchant } = denomination;
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
-  const includeLower = includeLowerGiftCards && Boolean(merchant) && values.size > 0;
+  const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size > 0;
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
-    && (budget?.minimum === undefined || product.value >= budget.minimum)
+    && (budget?.minimum === undefined || (budget.exclusiveMinimum ? product.value > budget.minimum : product.value >= budget.minimum))
     && (budget?.maximum == null || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
     && (!giftCards || isGiftCardListing(product))
     && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
@@ -54,7 +54,9 @@ export function searchCatalogMatches(
       + matchWord(token, category) * 8 + matchWord(token, direct ? document : expanded);
     if (` ${normalizeSearch(product.title)} `.includes(` ${normalizedQuery} `)) score += 100;
     if (normalizeSearch(product.brand) === normalizedQuery || normalizeSearch(product.retailer) === normalizedQuery) score += 120;
-    const giftCardRank = includeLower && isGiftCardListing(product) ? values.has(product.value) ? 0 : 1 : 2;
+    const standardExactCard = exactOnly && merchant && values.has(product.value)
+      && normalizeSearch(product.title) === `${product.value} ${merchant} gift card`;
+    const giftCardRank = standardExactCard ? -1 : includeLower && isGiftCardListing(product) ? values.has(product.value) ? 0 : 1 : 2;
     return { product, kind, score, giftCardRank };
   }).filter((match): match is NonNullable<typeof match> => match !== null)
     .sort((left, right) => left.giftCardRank - right.giftCardRank

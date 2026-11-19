@@ -19,6 +19,8 @@ type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity:
 
 export function OrdersFulfillment({ state, overview, filter = "all", focusRewardId, selectedRewardId, selectedOrderNumber, fromNotification = false, alerts, notice, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; focusRewardId?: string; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; alerts?: NotificationFilter; notice?: string; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
   const chooseTransaction = supportHref === walletTransactionHelpHref;
+  const transactionHelp = walletTransactionHelpHref.replace("#transactions", `&fromOrders=1${filter === "all" ? "" : `&orderFilter=${filter}`}#transactions`);
+  const reportHref = chooseTransaction ? transactionHelp : supportHref;
   const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
   const { records } = fulfillment;
@@ -60,11 +62,11 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           {/* The full navigation preserves the exact order-updates landing during reload. */}
           {fromNotification ? <a href={notificationHref(alerts ?? "orders", notice)}><AccountIcon name="bell" />Back to order updates</a>
             : <Link href="/account/notifications?filter=orders#notification-tickets-filters"><AccountIcon name="bell" />Notifications</Link>}
-          <Link href={supportHref}><AccountIcon name="security" />{supportLabel}</Link>
+          <Link href={reportHref}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>
 
-      {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={walletTransactionHelpHref}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
+      {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={transactionHelp}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
 
       {/* Use native navigation for these filter links. The route cache can append the results fragment twice. */}
       <section id="order-status-filters" className={styles.summary} aria-label="Order status filters">
@@ -80,9 +82,12 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
 
       <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />
       {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="order-status-filters" landingAlias={selectionAnchor} settleAfterNavigation /> : null}
+      {filter === "exceptions" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
+        target={visibleOrders.length ? "your-orders-heading" : "order-status-empty"} focusTarget={visibleOrders.length ? "your-orders-heading" : "order-status-empty"}
+        initialTarget={visibleOrders.length ? "your-orders-heading" : "order-status-empty"} visitKey={`exceptions:${selectionComplete}`} allScreens /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
-          <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div>
+          <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading" tabIndex={-1}>Retailer gift-card fulfillment</h2></div>
           <div className={styles.resultControls} data-show-on-phone={showAllLink || !selectionComplete}>
             <span role="status" className={selectionComplete ? styles.resultCount : undefined}>{resultsLabel}{!selectionComplete ? " found so far" : ""}</span>
             {!hasSelection ? <a href={paymentHref} className={styles.paymentFilter} aria-current={showingPayments ? "page" : undefined}>Confirmed payments</a> : null}
@@ -100,11 +105,11 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
             <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} fromNotification={fromNotification} alerts={alerts} notice={notice} exactSelection={hasSelection} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
-            <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>
+            <h3 id="order-status-empty" tabIndex={-1}>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>
             <p>Try again in a moment to check this view.</p>
             <OrdersRetryButton label={retryLabel} />
           </div> : records.length || hasSelection || filter !== "all" ? <div className={styles.empty}>
-            <span><AccountIcon name="orders" /></span><h3>{selectedOrderNumber ? "That order is not available here" : selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{hasSelection ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
+            <span><AccountIcon name="orders" /></span><h3 id="order-status-empty" tabIndex={-1}>{selectedOrderNumber ? "That order is not available here" : selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{hasSelection ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
             <a href={fulfillmentHref()}>{hasSelection ? "View all orders" : "Show all records"}<AccountIcon name="arrow" /></a>
           </div> : <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
@@ -118,7 +123,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           <section className={styles.helpCard}>
             <span><AccountIcon name="security" /></span><h2>Need help with an order?</h2>
             <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : "Your support request will include this order’s transaction."}</p>
-            <Link href={supportHref}>{supportLabel}<AccountIcon name="arrow" /></Link>
+            <Link href={reportHref}>{supportLabel}<AccountIcon name="arrow" /></Link>
           </section>
         </aside>
       </div>

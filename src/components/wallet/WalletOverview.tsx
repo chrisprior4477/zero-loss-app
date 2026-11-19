@@ -22,7 +22,7 @@ import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, hiddenProducts, notificationReturnHref, landOnBalance = false }:   {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, hiddenProducts, notificationReturnHref, ordersReturnHref, landOnBalance = false }:   {
   timeZone?: string;
   restoreLedgerView?: boolean;
   hiddenProducts?: ReadonlySet<string>;
@@ -38,6 +38,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   recoveryKey?: string;
   depositRow?: string;
   notificationReturnHref?: string;
+  ordersReturnHref?: string;
   landOnBalance?: boolean;
   fromDeposits?: boolean;
   depositList?: boolean;
@@ -119,7 +120,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
       </section>
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
-        <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
+        <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{ordersReturnHref ? <Link className="font-bold text-[#126bbb] hover:underline" href={ordersReturnHref}>← Back to Orders &amp; Fulfillment</Link> : null}</div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selected ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
         {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger notificationReturnHref={notificationReturnHref} depositList={depositList} timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}

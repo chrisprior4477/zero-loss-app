@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
@@ -14,7 +15,7 @@ type Props = { searchParams: Promise<{ offering?: string; share?: string | strin
 function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: boolean }) {
   return <>
     <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Alternative method of entry prototype</p>
-    <h1 className="mt-2 text-3xl font-black sm:text-5xl">Enter without a purchase</h1>
+    <h1 id="free-entry-intro" tabIndex={-1} className="mt-2 text-3xl font-black sm:text-5xl">Enter without a purchase</h1>
     <p className="mt-4 max-w-3xl text-lg leading-8 text-white/75">No purchase is necessary. This page demonstrates a proposed mail-in entry workflow for counsel and operational review. It does not currently submit, reserve, or create an entry.</p>
     <section className="mt-8 rounded-3xl border border-cyan-300/30 bg-[#06264d] p-5 sm:p-7">
       <h2 className="text-xl font-extrabold">Proposed steps</h2>
@@ -60,6 +61,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   return (
     <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference} intro={<>
         <Link href={backHref} scroll={false} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
+        <HelpLandingScroll target="" visitKey={product.slug} focusAnchor="free-entry-intro" />
         <FreeEntryInstructions prizeSelected />
       </>} footer={
         <section className="print:hidden mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/65">

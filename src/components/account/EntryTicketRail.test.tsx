@@ -102,11 +102,11 @@ test("the nine-ticket window follows the wheel and clamps correctly at both ends
   const wheel = screen.getByRole("listbox", { name: "View entry" });
   fireEvent.keyDown(wheel, { key: "End" });
   expect(screen.getByRole("article", { name: "Entry 51 of 51" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Next entry" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Next entry" }).getAttribute("aria-disabled")).toBe("true");
   expect(within(nearby).getByRole("button", { name: "View entry 43 of 51" })).toBeTruthy();
   fireEvent.keyDown(wheel, { key: "Home" });
   expect(screen.getByRole("article", { name: "Entry 1 of 51" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Previous entry" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Previous entry" }).getAttribute("aria-disabled")).toBe("true");
   expect(within(nearby).getByRole("button", { name: "View entry 9 of 51" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Next entry" }));
   expect(screen.getByRole("article", { name: "Entry 2 of 51" })).toBeTruthy();

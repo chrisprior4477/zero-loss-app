@@ -2,7 +2,8 @@ import { searchSynonyms } from "./search-vocabulary";
 
 export function normalizeSearch(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-    .replace(/[’']/g, "").replace(/\bgift\s*cards?\b/g, "gift card")
+    .replace(/[’']/g, "").replace(/\b(?:e[\s-]*)?gift\s*cards?\b/g, "gift card")
+    .replace(/\bt[.\s]*j[.\s]*maxx\b/g, "tj maxx")
     .replace(/\bsparkplugs?\b/g, "spark plug").replace(/\bautoparts\b/g, "auto parts")
     .replace(/\bpet\s+smart\b/g, "petsmart").replace(/[^a-z0-9]+/g, " ").trim();
 }
