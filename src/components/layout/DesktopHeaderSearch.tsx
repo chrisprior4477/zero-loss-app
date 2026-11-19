@@ -92,8 +92,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
       onKeyDown={event => {
         if (event.key !== "Escape") return;
         event.preventDefault();
-        voice.cancel();
-        setQuery(initialQuery);
+        voice.reset();
         setSuggestions(false);
         onDismiss?.();
       }}
@@ -111,7 +110,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         type="search"
         autoComplete="off"
         value={query}
-        onChange={(event) => { voice.cancel(); setQuery(event.target.value); setSuggestions(false); }}
+        onChange={(event) => { voice.reset(); setQuery(event.target.value); setSuggestions(false); }}
         onFocus={() => { onActivate?.(); setSuggestions(true); }}
         onClick={() => setSuggestions(true)}
         aria-controls={suggestions && active !== false ? `${inputId}-suggestions` : undefined}

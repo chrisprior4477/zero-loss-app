@@ -18,6 +18,11 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
 
   function chooseAccountPath(nextPath: AccountPath) {
     if (nextPath === "business") {
+      const form = setupRef.current?.querySelector("form");
+      if (form && [...new FormData(form).entries()].some(([key, value]) =>
+        ["legal_first_name", "legal_last_name", "date_of_birth", "email", "password", "confirm_password"].includes(key)
+        && typeof value === "string" && value.trim())
+        && !window.confirm("Leave this personal signup? The details you entered will be cleared.")) return;
       router.push(returnTo && returnTo !== businessSignupPath ? `${businessSignupPath}&next=${encodeURIComponent(returnTo)}` : businessSignupPath);
       return;
     }

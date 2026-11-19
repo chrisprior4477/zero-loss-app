@@ -12,6 +12,7 @@ import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { containDialogTab } from "./dialog-keyboard";
+import { useDialogBack } from "./useDialogBack";
 import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
 import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
 
@@ -69,6 +70,12 @@ function CopyIcon() {
 }
 
 function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: { alertContext: string; filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void; phone: boolean }) {
+  const endDialogHistory = useDialogBack(true, onClose);
+  function closeDetails() {
+    endDialogHistory();
+    onClose();
+  }
+  const dismissDetails = useEffectEvent(closeDetails);
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -129,11 +136,11 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
     function dismiss(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       event.preventDefault();
-      onClose();
+      dismissDetails();
     }
     document.addEventListener("keydown", dismiss);
     return () => document.removeEventListener("keydown", dismiss);
-  }, [onClose]);
+  }, []);
 
   async function copy(value: string) {
     const attempt = ++latestCopy.current;
@@ -154,9 +161,9 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
     { label: order.orderNumber ? "Order number" : "Reward reference", value: order.orderNumber ?? order.rewardId },
     ...(order.entryId ? [{ label: "Entry reference", value: order.entryId }] : []),
   ];
-  return createPortal(<div className={phone ? styles.mobileDetailsLayer : styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className={phone ? styles.mobileDetailsLayer : styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) closeDetails(); }}>
     <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={containDialogTab}>
-      <header className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={onClose} aria-label="Close details">×</button></header>
+      <header className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={closeDetails} aria-label="Close details">×</button></header>
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
       <dl className={styles.references}>
@@ -218,6 +225,10 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
       size, position: position ?? (rail.current && step ? rail.current.scrollLeft / step : undefined),
     } }, "");
   }
+  const rememberOpenedOrder = useEffectEvent(() => {
+    if (opened) rememberPage(opened.id, opened.id);
+  });
+  useLayoutEffect(() => { rememberOpenedOrder(); }, [opened]);
 
   useLayoutEffect(() => {
     let frame = 0;
@@ -250,13 +261,18 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         const ticket = Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-ticket]") ?? [])
           .find(element => element.id === `reward-${anchorId}`);
         const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
-        if (anchor) setOpened({ id: anchorId, anchor });
+        if (anchor) {
+          if (!hasSaved) rememberPage(anchorId, null);
+          setOpened({ id: anchorId, anchor });
+        }
       });
     }
     restorePage();
     window.addEventListener("popstate", restorePage);
     window.addEventListener("pageshow", restorePage);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restorePage); window.removeEventListener("pageshow", restorePage); };
+  // The saved position is read from the current history entry each visit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAnchorId, initialDetailsId, orders]);
 
   const alignPage = useEffectEvent(() => {
@@ -362,7 +378,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   function openDetails(id: string, anchor: HTMLButtonElement) {
     setPageAnchor(id);
     setOpened({ id, anchor });
-    rememberPage(id, id);
+    rememberPage(id, null);
   }
 
   function closeDetails() {

@@ -35,7 +35,7 @@ function category(entry: LedgerEntryRow): LedgerFilter {
 }
 
 function description(entry: LedgerEntryRow) {
-  return ledgerDescription(entry.entry_type, entry.product?.title);
+  return [...ledgerDescription(entry.entry_type, entry.product?.title), "Posted"];
 }
 
 function dateLabel(value: string, timeZone: string) {

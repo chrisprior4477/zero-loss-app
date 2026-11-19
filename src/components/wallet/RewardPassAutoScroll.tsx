@@ -12,6 +12,7 @@ export function RewardPassAutoScroll({ rewardKey }: { rewardKey: string }) {
     const firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
         document.getElementById("reward-pass")?.scrollIntoView({ block: "start", behavior: "auto" });
+        if (document.activeElement === document.body) document.getElementById("reward-pass-title")?.focus({ preventScroll: true });
       });
     });
 

@@ -24,14 +24,17 @@ export function RewardRedemptionActions({
   afterShopping,
 }: RewardRedemptionActionsProps) {
   const [message, setMessage] = useState("");
+  const [manualCopy, setManualCopy] = useState(false);
 
   async function copyCode() {
     if (!displayCode) return;
     try {
       await navigator.clipboard.writeText(displayCode.replaceAll(" ", ""));
+      setManualCopy(false);
       setMessage(isPreview ? "Sample number copied." : "Reward number copied.");
     } catch {
-      setMessage("Copy is unavailable in this browser. Press and hold the number instead.");
+      setMessage("Automatic copying is unavailable. Copy the number from the field below.");
+      setManualCopy(true);
     }
   }
   const walletButton = "flex min-h-12 min-w-0 items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-bold min-[380px]:text-xs sm:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] disabled:cursor-not-allowed";
@@ -52,6 +55,9 @@ export function RewardRedemptionActions({
     </div>
 
     {message ? <p role="status" className="mt-3 text-center text-xs font-bold text-[#173d5e]">{message}</p> : null}
+    {manualCopy && displayCode ? <input aria-label="Gift card number to copy" readOnly value={displayCode.replaceAll(" ", "")}
+      className="mt-2 w-full rounded-md border border-[#1878d5] bg-white p-2 text-sm text-[#061630]"
+      ref={input => { if (input) { input.focus(); input.select(); } }} /> : null}
 
     <section aria-labelledby="mobile-wallet-heading" className="mt-4 border-t border-[#0d5688]/20 pt-4 max-[700px]:mt-3 max-[700px]:pt-3">
       <h3 id="mobile-wallet-heading" className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#31536d]">Save for faster checkout</h3>

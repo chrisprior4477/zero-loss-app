@@ -4,11 +4,12 @@ import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
     let disposed = false;
+    let focused = false;
     let interrupted = false;
     let settlingUntil = 0;
     let requestedId = "";
@@ -42,6 +43,10 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
           const bounds = destination.getBoundingClientRect();
           const delta = bounds.top - accountLandingTop(measure(), window.visualViewport?.height ?? window.innerHeight, bounds.height, destination.dataset.landingAlign === "center");
           if (Math.abs(delta) > 1) window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
+          if (focusTarget && !focused) {
+            document.getElementById(focusTarget)?.focus({ preventScroll: true });
+            focused = true;
+          }
         });
       });
     };
@@ -113,6 +118,6 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, initialTarget, landingAlias, compactTarget, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
+  }, [target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
   return null;
 }

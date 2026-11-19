@@ -87,6 +87,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
       if (!destination || destination.selectedKey !== selectedKey || loading || error || !pickKeys.split(",").includes(destination.pickSlug)) return;
       const href = window.location.href;
       cancel(); interrupted = false;
+      let focused = false;
       const align = () => {
         if (interrupted) return;
         frame = requestAnimationFrame(() => { secondFrame = requestAnimationFrame(() => {
@@ -107,6 +108,11 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
             if (pick) {
               const card = pick.getBoundingClientRect(), viewport = picksRail.getBoundingClientRect();
               if (card.left < viewport.left || card.right > viewport.right) picksRail.scrollLeft += card.left - viewport.left;
+              const active = document.activeElement;
+              if (!focused && active === document.body) {
+                pick.querySelector<HTMLAnchorElement>(`.${styles.pickActions} a[href]`)?.focus({ preventScroll: true });
+                focused = true;
+              }
             }
           }
           if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });

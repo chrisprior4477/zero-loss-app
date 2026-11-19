@@ -7,6 +7,18 @@ import { readActivityViewReturn } from "@/lib/account/activity-view-return";
 /** Every mobile activity tab lands at its filters; Open Entries also does so on desktop. */
 export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabled }: { ownerId?: string; filter: ActivityFilter; revealControls: boolean; enabled: boolean }) {
   useEffect(() => {
+    const anchor = `#${openEntriesAnchorId}`;
+    const normalize = () => {
+      const hash = window.location.hash;
+      if (hash !== anchor && hash.startsWith(anchor) && hash.split(anchor).every(part => part === "")) {
+        window.history.replaceState(window.history.state, "", anchor);
+      }
+    };
+    normalize();
+    window.addEventListener("hashchange", normalize);
+    return () => window.removeEventListener("hashchange", normalize);
+  }, [filter]);
+  useEffect(() => {
     if (!enabled || (filter !== "active" && !window.matchMedia?.("(max-width: 767px)").matches)) return;
     if (ownerId && readActivityViewReturn(window.history.state, ownerId, window.location.href, filter)) return;
 

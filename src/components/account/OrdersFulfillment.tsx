@@ -59,7 +59,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
         <nav aria-label="Order page actions" className={styles.headingActions}>
           {/* The full navigation preserves the exact order-updates landing during reload. */}
           {fromNotification ? <a href={notificationHref(alerts ?? "orders", notice)}><AccountIcon name="bell" />Back to order updates</a>
-            : <Link href="/account/notifications"><AccountIcon name="bell" />Notifications</Link>}
+            : <Link href="/account/notifications?filter=orders#notification-tickets-filters"><AccountIcon name="bell" />Notifications</Link>}
           <Link href={supportHref}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>

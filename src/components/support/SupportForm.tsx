@@ -32,6 +32,7 @@ export function SupportForm(props: Props) {
 function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
   const router = useRouter();
   const sending = useRef(false);
+  const recoveryButton = useRef<HTMLButtonElement>(null);
   const depositKey = deposit?.key;
   const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
   const initialDraft: SupportDraft = {
@@ -117,6 +118,11 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const uncertain = draft.uncertain || (state.status === "error" && Boolean(state.uncertain));
   const locked = pending || uncertain;
   useEffect(() => {
+    if (!pending && state.status === "error" && uncertain && document.activeElement === document.body) {
+      recoveryButton.current?.focus();
+    }
+  }, [pending, state, uncertain]);
+  useEffect(() => {
     if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}${caseContext}#conversation`); router.refresh(); }
   }, [state, router, caseContext]);
   if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}${caseContext}#conversation`}>View your case →</Link></div>;
@@ -150,7 +156,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     {state.status === "error" ? <p id="support-error" role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
-      <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {
+      <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {
         if (sending.current) return;
         sending.current = true;
         const data = new FormData();

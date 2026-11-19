@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import styles from "./product-entry-layout.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
+import { useDialogBack } from "@/components/account/useDialogBack";
 
 /** Keep complete product information one tap away without expanding the entry card. */
 export function ProductInfoDialog({ title, label, children, className = "", triggerLabel, variant = "default" }: {
@@ -12,6 +13,7 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   const close = useRef<HTMLButtonElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const endDialogHistory = useDialogBack(open, () => dialog.current?.close());
   const id = useId();
   useLayoutEffect(() => {
     if (!open) return;
@@ -29,6 +31,7 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
       dialog.current?.showModal(); setOpen(true); close.current?.focus({ preventScroll: true });
     }}>{label}</button>
     <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={() => {
+      endDialogHistory();
       setOpen(false); trigger.current?.focus({ preventScroll: true });
     }} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className={variant === "ticket" ? styles.infoTicket : undefined}>

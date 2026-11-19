@@ -62,7 +62,17 @@ export function LoginForm({
   const notice = state.message ? null : initialNotice;
   const [email, setEmail] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const restoreErrorFocus = useRef(false);
   const destination = useLoginDestination(returnTo);
+  useEffect(() => {
+    if (pending || !state.message || !restoreErrorFocus.current) return;
+    restoreErrorFocus.current = false;
+    if (document.activeElement === document.body) {
+      const field = emailRef.current?.validity.valid ? passwordRef.current : emailRef.current;
+      field?.focus();
+    }
+  }, [state, pending]);
 
   useEffect(() => {
     // Every mobile sign-in route should land on the form, including plain
@@ -82,7 +92,10 @@ export function LoginForm({
   }, [focusOnMount]);
 
   return (
-    <form action={formAction} onSubmit={() => setEmail(emailRef.current?.value ?? email)} className="space-y-5" noValidate>
+    <form action={formAction} onSubmit={() => {
+      restoreErrorFocus.current = true;
+      setEmail(emailRef.current?.value ?? email);
+    }} className="space-y-5" noValidate>
       {destination ? <input type="hidden" name="returnTo" value={destination} /> : null}
       <div>
         <label
@@ -113,6 +126,7 @@ export function LoginForm({
           Password
         </label>
         <input
+          ref={passwordRef}
           id="password"
           name="password"
           type="password"

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
+import { currentProductEntryHref } from "@/lib/entries/return-intent";
 import { createContext, startTransition, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { getCurrentFavorites, setFavorite } from "@/lib/favorites/actions";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
@@ -128,9 +130,15 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
 
   const toggle = (slug: string) => {
     if (!slugPattern.test(slug) || inFlight.current.has(slug)) return;
+    const favoriteLogin = () => {
+      const { pathname, search } = window.location;
+      const returnTo = pathname === "/browse" ? signInReturnPath(`${pathname}${search}#prize-${slug}`)
+        : currentProductEntryHref(pathname, search, null);
+      return authNavigationHref("/login", returnTo ?? accountRoutes.favorites);
+    };
     if (!isSignedIn) {
       rememberFavorite({ slug, save: true });
-      router.push(`/login?next=${encodeURIComponent(accountRoutes.favorites)}`);
+      router.push(favoriteLogin());
       return;
     }
     if (!available) { setMessage("Favorites are temporarily unavailable. Please try again later."); return; }
@@ -147,7 +155,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
           setMessage(result.status === "saved" ? "Saved to Favorites." : "Removed from Favorites.");
         } else if (result.status === "sign-in") {
           rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined });
-          router.push(`/login?next=${encodeURIComponent(accountRoutes.favorites)}`);
+          router.push(favoriteLogin());
         } else setMessage(result.message ?? "Favorites could not be updated.");
       }).catch(() => setMessage("Favorites could not be updated. Please try again.")).finally(() => finishChange(slug));
     });

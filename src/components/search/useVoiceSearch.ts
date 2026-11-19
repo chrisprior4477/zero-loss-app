@@ -33,6 +33,10 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
       try { recognition.stop(); } catch { cancel(); }
     }
   }, [cancel, listening]);
+  function reset() {
+    cancel();
+    setError("");
+  }
   useEffect(() => () => {
     const recognition = recognitionRef.current;
     recognitionRef.current = null;
@@ -80,5 +84,5 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     setPhase("listening");
     try { recognition.start(); } catch { cancel(); setError("Voice search couldn’t start. Try again or type your search."); }
   }
-  return { listening, busy: phase !== "idle", error, toggle, stop, cancel };
+  return { listening, busy: phase !== "idle", error, toggle, stop, cancel, reset };
 }

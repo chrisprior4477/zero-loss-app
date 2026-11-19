@@ -30,12 +30,12 @@ test.each(["Back to list", "← Shared with You"])("a direct declined share retu
 });
 test("personal favorites are the default and the two tabs replace the introductory copy", () => {
   window.history.replaceState({ __NA: true }, "", "/account/favorites");
-  const replace = vi.spyOn(window.history, "replaceState");
+  const push = vi.spyOn(window.history, "pushState");
   show(); expect(screen.getByRole("tab", { name: "Your Favorites 1" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.queryByText(/Want a heads-up/)).toBeNull(); expect(screen.queryByRole("button", { name: "Try an email share" })).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: "Shared with You 1" }));
   expect(screen.getByText("From Alex")).toBeTruthy(); expect(window.location.search).toBe("?tab=shared"); expect(mocks.toggle).not.toHaveBeenCalled();
-  expect(replace).toHaveBeenLastCalledWith(null, "", "/account/favorites?tab=shared"); replace.mockRestore();
+  expect(push).toHaveBeenLastCalledWith(null, "", "/account/favorites?tab=shared"); push.mockRestore();
 });
 test("declining moves the shared card to Declined and never changes personal favorites", async () => {
   window.history.replaceState({}, "", "/account/favorites?tab=shared");

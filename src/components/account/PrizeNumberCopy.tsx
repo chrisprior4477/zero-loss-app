@@ -32,5 +32,11 @@ export function PrizeNumberCopy({ number, children }: { number: string; children
         {children}
       </span>
     </span>
+    {status === "error" ? <label className="block min-w-0 text-sm">
+      <span role="status">Copy the prize number manually.</span>
+      <input aria-label="Prize number to copy" readOnly value={number}
+        className="mt-1 block w-full rounded-md border border-[#1878d5] bg-white p-2 text-[#061630]"
+        ref={input => { if (input) { input.focus(); input.select(); } }} />
+    </label> : null}
   </dd>;
 }

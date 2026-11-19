@@ -6,7 +6,7 @@ import { readyWalletRewards, walletRewardHref, type AccountActivity } from "@/li
 import { accountRoutes } from "@/lib/account/navigation";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
-import type { DemoCard } from "@/lib/payments/demo-card";
+import { DEMO_CARD_FIXTURES, type DemoCard } from "@/lib/payments/demo-card";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
@@ -53,6 +53,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0);
   const recentCount = wallet ? Math.max(0, wallet.transactionCount - (demoHistoryVisibility?.ledgerEntryIds.length ?? 0)) : undefined;
   const canFund = Boolean(fundingEnabled && demo && wallet?.fundingAvailable);
+  const allCardsSaved = Boolean(savedCards && DEMO_CARD_FIXTURES.every(fixture => savedCards.some(card => card.token === fixture.token)));
   const addFundsHref = recoveryKey && requests?.find(request => request.idempotencyKey === recoveryKey)?.reconciliation === "reconciled"
     ? "/account/wallet?view=history&panel=funding#add-funds" : "#add-funds";
   const canResetHistory = canFund && demoHistoryVisibility != null;
@@ -102,7 +103,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
                 Back to {returnToProduct.entryQuantity} selected {returnToProduct.entryQuantity === 1 ? "entry" : "entries"}
               </Link> : null}
               <div className={styles.fundingActions}>
-                {canFund ? <Link href="#wallet-add-card" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
+                {canFund ? <Link href={allCardsSaved ? "#payment-methods" : "#wallet-add-card"} className={styles.cardAction}><AccountIcon name="wallet" />{allCardsSaved ? "Choose saved card" : "Add Card"}</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
                 {canFund ? <Link href="#payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
               </div>
               <a href="#transactions" className={styles.transactionsLink}>View transactions <AccountIcon name="arrow" /></a>

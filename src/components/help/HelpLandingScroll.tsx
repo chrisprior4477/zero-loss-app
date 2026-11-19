@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target, landingAlias }: { target: string; visitKey?: string; landingAlias?: string }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -33,6 +33,9 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias }: {
           if (!element) return;
           if (anchors.length > 1) window.history.replaceState(window.history.state, "", `#${id}`);
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
+          if (focusReport && id === "report-problem") {
+            (element.querySelector<HTMLElement>("h2[tabindex]") ?? element).focus({ preventScroll: true });
+          }
         });
       });
     };
@@ -57,6 +60,6 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias }: {
       window.removeEventListener("keydown", stop);
       document.documentElement.style.removeProperty("--help-header-height");
     };
-  }, [target, visitKey, landingAlias]);
+  }, [target, visitKey, landingAlias, focusReport]);
   return null;
 }

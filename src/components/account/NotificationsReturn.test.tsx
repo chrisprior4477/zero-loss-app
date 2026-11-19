@@ -56,7 +56,7 @@ test("an explicit return reveals an alert beyond the first batch, even after it 
   window.history.replaceState({}, "", "/account/notifications?filter=action&notice=order-17#notification-tickets-filters");
   render(<NotificationsCenter userId="owner" notifications={orders} initialReadIds={["order-17"]} initialFilter="action" initialNotice="order-17" activityAvailable walletAvailable crewAvailable readAvailable />);
   flush();
-  expect(screen.getByRole("button", { name: /Action needed30/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: /Needs attention30/ }).getAttribute("aria-pressed")).toBe("true");
   expect(document.getElementById("notification-link-order-17")).toBeTruthy();
   expect(scrollTo).toHaveBeenCalled();
 });

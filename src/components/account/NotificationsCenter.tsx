@@ -17,7 +17,7 @@ import { CrewWinEmailPreference } from "./CrewWinEmailPreference";
 import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import { NotificationStack } from "./NotificationStack";
 import { groupNotifications } from "@/lib/account/notification-groups";
-import { notificationDestination, notificationReturnKey, readNotificationReturn, type NotificationReturn } from "@/lib/account/notification-return";
+import { notificationDestination, notificationFilter, notificationReturnKey, readNotificationReturn, validNotice, type NotificationReturn } from "@/lib/account/notification-return";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
@@ -31,7 +31,7 @@ const groupsPerPage = 12;
 
 const filters = [
   ["all", "All", "all"],
-  ["action", "Action needed", "alert"],
+  ["action", "Needs attention", "alert"],
   ["account", "Account", "security"],
   ["activity", "Activity", "active"],
   ["orders", "Orders", "orders"],
@@ -117,6 +117,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
       focusedReturn.current = true;
       const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
       window.scrollTo({ top: Math.max(0, window.scrollY + link.getBoundingClientRect().top - header - 18), behavior: "instant" });
+      link.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
   }, [focusedNotice, noticeIndex, batches.end, restoreRange]);
@@ -164,7 +165,16 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         const key = `zero-loss-notification-view:${userId}:${new URL(window.location.href).searchParams.get("filter") ?? "all"}`;
         saved = readNotificationReturn(JSON.parse(sessionStorage.getItem(key) ?? "null"), userId!, window.location.href);
       } catch { /* The default feed remains available. */ }
-      if (!saved) return;
+      if (!saved) {
+        if (event?.type === "popstate") {
+          const query = new URLSearchParams(window.location.search);
+          setFilter(notificationFilter(query.get("filter")));
+          const notice = query.get("notice");
+          setFocusedNotice(validNotice(notice) ? notice : undefined);
+          restoreRange(0, groupsPerPage);
+        }
+        return;
+      }
       setFilter(saved.filter);
       setExpandedGroups(saved.expandedGroups);
       restoreRange(saved.start, saved.size);
@@ -241,7 +251,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     const state = { ...window.history.state };
     const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
     if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };
-    window.history.replaceState(state, "", url);
+    if (url.href !== window.location.href) window.history.pushState(state, "", url);
     setFilter(nextFilter);
     setFocusedNotice(undefined);
     batches.reset();
@@ -409,7 +419,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         <section aria-live="polite" aria-label={`${filters.find(([key]) => key === filter)?.[1]} notifications`} className={styles.list}>
           {visible.length === 0 ? <div className={styles.empty}>
             <span aria-hidden="true"><AccountIcon name={filter === "orders" ? "orders" : "bell"} /></span>
-            <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : filter === "crew" ? "No Crew updates yet." : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
+            <h2>{filter === "all" ? "No notifications" : filter === "action" ? "Nothing needs attention" : filter === "orders" ? "No order updates" : filter === "crew" ? "No Crew updates yet." : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
             <p>New verified updates will appear here automatically.</p>
           </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${styles.notificationRows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
@@ -434,7 +444,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
           })}</div>}
           {visible.length > 0 && <div className={styles.listActions}>
             {batches.remaining > 0 && <button type="button" aria-controls="notification-tickets" aria-expanded={batches.expanded} className={styles.showMore} onClick={() => {
-              if (batches.remaining <= batches.size) focusNewUpdate.current = batches.end;
+              focusNewUpdate.current = batches.end;
               updateBookmark({ start: batches.end }); batches.more();
             }}>See more updates ({batches.remaining} remaining)</button>}
             <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>

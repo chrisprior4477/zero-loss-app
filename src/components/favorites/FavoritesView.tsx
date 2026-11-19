@@ -113,18 +113,21 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     });
   }, [initialAlerts, alertOverrides]);
   // Let Next.js copy its internal state so a server action keeps the active tab URL.
-  function location(href: string) { window.history.replaceState(null, "", href); }
+  function location(href: string, push = false) {
+    if (push && new URL(href, window.location.origin).href !== window.location.href) window.history.pushState(null, "", href);
+    else window.history.replaceState(null, "", href);
+  }
   function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
   function chooseTab(next: "favorites" | "shared") {
     listPosition.current = null;
     setSkipFreshLanding(false);
-    setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites");
+    setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites", true);
     revealHeading();
   }
   function chooseSharedView(next: SharedView) {
     listPosition.current = null;
     setSharedView(next); setSelected(null); setMessage("");
-    location(savedShareHref(undefined, next));
+    location(savedShareHref(undefined, next), true);
   }
   function applyShareResult(id: string, result: Awaited<ReturnType<typeof setReceivedProductState>>, viewedOnly = false) {
     if (!result.ok) { setMessage(result.message); return; }

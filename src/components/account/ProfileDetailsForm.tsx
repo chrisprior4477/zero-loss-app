@@ -120,6 +120,12 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     }
     return result;
   }, { status: "idle" });
+  const saveFeedback = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (showFeedback && !pending && state.status === "error" && document.activeElement === document.body) {
+      saveFeedback.current?.focus();
+    }
+  }, [showFeedback, pending, state]);
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
   const [address, setAddress] = useState({ country: selectedCountry, region: details.region ?? "", postalCode: details.postalCode ?? "", street: details.addressLine1 ?? "", city: details.city ?? "" });
@@ -230,7 +236,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     </section>
 
     </fieldset>
-    {showFeedback && !pending && state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
+    {showFeedback && !pending && state.status !== "idle" ? <p ref={saveFeedback} tabIndex={state.status === "error" ? -1 : undefined} role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
     {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
       <button type="submit" disabled={pending || (addressChanged && completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>

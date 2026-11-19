@@ -132,9 +132,9 @@ test("mobile filter changes reveal the Notifications section below the sticky si
     while (frames.length) frames.shift()?.(0);
     scrollTo.mockClear();
     window.history.replaceState({}, "", "/account/notifications#favorite-alert-preference");
-    fireEvent.click(screen.getByRole("button", { name: /Action needed0/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Needs attention0/ }));
     expect(window.location.hash).toBe("#notification-tickets-filters");
-    expect(screen.getByText("No action needed updates")).toBeTruthy();
+    expect(screen.getByText("Nothing needs attention")).toBeTruthy();
     frames.shift()?.(0);
     expect(scrollTo).toHaveBeenCalledWith({ top: 658, behavior: "auto" });
 
@@ -413,13 +413,13 @@ function renderAttention(initialFilter: "all" | "action" = "action") {
   return render(<NotificationsCenter notifications={attentionFixtures} initialReadIds={["offer-read", "old-read"]} initialFilter={initialFilter} activityAvailable walletAvailable crewAvailable readAvailable />);
 }
 
-test("Action needed includes unread updates once and keeps existing category and destination buttons", () => {
+test("Needs attention includes unread updates once and keeps existing category and destination buttons", () => {
   renderAttention("all");
   expect(screen.queryByRole("button", { name: /^Unread/ })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: /2 actions needed · 3 unread updates/ }));
-  const list = screen.getByRole("region", { name: "Action needed notifications" });
+  const list = screen.getByRole("region", { name: "Needs attention notifications" });
   expect(within(list).getAllByRole("article")).toHaveLength(4);
-  expect(screen.getByRole("button", { name: "Action needed4" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Needs attention4" }).getAttribute("aria-pressed")).toBe("true");
   expect(within(list).queryByText("Old account update")).toBeNull();
   expect(within(list).getAllByText("Unread")).toHaveLength(3);
   expect(within(list).getByRole("link", { name: /Claim reward/ }).getAttribute("href")).toBe(attentionFixtures[0].href);
@@ -434,7 +434,7 @@ test("reading an informational update removes it from attention but retains it u
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread"]));
   expect(actionMocks.push).toHaveBeenCalledWith(`${attentionFixtures[2].href}&alerts=action&notice=${attentionFixtures[2].id}`);
   expect(screen.queryByText("Your deposit posted")).toBeNull();
-  expect(screen.getByRole("button", { name: "Action needed3" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Needs attention3" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "All5" }));
   expect(screen.getByText("Your deposit posted").closest("article")?.getAttribute("data-read")).toBe("true");
 });
@@ -444,21 +444,21 @@ test("reading a reward or marking all read does not hide outstanding actions", a
   fireEvent.click(screen.getByRole("link", { name: /Claim reward/ }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["claim-unread"]));
   expect(screen.getByText("Reward waiting to be claimed").closest("article")?.getAttribute("data-read")).toBe("true");
-  expect(screen.getByRole("button", { name: "Action needed4" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Needs attention4" })).toBeTruthy();
   await waitFor(() => expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread", "order-unread"]));
-  expect(screen.getByRole("button", { name: "Action needed2" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Needs attention2" })).toBeTruthy();
   expect(screen.getByRole("link", { name: /Claim reward/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: /View purchase option/ })).toBeTruthy();
   expect(screen.queryByText("Unread")).toBeNull();
 });
 
-test("failed read persistence restores the unread update to Action needed", async () => {
+test("failed read persistence restores the unread update to Needs attention", async () => {
   readMocks.mark.mockResolvedValueOnce({ ok: false, message: "Read status could not be saved." });
   renderAttention();
   fireEvent.click(screen.getByRole("link", { name: /View transaction/ }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread"]));
   await waitFor(() => expect(screen.getByText("Your deposit posted").closest("article")?.getAttribute("data-read")).toBe("false"));
-  expect(screen.getByRole("button", { name: "Action needed4" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Needs attention4" })).toBeTruthy();
 });

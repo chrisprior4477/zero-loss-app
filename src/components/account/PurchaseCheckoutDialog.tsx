@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useDialogBack } from "./useDialogBack";
 import styles from "./purchase-checkout.module.css";
 const wheelRowHeight = 40;
 
@@ -36,7 +37,8 @@ export function NumberWheel({ label, min, max, value, disabled, onChange }: { la
   </div>;
 }
 
-export function PurchaseDialog({ title, children, onClose, compact = false, centerOnPhone = false, className = "", closeLabel = "Close purchase popup", closeDisabled = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean; centerOnPhone?: boolean; className?: string; closeLabel?: string; closeDisabled?: boolean }) {
+export function PurchaseDialog({ title, children, onClose, compact = false, centerOnPhone = false, className = "", closeLabel = "Close purchase popup", closeDisabled = false, handleBrowserBack = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean; centerOnPhone?: boolean; className?: string; closeLabel?: string; closeDisabled?: boolean; handleBrowserBack?: boolean }) {
+  useDialogBack(handleBrowserBack, onClose, closeDisabled, handleBrowserBack);
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [top, setTop] = useState(130);

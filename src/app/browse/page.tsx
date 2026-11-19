@@ -68,7 +68,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const denomination = searchDenominations(searchTooLong ? "" : searchTerm, demoProducts);
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
-  const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const requestedFilters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const reversedRange = requestedFilters.minValue !== null && requestedFilters.maxValue !== null
+    && requestedFilters.minValue > requestedFilters.maxValue;
+  const filters = reversedRange ? { ...requestedFilters, minValue: null, maxValue: null } : requestedFilters;
   const budgetLabel = browsePrizeValueLabel(filters);
   const appliedFilters = [
     selectedLabel,
@@ -216,6 +219,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
+          {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
@@ -370,17 +374,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {endingSoon ? (
             <div className={browseStyles.batchActions} role="group" aria-label="Ending Soon prize batches">
               {showEndingSoonShortcuts && (
-                <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+                <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
                   href={offerLastShortcut ? `/browse?${lastBatchParams}#prize-${products[products.length - batchSize].slug}` : firstBatchHref}>
                   {offerLastShortcut ? "Last 24" : "First 24"}
                 </Link>
               )}
-              {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
+              {nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
                 href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
-              {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+              {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
                 href={previousBatchHref}>Previous 24</Link>}
             </div>
-          ) : nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
+          ) : nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
             href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</Link>}
         </section>}
         </BrowseDiscoveryBar>

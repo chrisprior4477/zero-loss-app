@@ -38,11 +38,11 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
       : null;
   return <section id="purchase-deposit" className={`${styles.ticketPanel} ${styles.purchaseDeposit}`}
     data-landing-align={fromCheckout ? "center" : undefined} aria-labelledby="purchase-deposit-heading">
-    <AccountSettingsLandingScroll target="purchase-deposit" initialTarget={fromCheckout ? "purchase-deposit" : undefined}
+    <AccountSettingsLandingScroll target="purchase-deposit" focusTarget="purchase-deposit-heading" initialTarget={fromCheckout ? "purchase-deposit" : undefined}
       visitKey={fromCheckout ? `${requestKey}:${credited ? "credited" : "check"}` : requestKey} allScreens settleAfterNavigation />
     {verified && !fromCheckout && <DepositCreditedToast amount={verified.amount} />}
     <div className={paymentStyles.editor}>
-      <h2 id="purchase-deposit-heading">{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
+      <h2 id="purchase-deposit-heading" tabIndex={-1}>{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
       {continuation && <p>{continuation.title}</p>}
       {credited ? <DepositReceipt amount={credited.amount} date={date} tone="ready"
         status={`Deposit credited to your wallet. ${wallet ? "Current balance" : "Last verified balance"}: ${usd(credited.balance)}.${fromCheckout ? " Confirm your purchase separately." : ""}`}>
