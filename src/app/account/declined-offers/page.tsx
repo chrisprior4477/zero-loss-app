@@ -61,7 +61,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       if (!error) for (const row of data ?? []) reminderStatus.set(row.completion_option_id, row.status);
     } catch { /* Show an unavailable control, not an unsaved opt-in. */ }
   }
-  return <PreferenceSnapshot><main className={styles.page}><div className={styles.pageContent}>
+  return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     <div className={styles.declinedHeader}>
       <div className={styles.declinedIntro}>
         <Link href={activityReturn} className={styles.declinedBack}>← My Activity</Link>
@@ -134,5 +134,5 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
           </details>
         </section>;
       })}</DeclinedOfferList>}
-  </div></main></PreferenceSnapshot>;
+  </div></div></PreferenceSnapshot>;
 }

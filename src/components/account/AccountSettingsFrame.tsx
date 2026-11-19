@@ -8,7 +8,7 @@ export function AccountSettingsFrame({ active, overview, children }: {
   overview: AccountSettingsOverview;
   children: React.ReactNode;
 }) {
-  return <main className={styles.page}>
+  return <div className={styles.page} data-settings-scroll-scope>
     <AccountSettingsLandingScroll target="account-settings-sections" visitKey={active} />
     <div className={styles.shell}>
       <AccountSettingsStatusStrip overview={overview} />
@@ -18,5 +18,5 @@ export function AccountSettingsFrame({ active, overview, children }: {
         <div className={styles.settingsContent}>{children}</div>
       </div>
     </div>
-  </main>;
+  </div>;
 }

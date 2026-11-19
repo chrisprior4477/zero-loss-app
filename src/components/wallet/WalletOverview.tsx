@@ -70,7 +70,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const optionCount = activity && activity.source !== "unavailable" ? activity.activity.filter(item => item.status === "completion").length : null;
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
-  return <main className={styles.page}>
+  return <div className={styles.page}>
     <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={landOnBalance || (!recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable)} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
@@ -145,5 +145,5 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} fundingEnabled={fundingEnabled} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
-  </main>;
+  </div>;
 }

@@ -24,7 +24,7 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
     setShowCards(true);
     cardsHeading.current?.focus();
   }
-  return <main className={checkout.page}><div className={checkout.shell}>
+  return <div className={checkout.page}><div className={checkout.shell}>
     <AccountSettingsLandingScroll target="purchase-complete" visitKey={receipt} settleAfterNavigation allScreens />
     <h1 id="purchase-complete" className={styles.title}>Purchase receipt</h1>
     {showToast ? <aside className={styles.toast} aria-label="Purchase confirmation">
@@ -46,5 +46,5 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
       {showCards ? <CheckoutGiftCardList cards={cards} count={count} slug={slug} receipt={receipt} /> : null}
       <Link className={`${styles.secondary} ${styles.returnButton}`} href={completedActivityHref(first?.item.entryId, { slug, receipt })}>← Back to My Activity</Link>
     </section>
-  </div></main>;
+  </div></div>;
 }

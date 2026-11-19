@@ -16,6 +16,53 @@ test("a paid order uses gift-card support defaults while retaining the exact tra
   expect(container.querySelector('[name="transactionId"]')).toHaveProperty("value", caseId);
 });
 
+test("attaching an order fills untouched fields and preserves edits when the order is removed or attached again", async () => {
+  const { showModal, close } = HTMLDialogElement.prototype;
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new Event("close")); };
+  mocks.records.mockResolvedValue({ records: [{ kind: "order", id: "ord_ffffffff23456789", title: "Nintendo Switch", detail: "Best Buy", amount: 4900, date: "2026-11-14T22:45:00Z", status: "Card issued" }], more: false });
+  const props = { ownerId: "account", requestKey: "support_request_001", allowRecordPicker: true };
+  async function attachOrder() {
+    fireEvent.click(screen.getByRole("button", { name: /Attach an order or transaction/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Nintendo Switch/ }));
+  }
+  try {
+    const view = render(<SupportForm {...props} />);
+    await attachOrder();
+    const category = screen.getByRole("combobox");
+    const subject = screen.getByRole("textbox", { name: "Subject" });
+    expect(category).toHaveProperty("value", "reward");
+    expect(subject).toHaveProperty("value", "Question about this order");
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(category).toHaveProperty("value", "other");
+    expect(subject).toHaveProperty("value", "");
+    fireEvent.change(category, { target: { value: "account" } });
+    fireEvent.change(category, { target: { value: "other" } });
+    fireEvent.change(subject, { target: { value: "My own subject" } });
+    view.unmount();
+    render(<SupportForm {...props} />);
+    await attachOrder();
+    expect(screen.getByRole("combobox")).toHaveProperty("value", "other");
+    expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "My own subject");
+  } finally {
+    HTMLDialogElement.prototype.showModal = showModal;
+    HTMLDialogElement.prototype.close = close;
+  }
+});
+
+test("a category-only draft can be cleared after returning to the form", () => {
+  const props = { ownerId: "account", requestKey: "support_request_001", allowRecordPicker: true };
+  const view = render(<SupportForm {...props} />);
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "account" } });
+  view.unmount();
+  render(<SupportForm {...props} />);
+  expect(screen.getByRole("combobox")).toHaveProperty("value", "account");
+  fireEvent.click(screen.getByRole("button", { name: "Clear draft" }));
+  expect(screen.getByRole("combobox")).toHaveProperty("value", "other");
+  expect(sessionStorage.length).toBe(0);
+  expect(screen.queryByRole("button", { name: "Clear draft" })).toBeNull();
+});
+
 test("paging to older support records moves focus to the first new record", async () => {
   const showModal = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };

@@ -169,7 +169,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   return <BrowseControlsContext.Provider value={controls("bottom")}>
   <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
-    {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
+    {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}
+      onKeyDown={event => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        voice.cancel();
+        setSearch(props.searchTerm);
+      }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
       <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.cancel(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}

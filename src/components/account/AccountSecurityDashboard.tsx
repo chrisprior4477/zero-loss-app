@@ -53,7 +53,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
   const emailLabel = email ?? "Email not available";
   const signIn = formatDateTime(lastSignInAt, timeZone);
 
-  return <main className={styles.page}>
+  return <div className={styles.page} data-settings-scroll-scope>
     <AccountSettingsLandingScroll target="account-settings-intro" />
     <div className={styles.shell}>
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
@@ -135,5 +135,5 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
         </section>
       </div>
     </div>
-  </main>;
+  </div>;
 }

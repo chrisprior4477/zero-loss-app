@@ -25,11 +25,11 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const product = await freeEntryProduct(params.offering);
   if (product === undefined) {
     const instructions = freeEntryHref(params.offering ?? "", params.from, parseEntryQuantity(params.quantity), params.share);
-    return <main className="mx-auto max-w-3xl p-6 text-white">
+    return <div className="mx-auto max-w-3xl p-6 text-white">
       <h1 className="text-2xl font-black">Availability temporarily unavailable</h1>
       <p className="mt-3">We couldn’t check this prize. Try again to open its print preview.</p>
       <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={instructions.replace("/free-entry?", "/free-entry/print?")}>Try again</Link>
-    </main>;
+    </div>;
   }
   if (!product) redirect("/browse");
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;

@@ -109,7 +109,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (!requestedReward && checkoutSlug && receiptId) {
     const focused = purchasedCards.find(card => card.id === query.card);
     const target = focused ? `checkout-card-${focused.id}` : "checkout-gift-cards";
-    return <main className={checkout.page}><div className={checkout.shell}>
+    return <div className={checkout.page}><div className={checkout.shell}>
       <AccountSettingsLandingScroll target={target} visitKey={`${receiptId}:${target}`} settleAfterNavigation allScreens />
       <h1 id="checkout-gift-cards" className={cardStyles.title}>Gift Cards &amp; Rewards</h1>
       <section className={`${checkout.ticket} ${checkout.content}`} aria-labelledby="checkout-cards-heading">
@@ -122,7 +122,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <Link href={completedActivityHref(focused?.item.entryId ?? purchasedCards[0]?.item.entryId, receipt?.status === "succeeded" ? { slug: checkoutSlug, receipt: receiptId } : undefined)} className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>← Back to My Activity</Link>
         <Link href="/account/wallet#ready-rewards" className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>See all gift cards &amp; rewards</Link>
       </section>
-    </div></main>;
+    </div></div>;
   }
   const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history"
     ? query.rewards : "all";
@@ -156,7 +156,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const ordersBackHref = orderReturn ?? (ordersVisit ? fulfillmentHref(undefined, fulfillmentFilter(query.orderFilter), false, undefined, orderContext) : undefined);
     if (account.activity.source === "unavailable") {
       const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
-      return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={ordersBackHref ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : "Back to your wallet ›"}</Link></div></main></PageContainer>;
+      return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={ordersBackHref ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : "Back to your wallet ›"}</Link></div></div></PageContainer>;
     }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] | null = [];
@@ -208,7 +208,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink} checkoutContext={checkoutContext}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
-    return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
+    return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></div></PageContainer>;
   }
   if (history) {
     const hiddenProducts = catalog && !catalog.unavailable ? catalog.hidden : new Set(resolvedCatalogSlugs(account.activity));

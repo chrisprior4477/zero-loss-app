@@ -40,7 +40,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   if (!account) redirect(authNavigationHref("/login", destination));
   if (account.activity.source === "unavailable") {
     console.warn("[entry-details] Account activity unavailable; showing retry instead of not found.");
-    return <main className={styles.page}><div className={styles.shell}>
+    return <div className={styles.page}><div className={styles.shell}>
       <div className={styles.topline}><div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1></div></div>
       <section className={styles.playTicket} aria-labelledby="entry-unavailable-title">
         <h2 id="entry-unavailable-title">We couldn’t load your entry right now</h2>
@@ -49,7 +49,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <a href={destination} className={styles.primaryLink}>Try again</a>
         <Link href="/account/entries" className={styles.returnButton}>Go to My Activity</Link>
       </section>
-    </div></main>;
+    </div></div>;
   }
   // A saved URL remains usable after this customer's entry receives an outcome.
   const item = account.activity.activity.find(entry => entry.entryId === entryId);
@@ -114,7 +114,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}${returnFilter ? "&filter=active" : ""}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
-  return <PreferenceSnapshot><main className={styles.page}>
+  return <PreferenceSnapshot><div className={styles.page}>
     <AccountSettingsLandingScroll target="entry-details-intro" initialTarget={resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}`} settleAfterNavigation allScreens />
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
@@ -154,5 +154,5 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       </section>
       </EntryTicketSelectionProvider>
     </div>
-  </main></PreferenceSnapshot>;
+  </div></PreferenceSnapshot>;
 }

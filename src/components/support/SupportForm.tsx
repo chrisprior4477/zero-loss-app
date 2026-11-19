@@ -11,6 +11,12 @@ import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft
 import { SupportRecordPicker } from "./SupportRecordPicker";
 
 const field = `${styles.ticket} ${styles.field}`;
+const orderSubject = "Question about this order";
+
+function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
+  return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
+}
+
 type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
@@ -21,14 +27,14 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const sending = useRef(false);
   const depositKey = deposit?.key;
   const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
-  const initialDraft = (): SupportDraft => ({
+  const initialDraft: SupportDraft = {
     requestKey,
-    subject: depositKey ? "Question about this deposit" : attachedOrder ? "Question about this order" : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "",
+    subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "",
     body: "",
     category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : "other",
     caseStatus: "awaiting_customer",
     uncertain: false,
-  });
+  };
   const [draft, setDraft] = useState(initialDraft);
   const { subject, body, category, caseStatus } = draft;
   const record = allowRecordPicker ? draft.record : undefined;
@@ -59,8 +65,21 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   function changeDraft(change: Partial<SupportDraft>) {
     const next = { ...draft, ...change };
     setDraft(next);
-    const initial = initialDraft();
-    writeSupportDraft(draftKey, next.body || next.record || next.subject !== initial.subject || next.category !== initial.category || next.caseStatus !== initial.caseStatus || next.uncertain ? next : null);
+    writeSupportDraft(draftKey, hasDraftChanges(next, initialDraft) || next.uncertain ? next : null);
+  }
+  function changeRecord(nextRecord: SupportDraft["record"]) {
+    const wasOrder = record?.kind === "order";
+    const isOrder = nextRecord?.kind === "order";
+    const change: Partial<SupportDraft> = { record: nextRecord };
+    if (!draft.subjectEdited && (subject === initialDraft.subject || (wasOrder && draft.subjectEdited === false && subject === orderSubject))) {
+      change.subject = isOrder ? orderSubject : initialDraft.subject;
+      change.subjectEdited = false;
+    }
+    if (!draft.categoryEdited && (category === initialDraft.category || (wasOrder && draft.categoryEdited === false && category === "reward"))) {
+      change.category = isOrder ? "reward" : initialDraft.category;
+      change.categoryEdited = false;
+    }
+    changeDraft(change);
   }
   const [state, action, pending] = useActionState(async (previous: SupportActionState, data: FormData): Promise<SupportActionState> => {
     if (data.get("intent") === "check") {
@@ -110,14 +129,14 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     <input type="hidden" name="rewardId" value={rewardId ?? ""} />
     <input type="hidden" name="deposit" value={depositKey ?? ""} />
     {!caseId ? <>
-      <label className="block font-bold">What do you need help with?<span className={field}><select name="category" value={category} onChange={event => changeDraft({ category: event.target.value })} disabled={locked}>
+      <label className="block font-bold">What do you need help with?<span className={field}><select name="category" value={category} onChange={event => changeDraft({ category: event.target.value, categoryEdited: allowRecordPicker })} disabled={locked}>
         <option value="wallet">Wallet or funding</option><option value="entry">An entry</option><option value="reward">A prize or gift card</option><option value="account">My account</option><option value="other">Something else</option>
       </select></span></label>
-      <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
+      <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value, subjectEdited: allowRecordPicker })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
     <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
     <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {attachedOrder ? "The selected order is already attached." : transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
-    {allowRecordPicker ? <SupportRecordPicker record={record} onChange={record => changeDraft({ record })} timeZone={timeZone} disabled={locked} /> : null}
+    {allowRecordPicker ? <SupportRecordPicker record={record} onChange={changeRecord} timeZone={timeZone} disabled={locked} /> : null}
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
@@ -137,7 +156,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         startTransition(() => action(attempted.current!));
       }}>Resend same message</button> : null}
     </> : <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
-    {body || record || subject !== initialDraft().subject ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft()); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
+    {hasDraftChanges(draft, initialDraft) ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
     <p className="text-xs leading-5 opacity-70">Replies and status updates appear here and in Notifications. Submitting a case does not move funds or approve a refund.</p>
   </form>;
 }

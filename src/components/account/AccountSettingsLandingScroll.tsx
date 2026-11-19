@@ -14,7 +14,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
     let requestedId = "";
     const settlingTimers: number[] = [];
     let header: HTMLElement | null = null;
-    const scope = restrictToTargetHash ? null : document.getElementById(target)?.closest("main");
+    const scope = restrictToTargetHash ? null : document.getElementById(target)?.closest<HTMLElement>("[data-settings-scroll-scope], main");
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
     const measure = () => {
       const currentHeader = document.querySelector<HTMLElement>("header.sticky");

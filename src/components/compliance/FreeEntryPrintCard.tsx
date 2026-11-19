@@ -103,7 +103,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     reference={reference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
       className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
 
-  return <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
+  return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
     {intro}
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
@@ -167,13 +167,13 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     </div>
     {footer}
     </div>
-  </main>;
+  </div>;
 }
 
 export function FreeEntryPrintSheet({ offering, title, name, account, reference, back }: {
   offering: string; title: string; name: string; account: string; reference: string; back: ReactNode;
 }) {
-  return <main className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
+  return <div className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
     <div id="print-entry-insert" className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
       <div>
         {back}
@@ -200,5 +200,5 @@ export function FreeEntryPrintSheet({ offering, title, name, account, reference,
         <span className="amo-cut-label">Cut along dotted line</span>
       </article>
     </section>
-  </main>;
+  </div>;
 }

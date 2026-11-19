@@ -2,7 +2,7 @@ import activityStyles from "@/components/account/my-activity.module.css";
 import walletStyles from "@/components/wallet/wallet-overview.module.css";
 
 export default function TicketStyleReviewPage() {
-  return <main className="min-h-screen bg-[#061b38] px-4 py-10 text-white sm:px-8">
+  return <div className="min-h-screen bg-[#061b38] px-4 py-10 text-white sm:px-8">
     <div className="mx-auto max-w-5xl space-y-9">
       <header>
         <p className="text-sm font-bold uppercase tracking-widest text-cyan-300">Visual review · no account action</p>
@@ -41,5 +41,5 @@ export default function TicketStyleReviewPage() {
         </div>
       </section>
     </div>
-  </main>;
+  </div>;
 }

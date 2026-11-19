@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/components/auth/LoginForm";
-import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
+import { LoginCreateAccountLink, LoginForm } from "@/components/auth/LoginForm";
+import { signInReturnPath } from "@/lib/auth/entry-return";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -35,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       : null;
 
   return (
-    <main className="auth-signup-page min-h-[calc(100vh-163px)] overflow-hidden bg-[radial-gradient(circle_at_12%_12%,rgba(0,185,255,.2),transparent_27%),radial-gradient(circle_at_90%_82%,rgba(255,99,15,.18),transparent_28%),linear-gradient(145deg,#00132e_0%,#031b44_52%,#001a3a_100%)] px-4 py-8 text-white sm:px-6 sm:py-12 lg:px-8">
+    <div className="auth-signup-page min-h-[calc(100vh-163px)] overflow-hidden bg-[radial-gradient(circle_at_12%_12%,rgba(0,185,255,.2),transparent_27%),radial-gradient(circle_at_90%_82%,rgba(255,99,15,.18),transparent_28%),linear-gradient(145deg,#00132e_0%,#031b44_52%,#001a3a_100%)] px-4 py-8 text-white sm:px-6 sm:py-12 lg:px-8">
       <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[28px] border border-cyan-200/20 bg-[#001b3d]/90 shadow-[0_32px_90px_rgba(0,0,0,.4)] backdrop-blur md:grid-cols-[.82fr_1.18fr]">
         <section className="relative overflow-hidden border-b border-white/10 p-6 sm:p-9 md:border-b-0 md:border-r lg:p-12">
           <div aria-hidden="true" className="absolute -left-8 -top-8 h-52 w-52 bg-[#ff630f]/55 drop-shadow-[0_0_28px_rgba(255,99,15,.3)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
@@ -55,13 +54,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <section id="login-form" className="scroll-mt-[163px] bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:scroll-mt-0 sm:p-9 lg:p-12">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">Welcome back</p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Sign in to Zero Loss.</h2>
-          <p className="mt-2 text-sm leading-6 text-white/60">New here? <Link href={authNavigationHref("/signup", returnTo)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</Link></p>
+          <p className="mt-2 text-sm leading-6 text-white/60">New here? <LoginCreateAccountLink returnTo={returnTo} /></p>
           <div className="mt-7">
             <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} returnTo={returnTo} />
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-white/40">Signing in does not create an entry or make a purchase.</p>
         </section>
       </div>
-    </main>
+    </div>
   );
 }

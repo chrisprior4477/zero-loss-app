@@ -26,7 +26,7 @@ export default async function ProductRequestPage({
     : initialProduct ? `/browse?${new URLSearchParams({ q: initialProduct })}` : "/browse";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
       <HelpLandingScroll target="product-request" landingAlias="product-request-heading" visitKey={backHref} />
       <div id="product-request" className="mx-auto max-w-3xl scroll-mt-[calc(var(--site-header-height,100px)+12px)]">
         <Link href={backHref} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to search</Link>
@@ -39,6 +39,6 @@ export default async function ProductRequestPage({
           <CatalogRequestForm initialProduct={initialProduct} ownerId={account?.userId} scope={scope.toString()} />
         </section>
       </div>
-    </main>
+    </div>
   );
 }

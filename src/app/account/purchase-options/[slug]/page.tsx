@@ -47,7 +47,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} count={result.purchasedCount}
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
-    return <main className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
+    return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
       <h1 id="purchase-receipt-check">Check this purchase</h1>
       <p>{result.status === "not_found" ? "No saved receipt was found for this purchase." : "We couldn’t verify this purchase yet."}</p>
       <div className={styles.topActions}>
@@ -55,7 +55,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         {result.status === "not_found" ? <Link href={prizePath} className={styles.return}>Review current offers</Link> : null}
         <Link href="/account/entries?filter=completed" className={styles.return}>Completed purchases</Link>
       </div>
-    </section></main>;
+    </section></div>;
   }
   if (account.activity.source === "unavailable") {
     return <section className={styles.page} aria-labelledby="offers-unavailable-title">
@@ -77,13 +77,13 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     .sort((left, right) => (left.enteredAt ?? "").localeCompare(right.enteredAt ?? "") || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   if (decline === "undo" && account.wallet?.scope === "demo" && isPreviewDataEnvironment()) {
     const item = options[0] ?? activity.find(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined");
-    if (item) return <main className={styles.page}><section className={styles.shell}>
+    if (item) return <div className={styles.page}><section className={styles.shell}>
       <h1>Check your declined offers</h1>
       <Link href={prizePath}>View purchase options</Link>
       <DeclinePurchaseOffersDialog item={item} recovering ownerId={account.userId}
         offeredOptionIds={options.flatMap(offer => offer.completionOptionId ? [offer.completionOptionId] : [])}
         ticketLabels={offerTicketLabels(activity.filter(ticket => ticket.slug === slug), activity)} />
-    </section></main>;
+    </section></div>;
   }
   if (selectedEntryId !== undefined && !options.some(option => option.entryId === selectedEntryId)) {
     if (typeof selectedEntryId !== "string" || !selectedEntryId) notFound();
@@ -119,7 +119,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         .map(({ idempotencyKey, amount, reconciliation }) => ({ idempotencyKey, amount, reconciliation }))}
       fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
   }
-  return <main className={styles.page}>
+  return <div className={styles.page}>
     <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} settleAfterNavigation />
     <div className={styles.shell}>
       <div className={styles.topline}>
@@ -140,5 +140,5 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         <p>Choose the exact option you want to review. Its entry credit only applies to that option; credits from separate tickets do not combine. Completing a purchase is optional.</p>
       </section>
     </div>
-  </main>;
+  </div>;
 }

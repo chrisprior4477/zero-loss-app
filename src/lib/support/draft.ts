@@ -5,6 +5,8 @@ export type SupportDraft = {
   subject: string;
   body: string;
   category: string;
+  categoryEdited?: boolean;
+  subjectEdited?: boolean;
   caseStatus: string;
   uncertain: boolean;
   transactionOrigin?: string;
@@ -35,7 +37,9 @@ export function readSupportDraft(key: string | null): SupportDraft | null {
     const record = parseSupportRecord(saved.record);
     // An uncertain retry must preserve the exact attachment it was sent with.
     if (saved.record !== undefined && !record) return null;
-    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin, record };
+    const categoryEdited = typeof saved.categoryEdited === "boolean" ? saved.categoryEdited : undefined;
+    const subjectEdited = typeof saved.subjectEdited === "boolean" ? saved.subjectEdited : undefined;
+    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin, record, categoryEdited, subjectEdited };
   } catch { return null; }
 }
 

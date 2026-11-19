@@ -42,6 +42,7 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
   const session = useContext(Session);
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
+  const restoringFocus = useRef(false);
   if (!session) throw new Error("Browse results search requires a search session");
   const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
   const editing = editor === position;
@@ -49,20 +50,30 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     : endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
   const inputId = position === "bottom" ? endingSoon ? "ending-soon-search-input" : "browse-search-input" : id;
   function edit() {
-    if (!editing) { voice.cancel(); setEditor(position); }
+    if (!editing && !restoringFocus.current) { voice.cancel(); setEditor(position); }
   }
-  function close() {
+  function close(keepKeyboardFocus: boolean) {
     voice.cancel();
     setDraft(applied);
     setEditor(null);
-    field.current?.blur();
+    if (keepKeyboardFocus) {
+      restoringFocus.current = true;
+      field.current?.focus({ preventScroll: true });
+      restoringFocus.current = false;
+    } else {
+      field.current?.blur();
+    }
   }
   return <form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
     onSubmit={event => { event.preventDefault(); if (voice.busy || !draft.trim()) return; field.current?.blur(); setEditor(null); search(draft); }}
-    onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); close(); } }}>
+    onKeyDown={event => {
+      if (event.key !== "Escape" || (!editing && event.target !== field.current)) return;
+      event.preventDefault();
+      close(true);
+    }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
     <input id={inputId} ref={field} type="search" name="q" value={draft} placeholder={label}
-      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { voice.cancel(); setDraft(event.target.value); }} />
+      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (editing) voice.cancel(); else edit(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined); }}>×</button> : null}
     {draft.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
@@ -72,6 +83,6 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
         setEditor(position);
         voice.toggle();
       }} />
-    {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={close}>×</button> : null}
+    {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={event => close(event.detail === 0)}>×</button> : null}
   </form>;
 }

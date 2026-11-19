@@ -19,6 +19,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
 
+test("Escape restores the applied marketplace query without navigating", () => {
+  render(<BrowseDiscoveryBar {...props} searchTerm="Walmart" />);
+  const input = within(searchForm()).getByRole("searchbox");
+  fireEvent.change(input, { target: { value: "Target" } });
+  expect(fireEvent.keyDown(input, { key: "Escape" })).toBe(false);
+  expect(input).toHaveProperty("value", "Walmart");
+  expect(navigation.push).not.toHaveBeenCalled();
+});
+
 test.each(["Filter & sort", "Gas"])("only the Browse control that opened %s is expanded", name => {
   render(<BrowseDiscoveryBar {...props}><BrowseDiscoveryFooterControls /></BrowseDiscoveryBar>);
   const top = within(screen.getByRole("group", { name: "Browse options at the top" })).getByRole("button", { name });

@@ -32,6 +32,19 @@ function subscribeToHash(onChange: () => void) {
   return () => window.removeEventListener("hashchange", onChange);
 }
 
+function useLoginDestination(returnTo: string | null) {
+  // An account redirect can inherit the original fragment in the browser.
+  const inheritedHash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
+  return inheritedHash && returnTo && /^\/account\/(?:profile|notifications)(?:\?[^#]*)?$/.test(returnTo)
+    ? accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo
+    : returnTo;
+}
+
+export function LoginCreateAccountLink({ returnTo }: { returnTo: string | null }) {
+  const destination = useLoginDestination(returnTo);
+  return <Link href={authNavigationHref("/signup", destination)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</Link>;
+}
+
 export function LoginForm({
   initialError = null,
   initialNotice = null,
@@ -47,11 +60,7 @@ export function LoginForm({
   const notice = state.message ? null : initialNotice;
   const [email, setEmail] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
-  // An account redirect can inherit the original fragment in the browser.
-  const inheritedHash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
-  const destination = inheritedHash && returnTo && /^\/account\/(?:profile|notifications)(?:\?[^#]*)?$/.test(returnTo)
-    ? accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo
-    : returnTo;
+  const destination = useLoginDestination(returnTo);
 
   useEffect(() => {
     // Every mobile sign-in route should land on the form, including plain

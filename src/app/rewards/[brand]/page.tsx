@@ -25,7 +25,7 @@ export default async function RewardBrandPage({ params }: Props) {
     !hidden.has(popularRewardProductSlug(brand.slug, amount)) || (amount === 100 && !unavailable));
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
       <div className="mx-auto max-w-6xl">
         <Link href={popularRewardsReturnHref(brand.slug)} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Popular Rewards</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Popular Reward · Digital fulfillment</p>
@@ -56,6 +56,6 @@ export default async function RewardBrandPage({ params }: Props) {
 
         <p className="mt-8 rounded-2xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/60">These are preview offerings. A confirmed preview customer can choose how many available demo entries to add. Each entry remains a separate chance. No real money, gift card, barcode, or retailer inventory is issued.</p>
       </div>
-    </main>
+    </div>
   );
 }

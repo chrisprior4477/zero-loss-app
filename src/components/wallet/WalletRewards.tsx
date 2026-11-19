@@ -97,7 +97,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     : undefined;
   const historyTarget = focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
   const landingTarget = historyTarget || readyTarget;
-  return <main className={overview.page} data-activity-source={state.source}>
+  return <div className={overview.page} data-activity-source={state.source}>
     {landingTarget ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
     <div className={overview.shell}>
@@ -178,7 +178,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         </> : null}
       </section>
     </div>
-  </main>;
+  </div>;
 }
 
 function sampleRewardNumber(slug: string) {
@@ -246,7 +246,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
   const singleReady = ready.length === 1 ? ready[0] : null;
 
-  return <main key={item.rewardId ?? item.slug} className={styles.detailPage}>
+  return <div key={item.rewardId ?? item.slug} className={styles.detailPage}>
     {fromPurchase
       ? <AccountSettingsLandingScroll target="reward-pass" initialTarget="reward-pass" visitKey={item.rewardId ?? item.slug} settleAfterNavigation allScreens />
       : <RewardPassAutoScroll rewardKey={item.rewardId ?? item.slug} />}
@@ -340,5 +340,5 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         <Link href={returnLink?.href ?? walletReturnHref} className={styles.backToRewards}>{returnLink?.label ?? "Back to Gift Cards & Rewards"}</Link>
       </nav>
     </section>
-  </main>;
+  </div>;
 }

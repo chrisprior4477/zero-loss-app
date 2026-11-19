@@ -5,6 +5,23 @@ import { BrowseResultsSearch, BrowseResultsSearchSession } from "./BrowseResults
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+test.each(["top", "bottom"] as const)("Escape restores the %s search and keeps keyboard focus in the form", position => {
+  render(<BrowseResultsSearchSession browseHref="/browse?sort=ending-soon" searchTerm="Walmart" endingSoon>
+    <BrowseResultsSearch position={position} />
+  </BrowseResultsSearchSession>);
+  const input = screen.getByRole("searchbox");
+  act(() => input.focus());
+  fireEvent.change(input, { target: { value: "Target" } });
+  const close = screen.getByRole("button", { name: "Close search" });
+  close.focus();
+  expect(fireEvent.keyDown(close, { key: "Escape" })).toBe(false);
+  expect(screen.queryByRole("button", { name: "Close search" })).toBeNull();
+  expect(input).toHaveProperty("value", "Walmart");
+  expect(document.activeElement).toBe(input);
+  fireEvent.change(input, { target: { value: "Best Buy" } });
+  expect(screen.getByRole("button", { name: "Close search" })).toBeTruthy();
+});
+
 test.each(["top", "bottom"] as const)("editing the %s Ending Soon search supersedes a stopped transcript in both fields", position => {
   class Speech {
     static last: Speech;

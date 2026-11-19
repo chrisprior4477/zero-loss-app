@@ -24,7 +24,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: { filter: oneOf("action", "account", "activity", "orders", "crew"), notice: validNotice }, hash: /^#(?:notification-tickets-filters|alert-settings)$/ },
   "/account/security": { query: {} },
-  "/account/profile": { query: {}, hash: /^#(?:personal-details-heading|contact-details-heading|mailing-address-heading|profile-preferences-heading|personalize-menu|account-settings-sections|profile-intro)$/ },
+  "/account/profile": { query: {}, hash: /^#(?:personal-details-heading|contact-details-heading|mailing-address-heading|profile-preferences-heading|personalize-menu(?:-heading)?|account-settings-sections|profile-intro)$/ },
   "/account/payment-methods": { query: {} },
   "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), focusReward: matches(uuid), support: oneOf("report"), details: oneOf("1"), from: oneOf("notifications"), alerts: alertFilter, notice: validNotice }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
   "/account/results": { query: {} },

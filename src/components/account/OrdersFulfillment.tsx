@@ -47,7 +47,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
 
-  return <main className={styles.page}>
+  return <div className={styles.page}>
     <div className={styles.shell}>
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
@@ -138,5 +138,5 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
 
       <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
     </div>
-  </main>;
+  </div>;
 }

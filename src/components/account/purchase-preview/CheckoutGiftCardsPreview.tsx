@@ -120,7 +120,7 @@ export function CheckoutGiftCardsPreview({ product }: { product: Product }) {
     </ul>;
   }
 
-  return <main className={styles.page}>
+  return <div className={styles.page}>
     <div className={styles.shell}>
       <div className={styles.previewBar}>
         <span>Checkout preview · Sample cards</span>
@@ -231,5 +231,5 @@ export function CheckoutGiftCardsPreview({ product }: { product: Product }) {
       }}>{copied ? "Link copied" : "Copy product link"}</button>
       <p className={checkout.footnote} role="status">{copied ? "Product link copied. The gift-card number stays private." : ""}</p>
     </PurchaseDialog> : null}
-  </main>;
+  </div>;
 }
