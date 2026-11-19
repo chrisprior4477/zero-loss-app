@@ -40,7 +40,7 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
                 {group.links.map((link) => (
                   <li key={`${link.label}-${link.href}`}>
                     <Link
-                      href={link.href}
+                      href={link.href === "/contact" ? "/contact#contact-intro" : link.href}
                       className="text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:text-[11px]"
                     >
                       {link.label}

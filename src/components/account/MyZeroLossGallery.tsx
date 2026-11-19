@@ -30,7 +30,7 @@ function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
     // The gallery combines like products, but every underlying entry and
     // purchase option keeps its own record and next step on the detail page.
     const canGroup = (item.status === "active" || item.status === "completion") && Boolean(item.entryId);
-    const key = canGroup ? `${item.status}:${item.slug}` : `entry:${item.entryId ?? item.slug}:${groups.length}`;
+    const key = canGroup ? `${item.status}:${item.slug}` : `entry:${item.entryId ?? item.rewardId ?? item.slug}:${groups.length}`;
     const existing = canGroup ? groupedOptions.get(key) : undefined;
     if (existing) existing.entries.push(item);
     else {

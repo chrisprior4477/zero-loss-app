@@ -111,7 +111,7 @@ export function DateOfBirthSelects({
       >
         Date of birth
       </p>
-      <div className="mt-1.5 grid grid-cols-3 gap-2">
+      <div role="group" aria-labelledby={id("date_of_birth_label")} className="mt-1.5 grid grid-cols-3 gap-2">
         <div>
           <label htmlFor={id("dob_month")} className="sr-only">
             Month
@@ -120,7 +120,6 @@ export function DateOfBirthSelects({
             id={id("dob_month")}
             required
             value={month === "" ? "" : String(month)}
-            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               const nextMonth =
@@ -146,7 +145,6 @@ export function DateOfBirthSelects({
             id={id("dob_day")}
             required
             value={day === "" ? "" : String(day)}
-            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               setDay(
@@ -173,7 +171,6 @@ export function DateOfBirthSelects({
             id={id("dob_year")}
             required
             value={year === "" ? "" : String(year)}
-            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               const nextYear =

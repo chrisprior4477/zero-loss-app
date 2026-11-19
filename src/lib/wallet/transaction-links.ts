@@ -11,6 +11,11 @@ export function ledgerDescription(entryType: string, productTitle?: string) {
 
 /** Only link records present in the signed-in customer's authorized activity. */
 export function transactionLinks(entry: LedgerEntryRow, activity: readonly ActivityItem[], restoreView = false) {
+  if (entry.entry_type === "PURCHASE_DEBIT" && entry.rewardId) {
+    const reward = activity.find(item => item.rewardId === entry.rewardId && isWalletReward(item));
+    if (!reward) return [];
+    return [{ id: entry.rewardId, label: "Open gift card", href: `${activityHref(reward)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}` }];
+  }
   const reservation = entry.entry_type === "ENTRY_HOLD" || entry.entry_type === "ENTRY_HOLD_RELEASE";
   const byId = new Map(activity.filter(item => item.entryId).map(item => [item.entryId!, item]));
   return [...new Set(entry.entryIds ?? [])].flatMap(id => {

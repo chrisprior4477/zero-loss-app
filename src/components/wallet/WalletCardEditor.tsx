@@ -101,7 +101,13 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         setError("This editor updates the selected card. Use Add Card to save a different sample card.");
         return;
       }
-      if (!cardholder.trim() || !enteredFixture || expiry.trim() !== enteredFixture.expiry || code.trim() !== enteredFixture.code) {
+      if (!cardholder.trim()) {
+        setShowSaveResult(false);
+        setError("Enter the cardholder name.");
+        nameInput.current?.focus();
+        return;
+      }
+      if (!enteredFixture || expiry.trim() !== enteredFixture.expiry || code.trim() !== enteredFixture.code) {
         setShowSaveResult(false);
         setError("Use the supplied sample card details. Real card details are not accepted in this preview.");
         return;

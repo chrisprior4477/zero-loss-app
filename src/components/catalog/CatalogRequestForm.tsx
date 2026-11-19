@@ -24,6 +24,8 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
   const [showFeedback, setShowFeedback] = useState(false);
   const restored = useRef(false);
   const sending = useRef(false);
+  const submitButton = useRef<HTMLButtonElement>(null);
+  const restoreSubmitFocus = useRef(false);
   const requestedItem = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (window.location.hash === "#requested-item") requestedItem.current?.focus({ preventScroll: true });
@@ -59,6 +61,12 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
     }
   }, initialState);
 
+  useEffect(() => {
+    if (pending || !restoreSubmitFocus.current) return;
+    restoreSubmitFocus.current = false;
+    if (showFeedback && state.status === "error" && document.activeElement === document.body) submitButton.current?.focus();
+  }, [pending, showFeedback, state]);
+
   if (state.status === "succeeded") {
     return (
       <div role="status" className="rounded-2xl border border-[#31e800]/50 bg-[#31e800]/10 p-6">
@@ -77,6 +85,7 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
       const requestKey = draft.requestKey ?? crypto.randomUUID();
       const submitted = { ...draft, requestKey };
       sending.current = true;
+      restoreSubmitFocus.current = event.currentTarget.contains(document.activeElement);
       setDraft(submitted);
       writeCatalogRequestDraft(draftKey, submitted);
       formData.set("requestKey", requestKey);
@@ -132,7 +141,7 @@ function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: s
         />
       </div>
       {showFeedback && state.status === "error" ? <p role="alert" className="rounded-xl border border-orange-400/45 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100">{state.message}</p> : null}
-      <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] transition hover:bg-[#62ff3b] disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+      <button ref={submitButton} type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] transition hover:bg-[#62ff3b] disabled:cursor-wait disabled:opacity-60 sm:w-auto">
         {pending ? "Sending request…" : "Send product request →"}
       </button>
       {dirty ? <button type="button" disabled={pending} className="block min-h-11 text-sm font-bold text-cyan-200 underline disabled:opacity-50" onClick={() => {

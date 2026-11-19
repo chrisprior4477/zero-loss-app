@@ -57,7 +57,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
       </li>)}</ul>
     </div> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
-    {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} checkout={checkout} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
+    {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.rewardId ?? item.slug).join(",")} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} checkout={checkout} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : declinedCount ? "You can revive a declined offer before its original deadline." : emptyMessages[filter].detail}</p>
       {declinedCount > 0 ? <div><Link href={declinedOfferHref(null, "completion")} className={styles.reviewDeclinedOffers}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { requestPasswordResetAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { signInReturnPath } from "@/lib/auth/entry-return";
 
@@ -19,6 +19,13 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
   const currentRequest = submittedEmail === email;
   const feedback = currentRequest && !pending ? state : initialState;
   const destination = signInReturnPath(returnTo);
+  const submitButton = useRef<HTMLButtonElement>(null);
+  const restoreSubmitFocus = useRef(false);
+  useEffect(() => {
+    if (pending || !restoreSubmitFocus.current) return;
+    restoreSubmitFocus.current = false;
+    if (feedback.status === "error" && document.activeElement === document.body) submitButton.current?.focus();
+  }, [pending, feedback]);
 
   return (
     <form onSubmit={event => {
@@ -26,6 +33,7 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
       if (pending) return;
       const formData = new FormData(event.currentTarget);
       const address = String(formData.get("email") ?? "");
+      restoreSubmitFocus.current = document.activeElement === submitButton.current;
       setEmail(address);
       setSubmittedEmail(address);
       startTransition(() => action(formData));
@@ -40,7 +48,7 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
         }} className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10" />
       </div>
       {feedback.message ? <p role={feedback.status === "error" ? "alert" : "status"} className={`rounded-xl border p-4 text-sm leading-6 ${feedback.status === "error" ? "border-red-300/30 bg-red-400/10 text-red-100" : "border-[#31e800]/35 bg-[#31e800]/10 text-white"}`}>{feedback.message}</p> : null}
-      <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending && currentRequest ? "Sending…" : feedback.status === "sent" ? "Resend reset email" : "Send reset email"}</button>
+      <button ref={submitButton} type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending && currentRequest ? "Sending…" : feedback.status === "sent" ? "Resend reset email" : "Send reset email"}</button>
       <p className="text-xs leading-5 text-white/55">You can request another link if it doesn&apos;t arrive. Please wait a minute between requests.</p>
       <Link href={signInHref} className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
     </form>

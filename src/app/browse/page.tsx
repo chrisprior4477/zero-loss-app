@@ -57,14 +57,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
   const showCatalogDenominations = !unavailable
     && Boolean(searchTerm || selectedCategory || query.retailer || query.partnerCategory || query.type === "gift-cards");
+  const directCards = demoProducts.flatMap(product => {
+    const price = availability?.[product.slug]?.directPriceCents;
+    return price ? [{ ...product, directPriceCents: price }] : [];
+  });
+  const directSlugs = new Set(directCards.map(product => product.slug));
   const unavailableDenominations = showCatalogDenominations ? demoProducts.filter(product =>
-    hidden.has(product.slug) && product.value === 100 && isGiftCardListing(product))
+    hidden.has(product.slug) && !directSlugs.has(product.slug) && product.value === 100 && isGiftCardListing(product))
     .map(product => ({ ...product, sold: product.capacity })) : [];
-  const searchableProducts = [...availableProducts, ...unavailableDenominations];
+  const searchableProducts = [...availableProducts, ...directCards, ...unavailableDenominations];
   const categoryProducts = filterCatalogSubcategory((endingSoon ? availableProducts : searchableProducts).filter(
     product => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
   const retailers = browseRetailers(categoryProducts);
-  const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
+  const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => product.directPriceCents || !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const denomination = searchDenominations(searchTooLong ? "" : searchTerm, demoProducts);
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
@@ -80,7 +85,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     budgetLabel,
     endingSoonTicketRanges.find(range => range.value === ticketsLeft)?.label,
   ].filter((label): label is string => Boolean(label));
-  const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts, demoProducts);
+  const discoveryGroups = retailerFilterGroups(partnerGroups, [...availableProducts, ...directCards], demoProducts);
   const searchMatches = searchTerm && !searchTooLong ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
   const savedMatches = searchTerm && !searchTooLong ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
@@ -90,7 +95,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     : undefined;
   const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
   const scopedOfferRetailers = browseRetailers(filterBrowseProducts(
-    matchedProducts.filter(product => !hidden.has(product.slug)),
+    matchedProducts.filter(product => product.directPriceCents || !hidden.has(product.slug)),
     { ...filters, retailer: "" }, searchTerm, endingSoon,
   ));
   const savedWithinFilters = new Set(filterBrowseProducts(savedMatches.map(({ product }) =>
@@ -99,7 +104,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
-  const hasOpenResults = products.some(product => !hidden.has(product.slug));
+  const hasOpenResults = products.some(product => product.directPriceCents || !hidden.has(product.slug));
   const includesLowerGiftCards = denomination.values.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
   const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
@@ -277,6 +282,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
+              const buy = product.directPriceCents;
               const open = !hidden.has(product.slug);
               const status = availabilityStatus(product.capacity, product.sold);
               const anchor = `prize-${product.slug}`;
@@ -288,7 +294,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#087feb] sm:text-xs">{product.retailer}</p>
                     <h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
                     {relatedRetailers.has(product.slug) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
-                    {open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
+                    {buy ? <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-extrabold text-[#0069a6]">Buy for ${(buy / 100).toFixed(2)} · Demo</p> : open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
                       <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
                     </div> : <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-bold text-slate-600">No open entries</p>}
@@ -296,8 +302,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               return (
                 <article key={product.slug} id={anchor} tabIndex={-1} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
                   className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
-                  {open ? <>
-                    <BrowsePrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>
+                  {open || buy ? <>
+                    <BrowsePrizeLink href={`${productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)}${buy ? "#enter-entry" : ""}`} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>
                     <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
                   </> : <div className={cardClass}>{card}</div>}
                 </article>

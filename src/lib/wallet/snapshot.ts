@@ -72,4 +72,5 @@ export type LedgerEntryRow = {
   entryIds?: string[];
   entryRequestId?: string;
   entryBatchId?: string;
+  rewardId?: string;
 };

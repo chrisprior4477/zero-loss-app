@@ -19,7 +19,8 @@ test("replay and a device reload preserve edited fields, listings, permissions a
   const next = () => fireEvent.click(screen.getByRole("button", { name: "Continue" }));
   next(); next();
   fireEvent.change(screen.getByLabelText("Product or offer name"), { target: { value: "Edited first listing" } });
-  fireEvent.click(document.querySelector<HTMLInputElement>('input[name="auto_relist"]')!);
+  const autoRelist = document.querySelector<HTMLInputElement>('input[name="auto_relist"]')!;
+  expect(autoRelist.checked).toBe(false);
   next();
   fireEvent.click(document.querySelector<HTMLInputElement>('input[name="asset_rights"]')!);
   fireEvent.click(screen.getByRole("button", { name: "Replay demo upload" }));

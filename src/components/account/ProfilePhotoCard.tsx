@@ -19,6 +19,8 @@ type Crop = { x: number; y: number; zoom: number };
 type PhotoVisibility = Record<PhotoVisibilitySurface, boolean>;
 const defaultVisibility: PhotoVisibility = { menu: true, crew: true };
 const defaultCrop: Crop = { x: 0, y: 0, zoom: 1 };
+const clampOffset = (offset: number) => Math.max(-90, Math.min(90, offset));
+const photoTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 function readCrop(): Crop {
   try {
@@ -260,18 +262,31 @@ export function ProfilePhotoCard({
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    event.target.value = "";
     const version = ++draftVersion.current;
+    function showInvalidPhoto() {
+      if (version === draftVersion.current) setError("Choose a readable PNG, JPEG, or WebP photo.");
+    }
+    if (!photoTypes.has(file.type)) { showInvalidPhoto(); return; }
     const reader = new FileReader();
-    reader.addEventListener("load", () => {
+    reader.addEventListener("error", showInvalidPhoto);
+    reader.addEventListener("load", async () => {
       if (version !== draftVersion.current || typeof reader.result !== "string") return;
+      const source = reader.result;
+      try {
+        const image = new window.Image();
+        image.src = source;
+        await image.decode();
+        if (!image.naturalWidth || !image.naturalHeight) { showInvalidPhoto(); return; }
+      } catch { showInvalidPhoto(); return; }
+      if (version !== draftVersion.current) return;
       setError(null);
-      setDraftPhoto(reader.result);
+      setDraftPhoto(source);
       setDraftCrop(defaultCrop);
       setDevicePhotoDraft(null);
       setEditing(true);
     });
     reader.readAsDataURL(file);
-    event.target.value = "";
   }
 
   function beginDrag(event: PointerEvent<HTMLDivElement>) {
@@ -289,8 +304,8 @@ export function ProfilePhotoCard({
     const drag = dragRef.current;
     if (!drag) return;
     draftVersion.current += 1;
-    const x = Math.max(-90, Math.min(90, drag.cropX + (event.clientX - drag.x) * drag.scale));
-    const y = Math.max(-90, Math.min(90, drag.cropY + (event.clientY - drag.y) * drag.scale));
+    const x = clampOffset(drag.cropX + (event.clientX - drag.x) * drag.scale);
+    const y = clampOffset(drag.cropY + (event.clientY - drag.y) * drag.scale);
     setDraftCrop((current) => ({
       ...current, x, y,
     }));
@@ -381,12 +396,23 @@ export function ProfilePhotoCard({
           <div className={`${popupStyles.surface} ${photoStyles.editorSurface} w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] shadow-2xl`}>
             <div className={photoStyles.heading}>
               <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
-              <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
+              <p id="photo-crop-instructions" className="mt-2 text-sm text-white/60">Drag or use the arrow keys to reposition the photo. Use the slider to resize it.</p>
               {devicePhotoDraft ? <p className="mt-2 text-sm text-white/80">Save photo to use this image on your signed-in account.</p> : null}
             </div>
             <div
               className={`${photoStyles.cropArea} relative touch-none cursor-move overflow-hidden rounded-full border-4 border-cyan-300 bg-[#00132e]`}
+              role="group"
+              tabIndex={0}
               aria-label="Photo crop preview"
+              aria-describedby="photo-crop-instructions"
+              onKeyDown={event => {
+                const offsets = { ArrowLeft: [-4, 0], ArrowRight: [4, 0], ArrowUp: [0, -4], ArrowDown: [0, 4] };
+                const offset = offsets[event.key as keyof typeof offsets];
+                if (!offset) return;
+                event.preventDefault();
+                draftVersion.current += 1;
+                setDraftCrop(current => ({ ...current, x: clampOffset(current.x + offset[0]), y: clampOffset(current.y + offset[1]) }));
+              }}
               onPointerDown={beginDrag}
               onPointerMove={movePhoto}
               onPointerUp={() => { dragRef.current = null; }}

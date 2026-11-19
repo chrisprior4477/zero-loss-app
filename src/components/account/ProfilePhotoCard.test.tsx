@@ -163,11 +163,13 @@ test("Tab wraps both directions and focus cannot move into the page behind the e
   render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const slider = screen.getByRole("slider");
+  const crop = screen.getByLabelText("Photo crop preview");
   const last = screen.getByRole("button", { name: "Choose a different photo" });
-  fireEvent.keyDown(slider, { key: "Tab", shiftKey: true });
+  crop.focus();
+  fireEvent.keyDown(crop, { key: "Tab", shiftKey: true });
   expect(document.activeElement).toBe(last);
   fireEvent.keyDown(last, { key: "Tab" });
-  expect(document.activeElement).toBe(slider);
+  expect(document.activeElement).toBe(crop);
   screen.getByRole("checkbox", { name: /Show my photo in the account menu/ }).focus();
   expect(document.activeElement).toBe(slider);
   expect(savePhoto).not.toHaveBeenCalled();
@@ -189,6 +191,7 @@ test("Cancel discards a zoom change, restores focus, and releases the background
 });
 
 test("a new photo chosen asynchronously returns to the Add photo button on Escape", async () => {
+  mockPhotoExport();
   render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl={null} />);
   const trigger = screen.getAllByRole("button", { name: "Add profile photo" })[1];
   fireEvent.click(trigger);
@@ -248,6 +251,7 @@ test("a failed visibility save uses the newest account settings after a refresh 
 });
 
 test("replacing the draft keeps the editor active and unmounting releases its keyboard and scroll locks", async () => {
+  mockPhotoExport();
   const { unmount } = render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const replace = screen.getByRole("button", { name: "Choose a different photo" });
@@ -257,7 +261,7 @@ test("replacing the draft keeps the editor active and unmounting releases its ke
   await waitFor(() => expect(screen.getByRole("dialog").querySelector('[data-photo-source^="data:"]')).toBeTruthy());
   expect(document.activeElement).toBe(replace);
   fireEvent.keyDown(replace, { key: "Tab" });
-  expect(document.activeElement).toBe(screen.getByRole("slider"));
+  expect(document.activeElement).toBe(screen.getByLabelText("Photo crop preview"));
   unmount();
   expect(document.body.style.overflow).toBe("");
   expect(document.documentElement.style.overflow).toBe("");

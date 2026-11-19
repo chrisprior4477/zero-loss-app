@@ -4,6 +4,7 @@ import type { LedgerEntryRow, WalletSnapshot } from "./snapshot";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type LedgerSourceRow = LedgerEntryRow & { source_event: string; related_pool_id: string | null; related_entry_id?: string | null };
+const directPurchaseEvent = /^direct_demo_card_/;
 const requestEvent = /^entry_request_([0-9a-f-]{36})_ENTRY_HOLD(?:_RELEASE)?$/i;
 const ledgerId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const publicEntryId = /^ent_[a-f0-9]{32}$/i;
@@ -141,10 +142,25 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
   const purchaseEvents = [...new Set(rows.filter(row => row.entry_type === "PURCHASE_DEBIT").map(row => row.source_event))];
   const purchaseSlugs = new Map<string, string>();
   const purchaseEntries = new Map<string, string>();
+  const directRewards = new Map<string, string>();
   for (let index = 0; index < purchaseEvents.length; index += 100) {
-    const { data: orders, error } = await db.from("customer_orders").select("provider_event_id,completion_option_id")
+    const { data: orders, error } = await db.from("customer_orders").select("provider_event_id,completion_option_id,reward_id")
       .eq("customer_id", userId).in("provider_event_id", purchaseEvents.slice(index, index + 100));
     if (error || !orders?.length) continue;
+    const direct = orders.filter(order => directPurchaseEvent.test(order.provider_event_id) && !order.completion_option_id && ledgerId.test(order.reward_id));
+    if (direct.length) {
+      const { data: rewards, error: rewardError } = await db.from("customer_rewards").select("id,direct_offering_slug")
+        .eq("customer_id", userId).in("id", direct.map(order => order.reward_id));
+      if (!rewardError) {
+        const slugs = new Map(rewards?.map(reward => [reward.id, reward.direct_offering_slug]));
+        for (const order of direct) {
+          const slug = slugs.get(order.reward_id);
+          if (typeof slug !== "string") continue;
+          purchaseSlugs.set(order.provider_event_id, slug);
+          directRewards.set(order.provider_event_id, order.reward_id);
+        }
+      }
+    }
     const optionIds = orders.map(order => order.completion_option_id).filter((id): id is string => typeof id === "string");
     if (!optionIds.length) continue;
     const { data: options, error: optionError } = await db.from("completion_options").select("id,customer_entry_id")
@@ -168,12 +184,13 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     const item = ledgerProduct(row, requestSlugs, purchaseSlugs);
     const requestId = requestEvent.exec(row.source_event)?.[1];
     const purchaseEntry = purchaseEntries.get(row.source_event);
+    const rewardId = directRewards.get(row.source_event);
     const ids = row.related_entry_id ? [row.related_entry_id]
       : requestId ? requestEntries.get(requestId) ?? [] : purchaseEntry ? [purchaseEntry] : [];
     const entryIds = [...new Set(ids)].filter(id => publicEntryId.test(id));
     const entryBatchId = row.entry_type === "ENTRY_DEBIT" && row.related_entry_id ? entryBatches.get(row.related_entry_id) : undefined;
     return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}),
-      ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
+      ...(rewardId ? { rewardId } : {}), ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
       ...(!recentOnly && requestId && requestSlugs.has(requestId) ? { entryRequestId: requestId } : {}) };
   });
 }

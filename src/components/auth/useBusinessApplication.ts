@@ -151,6 +151,9 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
     setGuestDraft(null);
     void save(guestDraft);
   }
+  function hasUnsavedChanges() {
+    return !submitted && draft !== lastSaved.current;
+  }
   const status = savedDraft !== draft && message.startsWith("Draft saved") ? "Unsaved changes." : message;
-  return { draft, setDraft, initialized, saving, submitted, message: status, setMessage, save, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft };
+  return { draft, setDraft, initialized, saving, submitted, hasUnsavedChanges, message: status, setMessage, save, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft };
 }

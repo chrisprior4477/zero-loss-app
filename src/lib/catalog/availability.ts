@@ -5,6 +5,7 @@ export type OfferingAvailability = {
   remaining: number;
   entryPriceCents: number;
   repeatableScenario: boolean;
+  directPriceCents?: number;
 };
 export type AvailabilitySnapshot = Record<string, OfferingAvailability>;
 
@@ -18,10 +19,12 @@ export function parseAvailability(data: unknown): AvailabilitySnapshot | null {
       || !Number.isSafeInteger(row.sold) || row.sold < 0 || row.sold > row.capacity
       || !Number.isSafeInteger(row.remaining) || row.remaining !== row.capacity - row.sold
       || !Number.isSafeInteger(row.entryPriceCents) || row.entryPriceCents <= 0
+      || (row.directPriceCents != null && (!Number.isSafeInteger(row.directPriceCents) || row.directPriceCents <= 0))
       || typeof row.repeatableScenario !== "boolean" || Object.hasOwn(result, row.slug)) return null;
     result[row.slug] = {
       slug: row.slug, capacity: row.capacity, sold: row.sold, remaining: row.remaining,
       entryPriceCents: row.entryPriceCents, repeatableScenario: row.repeatableScenario,
+      ...(row.directPriceCents != null ? { directPriceCents: row.directPriceCents } : {}),
     };
   }
   return result;

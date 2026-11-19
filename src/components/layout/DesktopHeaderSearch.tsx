@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
+import { scrollToCurrentSearch, searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 
 function HeaderMicrophoneIcon() {
@@ -76,10 +76,12 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
   return (
     <form
       ref={formRef}
+      role="search"
+      aria-label="Search all prizes"
       action="/browse"
       method="get"
       onSubmit={event => {
-        if (voice.busy) { event.preventDefault(); return; }
+        if (voice.busy || !query.trim()) { event.preventDefault(); return; }
         setSuggestions(false);
         voice.cancel();
         inputRef.current?.blur();
@@ -151,7 +153,7 @@ export function DesktopHeaderSearch({ inputId = "desktop-header-search", ...opti
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentQuery = pathname === "/browse" ? searchParams.get("q")?.trim() ?? "" : "";
-  return <HeaderSearchForm key={`${pathname}:${currentQuery}`} inputId={inputId} initialQuery={currentQuery} {...options} navigate={href => router.push(href)} />;
+  return <HeaderSearchForm key={`${pathname}:${currentQuery}`} inputId={inputId} initialQuery={currentQuery} {...options} navigate={href => { if (!scrollToCurrentSearch(href)) router.push(href); }} />;
 }
 
 export function DesktopHeaderSearchFallback({ inputId = "desktop-header-search", initialQuery = "", ...options }: SearchOptions & { initialQuery?: string; navigate?: (href: string) => void }) {

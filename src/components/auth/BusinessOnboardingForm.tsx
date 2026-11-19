@@ -130,7 +130,7 @@ const demoDetailsByPartnership: Record<Partnership, FormValues> = {
 };
 const extraDemoDetails: Record<"restaurant" | "tools", FormValues> = {
   restaurant: { offer_name: "$150 Bellamora Dinner Gift Card", offer_type: "gift-card", description: "A $150 dining gift card for handmade Italian dishes, dessert, and hospitality at participating Bellamora locations.", retail_value: "$150.00", supply_terms: "Gift cards supplied at agreed partner terms", quantity: "450 gift cards available", variants: "Digital or physical gift card", relationship: "recurring", fulfillment_owner: "business", availability: "Monthly beginning November 2026", geography: "North Carolina, South Carolina, and Georgia", redemption: "Valid at participating locations; alcohol and gratuity excluded", delivery: "Digital card within one business day or physical card by mail", customer_terms: "Subject to approved gift-card and campaign terms.", listing_count: "1", recurrence: "monthly", recurrence_limit: "12", auto_relist: false, card_billing: false, capacity_ack: false },
-  tools: { offer_name: "Forge & Field Launch Catalog", offer_type: "physical", description: "Ten separate professional tool and jobsite equipment listings for the Zero Loss marketplace.", retail_value: "$100–$899 per listing", supply_terms: "Partner-supplied inventory and nationwide fulfillment", quantity: "Up to 300 units per $100 of displayed value, per approved listing", variants: "Ten launch listings with model-specific specifications", relationship: "recurring", fulfillment_owner: "business", availability: "Rolling national launch beginning January 2027", geography: "Continental United States", redemption: "Each approved listing carries its own availability and completion terms", delivery: "Ships from regional distribution centers with tracking", customer_terms: "Warranty, returns, safety disclosures, and fulfillment service levels supplied per item.", listing_count: "10", recurrence: "auto-relist", recurrence_limit: "10", auto_relist: true, card_billing: false, capacity_ack: false },
+  tools: { offer_name: "Forge & Field Launch Catalog", offer_type: "physical", description: "Ten separate professional tool and jobsite equipment listings for the Zero Loss marketplace.", retail_value: "$100–$899 per listing", supply_terms: "Partner-supplied inventory and nationwide fulfillment", quantity: "Up to 300 units per $100 of displayed value, per approved listing", variants: "Ten launch listings with model-specific specifications", relationship: "recurring", fulfillment_owner: "business", availability: "Rolling national launch beginning January 2027", geography: "Continental United States", redemption: "Each approved listing carries its own availability and completion terms", delivery: "Ships from regional distribution centers with tracking", customer_terms: "Warranty, returns, safety disclosures, and fulfillment service levels supplied per item.", listing_count: "10", recurrence: "one-time", recurrence_limit: "10", auto_relist: false, card_billing: false, capacity_ack: false },
 };
 
 function Field({ label, name, values, onChange, required = false, type = "text", placeholder, autoComplete }: { label: string; name: string; values: FormValues; onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; required?: boolean; type?: string; placeholder?: string; autoComplete?: string }) {
@@ -158,7 +158,7 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
   const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
-    guestDraft, importGuest, dismissGuest, submitted, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft } = useBusinessApplication(owner, record, restoreListings);
+    guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft } = useBusinessApplication(owner, record, restoreListings);
   const { values, step } = draft;
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
@@ -231,7 +231,21 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       }
     }
     const detailsMissing = missing.filter(label => label !== "Rights to supply the attached materials");
-    if (step === 2 && detailsMissing.length) { setErrors(detailsMissing); return; }
+    if (step === 2 && detailsMissing.length) {
+      setErrors(detailsMissing);
+      const form = formRef.current;
+      const incomplete = Array.from(form?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("[required][name]") ?? [])
+        .find(field => !field.value.trim() || !field.validity.valid);
+      const field = incomplete ?? form?.elements.namedItem(
+        detailsMissing.includes("Fulfillment-capacity acknowledgment") ? "capacity_ack" :
+          detailsMissing.includes("Card-on-file billing authorization") ? "card_billing" : "",
+      );
+      if (field instanceof HTMLElement) {
+        field.focus({ preventScroll: true });
+        field.scrollIntoView?.({ block: "center" });
+      }
+      return;
+    }
     setErrors([]); setStep(Math.min(4, step + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function back() { setErrors([]); setStep(Math.max(0, step - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -259,7 +273,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
     <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
+      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} aria-label={`Step ${index + 1}: ${name}`} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
       <form ref={formRef} onSubmit={submitApplication} noValidate className="min-w-0">
         {recoveredDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4">
           <p>Your account has a newer draft. This tab also has unsaved edits.</p>
@@ -281,7 +295,9 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
         <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={() => void save(draft)} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{saving ? "Saving to your account…" : draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
         <p className="mt-4 text-xs leading-5 text-white/40">{owner ? "Submitting sends your application to Zero Loss for review." : "Guest drafts and selected files stay on this device until you save them to your account."}</p>
       </fieldset></form>
-    </div><div className="mt-8 text-center"><Link href={personalSignupHref} className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
+    </div><div className="mt-8 text-center"><Link href={personalSignupHref} onNavigate={event => {
+      if (hasUnsavedChanges() && !window.confirm("Leave the business application? Unsaved changes may be lost.")) event.preventDefault();
+    }} className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
   </div></BusinessEditor.Provider>;
 }
 

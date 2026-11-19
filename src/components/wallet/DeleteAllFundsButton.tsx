@@ -14,13 +14,20 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
   const requestKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (balanceCents !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
-  }, [balanceCents]);
+    if (balanceCents === null && !pending && restoreFocus.current) {
+      restoreFocus.current = false;
+      trigger.current?.focus({ preventScroll: true });
+    }
+  }, [balanceCents, pending]);
 
   function closeDialog() {
+    restoreFocus.current = true;
     dialogRef.current?.close();
     setBalanceCents(null);
     requestKey.current = null;
@@ -72,7 +79,7 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
 
   return <>
     <div className={styles.control}>
-      <button type="button" className={styles.trigger} onClick={openConfirmation} disabled={pending || value === "Unavailable"}>
+      <button type="button" ref={trigger} className={styles.trigger} onClick={openConfirmation} disabled={pending || value === "Unavailable"}>
         {pending && balanceCents === null ? "Checking balance…" : "Delete Funds"}
       </button>
       {notice && balanceCents === null ? <span className={styles.notice} role="status">{notice}</span> : null}

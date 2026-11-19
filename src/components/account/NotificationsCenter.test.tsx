@@ -34,11 +34,11 @@ test("a confirmed incoming alert updates the open list, count and read controls 
       <Receive /><NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />
     </NotificationProvider>);
     fireEvent.click(screen.getByRole("button", { name: /Your Crew0/ }));
-    expect(screen.getByText("No your crew updates")).toBeTruthy();
+    expect(screen.getByText("No Crew updates yet.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Receive share" }));
     expect(screen.getByRole("button", { name: /Your Crew1/ })).toHaveProperty("ariaPressed", "true");
     expect(screen.getByText(share.title)).toBeTruthy();
-    expect(screen.queryByText("No your crew updates")).toBeNull();
+    expect(screen.queryByText("No Crew updates yet.")).toBeNull();
     expect(screen.getByRole("link", { name: /View shared item/ }).getAttribute("href")).toBe(share.href);
     fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
     await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith([share.id]));
@@ -157,7 +157,7 @@ test("overview tickets and every existing notification category keep their desti
   expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
   fireEvent.click(screen.getByRole("button", { name: /^Your Crew\s*0$/ }));
-  expect(screen.getByText("No your crew updates")).toBeTruthy();
+  expect(screen.getByText("No Crew updates yet.")).toBeTruthy();
 });
 
 test("the confirmed-email notification is highlighted without changing its destination", () => {

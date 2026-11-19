@@ -36,6 +36,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const [accountReference, setAccountReference] = useState(initialAccountReference);
   const postcard = useRef<HTMLDivElement>(null);
   const [addressSide, setAddressSide] = useState(true);
+  const demoNoteTrigger = useRef<HTMLButtonElement>(null);
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
   const [printPreview, setPrintPreview] = useState(false);
   const printTrigger = useRef<HTMLButtonElement>(null);
@@ -139,8 +140,8 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
             </span>
           </span>
         </span>
-        {!addressSide && <button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
-        {demoNoteVisible && !addressSide && <span role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
+        {!addressSide && <button ref={demoNoteTrigger} type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
+        {demoNoteVisible && !addressSide && <span role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
       </div>
     </div>
 

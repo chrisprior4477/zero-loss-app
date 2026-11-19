@@ -409,7 +409,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         <section aria-live="polite" aria-label={`${filters.find(([key]) => key === filter)?.[1]} notifications`} className={styles.list}>
           {visible.length === 0 ? <div className={styles.empty}>
             <span aria-hidden="true"><AccountIcon name={filter === "orders" ? "orders" : "bell"} /></span>
-            <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
+            <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : filter === "crew" ? "No Crew updates yet." : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
             <p>New verified updates will appear here automatically.</p>
           </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${styles.notificationRows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];

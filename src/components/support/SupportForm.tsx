@@ -12,6 +12,13 @@ import { SupportRecordPicker } from "./SupportRecordPicker";
 
 const field = `${styles.ticket} ${styles.field}`;
 const orderSubject = "Question about this order";
+const transactionSubject = "Question about this wallet transaction";
+
+function recordDefaults(record: SupportDraft["record"]) {
+  if (record?.kind === "order") return { subject: orderSubject, category: "reward" };
+  if (record?.kind === "transaction") return { subject: transactionSubject, category: "wallet" };
+  return null;
+}
 
 function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
   return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
@@ -29,7 +36,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
   const initialDraft: SupportDraft = {
     requestKey,
-    subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "",
+    subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? transactionSubject : rewardId ? "Question about this reward" : "",
     body: "",
     category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : "other",
     caseStatus: "awaiting_customer",
@@ -68,15 +75,15 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     writeSupportDraft(draftKey, hasDraftChanges(next, initialDraft) || next.uncertain ? next : null);
   }
   function changeRecord(nextRecord: SupportDraft["record"]) {
-    const wasOrder = record?.kind === "order";
-    const isOrder = nextRecord?.kind === "order";
+    const previousDefaults = recordDefaults(record);
+    const nextDefaults = recordDefaults(nextRecord) ?? initialDraft;
     const change: Partial<SupportDraft> = { record: nextRecord };
-    if (!draft.subjectEdited && (subject === initialDraft.subject || (wasOrder && draft.subjectEdited === false && subject === orderSubject))) {
-      change.subject = isOrder ? orderSubject : initialDraft.subject;
+    if (!draft.subjectEdited && (subject === initialDraft.subject || (draft.subjectEdited === false && subject === previousDefaults?.subject))) {
+      change.subject = nextDefaults.subject;
       change.subjectEdited = false;
     }
-    if (!draft.categoryEdited && (category === initialDraft.category || (wasOrder && draft.categoryEdited === false && category === "reward"))) {
-      change.category = isOrder ? "reward" : initialDraft.category;
+    if (!draft.categoryEdited && (category === initialDraft.category || (draft.categoryEdited === false && category === previousDefaults?.category))) {
+      change.category = nextDefaults.category;
       change.categoryEdited = false;
     }
     changeDraft(change);

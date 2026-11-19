@@ -4,6 +4,7 @@ import { createContext, useContext, useId, useRef, useState, type ReactNode } fr
 import { useRouter } from "next/navigation";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 
 type Position = "top" | "bottom";
@@ -32,8 +33,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     // A new search starts at the first batch, retaining the shopper's filters.
     url.searchParams.delete("batch");
     const destination = `${url.pathname}${url.search}#${anchor}`;
-    router.push(destination, { scroll: false });
-    if (term === searchTerm) document.getElementById(anchor)?.scrollIntoView?.({ block: "start" });
+    if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
   }
   return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;
 }

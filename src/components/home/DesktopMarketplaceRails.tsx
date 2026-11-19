@@ -216,7 +216,10 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 export function DesktopMarketplaceRails() {
   const availability = useOfferingAvailability();
   const resolved = useResolvedCatalogSlugs();
-  const brands = popularRewardBrands.filter(brand => popularRewardAmounts.some(amount => !resolved.has(popularRewardProductSlug(brand.slug, amount))));
+  const brands = popularRewardBrands.filter(brand => popularRewardAmounts.some(amount => {
+    const slug = popularRewardProductSlug(brand.slug, amount);
+    return !resolved.has(slug) || Boolean(availability?.[slug]?.directPriceCents);
+  }));
   const endingSoon = placeEndingSoonShowcases(sampleEndingSoon.filter(sample => !isResolvedCatalogHref(sample.item.href, resolved)).map(sample => {
     const current = availabilityForHref(availability, sample.item.href);
     return current ? { item: { ...sample.item, ticketCapacity: current.capacity, ticketsSold: current.sold }, remaining: current.remaining } : sample;

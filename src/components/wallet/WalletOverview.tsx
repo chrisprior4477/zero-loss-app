@@ -87,7 +87,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
       {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} fromDeposits={fromDeposits} restoreLedgerView={restoreLedgerView} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
-        <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
+        <article id="balance" tabIndex={-1} className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
           <div className={styles.balanceArt}><Image src="/account/drawer/wallet-transactions-324x180.png" alt="Zero Loss leather wallet" width={324} height={180} priority sizes="324px" /></div>
           <div className={styles.balanceCopy}>
             <h2>Current balance</h2>

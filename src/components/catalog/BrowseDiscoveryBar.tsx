@@ -12,6 +12,7 @@ import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/na
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 import { useBrowseResultsSearch } from "./BrowseResultsSearch";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
@@ -142,7 +143,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     if (term) url.searchParams.set("q", term);
     else url.searchParams.delete("q");
     url.searchParams.delete("batch");
-    router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+    const destination = `${url.pathname}${url.search}#search-results`;
+    if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
