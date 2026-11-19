@@ -20,7 +20,7 @@ export function entryReviewContext(query: EntryReviewContext = {}) {
 }
 export const purchaseDepositKeyPattern = /^purchase_fund_[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 
-export type FundingContinuation = { title: string; entryDepositReturn?: string; href: string; label?: "Back to purchase option" | "Back to entry review" | "Back to gift-card checkout" | "Open gift card"; entryQuantity?: number; shortfallCents?: number; depositCents?: number; selectionUnavailable?: boolean };
+export type FundingContinuation = { title: string; entryDepositReturn?: string; href: string; label?: "Back to purchase option" | "Back to entry review" | "Open gift card"; entryQuantity?: number; shortfallCents?: number; depositCents?: number; selectionUnavailable?: boolean };
 
 /** Only an exact option selector is accepted; the purchase page rechecks ownership. */
 export function purchaseOptionReturnPath(value: unknown): string | null {

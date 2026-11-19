@@ -11,7 +11,9 @@ test("only this account's resolved prizes leave the demo catalog until entries a
   const activity: AccountActivity = {
     source: "stored", isPreview: true, activeCount: 1,
     activity: [item("samsung-m70h-tv", "prize"), item("walmart-100-gift-card", "prize"), item("nike-court-shot-shoes", "completion"),
-      item("babys-essentials-bundle", "completed"), item("publix-100-gift-card", "active")],
+      { ...item("babys-essentials-bundle", "completed"), entryId: "paid-entry", rewardSource: "purchase" },
+      { ...item("amazon-100-gift-card", "completed"), entryId: null, rewardSource: "purchase" },
+      item("publix-100-gift-card", "active")],
   };
   const resolved = new Set(resolvedCatalogSlugs(activity));
   expect([...resolved]).toEqual(["samsung-m70h-tv", "walmart-100-gift-card", "nike-court-shot-shoes", "babys-essentials-bundle"]);

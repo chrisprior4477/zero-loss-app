@@ -23,6 +23,6 @@ export function DepositReceipt({ amount, date, status, tone, children }: {
 
 export function ContinueAfterDeposit({ destination }: { destination: FundingContinuation }) {
   return <Link href={fundedProductEntryHref(destination.href)} className={paymentStyles.confirm}>
-    {destination.label === "Back to gift-card checkout" ? destination.label : destination.label === "Back to purchase option" || destination.href.startsWith("/account/purchase-options/") ? "Return to purchase review" : "Return to entry review"}
+    {destination.label === "Back to purchase option" || destination.href.startsWith("/account/purchase-options/") ? "Return to purchase review" : "Return to entry review"}
   </Link>;
 }

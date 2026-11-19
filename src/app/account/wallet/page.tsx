@@ -74,9 +74,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const forEntry = fromProduct && (query.entry === undefined || fromEntry?.status === "active");
   const availability = forEntry && account.wallet ? await getOfferingAvailability() : null;
   const currentAvailability = forEntry ? availability?.[fromProduct.slug] : undefined;
-  const directPrice = query.entry === undefined ? currentAvailability?.directPriceCents : undefined;
-  const selectionUnavailable = !directPrice && currentAvailability !== undefined && currentAvailability.remaining < requestedQuantity;
-  const amounts = forEntry ? entryFundingAmounts(directPrice ?? currentAvailability?.entryPriceCents ?? null, directPrice ? 1 : requestedQuantity, account.wallet?.balanceCents ?? null) : undefined;
+  const selectionUnavailable = currentAvailability !== undefined && currentAvailability.remaining < requestedQuantity;
+  const amounts = forEntry ? entryFundingAmounts(availability?.[fromProduct.slug]?.entryPriceCents ?? null, requestedQuantity, account.wallet?.balanceCents ?? null) : undefined;
   const fundingReturn: FundingContinuation | undefined = query.entry !== undefined
     ? fromEntry ? fromEntry.status === "active"
       ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity, query.filter, entryOrigin), label: "Back to entry review", entryQuantity: requestedQuantity,
@@ -92,8 +91,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       fundingReturn.shortfallCents = undefined;
       fundingReturn.depositCents = undefined;
       fundingReturn.selectionUnavailable = true;
-    } else if (directPrice) Object.assign(fundingReturn, { label: "Back to gift-card checkout", ...amounts });
-    else Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
+    } else Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
   }
   const stalePurchaseReturn = recoveryKey && fromEntry && fromEntry.status !== "active"
     && !openPrizeOptions([fromEntry], fromEntry.slug).length;

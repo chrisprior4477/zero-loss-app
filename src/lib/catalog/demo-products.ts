@@ -7,7 +7,6 @@ export type DemoProduct = {
   collections?: readonly string[];
   value: number;
   entryPrice: number;
-  directPriceCents?: number;
   capacity: number;
   sold: number;
   summary: string;

@@ -15,7 +15,7 @@ export const getShoppingCatalog = cache(async () => {
     const remaining = usesLivePools
       ? availability?.[product.slug]?.remaining ?? 0
       : product.capacity - product.sold;
-    if (remaining <= 0 || availability?.[product.slug]?.directPriceCents) hidden.add(product.slug);
+    if (remaining <= 0) hidden.add(product.slug);
   }
   return { hidden, availability, account, unavailable: usesLivePools && !availability };
 });

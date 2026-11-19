@@ -116,7 +116,7 @@ export function filterBrowseProducts(products: readonly DemoProduct[], filters: 
     (filters.type === "all" || (filters.type === "gift-cards") === isGiftCardListing(product))
     && (!allowedRetailers || allowedRetailers.has(product.retailer))
     && (!filters.retailer || product.retailer === filters.retailer)
-    && (!filters.availableOnly || product.directPriceCents || product.sold < product.capacity)
+    && (!filters.availableOnly || product.sold < product.capacity)
     && (filters.minValue === null || product.value >= filters.minValue)
     && (filters.maxValue === null || product.value <= filters.maxValue)
   );
@@ -124,14 +124,13 @@ export function filterBrowseProducts(products: readonly DemoProduct[], filters: 
   const picturedFirst = (left: DemoProduct, right: DemoProduct) =>
     Number(isGiftCardListing(left)) - Number(isGiftCardListing(right));
   const availableFirst = (left: DemoProduct, right: DemoProduct) =>
-    Number(!left.directPriceCents && remaining(left) === 0) - Number(!right.directPriceCents && remaining(right) === 0);
+    Number(remaining(left) === 0) - Number(remaining(right) === 0);
 
   return result.sort((left, right) => {
     switch (filters.sort) {
       case "fewest-left":
         return (picturedFirstInFewest && !searchTerm ? picturedFirst(left, right) : 0)
           || availableFirst(left, right)
-          || Number(Boolean(left.directPriceCents)) - Number(Boolean(right.directPriceCents))
           || remaining(left) - remaining(right)
           || left.title.localeCompare(right.title);
       case "price-low":

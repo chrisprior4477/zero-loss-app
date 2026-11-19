@@ -3,7 +3,6 @@ import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DirectGiftCardCheckout } from "@/components/product/DirectGiftCardCheckout";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
 import { FreeEntryLink, ProductEntrySelection } from "@/components/product/ProductEntrySelection";
 import { RememberViewedProduct } from "@/components/product/RememberViewedProduct";
@@ -18,7 +17,7 @@ import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { buildProductMetadata } from "@/lib/catalog/product-metadata";
 import { randomUUID } from "node:crypto";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
-import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
+import { parseEntryQuantity } from "@/lib/entries/return-intent";
 import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
@@ -53,12 +52,11 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
   const hiddenPool = hidden.has(product.slug);
   const current = availability?.[product.slug];
-  const directPrice = current?.directPriceCents;
   const requestHead: EntryRequestHead = account && (hiddenPool || account.wallet?.scope === "demo") && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
-  if (hiddenPool && !directPrice && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
+  if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
   const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
@@ -95,27 +93,6 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <a href={product.sourceUrl} target="_blank" rel="noreferrer" className={entryStyles.infoSource}>View {product.sourceLabel} ↗</a>
     </section>
   );
-  if (directPrice && !(requestHead.ready && requestHead.validating)) {
-    const returnTo = productEntryHref(product.slug, 1, query.from, query.share);
-    return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title }} /><div className={entryStyles.page}>
-      <ProductEntryAutoScroll productKey={`${product.slug}:buy:${query.funded ?? ""}`} />
-      <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} checkout`}>
-        <div className={entryStyles.nav}><Link href={transactionReturn ?? browseReturnHref}>← Back to {transactionReturn ? "this transaction" : browseReturnLabel}</Link></div>
-        {sharedControls ? <div className={entryStyles.shared}>{sharedControls}</div> : null}
-        <ProductGallery compact gallery={product.gallery} title={product.title} slug={product.slug} productInfo={
-          <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
-            <p className={entryStyles.infoSummary}>One simulated {product.retailer} gift card, issued immediately after you confirm the purchase.</p>
-            {product.note && <p className={entryStyles.infoNote}>{product.note}</p>}
-            <a href={product.sourceUrl} target="_blank" rel="noreferrer" className={entryStyles.infoSource}>View {product.sourceLabel} ↗</a>
-          </section>
-        } />
-        <div className={entryStyles.heading}><p>{product.category}</p><h1>{product.title}</h1></div>
-        <DirectGiftCardCheckout key={`${account?.userId ?? "guest"}:${product.slug}`} slug={product.slug} title={product.title} priceCents={directPrice}
-          ownerId={account?.userId} balanceCents={account?.wallet?.scope === "demo" ? account.wallet.balanceCents : undefined}
-          canFund={account?.fundingEnabled === true} returnTo={returnTo} browseReturn={browseReturnHref} />
-      </section>
-    </div></>;
-  }
   const entryDetails = <>
     <p>Each ${entryPrice.toFixed(2)} entry is a separate chance. Entries never combine into a larger payment or a better chance for one ticket.</p>
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
