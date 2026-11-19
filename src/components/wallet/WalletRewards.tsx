@@ -196,6 +196,7 @@ type CheckoutContext = { receipt: string; cards: CheckoutCard[]; current: Checko
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
 export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView: sourceView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York", checkoutContext, claimCheckHref }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] | null; checkoutContext?: CheckoutContext; claimCheckHref?: string }) {
   const returnView = sourceView === "ready" && item.rewardStatus === "expired" ? "expired" : sourceView;
+  const directPurchase = item.rewardSource === "purchase" && !item.entryId;
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -270,9 +271,9 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
           <div className={styles.rewardContent}>
             <div className={styles.featuredProduct}>
               <div className={styles.featuredImage}><Image src={item.image} alt={item.title} fill priority sizes="(max-width: 760px) 85vw, 34vw" /></div>
-              <p className={styles.featuredEyebrow}>Featured item from your entry</p>
+              <p className={styles.featuredEyebrow}>{directPurchase ? "Gift card purchased" : "Featured item from your entry"}</p>
               <p className={styles.featuredTitle}>{item.title}</p>
-              <p className={styles.featuredNote}>This is the product featured in your entry—not a restriction on your reward.</p>
+              {directPurchase ? null : <p className={styles.featuredNote}>This is the product featured in your entry—not a restriction on your reward.</p>}
             </div>
             <div id="reward-pass" className={styles.rewardPass}>
               <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>

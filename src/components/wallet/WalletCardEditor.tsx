@@ -147,10 +147,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
         <button type="button" disabled={pending} className={styles.secondary} onClick={onCancel}>{updated ? "Back to payment methods" : "Cancel"}</button>
         <button type="button" className={styles.secondary} aria-expanded={showCard} aria-controls={previewId} onClick={() => setShowCard(value => !value)}>{showCard ? "Hide card" : "See card"}</button>
-        {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <a className={styles.secondary} href="#balance" onClick={event => {
-          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-          requestAnimationFrame(() => document.getElementById("balance")?.focus({ preventScroll: true }));
-        }}>Back to wallet</a>}
+        {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <a className={styles.secondary} href="#balance">Back to wallet</a>}
       </div>
       <div id={previewId} hidden={!showCard} className={styles.artwork}><DemoCardArtwork token={enteredFixture?.token ?? token} artwork={artwork} cardholder={cardholder || "Preview customer"} back={back} /><button type="button" className={styles.secondary} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></div>
       <p className={styles.sample}>Simulation only. Only the safe sample-card reference and your preference are saved. No payment is made.</p>
