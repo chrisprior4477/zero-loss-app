@@ -75,6 +75,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const [editing, setEditing] = useState(false);
   const [searchSubmissions, setSearchSubmissions] = useState(0);
   const voice = useVoiceSearch(setDraft);
+  const invalidSearchDraft = Boolean(draft.trim() && !/[\p{L}\p{N}]/u.test(draft));
   const cancelVoice = voice.cancel;
   const searchInput = useRef<HTMLInputElement>(null);
   const restoringSearchFocus = useRef(false);
@@ -273,7 +274,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
     const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/") || destination.pathname === "/account/declined-offers") && destination.searchParams.get("walletView") === "1";
-    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId, anchor.hasAttribute("data-wallet-support") ? ordersFilter : undefined);
+    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId, anchor.hasAttribute("data-wallet-support") || destination.searchParams.get("fromOrders") === "1" ? ordersFilter : undefined);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
@@ -328,7 +329,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const links = transactionLinks(entry, activity, preserveView);
     const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
     const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
-      ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}) })}` : productPath;
+      ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}), ...(ordersFilter ? { fromOrders: "1", orderFilter: ordersFilter } : {}) })}` : productPath;
     const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
     const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" || ordersFilter ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}`;
     const selected = entry.id === selectedId;
@@ -369,6 +370,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         onSubmit={event => {
           event.preventDefault();
           if (!draft.trim() || voice.busy) return;
+          if (invalidSearchDraft) { searchInput.current?.focus(); return; }
           searchInput.current?.blur();
           setEditing(false);
           applySearch(draft.trim());
@@ -377,13 +379,14 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         onKeyDown={event => { if (event.key === "Escape" && (editing || event.target === searchInput.current)) { event.preventDefault(); closeSearch(true); } }}>
         <label htmlFor={`${dateErrorId}-search`}>Search transactions</label>
         <div className={styles.ledgerSearchField}>
-          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft}
+          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft} aria-invalid={invalidSearchDraft || undefined} aria-describedby={invalidSearchDraft ? `${dateErrorId}-search-error` : undefined}
             onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { voice.reset(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
           {draft.trim() && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
           <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
           {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={event => closeSearch(event.detail === 0)}>×</button> : null}
         </div>
+        {invalidSearchDraft ? <p id={`${dateErrorId}-search-error`} role="status">Enter a product, retailer, or amount to search your transactions.</p> : null}
       </form>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
         <div className={styles.quickDates} role="group" aria-label="Quick date ranges">

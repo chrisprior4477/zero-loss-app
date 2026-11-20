@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { materialsBucket, type BusinessFile } from "./application";
+import { businessFileNameLimit, materialsBucket, type BusinessFile } from "./application";
 
 export const materialTypes = ["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/quicktime","application/pdf","text/plain","text/csv","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
 // Staged bytes survive the guest's sign-in/verification round trip on this browser.
@@ -25,6 +25,9 @@ async function stagedFile(id: string, action: "read" | "write" | "remove", file?
 
 export async function stageMaterials(files: File[], listingIndex: number | null) {
   for (const file of files) {
+    if (!file.name || file.name.length > businessFileNameLimit) {
+      throw new Error(`Rename ${file.name.slice(0, 36) || "the selected file"}… to ${businessFileNameLimit} characters or fewer, then attach it again.`);
+    }
     if (!file.size || file.size > 50 * 1024 * 1024 || !materialTypes.includes(file.type) || (listingIndex !== null && !file.type.startsWith("image/"))) {
       throw new Error("Choose a supported, nonempty file up to 50 MB. Listing photos must be JPEG, PNG, WebP or GIF.");
     }
@@ -47,9 +50,13 @@ export async function uploadMaterials(owner: string, files: BusinessFile[], uplo
   const bucket = createClient().storage.from(materialsBucket);
   for (const item of files) {
     if (uploaded.has(item.id)) continue;
-    const file = await stagedFile(item.id, "read");
-    if (!file) throw new Error(`Reselect ${item.name} on the device where you attached it.`);
     const path = `${owner}/${item.id}`;
+    const file = await stagedFile(item.id, "read").catch(() => undefined);
+    if (!file) {
+      if (!(await bucket.exists(path)).data) throw new Error(`Reselect ${item.name} on the device where you attached it.`);
+      uploaded.add(item.id);
+      continue;
+    }
     const { error } = await bucket.upload(path, file, { contentType: file.type, upsert: false });
     // A previous upload may have completed before its response reached the browser.
     if (error && !(await bucket.exists(path)).data) throw new Error(`Could not upload ${item.name}. Your draft is still open. Try saving again.`);

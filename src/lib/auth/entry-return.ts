@@ -32,8 +32,19 @@ export function signInReturnPath(value: unknown): string | null {
 }
 
 export function sharedProductReturnPath(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  return /^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*\?(?:share=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|shared=1)(?:&(?:saveShared=1|reviewShare=(?:options|membership)))?$/i.test(value) ? value : null;
+  if (typeof value !== "string" || value.length > 24576 || !/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*\?/i.test(value) || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  const url = new URL(value, "https://navigation.invalid");
+  const params = url.searchParams;
+  const keys = [...params.keys()];
+  if (url.hash || new Set(keys).size !== keys.length || keys.some(key => !["share", "shared", "saveShared", "reviewShare", "from"].includes(key))) return null;
+  const share = params.get("share");
+  const shared = params.get("shared");
+  if (share === null ? shared !== "1" : shared !== null || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(share)) return null;
+  const review = params.get("reviewShare");
+  if (review !== null && (review !== "options" && review !== "membership" || params.has("saveShared"))) return null;
+  if (params.has("saveShared") && params.get("saveShared") !== "1") return null;
+  if (params.has("from") && !productBrowseReturnPath(params.get("from"))) return null;
+  return value;
 }
 
 /** Carry the same allowlisted destination between account forms. */

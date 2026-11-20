@@ -92,6 +92,8 @@ test("the password detour carries the selected prize and quantity back into the 
   const back = new URL(screen.getByRole("link", { name: /Back to sign in/ }).getAttribute("href")!, base);
   expect(back.pathname).toBe("/login");
   expect(back.searchParams.get("next")).toBe(destination);
+  expect(back.searchParams.get("focus")).toBe("email");
+  expect(back.hash).toBe("#login-form");
   cleanup();
 
   render(<LoginForm returnTo={back.searchParams.get("next")} />);
@@ -101,5 +103,5 @@ test("the password detour carries the selected prize and quantity back into the 
 
 test.each([undefined, "https://outside.example", ["one", "two"]])("password help falls back to ordinary sign-in for a missing or invalid destination", async next => {
   render(await ForgotPasswordPage({ searchParams: Promise.resolve({ next }) }));
-  expect(screen.getByRole("link", { name: /Back to sign in/ }).getAttribute("href")).toBe("/login");
+  expect(screen.getByRole("link", { name: /Back to sign in/ }).getAttribute("href")).toBe("/login?focus=email#login-form");
 });

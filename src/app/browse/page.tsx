@@ -268,7 +268,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
             <p className="mt-2 text-white/65">
               {invalidSearch ? "Enter a product or retailer name to search." : searchTooLong ? "Shorten your search to see matching prizes." : searchTerm
-                ? <>{products.length} {products.length === 1 ? "product" : "products"}{!broaderSearch && directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="text-white">“{searchTerm}”</strong></>
+                ? <>{products.length} {products.length === 1 ? "product" : "products"}{!broaderSearch && directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="break-words text-white">“{searchTerm}”</strong></>
                 : "Choose a product to see its entry details and current availability."}
             </p>
           </div>
@@ -280,6 +280,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
+          {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
+            That retailer is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove retailer filter</Link>
+          </p> : null}
           {retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             {filters.retailer} has no prizes in this category. <BrowseResultsLink target="heading" href={`/browse?${allCategoriesForRetailer}#search-results`} className="underline">Search for {filters.retailer} across all categories</BrowseResultsLink>
           </p> : null}
@@ -380,7 +383,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {searchTooLong || invalidSearch ? null : !hasOpenResults && savedMatches.length ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
-            <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
+            <h2 className="mt-3 max-w-3xl break-words text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">You have saved results for this search. Open your reward or purchase option below.</p>
             {savedOutsideFilters ? <h3 className="mt-4 text-sm font-bold text-cyan-200">
               {savedWithinFilters.size === 0 ? "Saved in your account · outside your filters" : "Saved in your account · includes results outside your filters"}
@@ -398,7 +401,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <p role="status" className="mt-6 text-white/75">Prize availability could not be loaded. Refresh to check again.</p>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-4 text-center sm:p-8">
-            <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
+            <h2 className="break-words text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
             <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>
             {filterRecovery}
           </section>
@@ -411,7 +414,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         ) : searchTerm ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Nothing matched yet</p>
-            <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">
+            <h2 className="mt-3 max-w-3xl break-words text-3xl font-black tracking-[-0.035em] sm:text-4xl">
               {retryScope ? <>No “{searchTerm}” matches in {retryScope}.</> : <>We don&apos;t have “{searchTerm}” in the catalog yet.</>}
             </h2>
             {filterRecovery ?? <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">

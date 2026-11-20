@@ -58,7 +58,7 @@ function parseInitial(iso: string | undefined): {
 }
 
 function yearOptions(): number[] {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getUTCFullYear();
   const maxYear = currentYear - MIN_ACCOUNT_AGE_YEARS;
   const minYear = currentYear - 100;
   const years: number[] = [];
@@ -77,7 +77,7 @@ function clampDay(
     return day;
   }
   const limit = daysInMonth(year, month);
-  return day > limit ? "" : day;
+  return day > limit || !isAtLeastAge(buildIsoDate(year, month, day)) ? "" : day;
 }
 
 type DateOfBirthSelectsProps = {
@@ -107,6 +107,13 @@ export function DateOfBirthSelects({
       : "";
   const id = (name: string) => `${idPrefix}${name}`;
 
+  function changeYear(next: number | "") {
+    setYear(next);
+    const validMonth = next === "" || month === "" || isAtLeastAge(buildIsoDate(next, month, 1));
+    if (!validMonth) setMonth("");
+    setDay(current => validMonth ? clampDay(current, next, month) : "");
+  }
+
   return (
     <div>
       <p
@@ -122,6 +129,7 @@ export function DateOfBirthSelects({
           </label>
           <select
             id={id("dob_month")}
+            name="dob_month"
             required
             value={month === "" ? "" : String(month)}
             className={selectClassName}
@@ -134,7 +142,7 @@ export function DateOfBirthSelects({
           >
             <option value="">Month</option>
             {MONTHS.map((item) => (
-              <option key={item.value} value={item.value}>
+              <option key={item.value} value={item.value} disabled={year !== "" && !isAtLeastAge(buildIsoDate(year, item.value, 1))}>
                 {item.label}
               </option>
             ))}
@@ -147,6 +155,7 @@ export function DateOfBirthSelects({
           </label>
           <select
             id={id("dob_day")}
+            name="dob_day"
             required
             value={day === "" ? "" : String(day)}
             className={selectClassName}
@@ -159,7 +168,7 @@ export function DateOfBirthSelects({
             <option value="">Day</option>
             {Array.from({ length: maxDay }, (_, index) => index + 1).map(
               (value) => (
-                <option key={value} value={value}>
+                <option key={value} value={value} disabled={Boolean(year && month && !isAtLeastAge(buildIsoDate(year, month, value)))}>
                   {value}
                 </option>
               )
@@ -173,6 +182,7 @@ export function DateOfBirthSelects({
           </label>
           <select
             id={id("dob_year")}
+            name="dob_year"
             required
             value={manualYear ? "manual" : year === "" ? "" : String(year)}
             className={selectClassName}
@@ -181,8 +191,7 @@ export function DateOfBirthSelects({
               const nextYear = manual || !event.target.value ? "" : Number(event.target.value);
               setManualYear(manual);
               setYearText("");
-              setYear(nextYear);
-              setDay((current) => clampDay(current, nextYear, month));
+              changeYear(nextYear);
             }}
           >
             <option value="">Year</option>
@@ -197,13 +206,12 @@ export function DateOfBirthSelects({
       </div>
       {manualYear && <label className="mt-2 block text-sm" htmlFor={id("dob_year_input")}>
         Enter your birth year
-        <input id={id("dob_year_input")} className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
+        <input id={id("dob_year_input")} name="dob_year_input" className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
           aria-invalid={yearText === "0000" || undefined} aria-describedby={yearText === "0000" ? id("dob_year_error") : undefined} onChange={event => {
           const text = event.target.value.replace(/\D/g, "").slice(0, 4);
           const nextYear = text.length === 4 && Number(text) > 0 ? Number(text) : "";
           setYearText(text);
-          setYear(nextYear);
-          setDay(current => clampDay(current, nextYear, month));
+          changeYear(nextYear);
         }} />
         {yearText === "0000" ? <span id={id("dob_year_error")} role="alert" className="mt-1 block text-xs text-red-300">Enter a valid four-digit birth year.</span> : null}
       </label>}

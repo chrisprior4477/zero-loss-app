@@ -88,7 +88,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="#balance" aria-current="page">Funds &amp; history</Link></nav>
       </header>
 
-      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} fromDeposits={fromDeposits} restoreLedgerView={restoreLedgerView} />}
+      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={canFund} timeZone={timeZone} fromDeposits={fromDeposits} restoreLedgerView={restoreLedgerView} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
         <article id="balance" tabIndex={-1} className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
@@ -107,7 +107,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
               </Link> : null}
               <div className={styles.fundingActions}>
                 {canFund ? <Link href={allCardsSaved ? "#payment-methods" : "#wallet-add-card"} className={styles.cardAction}><AccountIcon name="wallet" />{allCardsSaved ? "Choose saved card" : "Add Card"}</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
-                {canFund ? <Link href="#payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
+                {demo && !cardUnavailable ? <Link href="#payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
               </div>
               <a href="#transactions" className={styles.transactionsLink}>View transactions <AccountIcon name="arrow" /></a>
             </div>
@@ -146,7 +146,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} timeZone={timeZone} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits key={weeklyDeposit ?? "weeks"} restoreReceipt={selected ? undefined : weeklyDeposit} requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} asOf={new Date().toISOString()} timeZone={timeZone} />}
-        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} fundingEnabled={fundingEnabled} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </div>;

@@ -178,7 +178,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       </section>
     </PageContainer>;
     const result = lookup.result;
-    if (!result.data) return <PageContainer>{heading}{navigation}<p role="alert">This case is unavailable for your account. Return to My support cases to try again.</p></PageContainer>;
+    if (!result.data) return <PageContainer>{heading}{navigation}<section id="conversation" className={styles.anchor}>
+      <div role="alert">
+        <h2 tabIndex={-1} className="font-bold">This case is unavailable for your account.</h2>
+        <p>Return to My support cases to try again.</p>
+      </div>
+      {query.fromUpdates === "1" ? <Link className={button} href={notificationHref(alerts ?? "all", notice)}>← Back to notifications</Link> : null}
+    </section></PageContainer>;
     const supportCase = result.data;
     const messagePage = pageIndex(query.messages);
     const messageAnchor = supportMessageAnchor(query.messageAnchor);

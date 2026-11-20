@@ -45,6 +45,6 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
     redirect(`${instructions}#free-entry-intro`);
   }
   return <FreeEntryPrintSheet offering={product.slug} title={product.title}
-    name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001"
+    name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001" blankSample
     back={<Link href={`${instructions}#free-entry-intro`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>} />;
 }

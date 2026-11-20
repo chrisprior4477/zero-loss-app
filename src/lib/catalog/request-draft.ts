@@ -1,4 +1,6 @@
-export type CatalogRequestDraft = { requestedItem: string; email: string; notes: string; requestKey?: string };
+import { maxCatalogSearchLength } from "./search-text";
+
+export type CatalogRequestDraft = { requestedItem: string; email: string; notes: string; requestKey?: string; submittedSourceQuery?: string };
 
 export function isCatalogRequestKey(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -23,7 +25,9 @@ export function readCatalogRequestDraft(key: string): CatalogRequestDraft | null
     const { requestedItem, email, notes } = saved;
     if (typeof requestedItem !== "string" || requestedItem.length > 160
       || typeof email !== "string" || email.length > 254 || typeof notes !== "string" || notes.length > 1000) return null;
-    return { requestedItem, email, notes, ...(isCatalogRequestKey(saved.requestKey) ? { requestKey: saved.requestKey } : {}) };
+    const request = isCatalogRequestKey(saved.requestKey) ? { requestKey: saved.requestKey } : null;
+    const source = typeof saved.submittedSourceQuery === "string" && saved.submittedSourceQuery.length <= maxCatalogSearchLength ? saved.submittedSourceQuery : undefined;
+    return { requestedItem, email, notes, ...(request ? { ...request, submittedSourceQuery: source } : {}) };
   } catch { return null; }
 }
 

@@ -101,6 +101,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [deleteContactConfirm, setDeleteContactConfirm] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const manualLink = useRef<HTMLTextAreaElement>(null);
+  const focusManualLink = useRef(false);
   const paper = useRef<HTMLDivElement>(null);
   const perforation = useRef<HTMLDivElement>(null);
   const emailRecipientPanel = useRef<HTMLDetailsElement>(null);
@@ -211,7 +213,10 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   useEffect(() => {
     if ((previousStep.current === null && focusOnOpen) || (previousStep.current !== null && previousStep.current !== step)) {
       if (paper.current) paper.current.scrollTop = 0;
-      heading.current?.focus({ preventScroll: true });
+      if (step === "copy" && focusManualLink.current) {
+        focusManualLink.current = false;
+        manualLink.current?.focus();
+      } else heading.current?.focus({ preventScroll: true });
     }
     previousStep.current = step;
   }, [step, focusOnOpen]);
@@ -272,7 +277,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       await navigator.clipboard.writeText(productShareUrl(window.location.origin, item.slug, shareToken));
       if (alive.current) feedback("Link copied. Paste it into your conversation.");
     } catch {
-      if (alive.current) { if (step !== "copy") go("copy"); feedback("Select and copy the link below. Automatic copying isn’t available in this browser."); }
+      if (alive.current) {
+        if (step === "copy") { manualLink.current?.focus(); manualLink.current?.select(); }
+        else { focusManualLink.current = true; go("copy"); }
+        feedback("Select and copy the link below. Automatic copying isn’t available in this browser.");
+      }
     }
   }
 
@@ -417,10 +426,23 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   function selectContact(contact: { value: string; kind: "phone" | "email"; name: string }) {
     setPickedContact({ id: crypto.randomUUID(), name: contact.name.slice(0, 80), phone: contact.kind === "phone" ? contact.value.trim() : "", email: contact.kind === "email" ? contact.value.trim() : "" });
-    const destination = contactReturn.current === "messages" && contact.kind === "phone" ? "messages" : "find";
-    if (destination === contactReturn.current) history.current.pop();
-    if (destination === "messages") { setPhone(contact.value); setRecipientError(false); setStep("messages"); }
-    else { searchVersion.current += 1; setQuery(contact.value); setReviewQuery(contact.value); setPeople([]); setStep("find"); }
+    if (contactReturn.current === "messages") {
+      setRecipientError(false);
+      if (contact.kind === "phone") {
+        history.current.pop();
+        setPhone(contact.value);
+        setStep("messages");
+      } else {
+        setEmail(contact.value);
+        setStep("email");
+        feedback("This contact has an email address. Review the draft before opening your email app.");
+        return;
+      }
+    } else {
+      history.current.pop();
+      searchVersion.current += 1;
+      setQuery(contact.value); setReviewQuery(contact.value); setPeople([]); setStep("find");
+    }
     feedback(`${contact.name} selected. Add to Crew, save to a group, or send in your app.`);
   }
 
@@ -746,7 +768,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <p className={styles.note}>You review and send. Nothing sends automatically.</p>
       </> : null}
 
-      {step === "copy" ? <>{pictureLink}<div className={styles.field}><label htmlFor={`${id}-link`}>Product link</label><textarea id={`${id}-link`} readOnly value={url} onFocus={event => event.target.select()} /></div>{shortcuts}</> : null}
+      {step === "copy" ? <>{pictureLink}<div className={styles.field}><label htmlFor={`${id}-link`}>Product link</label><textarea ref={manualLink} id={`${id}-link`} readOnly value={url} onFocus={event => event.target.select()} /></div>{shortcuts}</> : null}
 
       {step === "find" ? <>
         <form className={styles.field} onSubmit={event => { event.preventDefault(); search(); }}>

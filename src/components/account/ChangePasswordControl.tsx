@@ -19,10 +19,14 @@ function ChangePasswordForm({ onCancel, onPending }: {
   onCancel: () => void; onPending: (pending: boolean) => void;
 }) {
   const [state, action, pending] = useActionState(changePassword, initialState);
+  const confirmation = useRef<HTMLParagraphElement>(null);
   useEffect(() => { onPending(pending); }, [onPending, pending]);
+  useEffect(() => {
+    if (state.status === "updated") confirmation.current?.focus();
+  }, [state.status]);
 
   if (state.status === "updated") {
-    return <p id="change-account-password-form" role="status" className={styles.passwordSuccess}>{state.message}</p>;
+    return <p id="change-account-password-form" ref={confirmation} tabIndex={-1} role="status" className={styles.passwordSuccess}>{state.message}</p>;
   }
 
   return <form id="change-account-password-form" action={action} className={styles.passwordForm}>

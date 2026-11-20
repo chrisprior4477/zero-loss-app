@@ -3,7 +3,7 @@ import { SharedProductControls } from "@/components/product/SharedProductControl
 import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
 import { FreeEntryLink, ProductEntrySelection } from "@/components/product/ProductEntrySelection";
 import { RememberViewedProduct } from "@/components/product/RememberViewedProduct";
@@ -24,9 +24,9 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
-import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
+import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/ledger-return";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; reviewShare?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; reviewShare?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -43,12 +43,18 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const query = await searchParams;
   const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
-  const transactionReturn = typeof query.transaction === "string" && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(query.transaction)
-    ? walletSupportReturnHref(query.transaction, query.walletView === "1") : null;
+  const transactionReturn = transactionOriginHref(query);
   const browseReturnHref = productBrowseReturnHref(transactionReturn ?? query.from);
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
-  const product = getDemoProduct(id);
+  const product = getDemoProduct(id.toLowerCase());
   if (!product) notFound();
+  if (id !== product.slug) {
+    const params = new URLSearchParams();
+    for (const [name, value] of Object.entries(query)) {
+      for (const part of typeof value === "string" ? [value] : value ?? []) params.append(name, part);
+    }
+    permanentRedirect(`/items/${product.slug}${params.size ? `?${params}` : ""}`);
+  }
   const { account, availability, hidden, unavailable } = await getShoppingCatalog();
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
   const hiddenPool = hidden.has(product.slug);
@@ -58,9 +64,14 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
   if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) {
-    if (savedResult) redirect(savedResult.href);
-    const rewardShelf = browseReturnHref.startsWith("/rewards/");
-    const back = rewardShelf ? `${browseReturnHref.split("#")[0]}#reward-values` : browseReturnHref;
+    if (savedResult) {
+      const origin = transactionOriginParams(query);
+      if (!origin) redirect(savedResult.href);
+      const destination = new URL(savedResult.href, "https://navigation.invalid");
+      for (const [key, value] of Object.entries(origin)) destination.searchParams.set(key, value);
+      redirect(`${destination.pathname}${destination.search}${destination.hash}`);
+    }
+    const back = browseReturnHref.startsWith("/rewards/") && !browseReturnHref.includes("#") ? `${browseReturnHref}#reward-values` : browseReturnHref;
     return <div className="mx-auto max-w-3xl px-5 py-9 text-white">
       <HelpLandingScroll target="closed-prize" focusAnchor="closed-prize" />
       <h1 id="closed-prize" tabIndex={-1} className="text-3xl font-black">{product.title}</h1>
@@ -74,7 +85,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const shareReview = query.reviewShare === "options" || query.reviewShare === "membership" ? query.reviewShare : undefined;
   const sharedControls = unavailableShare ? (
     <p role="status" className="mb-3 rounded-lg bg-[#103757] px-4 py-3 text-sm text-white">This shared link couldn’t be opened. You can still view the prize below.</p>
-  ) : sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} reviewOnReturn={shareReview} /> : null;
+  ) : sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} browseReturnHref={query.from !== undefined || transactionReturn ? browseReturnHref : undefined} saveOnReturn={query.saveShared === "1"} reviewOnReturn={shareReview} /> : null;
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (

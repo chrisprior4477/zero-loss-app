@@ -3,7 +3,7 @@
 import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
 import { useEntrySelection } from "./ProductEntrySelection";
@@ -83,6 +83,8 @@ export function DemoParticipationPanel({
     try { return await createPreviewEntry(previous, payload); }
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
+  const entryQuantityRef = useRef<HTMLInputElement>(null);
+  const quantityErrorId = useId();
   const [selectedQuantity, setQuantity, invalidQuantity, setInvalidQuantity] = useEntrySelection(Math.max(1, initialQuantity));
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
@@ -378,7 +380,7 @@ export function DemoParticipationPanel({
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setInvalidQuantity(null); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); setTypedLimit(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} invalidDraft={invalidQuantity} onInvalidDraft={setInvalidQuantity} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
+            <EntryQuantityInput inputRef={entryQuantityRef} errorId={quantityErrorId} value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} invalidDraft={invalidQuantity} onInvalidDraft={setInvalidQuantity} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
@@ -410,7 +412,7 @@ export function DemoParticipationPanel({
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
       </div> : null}
 
-      {invalidQuantity !== null ? <p role="status" className="mt-3 text-sm">Enter a whole number of tickets.</p> : null}
+      {invalidQuantity !== null ? <p id={quantityErrorId} role="status" className="mt-3 text-sm">Enter a whole number of tickets.</p> : null}
       {isSignedIn && !requestHead.ready ? <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm"><p>We couldn’t verify your latest saved submission. Refresh to check its status before entering again.</p><button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh entry status</button></div> : null}
       {!availabilityConfirmed && !uncertain ? (
         <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">
@@ -453,8 +455,10 @@ export function DemoParticipationPanel({
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>
+      ) : invalidQuantity !== null ? (
+        <button id="entry-action" type="button" className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-extrabold text-[#00132e]`} onClick={() => entryQuantityRef.current?.focus()}>Correct entry quantity</button>
       ) : (
-        <Link id="entry-action" href={invalidQuantity === null ? entryLoginHref : "/login"} onClick={() => { if (invalidQuantity === null) rememberEntry(quantity, "sign-in"); }} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
+        <Link id="entry-action" href={entryLoginHref} onClick={() => rememberEntry(quantity, "sign-in")} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
           Sign in to enter
         </Link>
       )}

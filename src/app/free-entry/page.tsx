@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
@@ -54,7 +55,8 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const browseReturn = productBrowseReturnPath(from);
   const returnLabel = productBrowseReturnLabel(browseReturn ?? "/browse");
   if (!product) return <div className="mx-auto max-w-3xl p-6 text-white">
-    <h1 className="text-2xl font-black">Free-entry instructions unavailable</h1>
+    <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens settleAfterNavigation />
+    <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Free-entry instructions unavailable</h1>
     <p className="mt-3">This prize is no longer available for entry.</p>
     <Link className="mt-4 inline-block text-cyan-300 underline" href={browseReturn ?? "/browse"}>Back to {returnLabel === "marketplace" ? "Browse" : returnLabel}</Link>
   </div>;

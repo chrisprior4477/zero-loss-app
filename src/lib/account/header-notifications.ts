@@ -48,6 +48,9 @@ function productKey(n: AccountNotification) {
   // Combine their display totals without merging the underlying ticket records.
   return n.itemTitle ? `${n.visualLabel ?? ""}:${n.itemTitle}`.toLowerCase() : n.itemSlug ?? n.id;
 }
+export function headerGroupIds(items: AccountNotification[], category: HeaderCategory, group: string) {
+  return items.filter(item => headerCategory(item) === category && productKey(item) === group).map(item => item.id);
+}
 export function groupedActivityUpdates(all: AccountNotification[], unread: AccountNotification[], category: "wins" | "options" | "entries"): HeaderEntryGroup[] {
   const unreadSlugs = new Set(unread.filter(n => headerCategory(n) === category).map(productKey));
   const groups = new Map<string, HeaderEntryGroup>();
@@ -60,7 +63,7 @@ export function groupedActivityUpdates(all: AccountNotification[], unread: Accou
     const group = groups.get(slug);
     if (group) group.count++;
     else groups.set(slug, { slug, title: n.itemTitle ?? n.title.replace(/ is still open$/, ""), image: n.image, count: 1,
-      href: n.entryId ? headerDestinations[category].replace("#", `&viewed=${encodeURIComponent(n.entryId)}#`) : headerDestinations[category] });
+      href: n.entryId ? headerDestinations[category].replace("#", `&viewed=${encodeURIComponent(n.entryId)}#`) : headerDestinations[category].replace("#", "&grouped=1#") });
   }
   return [...groups.values()];
 }

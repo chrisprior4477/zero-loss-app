@@ -3,6 +3,13 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test("matches compact storage units, leading price ceilings, and retailer exclusions", () => {
+    expect(searchCatalog(demoProducts, "Sony PS5 Slim 1TB").some(item => item.slug === "playstation-5-slim")).toBe(true);
+    expect(searchCatalog(demoProducts, "Amazon max $75")).toEqual(searchCatalog(demoProducts, "Amazon up to $75"));
+    const withoutAmazon = searchCatalog(demoProducts, "gift cards below $75 excluding Amazon");
+    expect(withoutAmazon.length).toBeGreaterThan(0);
+    expect(withoutAmazon.every(item => item.value < 75 && item.retailer !== "Amazon")).toBe(true);
+  });
   test("keeps each alternative independent and supports explicit gift-card exclusions", () => {
     const list = searchCatalog(demoProducts, "TV, monitor, or headphones").map(item => item.slug);
     expect(list).toEqual(expect.arrayContaining(["lg-oled-c6-65-tv", "sony-wh-1000xm5-headphones"]));

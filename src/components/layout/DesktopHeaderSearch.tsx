@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type D
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { scrollToCurrentSearch, searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { catalogSearchLimitMessage, catalogSearchTooLong, maxCatalogSearchLength } from "@/lib/catalog/search-text";
 
 function HeaderMicrophoneIcon() {
   return (
@@ -47,6 +48,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
   const draft = useContext(SearchDraftContext);
   const query = draft?.query ?? localQuery;
   const setQuery = draft?.setQuery ?? setLocalQuery;
+  const tooLong = catalogSearchTooLong(query.trim());
   const voice = useVoiceSearch(setQuery);
   const stopVoice = voice.cancel;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +83,11 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
       action="/browse"
       method="get"
       onSubmit={event => {
-        if (voice.busy || !query.trim()) { event.preventDefault(); return; }
+        if (voice.busy || !query.trim() || tooLong) {
+          event.preventDefault();
+          if (tooLong) inputRef.current?.focus();
+          return;
+        }
         setSuggestions(false);
         voice.cancel();
         inputRef.current?.blur();
@@ -109,6 +115,9 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         name="q"
         type="search"
         autoComplete="off"
+        maxLength={maxCatalogSearchLength}
+        aria-invalid={tooLong || undefined}
+        aria-describedby={tooLong ? `${inputId}-limit` : undefined}
         value={query}
         onChange={(event) => { voice.reset(); setQuery(event.target.value); setSuggestions(false); }}
         onFocus={() => { onActivate?.(); setSuggestions(true); }}
@@ -118,6 +127,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         placeholder="Search all prizes"
         className="min-w-0 flex-1 bg-transparent [&::-webkit-search-cancel-button]:hidden text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
       />
+      {tooLong ? <span id={`${inputId}-limit`} role="status" className="absolute inset-x-0 top-full z-[51] mt-2 rounded-xl bg-[#052749] p-2 text-xs font-bold text-white">{catalogSearchLimitMessage}</span> : null}
       {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.cancel(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}
       {query.trim() && !voice.busy ? (
         <button type="submit" aria-label="Go to search results" className="ml-2 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">

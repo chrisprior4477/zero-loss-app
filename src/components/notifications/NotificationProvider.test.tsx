@@ -73,6 +73,7 @@ test("restoring restores read alerts and reveals a hidden banner without saving 
  render(<App readIds={["win","option"]}/>);
  fireEvent.click(screen.getByRole("button",{name:/unread updates/}));
  fireEvent.click(screen.getByRole("button",{name:"Show tickets & balance"}));
+ expect(screen.getByRole("link",{name:"Balance"}).parentElement?.hasAttribute("inert")).toBe(false);
  await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"Restore"}));});
  expect(await screen.findByRole("button",{name:/4 unread updates/})).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
@@ -99,15 +100,17 @@ test("a deployment with support explicitly disabled retains the Saved items shor
  expect(within(nav).queryByRole("button",{name:/Support/})).toBeNull();
 });
 
-test("choosing a category clears only that badge and keeps its cards open",async()=>{
+test("choosing a category keeps its badge until an item or all results are opened",async()=>{
  render(<App/>);
  fireEvent.click(screen.getByRole('button',{name:/4 unread updates/}));
  fireEvent.click(within(screen.getByRole('navigation',{name:'Update categories'})).getByRole('button',{name:/Purchase options/}));
- await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(['option']));
+ expect(mock.mark).not.toHaveBeenCalled();
  expect(screen.getByRole('dialog',{name:'Your updates'}).hasAttribute('open')).toBe(true);
- expect(within(screen.getByRole('region',{name:'Purchase options'})).getByRole('button',{name:/View purchase options/})).toBeTruthy();
- expect(screen.getByRole('button',{name:/3 unread updates/})).toBeTruthy();
- expect(mock.push).not.toHaveBeenCalled();
+ const options=within(screen.getByRole('region',{name:'Purchase options'}));
+ expect(options.getByRole('button',{name:/View purchase options/})).toBeTruthy();
+ expect(screen.getByRole('button',{name:/4 unread updates/})).toBeTruthy();
+ fireEvent.click(options.getByRole('button',{name:/View all/}));
+ await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(['option']));
 });
 
 function LivePopupTrial(){

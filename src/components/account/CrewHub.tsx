@@ -252,6 +252,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
+    {tab === "picks" && <AccountSettingsLandingScroll target="sharing" focusTarget="my-shared-picks-heading" restrictToTargetHash allScreens settleAfterNavigation />}
     {tab === "privacy" && <AccountSettingsLandingScroll target="crew-privacy" initialTarget="crew-privacy" focusTarget="discover-title" allScreens settleAfterNavigation />}
     <CrewLandingScroll ownerId={currentUserId} enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
     <header id="crew-intro" className={connectedStyles.heading}>

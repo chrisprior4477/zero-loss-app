@@ -2,7 +2,7 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getPopularRewardBrand, popularRewardAmounts, popularRewardBrands, popularRewardProductSlug, popularRewardsReturnHref } from "@/lib/catalog/popular-rewards";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
@@ -19,8 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function RewardBrandPage({ params }: Props) {
-  const brand = getPopularRewardBrand((await params).brand);
+  const { brand: requestedBrand } = await params;
+  const brand = getPopularRewardBrand(requestedBrand.toLowerCase());
   if (!brand) notFound();
+  if (requestedBrand !== brand.slug) permanentRedirect(`/rewards/${brand.slug}`);
   const { hidden, unavailable } = await getShoppingCatalog();
   const amounts = popularRewardAmounts.filter(amount =>
     !hidden.has(popularRewardProductSlug(brand.slug, amount)) || (amount === 100 && !unavailable));

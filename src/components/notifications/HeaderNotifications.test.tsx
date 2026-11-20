@@ -47,12 +47,12 @@ test("only the chosen category is shown, with exactly six color-matched buttons"
 });
 test.each([
   ["reward","View my wins","prize"], ["completion","View purchase options","completion"],
-] as const)("opening %s clears all its current alerts and opens the matching activity section", async (tone,button,filter) => {
+] as const)("opening a %s group leaves the other group unread", async (tone,button,filter) => {
   mock.unread = [make("one",tone,{itemTitle:"One product"}),make("two",tone,{itemTitle:"Another product"}),make("support-1","account")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   fireEvent.click(screen.getByRole("button",{name:new RegExp(`One product.*${button}`)}));
-  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&fromUpdates=1#my-activity-filters`));
-  expect(mock.markRead).toHaveBeenCalledWith(["one","two"]);
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&grouped=1&fromUpdates=1#my-activity-filters`));
+  expect(mock.markRead).toHaveBeenCalledExactlyOnceWith(["one"]);
 });
 test("open products consolidate into ticket totals and a click clears the open-entry batch", async () => {
   const a=make("active-1","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"one"}); const b=make("active-2","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"two"});

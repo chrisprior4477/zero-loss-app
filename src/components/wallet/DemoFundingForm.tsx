@@ -614,7 +614,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   </>;
 }
 
-export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusRequest, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; fundingEnabled: boolean; focusRequest?: string; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
+export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; focusRequest?: string; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
   const [showArchived, setShowArchived] = useState(false);
   const desktop = useMenuViewport() === "desktop";
   const [allDeposits, setAllDeposits] = useState(false);
@@ -745,7 +745,7 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
           {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} className="font-bold underline">View deposit receipt</Link></p>}
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
-        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
+        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
       </li>;
   }
   return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>

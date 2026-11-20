@@ -20,6 +20,7 @@ export function CatalogRequestForm({ initialProduct = "", ownerId, scope }: Prop
 }
 
 function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { initialProduct: string; originalQuery: string; draftKey: string }) {
+  const sourceQuery = originalQuery || initialProduct;
   const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
   const [draft, setDraft] = useState(initialDraft);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -29,6 +30,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const submitButton = useRef<HTMLButtonElement>(null);
   const restoreSubmitFocus = useRef(false);
   const requestedItem = useRef<HTMLInputElement>(null);
+  const confirmation = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (window.location.hash === "#requested-item") requestedItem.current?.focus({ preventScroll: true });
   }, []);
@@ -48,7 +50,10 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
     if (awaitingCheck || sending.current) return;
     const next = { ...draft, ...change };
     if (next.requestedItem.trim() !== draft.requestedItem.trim() || next.notes.trim() !== draft.notes.trim()
-      || next.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) delete next.requestKey;
+      || next.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) {
+      delete next.requestKey;
+      delete next.submittedSourceQuery;
+    }
     setDraft(next);
     setShowFeedback(false);
     writeCatalogRequestDraft(draftKey, next.requestedItem !== initialProduct || next.email || next.notes ? next : null);
@@ -58,9 +63,9 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       const result = await saveRequest(previous, data);
       setAwaitingCheck(result.status === "error" && result.uncertain === true);
       if (result.status === "error" && !result.uncertain) {
-        setDraft(current => ({ ...current, requestKey: undefined }));
+        setDraft(current => ({ ...current, requestKey: undefined, submittedSourceQuery: undefined }));
         const saved = readCatalogRequestDraft(draftKey);
-        if (saved?.requestKey === data.get("requestKey")) writeCatalogRequestDraft(draftKey, { ...saved, requestKey: undefined });
+        if (saved?.requestKey === data.get("requestKey")) writeCatalogRequestDraft(draftKey, { ...saved, requestKey: undefined, submittedSourceQuery: undefined });
       }
       if (result.status === "succeeded" && readCatalogRequestDraft(draftKey)?.requestKey === data.get("requestKey")) {
         writeCatalogRequestDraft(draftKey, null);
@@ -74,13 +79,14 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   useEffect(() => {
     if (pending || !restoreSubmitFocus.current) return;
     restoreSubmitFocus.current = false;
+    if (showFeedback && state.status === "succeeded") confirmation.current?.focus();
     if (showFeedback && state.status === "error" && document.activeElement === document.body) submitButton.current?.focus();
   }, [pending, showFeedback, state]);
 
   if (state.status === "succeeded" && showFeedback) {
     return (
       <div role="status" className="rounded-2xl border border-[#31e800]/50 bg-[#31e800]/10 p-6">
-        <p className="text-xs font-black uppercase tracking-[0.15em] text-[#62ff3b]">Request received</p>
+        <p ref={confirmation} tabIndex={-1} className="text-xs font-black uppercase tracking-[0.15em] text-[#62ff3b]">Request received</p>
         <p className="mt-2 text-lg font-bold text-white">{state.message}</p>
         <button type="button" className="mt-2 min-h-11 font-bold text-cyan-200 underline" onClick={() => {
           setDraft(initialDraft()); setShowFeedback(false);
@@ -97,12 +103,14 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       // Keep the draft after errors; only confirmed success replaces this form.
       const formData = new FormData(event.currentTarget);
       const requestKey = draft.requestKey ?? crypto.randomUUID();
-      const submitted = { ...draft, requestKey };
+      const submittedSourceQuery = draft.requestKey ? draft.submittedSourceQuery ?? sourceQuery.slice(0, 160) : sourceQuery;
+      const submitted = { ...draft, requestKey, submittedSourceQuery };
       sending.current = true;
       restoreSubmitFocus.current = event.currentTarget.contains(document.activeElement);
       setDraft(submitted);
       writeCatalogRequestDraft(draftKey, submitted);
       formData.set("requestKey", requestKey);
+      formData.set("sourceQuery", submittedSourceQuery);
       if (awaitingCheck) {
         formData.set("requestedItem", draft.requestedItem);
         formData.set("email", draft.email);
@@ -111,7 +119,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       setShowFeedback(true);
       startTransition(() => formAction(formData));
     }} className="space-y-5 [&_:invalid]:scroll-mt-[calc(var(--site-header-height,140px)+16px)]">
-      <input type="hidden" name="sourceQuery" value={originalQuery ? originalQuery.slice(0, 160) : initialProduct} />
+      <input type="hidden" name="sourceQuery" value={sourceQuery} />
       {originalQuery ? <div className="rounded-xl border border-cyan-300/35 p-4">
         <p className="text-sm font-bold text-white">Your original search</p>
         <p className="mt-1 break-words text-sm text-white/75">{originalQuery}</p>

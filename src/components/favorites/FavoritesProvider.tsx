@@ -53,6 +53,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   const confirmed = useRef(new Map<string, boolean>());
   const mutationGeneration = useRef(0);
   const [message, setMessage] = useState("");
+  const [lastSavedSlug, setLastSavedSlug] = useState<string | null>(null);
   const syncedPending = useRef(false);
   const [handoffError, setHandoffError] = useState(false);
   const [handoffAttempt, setHandoffAttempt] = useState(0);
@@ -124,6 +125,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
         notifyAccountChanged();
         sessionStorage.removeItem(pendingKey);
         setSlugs(current => save ? [...new Set([slug, ...current])] : current.filter(item => item !== slug));
+        setLastSavedSlug(save ? slug : null);
         setMessage(save ? "Saved to Favorites." : "Removed from Favorites.");
       }).catch(() => failed("Could not update this favorite. Please try again.")).finally(() => finishChange(slug));
     });
@@ -155,6 +157,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
           setSlugs(current => result.status === "saved"
             ? current.includes(slug) ? current : [slug, ...current]
             : current.filter(item => item !== slug));
+          setLastSavedSlug(result.status === "saved" ? slug : null);
           setMessage(result.status === "saved" ? "Saved to Favorites." : "Removed from Favorites.");
         } else if (result.status === "sign-in") {
           rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined });
@@ -169,7 +172,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     {message ? <div role="status" className={`${popupStyles.notice} ${popupStyles.favoriteNotice} fixed bottom-4 left-4 right-4 z-[250] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-[#052b4c] px-4 py-3 text-sm font-bold text-white shadow-2xl sm:left-auto sm:right-5`}>
       <span>{message}</span>{handoffError ? <button type="button" className="shrink-0 text-cyan-300 underline" onClick={() => {
         syncedPending.current = false; setHandoffError(false); setMessage(""); setHandoffAttempt(attempt => attempt + 1);
-      }}>Retry favorite</button> : message === "Saved to Favorites." ? <Link href={accountRoutes.favorites} className="shrink-0 text-cyan-300 underline">View</Link> : null}
+      }}>Retry favorite</button> : message === "Saved to Favorites." && lastSavedSlug ? <Link href={`${accountRoutes.favorites}?item=${encodeURIComponent(lastSavedSlug)}`} className="shrink-0 text-cyan-300 underline">View</Link> : null}
     </div> : null}
   </FavoritesContext.Provider>;
 }

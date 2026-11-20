@@ -31,6 +31,8 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const routed = useRef(new Set<string>());
   const routedInActivity = useRef(new Set<string>());
   const refreshing = useRef(false);
+  const mounted = useRef(false);
+  const readRetry = useRef<number | undefined>(undefined);
   const generation = useRef(0);
   const revision = useRef(0);
   const knownPending = useRef(new Map<string, TimedRequest>());
@@ -118,14 +120,16 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     return () => window.removeEventListener(PRODUCT_SHARE_EVENT, openSharing);
   }, []);
 
-  const refresh = useCallback(async function refreshEntries() {
-    if (refreshing.current) return;
+  const refresh = useCallback(async function refreshEntries(retry = 0) {
+    if (!mounted.current || refreshing.current) return;
+    window.clearTimeout(readRetry.current);
     const epoch = generation.current;
     const readRevision = revision.current;
     refreshing.current = true;
     try {
       const result = await listPendingEntryRequests();
-      if (epoch !== generation.current || readRevision !== revision.current || result.error) return;
+      if (!mounted.current || epoch !== generation.current || readRevision !== revision.current) return;
+      if (result.error) throw new Error("Pending entries unavailable");
       // Another tab can acknowledge a terminal receipt before this list is read.
       // Absence is not proof of cancellation or success: check the known hold by
       // ID through the existing authenticated, idempotent database resolver.
@@ -135,21 +139,24 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
         try { return (await resolvePendingEntryRequest(request.requestId, false)).request; }
         catch { return undefined; }
       }));
-      if (epoch !== generation.current || readRevision !== revision.current) return;
+      if (!mounted.current || epoch !== generation.current || readRevision !== revision.current) return;
       const receipts = [...result.requests, ...recovered.filter((request): request is EntryRequest => Boolean(request))];
       for (const request of receipts) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
       const unresolved = missing.filter((_, index) => !recovered[index]);
       setRequests([...receipts.map(r => ({ ...r, receivedAt: performance.now() })), ...unresolved]);
       setNow(performance.now());
     } catch {
-      // A reconnect or next poll retries the owner-scoped database read.
+      if (mounted.current && epoch === generation.current && retry < 2 && knownPending.current.size === 0) {
+        readRetry.current = window.setTimeout(() => void refreshEntries(retry + 1), 1500 * (retry + 1));
+      }
     } finally {
       refreshing.current = false;
-      if (epoch !== generation.current) void refreshEntries();
+      if (mounted.current && epoch !== generation.current) void refreshEntries();
     }
   }, []);
 
   useEffect(() => {
+    mounted.current = true;
     const onCreated = (event: Event) => createdHere.current.add((event as CustomEvent<string>).detail);
     const onRoutedInActivity = (event: Event) => routedInActivity.current.add((event as CustomEvent<string>).detail);
     const onReceipt = (event: Event) => storeReceipt((event as CustomEvent<EntryRequest>).detail);
@@ -161,6 +168,8 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     window.addEventListener("online", onVisible);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      mounted.current = false;
+      window.clearTimeout(readRetry.current);
       window.removeEventListener(ENTRY_REQUEST_CREATED_EVENT, onCreated);
       window.removeEventListener(ENTRY_REQUEST_ROUTED_EVENT, onRoutedInActivity);
       window.removeEventListener(ENTRY_REQUEST_EVENT, onReceipt);

@@ -13,7 +13,7 @@ const viewedCategories: Record<ActivityFilter, HeaderCategory[]> = {
 
 /** A mounted, visible activity view acknowledges its alerts. Server rendering
  * and prefetching never mark anything read. Unrelated categories stay unread. */
-export function ActivityNotificationRead({ filter, available, detailOpen = false, visibleIds }: { filter: ActivityFilter; available: boolean; detailOpen?: boolean; visibleIds?: string[] }) {
+export function ActivityNotificationRead({ filter, available, detailOpen = false, viewedEntryId, visibleIds }: { filter: ActivityFilter; available: boolean; detailOpen?: boolean; viewedEntryId?: string; visibleIds?: string[] }) {
   const notifications = useNotifications();
   const markRead = notifications?.markRead;
   const ids = [...new Set(viewedCategories[filter].flatMap(category => headerCategoryIds(notifications?.unread ?? [], category)))].filter(id => !visibleIds || visibleIds.includes(id));
@@ -32,7 +32,7 @@ export function ActivityNotificationRead({ filter, available, detailOpen = false
       // Next may retain a previously visited screen while refreshing layouts.
       // Only the actual activity-list URL can acknowledge the visible category.
       const query = new URLSearchParams(window.location.search);
-      if (window.location.pathname !== "/account/entries" || query.has("entry") || query.has("item") || query.get("resume") === "purchase") return;
+      if (window.location.pathname !== "/account/entries" || query.has("entry") || query.has("item") || query.get("resume") === "purchase" || (query.has("viewed") && query.get("viewed") !== viewedEntryId) || (query.get("grouped") === "1" && !viewedEntryId)) return;
       const unreadIds = (JSON.parse(key) as string[]).filter(id => !attempted.current.has(id));
       if (!unreadIds.length) return;
       unreadIds.forEach(id => attempted.current.add(id));
@@ -41,6 +41,6 @@ export function ActivityNotificationRead({ filter, available, detailOpen = false
     acknowledge();
     document.addEventListener("visibilitychange", acknowledge);
     return () => document.removeEventListener("visibilitychange", acknowledge);
-  }, [available, detailOpen, filter, key, markRead, retry]);
+  }, [available, detailOpen, filter, key, markRead, retry, viewedEntryId]);
   return failure === filter ? <p role="alert" className={styles.activityReadError}>Your activity is open, but its notification status could not be saved. <button type="button" onClick={() => { attempted.current.clear(); setFailure(null); setRetry(value => value + 1); }}>Try again</button></p> : null;
 }

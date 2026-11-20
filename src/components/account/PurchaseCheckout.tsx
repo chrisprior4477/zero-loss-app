@@ -56,8 +56,9 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref }:  {
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, legacyDeclineReturnHref }:  {
   returnTransactionHref?: string;
+  legacyDeclineReturnHref?: string;
   ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; pendingDeposits?: CheckoutDeposit[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
@@ -231,7 +232,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const sameValue = chosen.every(option => option.priceCents === chosen[0]?.priceCents);
   const buyLabel = `Buy ${chosen.length} ${sameValue ? usd(chosen[0]?.priceCents ?? 0) + " " : ""}gift ${chosen.length === 1 ? "card" : "cards"}`;
 
-  const closeHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
+  const closeHref = legacyDeclineReturnHref ?? `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const close = useCallback(() => {
     if (inFlight.current) return;
     setOverlay(null); setDeclineDraft(null); setPurchaseRequest(null); setAcknowledged(false);

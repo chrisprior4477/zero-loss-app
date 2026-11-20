@@ -13,6 +13,7 @@ import { businessIdentityFields, businessSignupPath, defaultBusinessListingCapac
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { downloadMaterial, materialTypes, stageMaterials } from "@/lib/business/materials";
 import { useBusinessApplication } from "./useBusinessApplication";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
 type Editor = { draft: BusinessDraft; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
 const BusinessEditor = createContext<Editor | null>(null);
@@ -156,7 +157,7 @@ function SelectField({ label, name, values, onChange, options, required = false 
 }
 
 function StepHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
-  return <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><h2 className="text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-white/60 sm:text-base">{description}</p></div>{action}</div>;
+  return <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><h2 data-business-step-heading tabIndex={-1} className="text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-white/60 sm:text-base">{description}</p></div>{action}</div>;
 }
 
 function exampleListings(demo: "restaurant" | "tools") {
@@ -193,6 +194,16 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const [staging, setStaging] = useState(false);
   const stagingLock = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const previousStep = useRef(step);
+  useEffect(() => {
+    const changed = previousStep.current !== step;
+    previousStep.current = step;
+    const heading = changed ? formRef.current?.querySelector<HTMLElement>("[data-business-step-heading]") : null;
+    if (heading) {
+      heading.focus({ preventScroll: true });
+      revealBelowHeader(heading);
+    }
+  }, [step]);
   const partnership = values.partnership as Partnership;
   const selected = partnerships.find(option => option.id === partnership) ?? partnerships[0];
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
@@ -262,12 +273,14 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     if (chosenDemo === demoCase) return;
     const hasBusinessDetails = Object.entries(values).some(([name, value]) => value !== initialValues[name] && (typeof value === "string" ? value.trim() : value));
     if ((hasBusinessDetails || draft.files.length || draft.listings.length) &&
-      !window.confirm("Replace the current business draft with this fictional example? Choose Cancel to keep your current details.")) return;
+      !window.confirm(draft.files.length
+        ? "Replace this business draft with a fictional example? The existing attachments will be removed from the draft."
+        : "Replace the current business draft with this fictional example? Choose Cancel to keep your current details.")) return;
     const special = chosenDemo === "restaurant" || chosenDemo === "tools";
     const business = special ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
     const details = special ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
     setDraft(current => ({ ...current, listings: special ? exampleListings(chosenDemo) : [],
-      files: current.files.map(file => ({ ...file, listingIndex: null })),
+      files: [],
       values: { ...initialValues, partnership: demoPartnership[chosenDemo], demo_variant: chosenDemo,
         listing_count: chosenDemo === "tools" ? "10" : "1", recurrence_limit: chosenDemo === "tools" ? "10" : "1",
         recurrence: String(details.recurrence || details.relationship || "one-time"),
@@ -315,9 +328,9 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       }
       return;
     }
-    setErrors([]); setStep(Math.min(4, step + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
+    setErrors([]); setStep(Math.min(4, step + 1));
   }
-  function back() { setErrors([]); setStep(Math.max(0, step - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function back() { setErrors([]); setStep(Math.max(0, step - 1)); }
   async function submitApplication(event: FormEvent) {
     event.preventDefault();
     if (step !== 4) { next(); return; }
@@ -371,7 +384,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
           <button type="button" className="py-2 text-cyan-200 underline" disabled={saving} onClick={() => void retryConflict()}>Check latest saved draft</button>
         </div>}
         {recoveredDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4">
-          <p>Your account has a newer draft. This tab also has unsaved edits.</p>
+          <p>{owner ? "Your account has a newer draft." : "Another tab saved a newer draft on this device."} This tab also has unsaved edits.</p>
           {conflictingFields.length ? <p className="mt-2">Review edits made in both tabs to {conflictingFields.join(", ")} before saving.</p> : null}
           <button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={reviewRecoveredDraft}>Review my unsaved edits</button>
           <button type="button" onClick={discardRecoveredDraft}>Use the saved draft</button>

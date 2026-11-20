@@ -1,4 +1,4 @@
-import type { FulfillmentFilter } from "@/lib/account/fulfillment";
+import { fulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 
 export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refunds";
 
@@ -8,6 +8,22 @@ export function walletSupportReturnHref(transactionId: string, restoreView: bool
   const id = encodeURIComponent(transactionId);
   const orders = ordersFilter ? `&panel=transactions&fromOrders=1&orderFilter=${ordersFilter}` : "";
   return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}${orders}#transaction-${id}`;
+}
+
+type TransactionOrigin = { transaction?: unknown; walletView?: unknown; fromOrders?: unknown; orderFilter?: unknown };
+
+export function transactionOriginParams(origin: TransactionOrigin): Record<string, string> | null {
+  if (typeof origin.transaction !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(origin.transaction)) return null;
+  return {
+    transaction: origin.transaction,
+    ...(origin.walletView === "1" ? { walletView: "1" } : {}),
+    ...(origin.fromOrders === "1" ? { fromOrders: "1", orderFilter: fulfillmentFilter(origin.orderFilter) } : {}),
+  };
+}
+
+export function transactionOriginHref(origin: TransactionOrigin): string | undefined {
+  const params = transactionOriginParams(origin);
+  return params ? walletSupportReturnHref(params.transaction, params.walletView === "1", false, params.fromOrders ? fulfillmentFilter(params.orderFilter) : undefined) : undefined;
 }
 
 function supportReturnKey(walletId: string, transactionId: string) {

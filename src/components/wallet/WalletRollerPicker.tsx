@@ -116,8 +116,8 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
         const next = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1
           : Math.max(0, Math.min(options.length - 1, browseIndex.current + (event.key === "ArrowDown" ? 1 : -1)));
         browseIndex.current = next;
-        const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        wheel.current?.scrollTo({ top: next * ROW_HEIGHT, behavior: reducedMotion ? "auto" : "smooth" });
+        setOffset(next * ROW_HEIGHT);
+        wheel.current?.scrollTo({ top: next * ROW_HEIGHT, behavior: "instant" });
       }}>
       {options.map((option, index) => {
         const distance = Math.max(-2, Math.min(2, (index * ROW_HEIGHT - offset) / ROW_HEIGHT));

@@ -1,16 +1,17 @@
 "use client";
 
+import type { Ref } from "react";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 import styles from "./entry-quantity-input.module.css";
 
-export function EntryQuantityInput({ value, maximum, disabled, label, testId, onChange, invalidDraft, onInvalidDraft }: {
-  value: number; maximum: number; disabled?: boolean; label: string; testId?: string;
+export function EntryQuantityInput({ value, maximum, disabled, label, testId, inputRef, errorId, onChange, invalidDraft, onInvalidDraft }: {
+  value: number; maximum: number; disabled?: boolean; label: string; testId?: string; inputRef?: Ref<HTMLInputElement>; errorId?: string;
   invalidDraft: string | null; onInvalidDraft: (draft: string | null) => void;
   onChange: (quantity: number, clamped?: boolean) => void;
 }) {
   const display = invalidDraft ?? String(value);
-  return <input type="text" role="spinbutton" inputMode="numeric" pattern="[0-9]*"
-    aria-label={label} aria-valuemin={1} aria-valuemax={maximum} aria-valuenow={invalidDraft === null ? value : undefined} aria-invalid={invalidDraft !== null}
+  return <input ref={inputRef} type="text" role="spinbutton" inputMode="numeric" pattern="[0-9]*"
+    aria-label={label} aria-valuemin={1} aria-valuemax={maximum} aria-valuenow={invalidDraft === null ? value : undefined} aria-invalid={invalidDraft !== null} aria-describedby={invalidDraft !== null ? errorId : undefined}
     autoComplete="off" spellCheck={false} disabled={disabled} value={display}
     data-testid={testId} className={styles.input}
     onFocus={event => event.currentTarget.select()}
@@ -29,7 +30,7 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, on
       if (event.key === "Enter" || event.key === "Escape") {
         event.preventDefault();
         if (event.key === "Escape") onInvalidDraft(null);
-        event.currentTarget.blur();
+        if (event.key === "Escape" || invalidDraft === null) event.currentTarget.blur();
       } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();
         onInvalidDraft(null);

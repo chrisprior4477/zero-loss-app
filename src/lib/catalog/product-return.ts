@@ -5,6 +5,7 @@ import { crewPickReturnPath } from "../crew/view-return";
 import { isEntryQuantity } from "../entries/quantity";
 import { groceryThemes } from "./grocery-themes";
 import { parseEndingSoonTicketRange } from "./ending-soon-ticket-ranges";
+import { catalogSearchTooLong } from "./search-text";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
@@ -13,9 +14,10 @@ const browseQueryKeys = new Set([
 
 /** Allow only known shopping destinations, including the personal Favorites list. */
 export function productBrowseReturnPath(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 1000 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== "string" || value.length > (value.startsWith("/browse?") ? 8192 : 1000) || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (value === "/account/favorites" || /^\/(?:\?ending-prize=[a-z0-9]+(?:-[a-z0-9]+)*)?#ending-soon$/.test(value)) return value;
-  const transaction = /^\/account\/wallet\?view=history&transaction=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:&walletView=1)?#transaction-\1$/i;
+  if (/^\/\?(?:choice-prize=[a-z0-9]+(?:-[a-z0-9]+)*#dollar-choice-title|upgrade-prize=[a-z0-9]+(?:-[a-z0-9]+)*#dollar-choice-light-title)$/.test(value)) return value;
+  const transaction = /^\/account\/wallet\?view=history&transaction=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:&walletView=1)?(?:&panel=transactions&fromOrders=1&orderFilter=(?:all|processing|fulfilled|exceptions|payment))?#transaction-\1$/i;
   if (transaction.test(value)) return value;
   if (/^\/\?marketplace-prize=[a-z0-9]+(?:-[a-z0-9]+)*#marketplace-mosaic-title$/.test(value)) return value;
   const crew = crewPickReturnPath(value);
@@ -59,6 +61,10 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const idea = url.searchParams.get("groceryIdea");
     if (idea !== null && (url.searchParams.get("category") !== "groceries" || !groceryThemes.some(theme => theme.id === idea))) return null;
     const keys = [...url.searchParams.keys()];
+    const search = url.searchParams.get("q");
+    if (search && catalogSearchTooLong(search)) return null;
+    url.searchParams.delete("q");
+    if (url.href.length > 1024) return null;
     if (keys.some((key) => !browseQueryKeys.has(key)) || new Set(keys).size !== keys.length) return null;
     return value;
   } catch {
@@ -88,6 +94,8 @@ export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
   if (url.pathname === "/" && url.hash === "#ending-soon") return "Ending Soon";
   if (url.pathname === "/" && url.hash === "#marketplace-mosaic-title") return "Browse the marketplace";
+  if (url.pathname === "/" && url.hash === "#dollar-choice-title") return "the $1 prize rail";
+  if (url.pathname === "/" && url.hash === "#dollar-choice-light-title") return "Everyday Upgrades";
   if (url.pathname === "/account/wallet") return "this transaction";
   if (url.pathname === "/account/crew") return "Your Crew";
   if (url.pathname === "/account/favorites") return url.searchParams.get("tab") === "shared" ? "Shared with You" : "Favorites";

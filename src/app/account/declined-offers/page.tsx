@@ -16,7 +16,7 @@ import { DeclinedOfferList } from "@/components/account/DeclinedOfferList";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
+import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import styles from "@/components/account/my-activity.module.css";
 
 export const metadata: Metadata = { title: "Declined Offers" };
@@ -29,6 +29,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   const filter = activityFilter(query?.filter);
   const transaction = offerId && typeof query?.transaction === "string" && crewUuid.test(query.transaction)
     ? { id: query.transaction, restoreView: query.walletView === "1" } : undefined;
+  const transactionReturn = transactionOriginHref(query ?? {});
   const selectedHref = declinedOfferHref(offerId, filter, transaction);
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
@@ -74,14 +75,14 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
         <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
-        {transaction ? <Link href={walletSupportReturnHref(transaction.id, transaction.restoreView)} scroll={false}>Back to this transaction</Link> : null}
+        {transactionReturn ? <Link href={transactionReturn} scroll={false}>Back to this transaction</Link> : null}
         <Link href={activityReturn} scroll={false}>Return to My Activity</Link>
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
     {requestedMissing && requestedAnchor && <div id={requestedAnchor} role="status" className={`${styles.empty} ${styles.declinedDestination}`}>
-      <AccountSettingsLandingScroll target={requestedAnchor} initialTarget={requestedAnchor} allScreens />
-      <h2>This offer is no longer in Declined Offers</h2>
+      <AccountSettingsLandingScroll target={requestedAnchor} initialTarget={requestedAnchor} focusTarget="missing-declined-offer" allScreens settleAfterNavigation />
+      <h2 id="missing-declined-offer" tabIndex={-1}>This offer is no longer in Declined Offers</h2>
       {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
     {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={selectedHref}>Try again</a></div>

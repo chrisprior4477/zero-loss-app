@@ -1,6 +1,8 @@
 .metrics { position:relative; display:flex; align-items:center; flex:none; }
 .balances { display:flex; align-items:center; gap:6px; }
 .trigger { position:absolute; inset:0; min-height:44px; width:100%; background:transparent!important; border:0!important; border-radius:10px; padding:0!important; cursor:pointer; }
+.trigger[data-banner-hidden="true"] { position:relative; inset:auto; flex:0 0 24px; width:24px; }
+.trigger[data-banner-hidden="true"] .dot { top:50%; right:8px; transform:translateY(-50%); }
 .trigger:focus { outline:none; }
 .trigger:focus-visible { outline:2px solid #65deef; outline-offset:2px; }
 .samplePreview { position:absolute; inset:0; min-height:44px; }

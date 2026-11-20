@@ -23,7 +23,7 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { selectedTransaction } from "@/lib/wallet/selected-transaction";
-import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
+import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
@@ -137,7 +137,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const provider = demoDb ? new DemoPaymentProvider(demoDb) : null;
   const [requests, savedCards, transaction, ledgerEntries, visibilityResult, catalog] = await Promise.all([
     history && provider ? provider.getRequests().catch(() => null) : null,
-    provider && account.fundingEnabled ? provider.getPaymentMethods().catch(() => undefined) : [],
+    provider ? provider.getPaymentMethods().catch(() => undefined) : [],
     history ? selectedTransaction(query.transaction, account.userId, account.wallet).catch(() => ({ requested: true, entry: null })) : undefined,
     history ? getCompleteLedgerHistory(account.userId, account.wallet).catch(() => null) : null,
     demoDb ? Promise.resolve(demoDb.rpc("get_demo_wallet_history_visibility")).catch(() => null) : undefined,
@@ -197,7 +197,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const notice = validNotice(query.notice) ? query.notice : undefined;
       const alerts = query.alerts === undefined ? sourceOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts);
       const returnLink = transactionId && typeof query.rewardId === "string" && query.via === undefined
-        ? { href: walletSupportReturnHref(transactionId, query.walletView === "1"), label: "Back to this transaction" }
+        ? { href: transactionOriginHref(query)!, label: "Back to this transaction" }
         : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.entryId
           ? { href: `/account/entries?filter=completed&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this purchase" }
           : typeof query.rewardId === "string" && fromOrders && reward.rewardId
@@ -258,6 +258,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   });
   const expiredSelection = rewardView === "expired" && typeof query.expiredEntry === "string" && !expired
     ? account.activity.source === "unavailable" ? "unavailable" : "missing" : undefined;
-  const rewards = <WalletRewards expiredSelection={expiredSelection} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
+  const rewards = <WalletRewards transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "expired" ? focusCard : undefined)} />;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={`/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }

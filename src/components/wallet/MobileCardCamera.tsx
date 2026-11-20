@@ -23,7 +23,6 @@ function palette(pixels: Uint8ClampedArray): number[] {
 
 async function sampleColors(file: File): Promise<number[]> {
   if (!file.type.startsWith("image/")) throw new Error("Choose a photo to continue.");
-  if (file.size > 25 * 1024 * 1024) throw new Error("Try a smaller photo (under 25 MB).");
   const url = URL.createObjectURL(file);
   const photo = new Image();
   const canvas = document.createElement("canvas");
@@ -179,6 +178,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
       <input ref={input} type="file" accept="image/*" capture="environment" aria-label={front ? "Back of card photo" : "Front of card photo"} hidden style={{ display: "none" }} disabled={busy || saving} onChange={async event => {
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = "";
         if (!file) return;
+        if (file.size > 25 * 1024 * 1024) { setError("Choose a photo no larger than 25 MB."); return; }
         const version = ++captureVersion.current;
         decodingVersion.current = version;
         setBusy(true); setError("");

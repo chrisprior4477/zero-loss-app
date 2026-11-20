@@ -81,7 +81,7 @@ function leadingAmount(text: string) {
 }
 
 const inclusiveLowerPhrases = "at least|no less than|not less than|no lower than|not below";
-const inclusiveUpperPhrases = "no more than|no higher than|not over|not above|not more than|up to|at most";
+const inclusiveUpperPhrases = "no more than|no higher than|not over|not above|not more than|up to|at most|max(?:imum)?";
 const lowerBound = inclusiveLowerPhrases + "|above|over|more than|greater than";
 const upperBound = inclusiveUpperPhrases + "|under|below|less than";
 const boundPattern = new RegExp(`\\b(${upperBound}|${lowerBound})\\s+`, "i");

@@ -233,7 +233,7 @@ test("a request that never arrived needs fresh confirmation with the same key", 
 });
 
 test("a pending history record opens the one matching recovery card without posting a credit", () => {
-  render(<DemoFundingRequests fundingEnabled requests={[
+  render(<DemoFundingRequests requests={[
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
   ]} />);
   expect(screen.getByRole("link", { name: "Check this deposit" }).getAttribute("href")).toBe("/account/wallet?view=history&deposit=pending_request_key_01&panel=deposits#purchase-deposit");
@@ -241,7 +241,7 @@ test("a pending history record opens the one matching recovery card without post
 });
 
 test("archived demo deposits are hidden by default but can still be reviewed", () => {
-  render(<DemoFundingRequests fundingEnabled canResetDemoHistory hiddenIds={["archived"]} requests={[
+  render(<DemoFundingRequests canResetDemoHistory hiddenIds={["archived"]} requests={[
     { id: "archived", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "archived_request_key_01", reconciliation: "reconciled" },
     { id: "current", amount: 10000, currency: "USD", status: "succeeded", created_at: "2026-09-15", idempotencyKey: "current_request_key_01", reconciliation: "reconciled" },
   ]} />);
@@ -357,7 +357,7 @@ test("Add funds recovers the exact older deposit before showing the credited toa
   expect(screen.getByText("Balance after this deposit: $90")).toBeTruthy();
 });
 test("failed request list is unavailable, not empty", () => {
-  render(<DemoFundingRequests requests={null} fundingEnabled />);
+  render(<DemoFundingRequests requests={null} />);
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
   expect(screen.queryByText("No payment deposits yet.")).toBeNull();
 });
@@ -546,7 +546,7 @@ test("failed saved-card lookup blocks a fresh payment rather than overwriting th
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
 test("pending request offers recovery but discrepancy requires review", () => {
-  render(<DemoFundingRequests fundingEnabled requests={[
+  render(<DemoFundingRequests requests={[
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
     { id: "bad", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "aaaaaaaaaaaaaaaa", reconciliation: "discrepancy" },
   ]} />);
@@ -566,7 +566,7 @@ test("older interrupted deposits are shown once above history and return to hist
     id: "older-request", amount: 7300, currency: "USD" as const, status: "processing" as const,
     created_at: "2026-11-09", idempotencyKey: "older_request_key_01", reconciliation: "credit_pending" as const,
   };
-  const { container, rerender } = render(<DemoFundingRequests fundingEnabled requests={[...recent, pending]} focusRequest={pending.idempotencyKey} />);
+  const { container, rerender } = render(<DemoFundingRequests requests={[...recent, pending]} focusRequest={pending.idempotencyKey} />);
   const pendingRegion = screen.getByRole("region", { name: "Deposits to check" });
   expect(pendingRegion.contains(screen.getByText("$73 USD"))).toBe(true);
   expect(container.querySelector("#deposit-row-older-request details")?.hasAttribute("open")).toBe(true);
@@ -574,7 +574,7 @@ test("older interrupted deposits are shown once above history and return to hist
   expect(screen.getByRole("button", { name: "See more deposits (2 remaining)" })).toBeTruthy();
   await waitFor(() => expect(document.activeElement?.id).toBe("deposit-row-older-request"));
 
-  rerender(<DemoFundingRequests fundingEnabled requests={[...recent, { ...pending, status: "succeeded", reconciliation: "reconciled" }]} focusRequest={pending.idempotencyKey} />);
+  rerender(<DemoFundingRequests requests={[...recent, { ...pending, status: "succeeded", reconciliation: "reconciled" }]} focusRequest={pending.idempotencyKey} />);
   expect(screen.queryByRole("region", { name: "Deposits to check" })).toBeNull();
   const credited = screen.getByText("$73 USD").closest("li");
   expect(credited?.id).toBe("deposit-row-older-request");
@@ -589,7 +589,7 @@ test("payment deposits return to their heading when the full list is collapsed",
   const scrollIntoView = vi.fn();
   HTMLElement.prototype.scrollIntoView = scrollIntoView;
   try {
-    render(<DemoFundingRequests fundingEnabled requests={requests} />);
+    render(<DemoFundingRequests requests={requests} />);
     const section = screen.getByRole("region", { name: "Payment deposits" });
     const heading = screen.getByRole("heading", { name: "Payment deposits" });
     expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
@@ -616,7 +616,7 @@ test("desktop receipts start with the six most recent, and See more reveals ever
       created_at: "2026-10-01T12:00:00Z", postedAt: new Date(Date.UTC(2026, 10, 1 + index)).toISOString(),
       idempotencyKey: `request_key_example_${index}`, reconciliation: "reconciled" as const,
     }));
-    render(<DemoFundingRequests requests={requests} fundingEnabled />);
+    render(<DemoFundingRequests requests={requests} />);
     expect(screen.getAllByRole("listitem").map(item => item.querySelector("p span")?.textContent)).toEqual(
       ["$15 USD", "$14 USD", "$13 USD", "$12 USD", "$11 USD", "$10 USD"]);
     fireEvent.click(screen.getByRole("button", { name: "See more deposits (9 remaining)" }));

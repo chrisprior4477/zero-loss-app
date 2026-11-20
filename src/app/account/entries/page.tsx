@@ -17,6 +17,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
+import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import { checkoutReceiptId } from "@/lib/account/checkout-cards";
 
 export const metadata: Metadata = { title: "My Activity" };
@@ -32,6 +33,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const query = await searchParams;
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && query.viewed ? `#${openEntriesAnchorId}` : "")));
   const filter = activityFilter(query.filter);
+  const transactionReturn = transactionOriginHref(query);
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const viewedEntryId = typeof query.viewed === "string" && account.activity.activity.some(item => item.entryId === query.viewed) ? query.viewed : undefined;
@@ -62,6 +64,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   }
   const metricsBySlug = activityOfferMetrics(account.activity.activity, await availabilityPromise);
   return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
+    {transactionReturn ? <Link className="font-bold text-cyan-300 underline" href={transactionReturn}>← Back to this transaction</Link> : null}
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />

@@ -1,7 +1,7 @@
 "use client";
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { recordReceivedProduct } from "@/lib/sharing/saved-share-actions";
@@ -13,7 +13,7 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./shared-product-controls.module.css";
-export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = false, reviewOnReturn }: { slug: string; initial: SharedProductContext | null; signedIn: boolean; saveOnReturn?: boolean; reviewOnReturn?: "options" | "membership" }) {
+export function SharedProductControls({ slug, initial, signedIn, browseReturnHref, saveOnReturn = false, reviewOnReturn }: { slug: string; initial: SharedProductContext | null; signedIn: boolean; browseReturnHref?: string; saveOnReturn?: boolean; reviewOnReturn?: "options" | "membership" }) {
   const [saved, setSaved] = useState<{ source: SharedProductContext | null; context: SharedProductContext } | null>(null);
   // Use the action response until the next server snapshot arrives.
   const context = saved?.source === initial ? saved.context : initial;
@@ -37,6 +37,13 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
   const [saveFailed, setSaveFailed] = useState(false);
   const statusId = useId();
   const saveTrigger = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    if (!signedIn || !reviewOnReturn) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("reviewShare") !== reviewOnReturn) return;
+    url.searchParams.delete("reviewShare");
+    window.history.replaceState(window.history.state, "", url);
+  }, [signedIn, reviewOnReturn]);
   useDialogBack(Boolean(dialogKind), () => setDialogKind(null), busy, true);
   useEffect(() => {
     if (savingItem || !saveFailed || dialogKind || !saveTrigger.current) return;
@@ -46,7 +53,9 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
     revealBelowHeader(button);
   }, [dialogKind, saveFailed, savingItem]);
   const router = useRouter();
-  const returnPath = `/items/${slug}${initial ? `?share=${initial.token}` : "?shared=1"}`;
+  const shareParams = new URLSearchParams(initial ? { share: initial.token } : { shared: "1" });
+  if (browseReturnHref) shareParams.set("from", browseReturnHref);
+  const returnPath = `/items/${slug}?${shareParams}`;
   function signIn(review: "options" | "membership") {
     router.push(authNavigationHref("/login", `${returnPath}&reviewShare=${review}`));
   }

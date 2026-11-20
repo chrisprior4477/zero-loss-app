@@ -91,6 +91,39 @@ test("a connection error survives remount, while confirmed success removes the r
   expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "");
 });
 
+test("preserves the entire original search in a new request and its receipt retry", async () => {
+  const original = "kayak with deck storage, ".repeat(9) + "and adjustable footrests";
+  submit.mockRejectedValueOnce(new Error("Disconnected"));
+  submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
+  const page = render(<CatalogRequestForm initialProduct={original} />);
+  editDraft();
+  fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
+  await screen.findByRole("alert");
+  page.unmount();
+  render(<CatalogRequestForm initialProduct={original} />);
+  const check = screen.getByRole("button", { name: "Check original request" });
+  check.focus();
+  fireEvent.submit(check.closest("form")!);
+  await screen.findByText("Saved request");
+  expect(submit.mock.calls.map(([, data]) => data.get("sourceQuery"))).toEqual([original, original]);
+  expect(submit.mock.calls[1][1].get("requestKey")).toBe(submit.mock.calls[0][1].get("requestKey"));
+  expect(document.activeElement).toBe(screen.getByText("Request received"));
+});
+
+test("retries a previously submitted draft with the original truncated source", async () => {
+  const original = "original search ".repeat(12) + "last detail";
+  const requestKey = crypto.randomUUID();
+  sessionStorage.setItem(catalogRequestDraftKey(undefined, original), JSON.stringify({
+    savedAt: Date.now(), requestedItem: "Kayak", email: "person@example.test", notes: "", requestKey,
+  }));
+  submit.mockResolvedValueOnce({ status: "succeeded", message: "Previously saved" });
+  render(<CatalogRequestForm initialProduct={original} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Check original request" }).closest("form")!);
+  await screen.findByText("Previously saved");
+  expect(submit.mock.calls[0][1].get("sourceQuery")).toBe(original.slice(0, 160));
+  expect(submit.mock.calls[0][1].get("requestKey")).toBe(requestKey);
+});
+
 test("blocked browser storage leaves editing and clearing usable", () => {
   vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new DOMException("Blocked", "SecurityError"); });
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Blocked", "SecurityError"); });

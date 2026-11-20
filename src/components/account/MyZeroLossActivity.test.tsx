@@ -416,7 +416,7 @@ test("prize action respects reward format and old URLs redirect straight to the 
   expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=samsung-m70h-tv");
 });
 
-test("grouped options still open the exact entry by ID, while ambiguous old links fail closed", () => {
+test("grouped options still open the exact entry by ID and ambiguous old links let the owner choose a ticket", () => {
   const state = storedActivityFixture();
   const first = state.activity[2];
   first.entryId = "entry-one";
@@ -430,7 +430,8 @@ test("grouped options still open the exact entry by ID, while ambiguous old link
   expect(within(screen.getByRole("dialog")).getByText("$73")).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} />);
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByRole("status").textContent).toContain("not available");
+  const ticketLinks = screen.getAllByRole("link", { name: /Open ticket/ });
+  expect(ticketLinks.map(link => new URL(link.getAttribute("href")!, window.location.origin).searchParams.get("entry"))).toEqual(["entry-one", "entry-two"]);
 });
 
 test("entry ID prevents a same-product prize from replacing a purchase option", () => {

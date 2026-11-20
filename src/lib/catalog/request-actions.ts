@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isCatalogRequestKey } from "./request-draft";
+import { maxCatalogSearchLength } from "./search-text";
 
 export type CatalogRequestState =
   | { status: "idle" }
@@ -26,8 +27,11 @@ export async function submitCatalogRequest(
   if (!emailPattern.test(email) || email.length > 254) {
     return { status: "error", message: "Enter a valid email address so we can follow up if needed." };
   }
-  if (notes.length > 1000 || sourceQuery.length > 160) {
-    return { status: "error", message: "Keep the extra details under 1,000 characters." };
+  if (notes.length > 1000) {
+    return { status: "error", message: "Keep the extra details to 1,000 characters or fewer." };
+  }
+  if (sourceQuery.length > maxCatalogSearchLength) {
+    return { status: "error", message: "Shorten the original search before submitting this request." };
   }
   if (!isCatalogRequestKey(requestKey)) {
     return { status: "error", message: "Refresh the request form and try again." };

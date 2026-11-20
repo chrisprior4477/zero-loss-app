@@ -18,6 +18,13 @@ export function searchCatalogMatches(
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
+  const retailerExclusion = /\s*,?\s+(?:excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?\s*$/i.exec(query);
+  if (retailerExclusion) {
+    const excluded = normalizeSearch(retailerExclusion[1]);
+    if (excluded && products.some(product => normalizeSearch(product.retailer) === excluded)) {
+      return searchCatalogMatches(products.filter(product => normalizeSearch(product.retailer) !== excluded), query.slice(0, retailerExclusion.index), undefined, { includeLowerGiftCards });
+    }
+  }
   if (!values.size && /\s+or\s+/i.test(query)) {
     const alternatives = query.split(/\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+/i).map(value => ({ query: value.trim(), denomination: searchDenominations(value.trim(), products) }));
     if (alternatives.length > 1 && alternatives.every(value => queryWords(value.denomination.text).length > 0)

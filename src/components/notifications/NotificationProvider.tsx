@@ -108,11 +108,12 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     void refresh();
     const timer = window.setInterval(refresh, 60000);
     window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     window.addEventListener("zero-loss-notifications-read", refresh);
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
     window.addEventListener(ENTRY_REQUEST_EVENT, onEntry);
     document.addEventListener("visibilitychange", refresh);
-    return () => { controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("zero-loss-notifications-read", refresh); window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh); window.removeEventListener(ENTRY_REQUEST_EVENT, onEntry); document.removeEventListener("visibilitychange", refresh); };
+    return () => { controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("online", refresh); window.removeEventListener("zero-loss-notifications-read", refresh); window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh); window.removeEventListener(ENTRY_REQUEST_EVENT, onEntry); document.removeEventListener("visibilitychange", refresh); };
   }, [pathname, Boolean(initial), mergeReads]); // eslint-disable-line react-hooks/exhaustive-deps
   const markRead = useCallback(async (ids: string[]) => {
     const operation = ++revision.current;

@@ -16,6 +16,7 @@ export type BusinessDraft = { version: 1; step: number; values: FormValues; list
 export type BusinessRecord = { document: BusinessDraft; revision: number; status: "draft" | "submitted" };
 export const businessSignupPath = "/signup?account=business";
 export const materialsBucket = "business-materials";
+export const businessFileNameLimit = 255;
 export const guestDraftKey = "zero-loss-business-partnership-draft-v1";
 export const initialValues: FormValues = { partnership: "products", relationship: "one-time", fulfillment_owner: "business", asset_rights: false, submit_authority: false, creator_notice: false };
 export const blankDraft: BusinessDraft = { version: 1, step: 0, values: initialValues, listings: [], files: [] };
@@ -52,7 +53,7 @@ export function isBusinessDraft(value: unknown): value is BusinessDraft {
   const count = value.listings.length;
   const assignedIds = value.listings.flatMap(item => item.id ?? []);
   if (new Set(assignedIds).size !== assignedIds.length) return false;
-  return value.files.every(file => object(file) && typeof file.name === "string" && file.name.length > 0 && file.name.length <= 255
+  return value.files.every(file => object(file) && typeof file.name === "string" && file.name.length > 0 && file.name.length <= businessFileNameLimit
     && typeof file.id === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(file.id)
     && (file.listingIndex === null || (Number.isInteger(file.listingIndex) && Number(file.listingIndex) >= 0 && Number(file.listingIndex) < count)));
 }

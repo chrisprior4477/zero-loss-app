@@ -27,7 +27,7 @@ export function Barcode({ value }: { value: string }) {
     const pattern = CODE39[character] ?? CODE39["-"];
     return [...pattern.split("").map((width, index) => ({ dark: index % 2 === 0, width: width === "w" ? 2.5 : 1, key: `${characterIndex}-${index}` })), { dark: false, width: 1, key: `${characterIndex}-gap` }];
   });
-  return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
+  return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" role="img" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
 }
 
 type Props = { offeringTitle: string; offeringSlug: string; intro?: ReactNode; footer?: ReactNode; initialLegalName?: string; initialAccountReference?: string; signInHref?: string };
@@ -36,7 +36,7 @@ type PrintDraft = { offering: string; owner: string; name: string; account: stri
 export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "", signInHref }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
-  const postcard = useRef<HTMLDivElement>(null);
+  const postcard = useRef<HTMLButtonElement>(null);
   const [addressSide, setAddressSide] = useState(true);
   const demoNoteTrigger = useRef<HTMLButtonElement>(null);
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
@@ -128,7 +128,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
 
   if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
     name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={accountReference.trim().slice(0, 80) || "DEMO ACCOUNT NEEDED"}
-    reference={reference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
+    reference={reference} blankSample={!name.trim() || !accountReference.trim()} back={<button type="button" ref={backButton} onClick={closePrintPreview}
       className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
 
   return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
@@ -144,7 +144,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
 
     <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={flipLabel}>{addressSide ? "Show artwork" : "Show address and entry details"}</button></div>
 
-    <div ref={postcard} role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setAddressSide((side) => !side); } }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [container-type:inline-size] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={flipLabel}>
+    <div className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] text-left [container-type:inline-size] print:pointer-events-none print:mt-0 print:max-w-none">
       <div className="amo-postcard-artwork">
         <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
           <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden border border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:shadow-none">
@@ -170,6 +170,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
             </span>
           </span>
         </span>
+        <button ref={postcard} type="button" aria-label={flipLabel} onClick={() => setAddressSide(side => !side)} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
         {!addressSide && <button ref={demoNoteTrigger} type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
         {demoNoteVisible && !addressSide && <span role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
       </div>
@@ -201,13 +202,15 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   </div>;
 }
 
-export function FreeEntryPrintSheet({ offering, title, name, account, reference, back }: {
-  offering: string; title: string; name: string; account: string; reference: string; back: ReactNode;
+export function FreeEntryPrintSheet({ offering, title, name, account, reference, back, blankSample = false }: {
+  offering: string; title: string; name: string; account: string; reference: string; back: ReactNode; blankSample?: boolean;
 }) {
   return <div className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
     <div id="print-entry-insert" className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
       <div>
         {back}
+        <h1 className="mt-2 text-xl font-black">Print entry insert</h1>
+        {blankSample ? <p className="mt-2 text-sm font-bold text-amber-100">Blank sample. Return to entry instructions to fill in your name and account reference before printing a personalized insert.</p> : null}
         <p className="mt-1 text-xs text-white/65">The white page below represents one actual letter-size 8.5 × 11 sheet. If this preview blocks printing, open the PDF.</p>
       </div>
       <PrintSheetButton offering={offering} name={name} account={account} reference={reference} />

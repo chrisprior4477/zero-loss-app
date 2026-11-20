@@ -230,7 +230,9 @@ test("failed removal keeps the group and allows a deliberate retry", async () =>
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn’t confirm removal. Please try again.");
   expect(screen.getByText("Family")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Confirm removal" })).toBeNull();
-  fireEvent.click(await screen.findByRole("button", { name: "Review removal again" }));
+  const review = await screen.findByRole<HTMLButtonElement>("button", { name: "Review removal again" });
+  await waitFor(() => expect(review.disabled).toBe(false));
+  fireEvent.click(review);
   fireEvent.click(await screen.findByRole("button", { name: "Confirm removal" }));
   await waitFor(() => expect(screen.getByText(/No groups yet/)).toBeTruthy());
   expect(saveCrewGroup).toHaveBeenCalledTimes(2);

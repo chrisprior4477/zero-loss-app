@@ -54,6 +54,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
       if (!record) {
         try {
           const raw = localStorage.getItem(guestDraftKey);
+          deviceCopy.current = raw;
           const stored = raw && readDeviceDraft(raw);
           if (stored) {
             const data = completeLegacy(stored);
@@ -117,13 +118,41 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
 
   const save = useCallback((snapshot: BusinessDraft, submit = false) => {
     if (!owner) {
-      try {
-        localStorage.setItem(guestDraftKey, JSON.stringify(snapshot));
-        lastSaved.current = snapshot;
-        setSavedDraft(snapshot);
-        setMessage("Draft saved on this device.");
-        return Promise.resolve(true);
-      } catch { setMessage("This browser could not save your draft."); return Promise.resolve(false); }
+      const saveDeviceDraft = () => {
+        try {
+          const raw = localStorage.getItem(guestDraftKey);
+          if (raw !== deviceCopy.current) {
+            const stored = raw ? readDeviceDraft(raw) : null;
+            const saved = stored ? completeLegacy(stored) : blankDraft;
+            const recovery = recoverBusinessDraft(lastSaved.current, latestDraft.current, saved);
+            if (recovery.conflicts.length) {
+              deviceCopy.current = raw;
+              lastSaved.current = saved;
+              setSavedDraft(saved);
+              setDraft(saved);
+              setRecoveredDraft(recovery.draft);
+              setConflictingFields(recovery.conflicts);
+              setMessage("Review the edits from both tabs before saving.");
+              return false;
+            }
+            snapshot = recovery.draft;
+            setDraft(snapshot);
+          }
+          const serialized = JSON.stringify(snapshot);
+          localStorage.setItem(guestDraftKey, serialized);
+          deviceCopy.current = serialized;
+          lastSaved.current = snapshot;
+          setSavedDraft(snapshot);
+          setReviewingRecovery(false);
+          setConflictingFields([]);
+          setMessage("Draft saved on this device.");
+          return true;
+        } catch { setMessage("This browser could not save your draft."); return false; }
+      };
+      return navigator.locks ? navigator.locks.request(guestDraftKey, saveDeviceDraft).catch(() => {
+        setMessage("This browser could not save your draft.");
+        return false;
+      }) : Promise.resolve(saveDeviceDraft());
     }
     const run = async () => {
       if (locked.current || conflict.current) return false;
@@ -166,7 +195,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
     };
     queue.current = queue.current.then(run, run);
     return queue.current;
-  }, [owner, recoveryKey, loadConflict]);
+  }, [owner, recoveryKey, loadConflict, completeLegacy]);
 
   useEffect(() => {
     if (!initialized || submitted || draft === lastSaved.current) return;
@@ -184,7 +213,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
     setDraft(recoveredDraft);
     setRecoveredDraft(null);
     setReviewingRecovery(true);
-    setMessage("Review your recovered edits. Choose Save draft when you’re ready to apply them to the current account draft.");
+    setMessage("Review your recovered edits, then choose Save draft to keep them.");
   }
   function discardRecoveredDraft() {
     conflict.current = false;

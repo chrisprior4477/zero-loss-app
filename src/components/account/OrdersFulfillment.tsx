@@ -81,7 +81,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
         </a>)}
       </section>
 
-      <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />
+      {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />}
       {!showAllLink && !focusRewardId ? <>
         <AccountSettingsLandingScroll target="order-status-filters" settleAfterNavigation />
         <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash />

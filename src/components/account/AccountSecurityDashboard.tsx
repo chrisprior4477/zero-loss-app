@@ -60,6 +60,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
   return <div className={styles.page} data-settings-scroll-scope>
     <AccountSettingsLandingScroll target="account-settings-intro" />
     <AccountSettingsLandingScroll target="account-settings-sections" focusTarget="account-settings-sections" restrictToTargetHash allScreens />
+    <AccountSettingsLandingScroll target="security-controls" focusTarget="security-heading" allScreens restrictToTargetHash />
     <AccountSettingsLandingScroll target="sign-out-everywhere" focusTarget="signout-heading" allScreens restrictToTargetHash />
     <div className={styles.shell}>
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
@@ -74,7 +75,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
 
         <section className={styles.mainTicket} aria-labelledby="security-heading" id="security-controls">
           <header className={styles.ticketHeading}>
-            <h2 id="security-heading">{t("Sign-in & Security", "Inicio de sesión y seguridad")}</h2>
+            <h2 id="security-heading" tabIndex={-1}>{t("Sign-in & Security", "Inicio de sesión y seguridad")}</h2>
             <p>{t("Manage how you sign in and keep your account secure.", "Administra el inicio de sesión y protege tu cuenta.")}</p>
           </header>
 

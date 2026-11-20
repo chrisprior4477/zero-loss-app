@@ -101,6 +101,29 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [discovery, setDiscovery] = useState(initialDiscovery ?? { real: true, email: true, phone: true });
   const [defaultRule, setDefaultRule] = useState<CrewVisibilityRule>(initialDefaultRule);
   const [groups, setGroups] = useState<CrewVisibilityGroup[]>(initialGroups);
+  const [bookmarkedGroup, setBookmarkedGroup] = useState<string | null>(null);
+  const groupHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    function syncGroupBookmark() {
+      const match = /^#crew-group-([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(window.location.hash);
+      setBookmarkedGroup(match?.[1] ?? null);
+    }
+    const frame = requestAnimationFrame(syncGroupBookmark);
+    window.addEventListener("hashchange", syncGroupBookmark);
+    window.addEventListener("popstate", syncGroupBookmark);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", syncGroupBookmark);
+      window.removeEventListener("popstate", syncGroupBookmark);
+    };
+  }, []);
+  const missingBookmarkedGroup = Boolean(bookmarkedGroup && available && !groups.some(group => group.id === bookmarkedGroup));
+  useEffect(() => {
+    if (!missingBookmarkedGroup || section === "privacy") return;
+    const heading = groupHeading.current;
+    heading?.scrollIntoView({ block: "start" });
+    heading?.focus({ preventScroll: true });
+  }, [missingBookmarkedGroup, section]);
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
   const incoming: CrewDisplaySnapshot = { discoverable: initialDiscoverable, discovery: initialDiscovery ?? { real: true, email: true, phone: true }, defaultRule: initialDefaultRule, groups: initialGroups, entryRules: initialEntryRules };
   const [server, setServer] = useState(incoming);
@@ -445,7 +468,8 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       </section> : null}
 
       {section !== "privacy" ? <section id="crew-groups" className={styles.ticket} aria-labelledby="groups-title">
-        <div className={styles.sectionHead}><span className={styles.step}>03</span><div><h2 id="groups-title">Make your own groups</h2><p>Create several groups—Family, Friends, or any name you choose—and decide which connected Crew members belong in each.</p></div></div>
+        {missingBookmarkedGroup ? <p role="status" className={styles.groupHint}>That saved group is unavailable. Your other groups are shown below.</p> : null}
+        <div className={styles.sectionHead}><span className={styles.step}>03</span><div><h2 id="groups-title" ref={groupHeading} tabIndex={-1} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>Make your own groups</h2><p>Create several groups—Family, Friends, or any name you choose—and decide which connected Crew members belong in each.</p></div></div>
         <div className={styles.groupArea}>
           <div className={styles.groupListHeading}><strong>Your groups</strong><span>{groups.length} {groups.length === 1 ? "group" : "groups"}</span></div>
           {groups.length ? <div className={styles.groupList}>{groups.map((group) => {

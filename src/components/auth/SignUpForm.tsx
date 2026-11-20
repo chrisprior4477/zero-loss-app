@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { formText, recoverAuthForm } from "./recover-auth-form";
 import {
   signUpAction,
@@ -44,6 +44,8 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
     null
   );
   const [email, setEmail] = useState(state.values?.email ?? "");
+  const [editingAfter, setEditingAfter] = useState<AuthActionState | null>(null);
+  const emailField = useRef<HTMLInputElement>(null);
 
   const confirmError =
     clientConfirmError ?? state.confirmPasswordError ?? null;
@@ -58,7 +60,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
     state.message ?? "",
   ].join("|");
 
-  if (state.accountMayExist) {
+  if (state.accountMayExist && editingAfter !== state) {
     const accountEmail = state.values?.email ?? "your email";
 
     return (
@@ -79,7 +81,12 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
         <ResendVerificationForm email={state.values?.email ?? ""} returnTo={safeReturnTo} />
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setEditingAfter(state);
+            setEmail("");
+            setClientConfirmError(null);
+            requestAnimationFrame(() => emailField.current?.focus());
+          }}
           className="mt-4 w-full text-center text-sm font-bold text-white/55 underline-offset-4 hover:text-white hover:underline"
         >
           Use a different email
@@ -111,6 +118,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
           After you verify, you can sign in with your email and password.
         </p>
         <EmailDeliveryHint className="mt-4" />
+        {state.email ? <ResendVerificationForm email={state.email} returnTo={safeReturnTo} /> : null}
         <Link
           href={authNavigationHref("/login", safeReturnTo)}
           className="mt-6 inline-flex rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)]"
@@ -230,6 +238,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
         </label>
         <input
           id={id("email")}
+          ref={emailField}
           name="email"
           type="email"
           autoComplete="email"
@@ -343,7 +352,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
         </span>
       </label>
 
-      {state.message ? (
+      {state.message && editingAfter !== state ? (
         <p
           role="alert"
           className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)]"

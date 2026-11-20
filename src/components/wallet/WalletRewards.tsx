@@ -69,8 +69,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, expiredSelection, timeZone = "America/New_York", cardEndings = {}, locale }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, expiredSelection, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -100,14 +100,15 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     ? ready.some(item => item.rewardId === focusCard) ? `ready-reward-${focusCard}` : "ready-rewards"
     : undefined;
   const historyTarget = focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
+  const missingHistoryCard = Boolean(focusHistoryCard && historyTarget === "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} settleAfterNavigation allScreens />
+    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : undefined} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
-        <nav aria-label="Wallet sections" className={overview.walletSections}><Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
+        <nav aria-label="Wallet sections" className={overview.walletSections}>{transactionReturn ? <Link href={transactionReturn}>← Back to this transaction</Link> : null}<Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />
@@ -153,6 +154,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </div> : null}
       {expiredSelection ? <AccountSettingsLandingScroll target="reward-history" initialTarget="reward-history" focusTarget="expired-selection-message" allScreens settleAfterNavigation /> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
+        {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
         {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading">{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>Your complete reward activity, from your account records.</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
