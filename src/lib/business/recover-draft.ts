@@ -58,9 +58,14 @@ export function recoverBusinessDraft(base: BusinessDraft, local: BusinessDraft, 
     (listing: PartnerListing) => listing.title || "Unnamed listing", conflicts).entries()];
   const indexById = new Map(listings.map(([id], index) => [id, index]));
   const files = [...mergeRows(byFile(base), byFile(local), byFile(saved),
-    (file: LinkedFile) => file.name, conflicts).values()].map(({ listingId, ...file }) => ({
-    ...file, listingIndex: listingId ? indexById.get(listingId) ?? null : null,
-  }));
+    (file: LinkedFile) => file.name, conflicts).values()].map(({ listingId, ...file }) => {
+    const listingIndex = listingId ? indexById.get(listingId) ?? null : null;
+    if (listingId && listingIndex === null) {
+      conflicts.add(file.name + " · removed product assignment");
+      return { ...file, listingIndex, needsListingReview: true as const };
+    }
+    return { ...file, listingIndex };
+  });
   const values = mergeObject(base.values, local.values, saved.values, field => conflicts.add(field.replaceAll("_", " ")));
   const draft = { ...local, values, listings: listings.map(([, listing]) => listing), files };
   return { draft, conflicts: [...conflicts] };

@@ -93,6 +93,10 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
   }
   if (rows.length !== count || wallet.entries.some((entry, index) => entry.id !== rows[index]?.id)) return null;
 
+  return enrichLedgerRows(db, userId, wallet.walletAccountId, rows, recentOnly);
+}
+
+export async function enrichLedgerRows(db: SupabaseClient, userId: string, walletAccountId: string | null, rows: LedgerSourceRow[], recentOnly = false): Promise<LedgerEntryRow[]> {
   const requestIds = [...new Set(rows.flatMap(row => {
     if (row.entry_type !== "ENTRY_HOLD" && row.entry_type !== "ENTRY_HOLD_RELEASE") return [];
     const id = requestEvent.exec(row.source_event)?.[1];
@@ -131,7 +135,7 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     const ids = debitIds.slice(index, index + 100);
     const query = db.from("customer_entries").select("entry_id,preview_batch_id")
       .eq("customer_id", userId).in("entry_id", ids);
-    const { data, error } = await (wallet.walletAccountId ? query.eq("wallet_account_id", wallet.walletAccountId) : query);
+    const { data, error } = await (walletAccountId ? query.eq("wallet_account_id", walletAccountId) : query);
     if (!error) for (const entry of data ?? []) {
       if (ids.includes(entry.entry_id) && typeof entry.preview_batch_id === "string" && ledgerId.test(entry.preview_batch_id)) {
         entryBatches.set(entry.entry_id, entry.preview_batch_id);
@@ -191,6 +195,7 @@ async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, r
     const entryBatchId = row.entry_type === "ENTRY_DEBIT" && row.related_entry_id ? entryBatches.get(row.related_entry_id) : undefined;
     return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}),
       ...(rewardId ? { rewardId } : {}), ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
+      ...(!item && (row.entry_type === "PURCHASE_DEBIT" || requestId) ? { productDetailsIncomplete: true } : {}),
       ...(!recentOnly && requestId && requestSlugs.has(requestId) ? { entryRequestId: requestId } : {}) };
   });
 }

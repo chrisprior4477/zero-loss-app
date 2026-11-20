@@ -11,6 +11,11 @@ test("the order reader retains exact reward identities for duplicate products", 
   const result = await getAccountOrders(client([row, { ...row, order_number: "order-2", reward_id: "reward-2" }]));
   expect(result.orders.map(order => order.rewardId)).toEqual(["reward-1", "reward-2"]);
 });
+test("keeps valid orders when a separate row is malformed", async () => {
+  const result = await getAccountOrders(client([row, { ...row, reward_id: null }]));
+  expect(result).toMatchObject({ source: "stored", incomplete: true });
+  expect(result.orders.map(order => order.rewardId)).toEqual(["reward-1"]);
+});
 test.each([undefined, null, "", "   ", 123])("a missing or invalid reward ID cannot become an ambiguous product link: %s", async id => {
   await expect(getAccountOrders(client([{ ...row, reward_id: id }]))).rejects.toThrow("Invalid order");
 });

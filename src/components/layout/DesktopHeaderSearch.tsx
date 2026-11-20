@@ -128,7 +128,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         className="min-w-0 flex-1 bg-transparent [&::-webkit-search-cancel-button]:hidden text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
       />
       {tooLong ? <span id={`${inputId}-limit`} role="status" className="absolute inset-x-0 top-full z-[51] mt-2 rounded-xl bg-[#052749] p-2 text-xs font-bold text-white">{catalogSearchLimitMessage}</span> : null}
-      {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.cancel(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}
+      {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.reset(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}
       {query.trim() && !voice.busy && !tooLong ? (
         <button type="submit" aria-label="Go to search results" className="ml-2 min-h-8 shrink-0 rounded-full bg-[#0068c9] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">
           Go

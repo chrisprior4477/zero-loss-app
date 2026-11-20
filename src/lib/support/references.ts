@@ -17,6 +17,7 @@ export function depositSupportHref(key: string, checkoutReturn?: string, fromDep
 const rewardIdPattern = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const rewardReturnFields: Record<string, RegExp> = {
   rewardId: rewardIdPattern,
+  receipt: rewardIdPattern,
   reward: /^[a-z0-9-]{1,150}$/,
   via: /^(?:purchase|completed|orders|order-notification|order-selection|activity-win|completed-win|won)$/,
   orderFilter: /^(?:processing|fulfilled|exceptions|payment)$/,
@@ -35,6 +36,7 @@ export function supportRewardReturn(value: unknown, rewardId?: string): string |
     if (!Object.hasOwn(rewardReturnFields, key) || !rewardReturnFields[key].test(field) || query.has(key)) return null;
     query.set(key, field);
   }
+  if (query.has("receipt") && (query.get("via") !== "purchase" || !query.has("reward"))) return null;
   return `/account/wallet?${query}#reward-pass`;
 }
 

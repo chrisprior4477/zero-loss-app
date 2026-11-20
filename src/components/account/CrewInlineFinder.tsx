@@ -41,6 +41,7 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
       const kind = value.includes("@") ? "email" : "phone";
       if (kind === "email" ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) : !/^\d{10,15}$/.test(value.replace(/\D/g, ""))) {
         setInvalid(true);
+        queryField.current?.focus();
         setMessage(kind === "email" ? "Enter a valid email address." : "Enter a phone number, including its country code."); return;
       }
       setTarget({ value, kind }); return;

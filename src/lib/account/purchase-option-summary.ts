@@ -14,6 +14,7 @@ export function purchaseOptionSummary(options: readonly ActivityItem[]) {
     applied: range(options.map(option => option.paidCents)),
     multiple: options.length > 1,
     deadline,
+    ...(dates.length > 0 && dates.length < options.length ? { partialDeadline: true } : {}),
     earliestDeadline: dates.length !== options.length || new Set(dates.map(date => Date.parse(date))).size > 1,
   };
 }

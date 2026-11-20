@@ -7,7 +7,7 @@ import { useServerPreference } from "./useServerPreference";
 
 export type EmailSaveResult = { status: "idle" | "succeeded" | "error"; message?: string };
 type Feedback = { status: "idle" | "error"; message: string } | { status: "succeeded"; message: string; submitted: boolean }
-  | { status: "unverified"; message: string; submitted: boolean; successMessage: string };
+  | { status: "unverified"; message: string; submitted: boolean; successMessage: string | null };
 
 export function useVerifiedEmailPreference<T extends EmailSaveResult>(
   kind: Parameters<typeof readSavedEmailPreference>[0],
@@ -26,15 +26,19 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
   const [state, action, pending] = useActionState(async (previous: Feedback, data: FormData): Promise<Feedback> => {
     const checking = data.get("checkSavedPreference") === "1";
     let submitted = data.get("enabled") === "true";
-    let successMessage: string;
+    let successMessage: string | null;
     if (checking) {
       if (previous.status !== "unverified") return previous;
       submitted = previous.submitted;
       successMessage = previous.successMessage;
     } else {
-      const result = await save(initialState, data);
-      if (result.status !== "succeeded") return { status: result.status, message: result.message ?? "" };
-      successMessage = result.message ?? "";
+      try {
+        const result = await save(initialState, data);
+        if (result.status !== "succeeded") return { status: result.status, message: result.message ?? "" };
+        successMessage = result.message ?? "";
+      } catch {
+        return { status: "unverified", submitted, successMessage: null, message: "We couldn’t confirm whether your preference saved. Check the saved setting before trying again." };
+      }
     }
     // The response confirms a write happened. A new request checks what is
     // saved now, after the response reached this tab.
@@ -44,8 +48,12 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
         const saved = await readSavedEmailPreference(kind);
         if (saved === null) break;
         if (snapshot.current !== before && snapshot.current.value !== saved) continue;
+        if (successMessage === null && saved !== submitted) {
+          preference.finishSave(saved, saved);
+          return { status: "error", message: "Your choice was not saved. It’s still selected so you can try again." };
+        }
         preference.finishSave(submitted, saved);
-        return { status: "succeeded", message: successMessage, submitted };
+        return { status: "succeeded", message: successMessage ?? "Your preference is saved.", submitted };
       }
     } catch {
       // Report an uncertain read after an acknowledged write.

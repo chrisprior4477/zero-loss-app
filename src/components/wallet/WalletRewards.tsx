@@ -40,7 +40,7 @@ const rewardViewHrefs = {
 
 function rewardState(item: ActivityItem) {
   if (!isWalletReward(item) && item.completionOptionStatus === "expired") return "expired";
-  return item.rewardStatus ?? "ready";
+  return item.rewardStatus ?? (item.rewardId && item.rewardStatus === null ? "unknown" : "ready");
 }
 
 function rewardLabel(item: ActivityItem, isPreview: boolean) {
@@ -51,6 +51,7 @@ function rewardLabel(item: ActivityItem, isPreview: boolean) {
     case "cancelled": return "Cancelled";
     case "issuance_pending": return "Being issued";
     case "issuance_failed": return "Needs attention";
+    case "unknown": return "Status unavailable";
   }
 }
 
@@ -105,7 +106,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   return <div className={overview.page} data-activity-source={state.source}>
     {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
-    {!expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" focusTarget="history-heading" allScreens restrictToTargetHash /> : null}
+    {!expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>

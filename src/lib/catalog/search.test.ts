@@ -216,6 +216,16 @@ describe("catalog search", () => {
     expect(searchCatalog(demoProducts, query).map(product => product.retailer)).toContain(retailer);
   });
 
+  test.each([
+    ["Amazon gift card under $100 but over $25", [50, 75]],
+    ["Amazon gift card >=$50 <=$75", [50, 75]],
+    ["Amazon gift cards between $25-$75", [25, 50, 75]],
+    ["30 dollars or less Amazon gift cards", [25]],
+    ["Amazon gift cards twenty five, fifty and seventy five dollars", [25, 50, 75]],
+  ] as const)("keeps the requested denominations for %s", (query, expected) => {
+    expect(searchCatalog(demoProducts, query).map(product => product.value).sort((a, b) => a - b)).toEqual(expected);
+  });
+
   test("every listed retailer remains searchable by its own name", () => {
     for (const retailer of new Set(demoProducts.map(product => product.retailer))) {
       expect(searchCatalog(demoProducts, retailer).some(product => product.retailer === retailer), retailer).toBe(true);

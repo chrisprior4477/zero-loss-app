@@ -1,5 +1,5 @@
 import { isEntryQuantity, parseEntryQuantity } from "@/lib/entries/quantity";
-import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { maxNestedBrowseReturnLength, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { purchaseChoicePattern } from "./purchase-selection-handoff";
 import { shareUuid } from "@/lib/sharing/saved-shares";
@@ -100,7 +100,7 @@ export function entryFundingReturnPath(value: unknown): string | null {
 
 /** Exact allowlist for the funding destination used after sign-in. */
 export function fundingReturnPath(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== "string" || value.length > maxNestedBrowseReturnLength || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry(?:&filter=active)?(?:&entryTransaction=[^&#]+(?:&entryWalletView=1)?)?(?:&alerts=[^&#]+&notice=[^&#]+)?#add-funds$/.test(value)) {
     const params = new URL(value, "https://navigation.invalid").searchParams;
     if (params.has("entryTransaction") && !transactionPattern.test(params.get("entryTransaction")!)) return null;

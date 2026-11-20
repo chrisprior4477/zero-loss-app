@@ -272,7 +272,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
     const destination = new URL(anchor.href);
     const transactionId = destination.searchParams.get("transaction");
-    const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
+    const rewardResult = destination.pathname === "/account/wallet" && (destination.searchParams.has("rewardId") || destination.searchParams.has("expiredEntry")) && destination.searchParams.get("walletView") === "1";
     const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/") || destination.pathname === "/account/declined-offers") && destination.searchParams.get("walletView") === "1";
     if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId, anchor.hasAttribute("data-wallet-support") || destination.searchParams.get("fromOrders") === "1" ? ordersFilter : undefined);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
@@ -329,7 +329,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const [title, detail] = description(entry);
     const artwork = icon(entry);
     const preserveView = !compact && Boolean(walletId);
-    const links = transactionLinks(entry, activity, preserveView);
+    const links = transactionLinks(entry, activity, preserveView, ordersFilter);
     const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
     const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
       ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}), ...(ordersFilter ? { fromOrders: "1", orderFilter: ordersFilter } : {}) })}` : productPath;
@@ -404,6 +404,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         {(from || through) ? <button type="button" onClick={() => { changeDates("", ""); allTimeButton.current?.focus({ preventScroll: true }); }}>Clear dates</button> : null}
         {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date. Showing results from the last valid range.</p> : null}
       </div>
+      {displayEntries.some(entry => entry.productDetailsIncomplete) && <p role="status">Some transaction product details could not be loaded. <button type="button" onClick={() => { updateBookmark({}); window.location.reload(); }}>Retry product details</button></p>}
       {historyIncomplete && <p role="status">Only recent transactions loaded. Search and filters apply to the available history. <button type="button" onClick={() => { updateBookmark({}); window.location.reload(); }}>Retry full history</button></p>}
       <div className={styles.historyResultCount}>
         {query || from || through || filter !== "all" ? <button type="button" onClick={resetFilters}>Reset filters</button> : null}

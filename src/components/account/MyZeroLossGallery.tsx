@@ -209,9 +209,10 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
 
   function preventDraggedLink(event: ReactMouseEvent<HTMLDivElement>) {
     if (!drag.current.moved) return;
+    drag.current.moved = false;
+    if (event.detail === 0) return;
     event.preventDefault();
     event.stopPropagation();
-    drag.current.moved = false;
   }
 
   return <div className={styles.galleryShell}>
@@ -222,7 +223,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
       data-dragging={dragging}
       className={styles.gallery}
       onClickCapture={event => {
-        if (drag.current.moved) { preventDraggedLink(event); return; }
+        if (drag.current.moved) { preventDraggedLink(event); if (event.defaultPrevented) return; }
         if (!ownerId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
         if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
@@ -253,7 +254,15 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
         const item = group.entries[selectedIndex];
         const purchasedReward = isPurchasedReward(item);
-        const purchaseStamp = purchasedReward && item.rewardId ? purchaseStamps?.[item.rewardId] : undefined;
+        const purchasedRewardNote = ({
+          ready: "Your purchased reward is ready.",
+          redeemed: "Your gift card has been used.",
+          issuance_pending: "Your gift card is being issued.",
+          issuance_failed: "Your gift card needs attention.",
+          expired: "Your gift card has expired.",
+          cancelled: "Your gift card was cancelled.",
+        } as Record<string, string>)[item.rewardStatus ?? ""] ?? "Gift-card status is unavailable.";
+        const purchaseStamp = purchasedReward && (item.rewardStatus === "ready" || item.rewardStatus === undefined) && item.rewardId ? purchaseStamps?.[item.rewardId] : undefined;
         const multipleEntries = group.entries.length > 1;
         const enteredCents = item.status === "active"
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
@@ -294,7 +303,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}>{purchaseStamp ? <><RepeatPurchaseStamp {...purchaseStamp} /><span className={styles.srOnly}>Your purchased reward is ready.</span></> : purchaseOption ? <PurchaseOptionSummary options={group.entries} /> : <p className={styles.productNote}>{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? purchasedRewardNote : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
                   : purchaseOption ? <><span>See My</span><span className={styles.optionActionCount} aria-hidden="true">{group.entries.length}</span><span>{group.entries.length === 1 ? "Purchase Option" : "Purchase Options"}</span><AccountIcon name="arrow" /></>

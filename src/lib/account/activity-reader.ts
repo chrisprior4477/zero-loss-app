@@ -47,7 +47,7 @@ function parseItem(value: unknown): ActivityItem {
     completionOptionId: optionalString(row.completion_option_id),
     completionOptionStatus: row.completion_option_status as CompletionOptionStatus | null | undefined,
     completionExpiresAt: optionalString(row.completion_expires_at),
-    rewardStatus: row.reward_status as RewardStatus | null | undefined,
+    rewardStatus: (row.reward_status ?? null) as RewardStatus | null,
     rewardSource: row.reward_source as RewardSource | null | undefined,
     rewardId: optionalString(row.reward_id),
     rewardClaimExpiresAt: optionalString(row.reward_claim_expires_at),

@@ -33,10 +33,11 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries: pendingEntriesResult = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[] | null; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries: pendingEntriesResult = [], outcomeEmailPreference = null, completedPrize, selectedSlug, selectedEntryId, viewedEntryId, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[] | null; outcomeEmailPreference?: boolean | null; completedPrize?: string; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
-  const items = winnerFirst(filterActivity(verifiedState.activity, filter));
+  const filtered = filterActivity(verifiedState.activity, filter);
+  const items = winnerFirst(completedPrize ? filtered.filter(item => item.slug === completedPrize) : filtered);
   const pendingEntries = pendingEntriesResult ?? [];
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
   const emptyPurchaseOptions = filter === "completion" && items.length === 0;
@@ -49,6 +50,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
     <nav id={openEntriesAnchorId} aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "active" ? openEntriesHref : key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={key === "active"} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" ? "—" : filterActivity(state.activity, key).length}</span></Link>)}
     </nav>
+    {completedPrize && <p className="mb-5 text-sm text-[#b5cce4]"><Link className="underline" href="/account/entries?filter=completed#my-activity-filters">See all completed activity</Link></p>}
     {pendingEntriesResult === null ? <p className="mb-5 text-sm text-amber-100" role="status">
       We couldn’t check pending entries. <a className="underline" href={`/account/entries?filter=${filter}#my-activity-filters`}>Check again</a> before submitting another entry.
     </p> : null}
@@ -64,7 +66,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
     {ownerId && filter === "completed" ? <PendingPurchaseReceipts ownerId={ownerId} purchases={items.filter(item => isPurchasedReward(item) && item.completionOptionId).map(item => ({ slug: item.slug, title: item.title, optionId: item.completionOptionId! }))} /> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
     {items.length ? <MyZeroLossGallery ownerId={ownerId} key={`${ownerId ?? "guest"}:${filter}`} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} checkout={checkout} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
-      <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
+      <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : completedPrize ? "No completed results for this prize" : emptyMessages[filter].title}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : declinedCount ? "You can revive a declined offer before its original deadline." : emptyMessages[filter].detail}</p>
       {declinedCount > 0 ? <div><Link href={declinedOfferHref(null, "completion")} className={styles.reviewDeclinedOffers}>
         Review {declinedCount} declined {declinedCount === 1 ? "offer" : "offers"} <span aria-hidden="true">→</span>

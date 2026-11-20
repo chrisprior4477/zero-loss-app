@@ -15,7 +15,7 @@ export function PurchaseOptionSummary({ options }: { options: readonly ActivityI
       <span>{summary.applied}<small>applied{summary.multiple ? " to each" : ""}</small></span>
     </div>
     {summary.deadline ? <time dateTime={summary.deadline}>
-      {summary.earliestDeadline ? "First expires" : "Available until"} {formatOfferDeadline(summary.deadline, timeZone)}
+      {summary.partialDeadline ? "Earliest known deadline" : summary.earliestDeadline ? "First expires" : "Available until"} {formatOfferDeadline(summary.deadline, timeZone)}
     </time> : <span className={styles.optionDeadlineUnknown}>Deadline shown in details</span>}
   </div>;
 }

@@ -22,20 +22,21 @@ import styles from "@/components/account/my-activity.module.css";
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> }) {
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> }) {
   const query = await searchParams;
   const requested = query?.offer;
+  const prize = typeof query?.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
   const offerId = typeof requested === "string" && crewUuid.test(requested) ? requested : undefined;
   const filter = activityFilter(query?.filter);
   const transaction = offerId && typeof query?.transaction === "string" && crewUuid.test(query.transaction)
     ? { id: query.transaction, restoreView: query.walletView === "1" } : undefined;
   const transactionReturn = transactionOriginHref(query ?? {});
-  const selectedHref = declinedOfferHref(offerId, filter, transaction);
+  const selectedHref = prize && !offerId ? `/account/declined-offers?prize=${encodeURIComponent(prize)}` : declinedOfferHref(offerId, filter, transaction);
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", selectedHref));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
-    item.completionOptionStatus === "declined" && Boolean(item.completionOptionId));
+    item.completionOptionStatus === "declined" && Boolean(item.completionOptionId) && (Boolean(offerId) || !prize || item.slug === prize));
   const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
   const currentOffer = requestedMissing ? account.activity.activity.find(item => item.completionOptionId === offerId) : undefined;
   const currentOfferHref = currentOffer && (openPrizeOptions([currentOffer], currentOffer.slug).length
@@ -76,6 +77,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
         {transactionReturn ? <Link href={transactionReturn} scroll={false}>Back to this transaction</Link> : null}
+        {prize && !offerId && <Link href={declinedOfferHref()}>View all declined offers</Link>}
         <Link href={activityReturn} scroll={false}>Return to My Activity</Link>
         <Link href="/">Continue shopping</Link>
       </nav>
@@ -86,7 +88,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
     {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={selectedHref}>Try again</a></div>
-      : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn} scroll={false}>Back to My Activity →</Link></div>
+      : declined.length === 0 ? <div className={styles.empty}><h2>{prize ? "No declined offers for this prize" : "No declined offers yet"}</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn} scroll={false}>Back to My Activity →</Link></div>
       : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
         const multiple = offers.length > 1;

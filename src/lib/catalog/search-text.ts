@@ -4,6 +4,8 @@ export function normalizeSearch(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[’']/g, "").replace(/\b(?:e[\s-]*)?gift\s*cards?\b/g, "gift card")
     .replace(/\bt[.\s]*j[.\s]*maxx\b/g, "tj maxx")
+    .replace(/\bbestbuy\b/g, "best buy").replace(/\bhomedepot\b/g, "home depot")
+    .replace(/\bpack[\s-]+out\b/g, "packout").replace(/\b10\s+1\s*\/\s*4\b/g, "10.25")
     .replace(/\bwh[\s-]*1000[\s-]*xm5\b/g, "wh1000xm5")
     .replace(/\bo[.\s]+l[.\s]+e[.\s]+d\b/g, "oled")
     .replace(/\b(?:play[\s-]*station|ps)[\s-]*5\b/g, "playstation 5")

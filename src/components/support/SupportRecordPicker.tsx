@@ -36,6 +36,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const request = useRef(0);
   const attachedPage = useRef<{ id: string; kind: SupportRecordKind; page: number } | null>(null);
   const focusRecordId = useRef<string | null>(null);
+  const selectedLookup = useRef<string | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
@@ -57,12 +58,14 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false, selectedId?: string) {
     const id = ++request.current;
     focusResults.current = focusAfterLoad;
+    selectedLookup.current = selectedId;
+    focusRecordId.current = selectedId ?? null;
     setKind(nextKind);
     setPage(nextPage);
     setResult(null);
     const lookup = selectedId ? loadSupportRecords(nextKind, nextPage, selectedId) : loadSupportRecords(nextKind, nextPage);
     const response = await lookup.catch(() => ({ error: "We couldn’t load these records. Try again." }));
-    if (id === request.current) {
+    if (id === request.current && dialog.current?.open) {
       if ("records" in response && response.page !== undefined) setPage(response.page);
       setResult(response);
     }
@@ -75,8 +78,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     closeButton.current?.focus({ preventScroll: true });
     const previous = attachedPage.current;
     const same = record && previous?.id === record.id && previous.kind === record.kind;
-    focusRecordId.current = record?.id ?? null;
-    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record), record?.id);
+    void load(record?.kind ?? kind, record ? same ? previous.page : 0 : page, Boolean(record), record?.id);
   }
 
   return <div className={styles.attachment}>
@@ -115,7 +117,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
         <div ref={results} tabIndex={-1} role="group" aria-label="Matching records" className={styles.history} aria-busy={!result}>
           {!result ? <p role="status">Loading records…</p> : "error" in result ? <>
             <p role="alert">{result.error}</p>
-            <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Try again</button>
+            <button type="button" className={styles.control} onClick={() => void load(kind, page, true, selectedLookup.current)}>Try again</button>
           </> : result.records.length ? <ul className={styles.records}>
             {result.records.map(item => <li key={item.id}>
               <button type="button" className={styles.record} disabled={item.attachable === false} data-record-id={item.id} onClick={() => {
@@ -126,9 +128,9 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
             </li>)}
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>
-        {result && "records" in result && result.records.some(item => item.verifyAgain) ? <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Retry payment verification</button> : null}
+        {result && "records" in result && result.records.some(item => item.verifyAgain) ? <button type="button" className={styles.control} onClick={() => void load(kind, page, true, selectedLookup.current)}>Retry payment verification</button> : null}
         {page > 0 || (result && "more" in result && result.more) ? <div className={styles.controls}>
-          {page > 0 ? <button type="button" className={styles.control} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
+          {page > 0 ? <button type="button" className={styles.control} disabled={!result} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
           {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1, true)}>Next</button> : null}
         </div> : null}
         <button type="button" className={styles.control} onClick={() => dialog.current?.close()}>Cancel</button>

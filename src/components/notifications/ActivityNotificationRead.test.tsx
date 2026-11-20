@@ -15,9 +15,9 @@ test('moving from wins to purchase options acknowledges only the section actuall
  expect(mock.markRead).toHaveBeenLastCalledWith(['option']);
  expect(mock.markRead).toHaveBeenCalledTimes(2);
 });
-test('Open Entries clears its ticket notices and related entry receipts only',()=>{
+test('Open Entries clears its ticket notices and leaves wallet receipts unread',()=>{
  render(<ActivityNotificationRead filter="active" available/>);
- expect(mock.markRead).toHaveBeenCalledWith(['entry','wallet-entry']);
+ expect(mock.markRead).toHaveBeenCalledWith(['entry']);
 });
 test('server rendering and prefetching never acknowledge notifications',()=>{
  renderToStaticMarkup(<ActivityNotificationRead filter="completion" available/>);

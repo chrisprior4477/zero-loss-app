@@ -32,7 +32,7 @@ function distinctCount(items: AccountNotification[]) {
   return new Set(items.map(n => n.href)).size;
 }
 export function headerCategoryIds(items: AccountNotification[], category: HeaderCategory) {
-  return items.filter(n => headerCategory(n) === category || (category === "entries" && n.ledgerEntryType?.startsWith("ENTRY_"))).map(n => n.id);
+  return items.filter(n => headerCategory(n) === category).map(n => n.id);
 }
 export function headerCounts(items: AccountNotification[]) {
   return Object.fromEntries(headerCategories.map(({ key }) => [key, distinctCount(items.filter(n => headerCategory(n) === key))])) as Record<HeaderCategory, number>;

@@ -27,7 +27,29 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*:/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\b(?:posted\s+)?amount\s*:\s*(?=[+−($\d-])/gi, "")
-    .replace(/\(\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1");
+    .replace(new RegExp(String.raw`(^|\s|[()+−-])(${dollars})\s*\$(?=\s|$|\))`, "g"), "$1$$$2")
+    .replace(/\(\s*[+−-]?\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1")
+    .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "");
+  const typeAliases = new Map([["refund", "REFUND"], ["deposit", "DEPOSIT"], ["funding", "DEPOSIT"]]);
+  const typeOptions = query.toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
+  if (typeOptions.length > 1 && typeOptions.every(Boolean)) {
+    return entries.filter(entry => typeOptions.includes(entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "REFUND" : entry.entry_type));
+  }
+  const spokenCents = /(\b(?:dollars?|bucks?))\s+and\s+(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?\b/i.exec(query);
+  if (spokenCents) {
+    const fractionValue = searchDenominations(spokenCents[2] + " dollars", []);
+    const [fraction] = fractionValue.values;
+    const base = query.replace(spokenCents[0], spokenCents[1]);
+    const signPattern = /\b(?:minus|negative|plus|positive)\s+(?=[a-z0-9])|(?:^|\s)[-−+](?=\s*[$\d])/i;
+    const signText = signPattern.exec(base)?.[0].trim() ?? "";
+    const sign = /^(?:minus|negative|[-−])/i.test(signText) ? "-" : signText ? "+" : "";
+    const spoken = searchDenominations(base.replace(signPattern, " "), []);
+    const [whole] = spoken.values;
+    if (fractionValue.values.size === 1 && fraction < 100 && !spoken.budget && spoken.values.size === 1 && Number.isSafeInteger(whole)) {
+      const amount = "amount: " + sign + "$" + whole + "." + String(fraction).padStart(2, "0");
+      return searchLedger(entries, [spoken.text, amount].filter(Boolean).join(" "), describe);
+    }
+  }
   if (amountOnly.test(query)) {
     const matches = amountMatch(query);
     return entries.filter(entry => matches(entry.amount));

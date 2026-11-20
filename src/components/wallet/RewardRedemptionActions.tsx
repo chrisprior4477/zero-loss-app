@@ -26,6 +26,7 @@ export function RewardRedemptionActions({
   const [message, setMessage] = useState("");
   const [manualCopy, setManualCopy] = useState(false);
   const manualField = useRef<HTMLInputElement>(null);
+  const latestCopy = useRef(0);
   useEffect(() => {
     if (!manualCopy) return;
     manualField.current?.focus();
@@ -34,11 +35,14 @@ export function RewardRedemptionActions({
 
   async function copyCode() {
     if (!displayCode) return;
+    const attempt = ++latestCopy.current;
     try {
       await navigator.clipboard.writeText(displayCode.replaceAll(" ", ""));
+      if (attempt !== latestCopy.current) return;
       setManualCopy(false);
       setMessage(isPreview ? "Sample number copied." : "Reward number copied.");
     } catch {
+      if (attempt !== latestCopy.current) return;
       setMessage("Automatic copying is unavailable. Copy the number from the field below.");
       setManualCopy(true);
     }

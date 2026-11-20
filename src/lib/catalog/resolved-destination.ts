@@ -1,4 +1,4 @@
-import { activityHref, isWalletReward, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
+import { activityHref, declinedOfferHref, isWalletReward, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 
 /** Resolve only records already authorized for the current account. */
 export function resolvedProductDestination(state: AccountActivity | null | undefined, slug: string) {
@@ -29,7 +29,9 @@ export function resolvedProductDestination(state: AccountActivity | null | undef
   };
   const declined = outcomes.every(item => item.completionOptionStatus === "declined");
   return {
-    href: declined ? "/account/declined-offers" : outcomes.length === 1 ? activityHref(outcomes[0]) : "/account/entries?filter=completed",
+    href: declined
+      ? outcomes.length === 1 && outcomes[0].completionOptionId ? declinedOfferHref(outcomes[0].completionOptionId) : `/account/declined-offers?prize=${encodeURIComponent(slug)}`
+      : outcomes.length === 1 ? activityHref(outcomes[0]) : `/account/entries?filter=completed&prize=${encodeURIComponent(slug)}#my-activity-filters`,
     label: declined ? "Review your declined offers" : "View your saved result", status: "View your result",
     description: "Your result is saved. Open it to review the details.",
   };

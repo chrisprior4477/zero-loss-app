@@ -151,6 +151,10 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   }
 
   const save = useCallback((snapshot: BusinessDraft, submit = false) => {
+    if (snapshot.files.some(file => file.needsListingReview)) {
+      setMessage("Reassign or remove the files whose products were removed before saving.");
+      return Promise.resolve(false);
+    }
     if (!owner) {
       const saveDeviceDraft = () => {
         try {

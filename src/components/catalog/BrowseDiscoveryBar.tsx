@@ -123,7 +123,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     document.documentElement.style.overflow = "hidden";
     // Keep the chosen row in view when reopening the scrolling picker.
     const frame = requestAnimationFrame(() => {
-      if (!desktop) categoryList.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" });
+      if (!window.matchMedia("(min-width: 1024px)").matches) categoryList.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" });
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -132,7 +132,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       element?.close();
       restoreDialogTrigger(opener.current);
     };
-  }, [desktop, panel]);
+  }, [panel]);
 
   useLayoutEffect(() => {
     if (panel !== "categories" || preview === null) return;
@@ -281,6 +281,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     navigateFromPanel(searchDestination(query, true));
   }
 
+  function navigatePreview(href: string) {
+    return (event: { preventDefault: () => void }) => {
+      event.preventDefault();
+      navigateFromPanel(href);
+    };
+  }
+
   const categoryChoices: PrizeCategoryChoice[] = [
     ...(!query.trim() ? [{ id: "" as const, label: "All categories" }] : []),
     ...prizeCategories,
@@ -403,7 +410,18 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
                   <div className={styles.categoryRow}>{row.map(prizeButton)}</div>
                   {expanded ? previewSection(expanded) : null}
                 </div>;
-              }) : categoryChoices.map(prizeButton)}
+              }) : categoryChoices.map(category => {
+                if (preview !== category.id) return prizeButton(category);
+                const href = prizeCategoryHref(category.id);
+                return <div key={category.id}>
+                  {prizeButton(category)}
+                  <div className={styles.previewActions}>
+                    <Link href={href} onNavigate={navigatePreview(href)}>
+                      {category.id ? `See all ${category.label}` : "See all products"} <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </div>;
+              })}
               {wideCategories && retailerCategoryChoices.length ? <details className={styles.directory} open={query.trim() ? true : undefined}>
                 <summary>Retailer categories</summary>
                 <div className={styles.categoryRow}>{retailerCategoryChoices}</div>

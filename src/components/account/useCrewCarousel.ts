@@ -10,12 +10,13 @@ export function useCrewCarousel() {
   const rail = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const frame = useRef(0);
+  const pendingDestination = useRef<number | null>(null);
   const suppressClick = useRef(false);
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const maximum = (element: HTMLElement) => Math.max(0, element.scrollWidth - element.clientWidth);
   const position = (element: HTMLElement) => element.scrollLeft - (parseFloat(element.style.getPropertyValue("--crew-overhang")) || 0);
 
-  function stop() { cancelAnimationFrame(frame.current); frame.current = 0; }
+  function stop() { cancelAnimationFrame(frame.current); frame.current = 0; pendingDestination.current = null; }
   function paint(element: HTMLElement, value: number) {
     const bounded = clamp(value, 0, maximum(element));
     element.scrollLeft = bounded;
@@ -29,6 +30,7 @@ export function useCrewCarousel() {
     let x = position(element), v = clamp(velocity, -3, 3), previous = performance.now();
     const began = previous;
     if (reduced()) { paint(element, clamp(destination ?? x, 0, maximum(element))); return; }
+    pendingDestination.current = destination ?? null;
     function tick(now: number) {
       if (!element?.isConnected) return;
       const dt = Math.min(32, Math.max(1, now - previous)); previous = now;
@@ -43,7 +45,9 @@ export function useCrewCarousel() {
       paint(element, x);
       if ((Math.abs(v) < .012 && (!spring || Math.abs(target - x) < .4)) || now - began > 2400) {
         paint(element, destination === undefined ? clamp(x, 0, max) : target);
-        frame.current = 0; return;
+        frame.current = 0;
+        pendingDestination.current = null;
+        return;
       }
       frame.current = requestAnimationFrame(tick);
     }
@@ -53,7 +57,7 @@ export function useCrewCarousel() {
   function move(direction: number) {
     const element = rail.current; if (!element) return;
     const step = (element.firstElementChild?.getBoundingClientRect().width ?? 150) + (parseFloat(getComputedStyle(element).columnGap) || 0);
-    coast(0, clamp(element.scrollLeft + direction * step, 0, maximum(element)));
+    coast(0, clamp((pendingDestination.current ?? element.scrollLeft) + direction * step, 0, maximum(element)));
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {

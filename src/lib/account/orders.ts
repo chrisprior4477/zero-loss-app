@@ -14,12 +14,12 @@ export type AccountOrder = {
   status: AccountOrderStatus;
   createdAt: string;
 };
-export type AccountOrders = { source: "stored" | "customer-empty" | "unavailable"; orders: AccountOrder[] };
+export type AccountOrders = { source: "stored" | "customer-empty" | "unavailable"; orders: AccountOrder[]; incomplete?: boolean };
 
 const statuses = new Set<AccountOrderStatus>(["payment_confirmed", "issuance_pending", "fulfilled", "exception", "cancelled", "corrected"]);
 
 function cents(value: unknown) {
-  const parsed = typeof value === "number" ? value : Number(value);
+  const parsed = typeof value === "number" || (typeof value === "string" && /^\d+$/.test(value)) ? Number(value) : NaN;
   if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error("Invalid order amount");
   return parsed;
 }
@@ -31,7 +31,7 @@ function parseOrder(value: unknown): AccountOrder {
       || typeof row.reward_id !== "string" || !row.reward_id.trim()
       || typeof row.title !== "string" || typeof row.retailer !== "string"
       || typeof row.image !== "string" || typeof row.status !== "string" || !statuses.has(row.status as AccountOrderStatus)
-      || typeof row.created_at !== "string") throw new Error("Invalid order");
+      || typeof row.created_at !== "string" || !Number.isFinite(Date.parse(row.created_at))) throw new Error("Invalid order");
   return {
     orderNumber: row.order_number,
     rewardSlug: row.reward_slug,
@@ -49,6 +49,14 @@ function parseOrder(value: unknown): AccountOrder {
 export async function getAccountOrders(db: SupabaseClient): Promise<AccountOrders> {
   const { data, error } = await db.rpc("get_account_orders");
   if (error || !Array.isArray(data)) throw new Error("Orders unavailable");
-  const orders = data.map(parseOrder);
-  return { source: orders.length ? "stored" : "customer-empty", orders };
+  const orders: AccountOrder[] = [];
+  for (const row of data) {
+    try { orders.push(parseOrder(row)); } catch { /* Keep the other verified orders. */ }
+  }
+  if (data.length && !orders.length) throw new Error("Invalid order");
+  return {
+    source: orders.length ? "stored" : "customer-empty",
+    orders,
+    ...(orders.length !== data.length ? { incomplete: true } : {}),
+  };
 }

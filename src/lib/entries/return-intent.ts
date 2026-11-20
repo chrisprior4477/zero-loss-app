@@ -1,6 +1,6 @@
 import { shareUuid } from "@/lib/sharing/saved-shares";
 import { isEntryQuantity, parseEntryQuantity } from "./quantity";
-import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { maxNestedBrowseReturnLength, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { clearViewedProduct, SHOPPING_REMINDER_EVENT } from "@/lib/catalog/viewed-product";
 export { parseEntryQuantity } from "./quantity";
 
@@ -23,7 +23,7 @@ export function productEntryHref(slug: string, quantity = 1, browseReturn?: unkn
 
 /** The funding and sign-in return may carry only a validated marketplace address. */
 export function productEntryReturnPath(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== "string" || value.length > maxNestedBrowseReturnLength || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[^#]+)?#(?:enter-entry|entry-action)$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   const keys = [...params.keys()];

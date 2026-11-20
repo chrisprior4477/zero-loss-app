@@ -34,7 +34,7 @@ function pageOffset(rail: HTMLDivElement, page: number) {
 }
 
 function orderPresentation(order: FulfillmentRecord) {
-  if (order.rewardStatus === "redeemed") return { label: "Already used", tone: "complete", action: "View used card", message: "This gift card has already been used. Its saved record remains available for reference." };
+  if (order.rewardStatus === "redeemed" && order.status === "fulfilled") return { label: "Already used", tone: "complete", action: "View used card", message: "This gift card has already been used. Its saved record remains available for reference." };
   switch (order.status) {
     case "fulfilled": return order.source === "winner" && !order.claimedAt
       ? { label: "Ready to claim", tone: "reward", action: "View winning reward", message: "Your winning reward is ready. Open it to review and claim it." }
@@ -51,8 +51,17 @@ function displayDate(value: string, timeZone: string, locale: string) {
   return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(value)) : "Unavailable";
 }
 
+function orderDateLabel(order: FulfillmentRecord) {
+  return order.orderNumber ? "Checkout date" : order.entryId && order.source === "winner" ? "Entry date" : "Recorded date";
+}
+
+function supportDate(value: string, timeZone: string, locale: string) {
+  if (!Number.isFinite(Date.parse(value))) return "Unavailable";
+  return new Intl.DateTimeFormat(locale, { timeZone, year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(value));
+}
+
 /** Support gets the full saved references, never the redeemable gift-card code. */
-export function orderSupportSummary(order: FulfillmentRecord) {
+export function orderSupportSummary(order: FulfillmentRecord, timeZone = "America/New_York", locale = "en-US") {
   return [
     "Zero Loss — order and reward details", order.title, `Retailer: ${order.retailer}`,
     `Source: ${order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}`,
@@ -60,8 +69,10 @@ export function orderSupportSummary(order: FulfillmentRecord) {
     order.source !== "winner" ? `Paid at checkout: ${order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}` : null,
     order.orderNumber ? `Order number: ${order.orderNumber}` : null,
     `Reward reference: ${order.rewardId}`, order.entryId ? `Entry reference: ${order.entryId}` : null,
-    `${order.orderNumber ? "Checkout" : "Entry"} date: ${order.createdAt || "Unavailable"}`,
-    order.claimedAt ? `Claimed on: ${order.claimedAt}` : null, orderPresentation(order).message,
+    `${orderDateLabel(order)}: ${supportDate(order.createdAt, timeZone, locale)}`,
+    Number.isFinite(Date.parse(order.createdAt)) ? `Recorded timestamp: ${order.createdAt}` : null,
+    order.claimedAt ? `Claimed on: ${supportDate(order.claimedAt, timeZone, locale)}` : null,
+    order.rewardStatus === "redeemed" && order.status !== "fulfilled" ? "Gift card: Used" : null, orderPresentation(order).message,
   ].filter(Boolean).join("\n");
 }
 
@@ -162,17 +173,17 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
     <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={containDialogTab}>
       <div className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={closeDetails} aria-label="Close details">×</button></div>
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
-      {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
+      {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}{order.rewardStatus === "redeemed" && order.status !== "fulfilled" ? " The gift card was already used." : ""}</p> : null}
       <dl className={styles.references}>
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value.length > 8 ? <><span aria-hidden="true" title={value}>Ending {value.slice(-8).toUpperCase()}</span><span className="sr-only">{value}</span></> : <span>{value}</span>}<button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
-        <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone, locale)}</time> : "Unavailable"}</dd></div>
+        <div><dt>{orderDateLabel(order)}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone, locale)}</time> : "Unavailable"}</dd></div>
       </dl>
       <dl className={styles.detailsAmounts}>
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
         {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
       </dl>
       <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${alertContext.replace(/^&from=notifications/, "")}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
-      <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
+      <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order, timeZone, locale))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => {
         if (!element) return;

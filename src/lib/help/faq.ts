@@ -105,7 +105,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "open-reward", category: "rewards", question: "Where is my prize or gift-card number?",
     answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and the available presentation tools. A reward notification also opens that specific reward directly.",
-    keywords: "barcode code won winner redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
+    keywords: "barcode code pin won winner redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
   },
   {
     id: "reward-restrictions", category: "rewards", question: "Do I have to use the gift card on the pictured item?",
@@ -159,12 +159,14 @@ export const faqItems: FaqItem[] = [
   },
 ];
 
-const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
+const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 
 export function faqSearchWords(query: string) {
-  const normalized = normalizeFaq(query).replace(/[^a-z0-9\s-]/g, " ").replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund");
+  const normalized = normalizeFaq(query).replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund")
+    .replace(/\b(?:contact\s+)?customer\s+service\b/g, "support");
   return normalized.trim().split(/[\s-]+/).filter(word => word && !faqFiller.has(word));
 }
 
@@ -173,7 +175,7 @@ export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;
   const matches = (value: string, word: string) => {
     const text = normalizeFaq(value);
-    return text.includes(word) || (text.match(/[a-z0-9]+/g) ?? []).some(token => singular(token) === singular(word));
+    return (word.length > 3 && text.includes(word)) || (text.match(/[a-z0-9]+/g) ?? []).some(token => singular(token) === singular(word));
   };
   const questionScore = (item: FaqItem) => words.filter(word => matches(item.question, word)).length;
   return faqItems.filter(item => (category === "all" || item.category === category) && words.every(word =>

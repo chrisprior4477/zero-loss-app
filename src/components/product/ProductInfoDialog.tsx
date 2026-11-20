@@ -13,8 +13,15 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   const close = useRef<HTMLButtonElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const endDialogHistory = useDialogBack(open, () => dialog.current?.close());
   const id = useId();
+  function openInfo() {
+    const element = dialog.current;
+    if (!element || element.open) return;
+    element.showModal();
+    setOpen(true);
+    close.current?.focus({ preventScroll: true });
+  }
+  const endDialogHistory = useDialogBack(open, () => dialog.current?.close(), false, false, false, id, openInfo);
   useLayoutEffect(() => {
     if (!open) return;
     const overflow = document.body.style.overflow;
@@ -27,9 +34,7 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
     };
   }, [open]);
   return <>
-    <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={() => {
-      dialog.current?.showModal(); setOpen(true); close.current?.focus({ preventScroll: true });
-    }}>{label}</button>
+    <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={openInfo}>{label}</button>
     <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={() => {
       endDialogHistory();
       setOpen(false); trigger.current?.focus({ preventScroll: true });

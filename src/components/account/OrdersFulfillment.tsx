@@ -24,8 +24,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
   const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
   const { records } = fulfillment;
-  const complete = overview ? fulfillment.complete : state.source !== "unavailable";
-  const selectionComplete = selectedOrderNumber ? state.source !== "unavailable" : complete;
+  const complete = overview ? fulfillment.complete : !state.incomplete && state.source !== "unavailable";
+  const selectionComplete = selectedOrderNumber ? !state.incomplete && state.source !== "unavailable" : complete;
   const processing = records.filter(order => matchesFulfillmentFilter(order, "processing")).length;
   const fulfilled = records.filter(order => matchesFulfillmentFilter(order, "fulfilled")).length;
   const exceptions = records.filter(order => matchesFulfillmentFilter(order, "exceptions")).length;

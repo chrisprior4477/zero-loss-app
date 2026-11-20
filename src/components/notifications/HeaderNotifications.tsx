@@ -88,7 +88,8 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const categories = headerCategories.filter(c => c.key !== "support" || value?.supportEnabled !== false);
   const counts = headerCounts(unread);
   const messages = notificationMessages(unread);
-  const alertCount = messages.reduce((sum, m) => sum + m.count, 0);
+  const bannerCount = messages.reduce((sum, m) => sum + m.count, 0);
+  const alertCount = bannerCount + counts.entries;
   async function act(ids: string[], href?: string) {
     if (!value || busy) return;
     if (!href) setBusy(true);
@@ -119,7 +120,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     if (list.current) list.current.scrollTop = 0;
   }
   const active = Boolean(value?.enabled && alertCount);
-  const bannerVisible = active && (!value?.bannerHidden || value.preferencesPreviewActive);
+  const bannerVisible = active && bannerCount > 0 && (!value?.bannerHidden || value.preferencesPreviewActive);
   const previewing = Boolean(value?.enabled && value.preferencesPreviewActive && !alertCount);
   const current = (selected && categories.some(c => c.key === selected) ? selected : null) ?? categories.find(c => counts[c.key] > 0)?.key ?? "wins";
   const categoryInfo = headerCategories.find(c => c.key === current)!;
@@ -172,7 +173,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       <div className={styles.footer}>
         {unread.length ? <button ref={markAllTrigger} disabled={busy} type="button" onClick={() => void act(unread.map(n => n.id))}>{busy ? "Saving…" : "Mark all as read"}</button> : null}
         <Link href="/account/notifications#notifications-intro" replace onNavigate={() => value?.setOpen(false)}>All notifications</Link>
-        {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); closeUpdates(); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
+        {bannerCount > 0 ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); closeUpdates(); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
       </div>
     </dialog>
     {failedReadFeedback && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`}>{failedReadFeedback}</div> : null}

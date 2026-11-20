@@ -7,6 +7,9 @@ import { groceryThemes } from "./grocery-themes";
 import { parseEndingSoonTicketRange } from "./ending-soon-ticket-ranges";
 import { catalogSearchTooLong } from "./search-text";
 
+// Covers a validated Browse return after it is escaped as a nested query field.
+export const maxNestedBrowseReturnLength = 24_576;
+
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
   "partnerCategory", "available", "minValue", "maxValue", "batch", "groceryIdea", "ticketsLeft",

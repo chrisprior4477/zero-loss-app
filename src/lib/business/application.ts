@@ -11,7 +11,7 @@ export type PartnerListing = {
   summary: string; highlights: string[]; specifications: [string, string][]; included: string[];
   fulfillment: string; availability: string;
 };
-export type BusinessFile = { id: string; name: string; listingIndex: number | null; mediaType?: string };
+export type BusinessFile = { id: string; name: string; listingIndex: number | null; mediaType?: string; needsListingReview?: true };
 export type BusinessDraft = { version: 1; step: number; values: FormValues; listings: PartnerListing[]; files: BusinessFile[] };
 export type BusinessRecord = { document: BusinessDraft; revision: number; status: "draft" | "submitted" };
 export const businessSignupPath = "/signup?account=business";
@@ -55,6 +55,7 @@ export function isBusinessDraft(value: unknown): value is BusinessDraft {
   if (new Set(assignedIds).size !== assignedIds.length) return false;
   return value.files.every(file => object(file) && typeof file.name === "string" && file.name.length > 0 && file.name.length <= businessFileNameLimit
     && (file.mediaType === undefined || typeof file.mediaType === "string" && file.mediaType.length <= 128)
+    && (file.needsListingReview === undefined || (file.needsListingReview === true && file.listingIndex === null))
     && typeof file.id === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(file.id)
     && (file.listingIndex === null || (Number.isInteger(file.listingIndex) && Number(file.listingIndex) >= 0 && Number(file.listingIndex) < count)));
 }

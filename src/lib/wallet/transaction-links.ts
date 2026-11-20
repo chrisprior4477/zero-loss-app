@@ -1,4 +1,5 @@
 import { activityHref, declinedOfferHref, isWalletReward, type ActivityItem } from "@/lib/account/activity";
+import type { FulfillmentFilter } from "@/lib/account/fulfillment";
 import type { LedgerEntryRow } from "./snapshot";
 
 export function ledgerDescription(entryType: string, productTitle?: string) {
@@ -10,7 +11,7 @@ export function ledgerDescription(entryType: string, productTitle?: string) {
 }
 
 /** Only link records present in the signed-in customer's authorized activity. */
-export function transactionLinks(entry: LedgerEntryRow, activity: readonly ActivityItem[], restoreView = false) {
+export function transactionLinks(entry: LedgerEntryRow, activity: readonly ActivityItem[], restoreView = false, ordersFilter?: FulfillmentFilter) {
   if (entry.entry_type === "PURCHASE_DEBIT" && entry.rewardId) {
     const reward = activity.find(item => item.rewardId === entry.rewardId && isWalletReward(item));
     if (!reward) return [];
@@ -23,7 +24,10 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
     // A temporary hold can reference an entry that later produced a reward.
     // Only the actual entry or purchase debit should link to that gift card.
     if (!item || (reservation && isWalletReward(item))) return [];
-    const href = item.status === "active"
+    const expired = item.completionOptionStatus === "expired" && !isWalletReward(item);
+    const href = expired
+      ? `/account/wallet?rewards=expired&expiredEntry=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}#reward-history`
+      : item.status === "active"
       ? `${activityHref(item)}?entries=open&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
       ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#purchase-option-rail`
@@ -32,6 +36,6 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
       : item.completionOptionStatus === "declined" && item.completionOptionId
       ? declinedOfferHref(item.completionOptionId, "all", { id: entry.id, restoreView })
       : activityHref(item);
-    return [{ id, href, label: item.status === "active" ? "View entry" : item.completionOptionStatus === "declined" ? "Review declined offer" : item.status === "completion" ? "View purchase option" : "View result" }];
+    return [{ id, href, label: expired ? "View expired option" : item.status === "active" ? "View entry" : item.completionOptionStatus === "declined" ? "Review declined offer" : item.status === "completion" ? "View purchase option" : "View result" }];
   });
 }

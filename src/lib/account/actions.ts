@@ -58,7 +58,7 @@ export async function saveProfileDetails(
     if (!isAtLeastAge(dateOfBirth)) {
       throw new Error(`Enter a valid birth date showing that you are at least ${MIN_ACCOUNT_AGE_YEARS}.`);
     }
-    if (phoneNumber && (!/^[0-9+().\-\s]{7,32}$/.test(phoneNumber) || phoneNumber.replace(/\D/g, "").length < 7)) {
+    if (phoneNumber && (!/^\+?[0-9().\-\s]{7,32}$/.test(phoneNumber) || phoneNumber.replace(/\D/g, "").length < 7)) {
       throw new Error("Enter a valid phone number, or leave it blank.");
     }
     const baseline = readProfileBaseline(formData.get("profile_baseline"));

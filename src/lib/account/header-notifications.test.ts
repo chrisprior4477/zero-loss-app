@@ -26,9 +26,9 @@ test("a win and its deadline count once but both clear on opening the wins categ
   expect(headerCounts(items).wins).toBe(2);
   expect(headerCategoryIds(items, "wins")).toEqual(items.map(n => n.id));
 });
-test("opening open entries acknowledges all entry notifications and their bookkeeping together", () => {
+test("opening open entries acknowledges entry notices without consuming wallet bookkeeping", () => {
   const items = [make("active-1", "active"), make("active-2", "active"), make("wallet-hold", "wallet", { ledgerEntryType: "ENTRY_HOLD" }), make("support-1", "account")];
-  expect(headerCategoryIds(items,"entries")).toEqual(["active-1","active-2","wallet-hold"]);
+  expect(headerCategoryIds(items,"entries")).toEqual(["active-1","active-2"]);
 });
 test("exactly six categories exclude purchased cards and completed purchases", () => {
   expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Shared with You","Support tickets","Saved items"]);

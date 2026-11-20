@@ -27,7 +27,15 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref }
   const skipInFlight = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const claimButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (state.status === "succeeded") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.refresh(); } }, [router, state.status]);
+  const claimStatus = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (state.status !== "succeeded") return;
+    if (document.activeElement === document.body || document.activeElement === claimButton.current) {
+      (document.getElementById("reward-pass-title") ?? claimStatus.current)?.focus({ preventScroll: true });
+    }
+    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    router.refresh();
+  }, [router, state.status]);
   useEffect(() => {
     // The server, not the client, decides whether this claim needs verification.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -58,7 +66,7 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref }
     <button ref={claimButton} type="submit" disabled={pending || state.status === "succeeded" || needsCheck} className="mt-4 min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-base font-black text-[#062218] disabled:opacity-60">
       {pending ? "Claiming…" : state.status === "succeeded" ? "Reward claimed" : "Claim reward"}
     </button>
-    {state.status !== "idle" ? <p role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
+    {state.status !== "idle" ? <p ref={claimStatus} tabIndex={-1} role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
     {needsCheck ? <a className="mt-3 inline-block text-sm font-bold text-[#0069b3] underline" href={checkHref ?? `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`}>Check this reward →</a> : null}
   </form>{introOpen ? <ClaimIdentityIntro busy={skipping} error={skipError} onSkipDemo={previewShown ? skipDemoAndClaim : undefined} onClose={() => { setIntroOpen(false); claimButton.current?.focus(); }} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
   {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} onClose={() => { setVerificationOpen(false); claimButton.current?.focus(); }} onComplete={() => {

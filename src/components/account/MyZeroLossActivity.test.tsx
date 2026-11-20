@@ -658,7 +658,7 @@ test("gallery supports click-hold dragging without opening the dragged card", ()
   expect(track.getAttribute("data-dragging")).toBe("false");
   expect(track.style.scrollSnapType).toBe("");
   expect(scrollTo).toHaveBeenCalledWith({ left: 318, behavior: "smooth" });
-  expect(card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }))).toBe(false);
+  expect(card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }))).toBe(false);
 
   let preventedBeforeCardHandler = true;
   card.addEventListener("click", event => { preventedBeforeCardHandler = event.defaultPrevented; event.preventDefault(); }, { once: true });

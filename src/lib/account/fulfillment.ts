@@ -87,7 +87,7 @@ export function accountFulfillment(orders: AccountOrders, activity: AccountActiv
     });
   }
   return {
-    complete: orders.source !== "unavailable" && activity.source !== "unavailable",
+    complete: !orders.incomplete && orders.source !== "unavailable" && activity.source !== "unavailable",
     available: orders.source !== "unavailable" || activity.source !== "unavailable",
     records: [...records.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.rewardId.localeCompare(b.rewardId)),
   };

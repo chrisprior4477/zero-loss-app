@@ -155,7 +155,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       </>}
       <nav aria-label="Activity detail exits" className={styles.detailExits}>
         <Link href="/">Continue shopping</Link>
-        <Link href={returnHref}>{returnToOptions ? "Return to Purchase Options" : "Return to My Activity"}</Link>
+        <Link href={returnHref}>{returnToOptions ? "Return to Purchase Options" : expiredWalletReturn?.includes("view=history") ? "Back to this transaction" : expiredWalletReturn ? "Back to expired rewards" : "Return to My Activity"}</Link>
       </nav>
     </div>
   </dialog>;

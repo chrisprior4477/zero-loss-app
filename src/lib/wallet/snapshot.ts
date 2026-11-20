@@ -73,4 +73,5 @@ export type LedgerEntryRow = {
   entryRequestId?: string;
   entryBatchId?: string;
   rewardId?: string;
+  productDetailsIncomplete?: boolean;
 };

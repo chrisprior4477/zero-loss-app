@@ -1,5 +1,5 @@
 import { parseEntryQuantity } from "@/lib/entries/quantity";
-import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { maxNestedBrowseReturnLength, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
 import { supportRewardReturn, supportMessageAnchor } from "@/lib/support/references";
@@ -18,8 +18,8 @@ type ReturnRoute = { query: Record<string, (value: string) => boolean>; hash?: R
 const routes: Record<string, ReturnRoute> = {
   "/contact": { query: {}, hash: /^#message$/ },
   "/free-entry": { query: { offering: matches(slug), from: value => productBrowseReturnPath(value) !== null, share: matches(uuid), quantity: value => parseEntryQuantity(value) !== null }, hash: /^#free-entry-intro$/ },
-  "/account/entries": { query: { fromUpdates: oneOf("1"), grouped: oneOf("1"), transaction: matches(uuid), walletView: oneOf("1"), fromOrders: oneOf("1"), orderFilter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), item: matches(slug), entry: matches(identifier), viewed: matches(identifier), checkout: matches(slug), receipt: matches(uuid), filter: oneOf("all", "active", "prize", "completion", "completed"), from: oneOf("purchase-options"), resume: oneOf("purchase") }, hash: /^#my-activity-filters$/ },
-  "/account/declined-offers": { query: { offer: matches(uuid), filter: oneOf("active", "prize", "completion", "completed"), transaction: matches(uuid), walletView: oneOf("1") }, hash: /^#declined-offer-[0-9a-f-]{36}$/i },
+  "/account/entries": { query: { fromUpdates: oneOf("1"), grouped: oneOf("1"), transaction: matches(uuid), walletView: oneOf("1"), fromOrders: oneOf("1"), orderFilter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), item: matches(slug), prize: matches(slug), entry: matches(identifier), viewed: matches(identifier), checkout: matches(slug), receipt: matches(uuid), filter: oneOf("all", "active", "prize", "completion", "completed"), from: oneOf("purchase-options"), resume: oneOf("purchase") }, hash: /^#my-activity-filters$/ },
+  "/account/declined-offers": { query: { offer: matches(uuid), prize: matches(slug), filter: oneOf("active", "prize", "completion", "completed"), transaction: matches(uuid), walletView: oneOf("1") }, hash: /^#declined-offer-[0-9a-f-]{36}$/i },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug), view: oneOf("available", "declined"), watch: oneOf("1") }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
   "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), receipt: matches(uuid), checkout: matches(slug), via: oneOf("purchase", "completed", "orders", "order-notification", "order-selection", "activity-win", "completed-win", "won"), orderFilter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), fromOrders: oneOf("1"), alerts: alertFilter, notice: validNotice, depositList: oneOf("1"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding", "transactions", "deposits"), review: oneOf("entry"), filter: oneOf("active"), entryTransaction: matches(uuid), entryWalletView: oneOf("1"), landing: oneOf("balance"), rewards: oneOf("ready", "used", "expired", "history"), expiredEntry: matches(/^ent_[a-f0-9]{32}$/i), expiredFocus: matches(/^ent_[a-f0-9]{32}$/i), tile: oneOf("1"), card: matches(uuid), rewardHistory: oneOf("1"), from: matches(slug), share: matches(uuid), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), walletView: oneOf("1"), choice: matches(uuid), deposit: matches(depositRequestKeyPattern), depositRow: matches(depositRequestKeyPattern), weeklyDeposit: matches(depositRequestKeyPattern) }, hash: /^#(?:reward-pass|checkout-gift-cards|ready-rewards|reward-history|wallet-reward-(?:[0-9a-f-]{36}|ent_[a-f0-9]{32})|balance|add-funds|purchase-deposit|payment-methods|payment-deposits|wallet-add-card|weekly-deposit-heading|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy", "add"), entry: matches(/^ent_[a-f0-9]{32}$/i), filter: oneOf("active"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
@@ -46,7 +46,7 @@ function returnRoute(path: string): ReturnRoute | undefined {
 
 /** Navigation only: the destination must still authorize every record after login. */
 export function accountReturnPath(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== "string" || value.length > (value.startsWith("/free-entry?") ? maxNestedBrowseReturnLength : 2048) || !value.startsWith("/") || value.startsWith("//") || /[\\\s\u0000-\u001f]/.test(value)) return null;
   const url = new URL(value, "https://navigation.invalid");
   const route = returnRoute(url.pathname);
   // Reject normalized paths, duplicate selectors, unknown keys and foreign origins.
@@ -65,7 +65,7 @@ export function accountReturnPath(value: unknown): string | null {
   if (url.pathname.startsWith("/account/entries/") && url.searchParams.has("walletView") && !url.searchParams.has("transaction")) return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("walletView") &&
     !(url.searchParams.get("view") === "history" && (url.searchParams.has("transaction") || url.searchParams.has("deposit")) ||
-      url.searchParams.has("rewardId") && url.searchParams.has("transaction") && !url.searchParams.has("view") && !url.searchParams.has("via"))) return null;
+      (url.searchParams.has("rewardId") || url.searchParams.get("rewards") === "expired" && url.searchParams.has("expiredEntry")) && url.searchParams.has("transaction") && !url.searchParams.has("view") && !url.searchParams.has("via"))) return null;
   if (url.pathname === "/support" && url.searchParams.has("walletView") && !url.searchParams.has("transaction") && !url.searchParams.has("case")) return null;
   if (url.searchParams.has("details")) {
     if (url.pathname === "/account/orders" && !(url.searchParams.has("order") || url.searchParams.has("rewardId"))) return null;

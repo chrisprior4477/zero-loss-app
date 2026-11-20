@@ -114,7 +114,7 @@ export function walletRewards(state: AccountActivity): ActivityItem[] {
   return state.source === "unavailable" ? [] : state.activity.filter(isWalletReward);
 }
 export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
-  return walletRewards(state).filter(item => !["redeemed", "expired", "cancelled", "issuance_pending", "issuance_failed"].includes(item.rewardStatus ?? "ready"));
+  return walletRewards(state).filter(item => item.rewardStatus === "ready" || item.rewardStatus === undefined || (state.isPreview && !item.rewardId && item.rewardStatus === null));
 }
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   MIN_ACCOUNT_AGE_YEARS,
   isAtLeastAge,
@@ -94,6 +94,14 @@ export function DateOfBirthSelects({
 
   const [year, setYear] = useState<number | "">(initial.year);
   const [manualYear, setManualYear] = useState(initial.year !== "" && !years.includes(initial.year));
+  const [birthdayNotice, setBirthdayNotice] = useState("");
+  const manualField = useRef<HTMLInputElement>(null);
+  const focusManual = useRef(false);
+  useLayoutEffect(() => {
+    if (!manualYear || !focusManual.current) return;
+    focusManual.current = false;
+    manualField.current?.focus();
+  }, [manualYear]);
   const [yearText, setYearText] = useState(initial.year === "" ? "" : String(initial.year).padStart(4, "0"));
   const [month, setMonth] = useState<number | "">(initial.month);
   const [day, setDay] = useState<number | "">(initial.day);
@@ -111,7 +119,10 @@ export function DateOfBirthSelects({
     setYear(next);
     const validMonth = next === "" || month === "" || isAtLeastAge(buildIsoDate(next, month, 1));
     if (!validMonth) setMonth("");
-    setDay(current => validMonth ? clampDay(current, next, month) : "");
+    const nextDay = validMonth ? clampDay(day, next, month) : "";
+    if (!validMonth) setBirthdayNotice("Your selected month is unavailable for this year. Choose your birth month and day again.");
+    else if (day !== "" && nextDay === "") setBirthdayNotice("Your selected day is unavailable for this year. Choose your birth day again.");
+    setDay(nextDay);
   }
 
   return (
@@ -136,6 +147,7 @@ export function DateOfBirthSelects({
             onChange={(event) => {
               const nextMonth =
                 event.target.value === "" ? "" : Number(event.target.value);
+              setBirthdayNotice("");
               setMonth(nextMonth);
               setDay((current) => clampDay(current, year, nextMonth));
             }}
@@ -160,6 +172,7 @@ export function DateOfBirthSelects({
             value={day === "" ? "" : String(day)}
             className={selectClassName}
             onChange={(event) => {
+              setBirthdayNotice("");
               setDay(
                 event.target.value === "" ? "" : Number(event.target.value)
               );
@@ -189,6 +202,8 @@ export function DateOfBirthSelects({
             onChange={(event) => {
               const manual = event.target.value === "manual";
               const nextYear = manual || !event.target.value ? "" : Number(event.target.value);
+              focusManual.current = manual;
+              setBirthdayNotice("");
               setManualYear(manual);
               setYearText("");
               changeYear(nextYear);
@@ -206,7 +221,7 @@ export function DateOfBirthSelects({
       </div>
       {manualYear && <label className="mt-2 block text-sm" htmlFor={id("dob_year_input")}>
         Enter your birth year
-        <input id={id("dob_year_input")} name="dob_year_input" className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
+        <input ref={manualField} id={id("dob_year_input")} name="dob_year_input" className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
           aria-invalid={yearText === "0000" || undefined} aria-describedby={yearText === "0000" ? id("dob_year_error") : undefined} onChange={event => {
           const text = event.target.value.replace(/\D/g, "").slice(0, 4);
           const nextYear = text.length === 4 && Number(text) > 0 ? Number(text) : "";
@@ -216,6 +231,7 @@ export function DateOfBirthSelects({
         {yearText === "0000" ? <span id={id("dob_year_error")} role="alert" className="mt-1 block text-xs text-red-300">Enter a valid four-digit birth year.</span> : null}
       </label>}
 
+      {birthdayNotice ? <p className="mt-1 text-xs text-amber-200" role="status">{birthdayNotice}</p> : null}
       <input
         id={id("date_of_birth")}
         name="date_of_birth"

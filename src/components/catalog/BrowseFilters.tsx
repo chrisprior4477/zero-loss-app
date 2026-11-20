@@ -45,6 +45,9 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
     ? String(filters.maxValue) : filters.minValue !== null || filters.maxValue !== null ? "custom" : "all";
   const [mode, setMode] = useState(presetValue);
+  const [productType, setProductType] = useState(filters.type);
+  const [availableOnly, setAvailableOnly] = useState(filters.availableOnly);
+  const [sort, setSort] = useState(filters.sort);
   const [bounds, setBounds] = useState({ minValue: String(filters.minValue ?? ""), maxValue: String(filters.maxValue ?? "") });
   const fields = ["minValue", "maxValue"] as const;
   const invalidAmount = fields.find(field => bounds[field] !== "" && bounds[field] !== String(filters[field] ?? "") && (!/^\d+$/.test(bounds[field]) || Number(bounds[field]) > MAX_PRIZE_VALUE));
@@ -151,7 +154,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={discoveryCategoryHref(group.id, mode === "custom" && issue ? filters : { ...filters, minValue: draftedMinimum, maxValue: draftedMaximum }, selectedCategory, "", ticketsLeft,
+              <Link key={group.id} href={discoveryCategoryHref(group.id, mode === "custom" && issue ? filters : { ...filters, type: productType, availableOnly, sort, minValue: draftedMinimum, maxValue: draftedMaximum }, selectedCategory, "", ticketsLeft,
                 retainedSearch)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const form = event.currentTarget.closest("form");
@@ -171,14 +174,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <div className="flex flex-wrap gap-2 lg:flex-col">
           {([ ["all", "All products"], ["pictured", "Pictured products"], ["gift-cards", "Gift cards"] ] as const).map(([value, label]) => (
             <label key={value} className="cursor-pointer">
-              <input className="peer sr-only" type="radio" name="type" value={value} defaultChecked={filters.type === value} />
+              <input className="peer sr-only" type="radio" name="type" value={value} defaultChecked={filters.type === value} onChange={() => setProductType(value)} />
               <span className="inline-flex min-h-10 w-full items-center rounded-xl border border-white/25 px-3 py-2 text-sm font-bold text-white/85 transition hover:border-cyan-300 peer-checked:border-cyan-300 peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan-300">{label}</span>
             </label>
           ))}
         </div>
       </fieldset>
       <label className="flex min-h-10 cursor-pointer items-center gap-3 text-sm font-bold">
-        <input type="checkbox" name="available" value="1" defaultChecked={filters.availableOnly} className="h-5 w-5 accent-[#31e800]" />
+        <input type="checkbox" name="available" value="1" defaultChecked={filters.availableOnly} onChange={event => setAvailableOnly(event.target.checked)} className="h-5 w-5 accent-[#31e800]" />
         Available only
       </label>
       <fieldset>
@@ -206,7 +209,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <legend className="mb-2 text-xs font-black uppercase tracking-[.1em] text-cyan-200">Sort by</legend>
         <div className="grid grid-cols-2 gap-2">
           {([["featured", "Featured"], ["fewest-left", "Fewest tickets left"], ["price-low", "Lowest entry price"], ["value-high", "Highest prize value"]] as const).map(([value, label]) => <label key={value} className="cursor-pointer">
-            <input className="peer sr-only" type="radio" name="sort" value={value} defaultChecked={filters.sort === value} />
+            <input className="peer sr-only" type="radio" name="sort" value={value} defaultChecked={filters.sort === value} onChange={() => setSort(value)} />
             <span className="flex min-h-11 h-full items-center justify-center rounded-xl border border-white/25 px-3 py-2 text-center text-xs font-bold peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline-2 peer-focus-visible:outline-cyan-300">{label}</span>
           </label>)}
         </div>

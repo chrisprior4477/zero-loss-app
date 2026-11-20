@@ -63,10 +63,10 @@ test("open products consolidate into ticket totals and a click clears the open-e
   await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=one")));
   expect(mock.markRead).toHaveBeenCalledWith(["active-2"]);
 });
-test("open entries alone never intercept the normal ticket link", () => {
+test("open entries alone have an inbox button alongside the normal ticket link", () => {
   mock.unread=[make("active-1","active"),make("wallet-1","wallet")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
-  expect(screen.queryByRole("button",{name:/unread updates/})).toBeNull(); expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false);
+  expect(screen.getByRole("button",{name:/1 unread updates/})).toBeTruthy(); expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false);
 });
 test("support goes to the exact conversation and uses purple", async () => {
   mock.unread=[make("support-1","account",{title:"Reply to your case",href:"/support?case=one#conversation"})]; mock.notifications=mock.unread;

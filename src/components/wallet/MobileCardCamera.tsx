@@ -97,6 +97,14 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
       const cameraStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" } } });
       if (version !== captureVersion.current || !dialog.current?.open || !video.current) { cameraStream.getTracks().forEach(track => track.stop()); return; }
       stream.current = cameraStream;
+      for (const track of cameraStream.getVideoTracks?.() ?? []) {
+        track.addEventListener("ended", () => {
+          if (version !== captureVersion.current || stream.current !== cameraStream) return;
+          captureVersion.current++;
+          stopCamera();
+          setError("The camera stopped. Restart it or choose a photo below.");
+        }, { once: true });
+      }
       video.current.srcObject = cameraStream;
       await video.current.play();
       if (version === captureVersion.current) setCameraStatus("live");

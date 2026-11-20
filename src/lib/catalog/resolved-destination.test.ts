@@ -30,7 +30,7 @@ test("multiple rewards never choose an arbitrary same-product card", () => {
 test("declined and expired options are not presented as available purchases", () => {
   const state = storedActivityFixture();
   Object.assign(state.activity[2], { status: "completed", completionOptionStatus: "declined" });
-  expect(resolvedProductDestination(state, state.activity[2].slug)?.href).toBe("/account/declined-offers");
+  expect(resolvedProductDestination(state, state.activity[2].slug)?.href).toBe(`/account/declined-offers?prize=${state.activity[2].slug}`);
   state.activity[2].completionOptionStatus = "expired";
   expect(resolvedProductDestination(state, state.activity[2].slug)?.label).toBe("View your saved result");
 });

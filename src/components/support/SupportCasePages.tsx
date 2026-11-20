@@ -16,9 +16,8 @@ export function SupportCaseList({ cases, context, timeZone }: { cases: SupportCa
       <Link href={`/support?case=${item.id}${context}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}>
         <span className={styles.caseDetails}>
           <strong>{item.subject}</strong>
-          <span className={`text-sm ${styles.eyebrow}`}>{item.lastReply && Number.isFinite(Date.parse(item.lastReply))
-            ? <>Last Support reply <time dateTime={item.lastReply}>{date.format(new Date(item.lastReply))}</time></>
-            : item.label}</span>
+          <span className={`text-sm ${styles.eyebrow}`}>{item.label}</span>
+          {item.lastReply && Number.isFinite(Date.parse(item.lastReply)) ? <span className={`text-xs ${styles.muted}`}>Last Support reply <time dateTime={item.lastReply}>{date.format(new Date(item.lastReply))}</time></span> : null}
           <span className={`text-xs ${styles.muted}`}>{item.case_number}</span>
         </span>
         <span className={styles.caseAction}>Open case</span>

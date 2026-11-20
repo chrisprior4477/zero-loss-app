@@ -11,9 +11,19 @@ function consumeHistoryStep(key: string, id: string, href: string) {
 }
 
 /** Give a transient review its own history step without changing its URL. */
-export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false, scope?: string) {
+export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false, scope?: string, onForward?: () => void) {
   const key = scope ? `${stateKey}-${scope}` : nested ? stateKey + "Nested" : stateKey;
   const marker = useRef<{ id: string; href: string } | null>(null);
+  const restoreOnForward = useEffectEvent(() => onForward?.());
+  const canRestore = Boolean(onForward);
+  useLayoutEffect(() => {
+    if (!canRestore || open) return;
+    function restore() {
+      if (typeof window.history.state?.[key] === "string") restoreOnForward();
+    }
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [canRestore, key, open]);
   const closeOnBack = useEffectEvent(() => {
     const keepOpen = blocked || onClose() === true;
     if (keepOpen && marker.current) {

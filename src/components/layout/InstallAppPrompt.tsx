@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import popupStyles from "./responsive-popup.module.css";
 
 const DISMISS_KEY = "zeroloss-install-prompt-dismissed-at";
@@ -42,6 +43,7 @@ function manualInstallPlatform(): ManualInstall {
 }
 
 export function InstallAppPrompt() {
+  const pathname = usePathname();
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
   const dismissedThisVisit = useRef(false);
   const [canPrompt, setCanPrompt] = useState(false);
@@ -97,6 +99,7 @@ export function InstallAppPrompt() {
       event.preventDefault();
       deferredPrompt.current = event as BeforeInstallPromptEvent;
       setCanPrompt(true);
+      setShowInstructions(false);
     };
     const noteInstalled = () => {
       installedThisVisit.current = true;
@@ -143,9 +146,11 @@ export function InstallAppPrompt() {
     dismissedThisVisit.current = true;
     setDismissed(true);
     setExplicitRequest(false);
+    setShowInstructions(false);
   };
 
-  const visible = explicitRequest || (interacted && !dismissed && !alreadyInstalled && (canPrompt || manualPlatform !== null));
+  const onAccountForm = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/auth/recovery";
+  const visible = explicitRequest || (!onAccountForm && interacted && !dismissed && !alreadyInstalled && (canPrompt || manualPlatform !== null));
   useEffect(() => {
     if (!explicitRequest || !showInstructions) return;
     const previous = document.activeElement;
