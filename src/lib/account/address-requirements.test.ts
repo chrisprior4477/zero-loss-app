@@ -20,3 +20,8 @@ test("country-specific completeness does not require invented postal codes, regi
   expect(completeMailingAddress({...address,country:"United Kingdom",city:"London",region:"",postalCode:"SW1A 1AA"})).toBe(true);
   expect(completeMailingAddress({...address,country:"unknown"})).toBe(false);
 });
+
+test("free-text country input only matches countries listed in the rules", () => {
+  expect(addressRequirements("constructor")).toBeNull();
+  expect(addressRequirements("__proto__")).toBeNull();
+});

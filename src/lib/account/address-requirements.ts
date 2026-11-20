@@ -7,7 +7,8 @@ import countryRules from "./country-address-rules.json";
  * Core fields A/C/S/Z are checked here. Dependent locality can be included in A.
  */
 export function addressRequirements(country: string) {
-  return (countryRules as Record<string, { code: string; required: string; postalUsed: boolean }>)[country] ?? null;
+  const rules = countryRules as Record<string, { code: string; required: string; postalUsed: boolean }>;
+  return Object.hasOwn(rules, country) ? rules[country] : null;
 }
 
 export type MailingAddress = { street: string; city: string; region: string; postalCode: string; country: string };
