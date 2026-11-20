@@ -72,7 +72,7 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
           <EntryButton />
         </div>
       </Link>
-      <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute right-3 top-3 z-20" />
+      <FavoriteButton itemName={item.title} itemHref={item.href} returnTo={`/?marketplace-prize=${item.href.split("?")[0].slice("/items/".length)}#marketplace-mosaic-title`} className="absolute right-3 top-3 z-20" />
     </article>
   );
 }
@@ -99,7 +99,7 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
           <div className="mt-1 sm:mt-2"><EntryButton compact /></div>
         </div>
       </Link>
-      <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute left-2 top-2 z-20" />
+      <FavoriteButton itemName={item.title} itemHref={item.href} returnTo={`/?marketplace-prize=${item.href.split("?")[0].slice("/items/".length)}#marketplace-mosaic-title`} className="absolute left-2 top-2 z-20" />
     </article>
   );
 }

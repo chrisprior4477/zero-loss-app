@@ -31,7 +31,8 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
   cases: SupportCaseListItem[]; timeZone: string; initialPage: number; pageSize: number; base: string;
 }) {
   // Keep the current ordering even when a background account refresh brings in a reply.
-  const [snapshot] = useState(cases);
+  const [snapshot] = useState(() => cases.map(({ id, status }) => ({ id, waiting: status === "awaiting_customer" })));
+  const latest = new Map(cases.map(item => [item.id, item]));
   const last = Math.max(0, Math.ceil(snapshot.length / pageSize) - 1);
   const [page, setPage] = useState(Math.min(initialPage, last));
   const heading = useRef<HTMLDivElement>(null);
@@ -40,8 +41,17 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
       const query = new URLSearchParams(window.location.search);
       if (window.location.pathname !== "/support" || query.has("case")) return;
       const requested = query.get("page");
-      setPage(requested && /^\d{1,5}$/.test(requested) ? Math.max(0, Math.min(Number(requested) - 1, last)) : 0);
+      const target = requested && /^\d{1,5}$/.test(requested) ? Math.max(0, Math.min(Number(requested) - 1, last)) : 0;
+      if (requested !== null && requested !== (target ? String(target + 1) : null)) {
+        const url = new URL(window.location.href);
+        if (target) url.searchParams.set("page", String(target + 1));
+        else url.searchParams.delete("page");
+        url.hash = "case-list";
+        window.history.replaceState(window.history.state, "", url);
+      }
+      setPage(target);
     };
+    restorePage();
     window.addEventListener("popstate", restorePage);
     return () => window.removeEventListener("popstate", restorePage);
   }, [last]);
@@ -58,13 +68,17 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
     target?.scrollIntoView?.({ block: "start" });
   }
   const current = snapshot.slice(page * pageSize, (page + 1) * pageSize);
-  const waiting = current.filter(item => item.status === "awaiting_customer");
-  const other = current.filter(item => item.status !== "awaiting_customer");
+  const casesFor = (waiting: boolean) => current.flatMap(item => {
+    const entry = latest.get(item.id);
+    return entry && item.waiting === waiting ? [entry] : [];
+  });
+  const waiting = casesFor(true);
+  const other = casesFor(false);
   const context = page ? `&page=${page + 1}` : "";
   return <div ref={heading}>
-    {!current.length ? <p className={`mt-4 ${styles.muted}`}>No cases yet.</p> : null}
+    {!waiting.length && !other.length ? <p className={`mt-4 ${styles.muted}`}>{snapshot.length ? "No cases on this page." : "No cases yet."}</p> : null}
     {waiting.length > 0 ? <section aria-labelledby="support-waiting-heading" className="mt-4">
-      <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3>
+      {waiting.every(item => item.status === "awaiting_customer") ? <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3> : <h3 id="support-waiting-heading" className="font-bold">Recent cases</h3>}
       <SupportCaseList cases={waiting} context={context} timeZone={timeZone} />
     </section> : null}
     {other.length > 0 ? <div className="mt-4">

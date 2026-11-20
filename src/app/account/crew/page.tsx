@@ -103,6 +103,8 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     discovery={{ real: profileResult.data?.crew_find_real_name ?? true, email: profileResult.data?.crew_find_email ?? true, phone: profileResult.data?.crew_find_phone ?? true }}
     entries={entries}
     selectedMemberId={selectedMemberId}
+    bookmarkedMember={typeof params.member === "string" ? params.member : undefined}
+    bookmarkedPick={typeof params.pick === "string" ? params.pick : undefined}
     selectedPicks={(picksResult?.data ?? []) as SharedCrewPick[]}
     available={available}
     selectedPicksUnavailable={Boolean(picksResult?.error)}

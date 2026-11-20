@@ -165,7 +165,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
     if (key === "minValue" && (invalidMinimum || reversedRange) || key === "maxValue" && (invalidMaximum || reversedRange)) continue;
-    const value = key === "subcategory" ? subcategory : key === "category" && query.category ? selectedCategory : query[key];
+    const value = key === "subcategory" ? subcategory : key === "category" && query.category ? selectedCategory
+      : key === "partnerCategory" ? selectedRetailerGroup?.id : key === "retailer" ? filters.retailer : query[key];
     if (value) searchParamsForView.set(key, value);
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
@@ -283,6 +284,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {filters.retailer} has no prizes in this category. <BrowseResultsLink target="heading" href={`/browse?${allCategoriesForRetailer}#search-results`} className="underline">Search for {filters.retailer} across all categories</BrowseResultsLink>
           </p> : null}
           {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
+          {query.partnerCategory && !selectedRetailerGroup ? <p role="status" className="mb-3 text-sm text-amber-200">That retailer group is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Update this link</Link></p> : null}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={subcategory} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} />

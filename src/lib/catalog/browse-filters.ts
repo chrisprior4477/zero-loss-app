@@ -31,12 +31,11 @@ const productTypes: BrowseProductType[] = ["all", "pictured", "gift-cards"];
 const sortOptions: BrowseSort[] = ["featured", "fewest-left", "price-low", "value-high"];
 export const MAX_PRIZE_VALUE = 1_000_000;
 
-function parsePrizeValue(value: string | undefined, bound: "minimum" | "maximum"): number | null {
+function parsePrizeValue(value: string | undefined): number | null {
   if (!value || !/^\d+(?:\.\d{1,2})?$/.test(value)) return null;
   const amount = Number(value);
   if (amount > MAX_PRIZE_VALUE) return null;
-  // Old links allowed cents. Keep the whole-dollar values inside their original range.
-  return bound === "minimum" ? Math.ceil(amount) : Math.floor(amount);
+  return amount;
 }
 
 export function parseBrowseFilterState(query: Record<string, string | string[] | undefined>, retailers: readonly string[]): BrowseFilterState {
@@ -46,12 +45,12 @@ export function parseBrowseFilterState(query: Record<string, string | string[] |
   const retailer = partnerDisplayName(first(query.retailer) ?? "");
   return {
     type: productTypes.includes(type as BrowseProductType) ? type as BrowseProductType : "all",
-    retailer: retailers.includes(retailer) ? retailer : "",
+    retailer: retailers.find(name => retailerKey(name) === retailerKey(retailer)) ?? "",
     availableOnly: first(query.available) === "1",
     sort: sortOptions.includes(sort as BrowseSort) ? sort as BrowseSort
       : sort === "ending-soon" || first(query.category) === "ending-soon" ? "fewest-left" : "featured",
-    minValue: parsePrizeValue(first(query.minValue), "minimum"),
-    maxValue: parsePrizeValue(first(query.maxValue), "maximum"),
+    minValue: parsePrizeValue(first(query.minValue)),
+    maxValue: parsePrizeValue(first(query.maxValue)),
   };
 }
 

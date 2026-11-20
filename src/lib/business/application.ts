@@ -4,6 +4,7 @@ export type Partnership = "products" | "fulfillment" | "campaign" | "other";
 export type DemoCase = Partnership | "restaurant" | "tools";
 export type FormValues = Record<string, string | boolean>;
 export type PartnerListing = {
+  id?: string;
   title: string; brand: string; category: string; value: number; entryPrice: number; capacity: number;
   capacityManuallySet?: boolean;
   demoArtworkIndex?: number;
@@ -32,6 +33,7 @@ function object(value: unknown): value is Record<string, unknown> {
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === "string");
 function validListing(value: unknown): value is PartnerListing {
   return object(value) && ["title","brand","category","summary","fulfillment","availability"].every(k => typeof value[k] === "string")
+    && (value.id === undefined || (typeof value.id === "string" && /^[a-z0-9-]{1,80}$/.test(value.id)))
     && ["value","entryPrice","capacity"].every(k => Number.isFinite(value[k]))
     && (value.capacityManuallySet === undefined || typeof value.capacityManuallySet === "boolean")
     && (value.demoArtworkIndex === undefined || (Number.isSafeInteger(value.demoArtworkIndex) && Number(value.demoArtworkIndex) >= 0))
@@ -48,6 +50,8 @@ export function isBusinessDraft(value: unknown): value is BusinessDraft {
       || Number(value.step) < 0 || Number(value.step) > 4 || !Array.isArray(value.listings) || !value.listings.every(validListing)
       || !Array.isArray(value.files)) return false;
   const count = value.listings.length;
+  const assignedIds = value.listings.flatMap(item => item.id ?? []);
+  if (new Set(assignedIds).size !== assignedIds.length) return false;
   return value.files.every(file => object(file) && typeof file.name === "string" && file.name.length > 0 && file.name.length <= 255
     && typeof file.id === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(file.id)
     && (file.listingIndex === null || (Number.isInteger(file.listingIndex) && Number(file.listingIndex) >= 0 && Number(file.listingIndex) < count)));
@@ -86,6 +90,34 @@ export function invalidBusinessListings(listings: PartnerListing[]) {
   });
 }
 
+export function invalidBusinessOfferFields(values: FormValues): [string, string][] {
+  const issues: [string, string][] = [];
+  const website = String(values.website ?? "").trim();
+  if (website && !URL.canParse(website)) issues.push(["website", "Valid business website"]);
+  else if (website && !["https:", "http:"].includes(new URL(website).protocol)) issues.push(["website", "Valid business website"]);
+  if (values.partnership !== "products") return issues;
+
+  const amount = "(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.(\\d{1,2}))?";
+  const price = String(values.retail_value ?? "").trim();
+  const match = new RegExp(`^\\$?${amount}(?:\\s*[–—-]\\s*\\$?${amount})?(?:\\s+per listing)?$`, "i").exec(price);
+  const asCents = (whole: string, fractional = "") => Number(whole.replaceAll(",", "")) * 100 + Number(fractional.padEnd(2, "0"));
+  if (price) {
+    const min = match ? asCents(match[1], match[2]) : 0;
+    const max = match?.[3] ? asCents(match[3], match[4]) : min;
+    if (min <= 0 || max < min || !Number.isSafeInteger(max)) issues.push(["retail_value", "Positive retail value in dollars and cents"]);
+  }
+  const quantity = String(values.quantity ?? "").trim();
+  const capacity = /^(?:up to\s+)?([1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)(?:\s+[\p{L}][\s\S]*)?$/iu.exec(quantity);
+  if (quantity && (!capacity || !Number.isSafeInteger(Number(capacity[1].replaceAll(",", ""))))) {
+    issues.push(["quantity", "Positive whole-number quantity or capacity"]);
+  }
+  return issues;
+}
+
+export function defaultBusinessListingCapacity(value: number) {
+  return Math.ceil(Math.round(value * 100) * 3 / 100);
+}
+
 export function missingBusinessFields(values: FormValues, files: BusinessFile[], listings: PartnerListing[] = []) {
   const required = businessIdentityFields(values);
   if (values.partnership === "products") required.push(["offer_name","Offer name"],["offer_type","Offer type"],["description","Customer-facing description"],["retail_value","Retail value"],["quantity","Quantity or capacity"],["relationship","Relationship"],["fulfillment_owner","Fulfillment responsibility"]);
@@ -94,6 +126,7 @@ export function missingBusinessFields(values: FormValues, files: BusinessFile[],
   if (values.partnership === "other") required.push(["other_partnership","Partnership explanation"]);
   const missing = required.filter(([key]) => typeof values[key] !== "string" || !String(values[key]).trim()).map(([,label]) => label);
   missing.push(...invalidBusinessCounts(values).map(([, label]) => `${label} must be a positive whole number`));
+  missing.push(...invalidBusinessOfferFields(values).map(([, label]) => label));
   if (values.partnership === "products") missing.push(...invalidBusinessListings(listings).map(listing => listing.message));
   if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push("Valid work email");
   if (values.capacity_ack !== true) missing.push("Fulfillment-capacity acknowledgment");

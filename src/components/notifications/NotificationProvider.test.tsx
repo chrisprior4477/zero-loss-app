@@ -14,10 +14,29 @@ const make=(id:string,tone:AccountNotification["tone"]):AccountNotification=>({i
 const notifications=[make("win","reward"),make("option","completion"),make("support-case","account"),make("shared-pick","crew")];
 const snapshot={notifications,readIds:[] as string[],readAvailable:true,preferences:{}};
 function Restore(){const value=useNotifications()!;return <button onClick={()=>void value.restoreBanner()}>Restore</button>;}
+function MarkOne() {
+  const value = useNotifications()!;
+  return <><output aria-label="Unread count">{value.unread.length}</output><button onClick={() => void value.markRead(["win"]).catch(() => {})}>Mark one</button></>;
+}
 beforeEach(()=>{
  vi.clearAllMocks();mock.mark.mockResolvedValue({ok:true});
  vi.stubGlobal("fetch",vi.fn().mockImplementation(async (_url,options)=>options?.method === "POST" ? {ok:true,status:200,json:()=>mock.mark(JSON.parse(options.body).ids)} : {ok:true,status:200,json:async()=>snapshot}));
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute("open","");};HTMLDialogElement.prototype.close=function(){this.removeAttribute("open");};
+});
+test("a failed write preserves a read verified by a refresh during the write", async () => {
+  let failWrite!: (response: unknown) => void;
+  let reads = 0;
+  const requests = vi.fn((_url, options) => options?.method === "POST"
+    ? new Promise(resolve => { failWrite = resolve; })
+    : Promise.resolve({ ok: true, status: 200, json: async () => ({ ...snapshot, readIds: ++reads > 1 ? ["win"] : [] }) }));
+  vi.stubGlobal("fetch", requests);
+  render(<NotificationProvider initial={snapshot} initialStyle="capsule" initialEnabled><MarkOne /></NotificationProvider>);
+  await waitFor(() => expect(reads).toBe(1));
+  fireEvent.click(screen.getByRole("button", { name: "Mark one" }));
+  act(() => window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)));
+  await waitFor(() => expect(reads).toBe(2));
+  await act(async () => failWrite({ ok: false, status: 503, json: async () => ({ ok: false }) }));
+  expect(screen.getByLabelText("Unread count").textContent).toBe("3");
 });
 test("navigation and local read state update before storage finishes, with rollback on failure",async()=>{
  let finishRead!:(result:{ok:boolean,message:string})=>void;

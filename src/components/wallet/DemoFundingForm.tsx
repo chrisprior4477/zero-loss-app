@@ -678,13 +678,13 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
       const start = Number.isSafeInteger(saved?.start) && saved.start >= 0 ? saved.start : 0;
       const size = Number.isSafeInteger(saved?.size) && saved.size > 0 ? saved.size : 5;
       if (saved || focusId) restoreRange(focusIndex >= 0 && (focusIndex < start || focusIndex >= start + size) ? focusIndex : start, size);
-      if (!saved && !focusId) return;
+      if (!saved && !focusRequest) return;
       // The requested row takes precedence over a previous disclosure in this tab.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAllDeposits(saved?.all === true || (desktop && focusIndex >= 6));
-      setReceipt(focusId ?? (typeof saved?.receipt === "string" ? saved.receipt : null));
+      setReceipt(focusRequest ? focusId : (typeof saved?.receipt === "string" ? saved.receipt : null));
     } catch { /* Use the first batch. */ }
-  }, [viewKey, restoreRange, focusId, focusIndex, desktop]);
+  }, [viewKey, restoreRange, focusId, focusIndex, focusRequest, desktop]);
   const end = desktop ? Math.min(count, allDeposits ? count : 6) : batches.end;
   const focusedRow = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -750,6 +750,7 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
   }
   return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
+    {focusRequest && requests && !focusId && dismissedArchiveReturn !== focusRequest ? <p role="status" className="mt-3 text-sm text-amber-100">This deposit receipt is unavailable. You can still browse your payment deposits below.</p> : null}
     {depositsToCheck.length > 0 && <section className={styles.depositsToCheck} aria-labelledby="deposits-to-check-heading">
       <h3 id="deposits-to-check-heading">Deposits to check</h3>
       <ul>{depositsToCheck.map(renderDeposit)}</ul>

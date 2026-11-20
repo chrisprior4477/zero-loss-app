@@ -9,10 +9,11 @@ import { useNotifications } from "@/components/notifications/NotificationProvide
 import { checkOwnDemoActivityReset, previewAllDemoActivityReset, resetAllDemoActivity, type DemoActivityRevision } from "@/lib/account/demo-activity-reset-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./reset-all-demo-activity-button.module.css";
+import { useDialogBack } from "./useDialogBack";
 
 type Preview = { entryCount: number; balanceCents: number; revision?: DemoActivityRevision };
 
-export function ResetAllDemoActivityButton() {
+export function ResetAllDemoActivityButton({ ownerId }: { ownerId?: string } = {}) {
   const router = useRouter();
   const notifications = useNotifications();
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -20,17 +21,41 @@ export function ResetAllDemoActivityButton() {
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const requestKey = useRef<string | null>(null);
+  const storageKey = ownerId ? `zero-loss-demo-reset:${ownerId}` : null;
+  const [savedResetPending, setSavedResetPending] = useState(false);
+  useDialogBack(Boolean(preview), close, pending, true, true);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        const key = sessionStorage.getItem(storageKey);
+        if (key && /^[A-Za-z0-9_-]{16,108}$/.test(key)) {
+          requestKey.current = key;
+          setSavedResetPending(true);
+        }
+      } catch { /* The open review can still check its own request. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [storageKey]);
 
   useEffect(() => {
     if (preview && !dialog.current?.open) dialog.current?.showModal();
   }, [preview]);
 
+  function clearRecovery() {
+    requestKey.current = null;
+    setSavedResetPending(false);
+    if (storageKey) try { sessionStorage.removeItem(storageKey); } catch { /* Recovery is cleared in memory. */ }
+  }
   function close() {
     dialog.current?.close();
     setPreview(null);
-    requestKey.current = null;
+    if (!savedResetPending) requestKey.current = null;
     setUncertain(false);
+    requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }));
   }
 
   function open() {
@@ -46,13 +71,17 @@ export function ResetAllDemoActivityButton() {
   }
 
   function confirm() {
-    if (!preview || !requestKey.current || uncertain) return;
+    const key = requestKey.current;
+    if (!preview || !key || uncertain) return;
+    setSavedResetPending(true);
+    if (storageKey) try { sessionStorage.setItem(storageKey, key); } catch { /* Check is still available in this view. */ }
     startTransition(async () => {
       try {
-        const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, requestKey.current!, preview.revision);
-        if (result.status === "error" && result.stale) { close(); setNotice(result.message); return; }
+        const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, key, preview.revision);
+        if (result.status === "error" && result.stale) { clearRecovery(); close(); setNotice(result.message); return; }
         if (result.status === "error") { setNotice(result.message); setUncertain(true); return; }
         notifications?.clearAfterDemoReset();
+        clearRecovery();
         close();
         setNotice("Demo activity and notifications reset. Your account and sign-in are unchanged.");
         router.refresh();
@@ -70,6 +99,7 @@ export function ResetAllDemoActivityButton() {
       try {
         const result = await checkOwnDemoActivityReset(key);
         if (result.status === "error") { setNotice(result.message); return; }
+        clearRecovery();
         close();
         const summary = result.receipt
           ? `This reset cleared ${result.receipt.clearedCount} demo ${result.receipt.clearedCount === 1 ? "entry" : "entries"} and ${formatUsdFromCents(result.receipt.clearedCents)} in playable funds.`
@@ -84,8 +114,8 @@ export function ResetAllDemoActivityButton() {
   }
 
   return <>
-    <button type="button" className={styles.trigger} onClick={open} disabled={pending}>
-      {pending && !preview ? "Checking demo activity…" : "Reset All Demo Activity"}
+    <button ref={trigger} type="button" className={styles.trigger} onClick={savedResetPending ? checkActivity : open} disabled={pending}>
+      {pending && !preview ? "Checking demo activity…" : savedResetPending && !preview ? "Check saved demo reset" : "Reset All Demo Activity"}
     </button>
     {notice && !preview ? <p role="status" className={styles.notice}>{notice}</p> : null}
     {preview && typeof document !== "undefined" ? createPortal(

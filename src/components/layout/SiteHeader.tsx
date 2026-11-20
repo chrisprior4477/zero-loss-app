@@ -57,6 +57,7 @@ export async function SiteHeader() {
       accountMenu={<AccountDrawer
             key={account?.userId ?? "signed-out"}
             isSignedIn={Boolean(account)}
+            ownerId={account?.userId}
             displayName={account?.displayName ?? "Welcome"}
             email={account?.email ?? null}
             avatarUrl={account?.avatarUrl ?? null}

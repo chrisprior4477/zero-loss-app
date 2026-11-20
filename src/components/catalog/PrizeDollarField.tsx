@@ -113,7 +113,7 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
       onChange={event => onChange(event.currentTarget.value)} />
     <button ref={trigger} type="button" data-bound={name} aria-haspopup="dialog" aria-expanded={open}
       aria-labelledby={`${id}-label ${id}-value`} aria-describedby={issueId} onClick={() => setOpen(true)}>
-      <span id={`${id}-value`}>{value && usable ? formatter.format(amount) : unsetLabel}</span>
+      <span id={`${id}-value`}>{value && Number.isFinite(amount) ? usable ? formatter.format(amount) : `$${value}` : unsetLabel}</span>
       <span aria-hidden="true">⌄</span>
     </button>
     {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={value && usable ? amount : -1} onCancel={close}

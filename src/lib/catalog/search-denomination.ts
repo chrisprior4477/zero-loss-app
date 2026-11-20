@@ -138,7 +138,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       },
     };
   }
-  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above|higher)|or more)(?=\s|$)(.*)$/i.exec(normalized);
+  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above|higher)|or (?:more|higher|above))(?=\s|$)(.*)$/i.exec(normalized);
   const minimumValue = minimumPhrase ? extractValues(minimumPhrase[1], products) : null;
   if (minimumValue?.values.size === 1) {
     const minimum = [...minimumValue.values][0];

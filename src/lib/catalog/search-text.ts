@@ -20,7 +20,9 @@ function wordForm(word: string) {
 
 export const searchWords = (value: string) => normalizeSearch(value).split(/\s+/).filter(Boolean).map(wordForm);
 const ignoredWords = new Set(searchWords("a an and for of or the to i im am is me my some please find show looking look want need buy get stuff thing item product"));
-export const queryWords = (value: string) => [...new Set(searchWords(value).filter(word => !ignoredWords.has(word)
+export const queryWords = (value: string) => [...new Set(searchWords(value
+  .replace(/^\s*(?:can|could|would) you\s+(?:please\s+)?(?:show me|find|get me)\s+(?:(?:any|all)\s+)?(?:available\s+)?(?:deals?\s+for\s+)?/i, "")
+  .replace(/\s+in the (?:list|catalog)\s*$/i, "")).filter(word => !ignoredWords.has(word)
   || (word === "buy" && normalizeSearch(value).includes("best buy"))))];
 export const maxCatalogSearchLength = 512;
 export const maxCatalogSearchTerms = 32;

@@ -3,6 +3,22 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test("keeps each alternative independent and supports explicit gift-card exclusions", () => {
+    const list = searchCatalog(demoProducts, "TV, monitor, or headphones").map(item => item.slug);
+    expect(list).toEqual(expect.arrayContaining(["lg-oled-c6-65-tv", "sony-wh-1000xm5-headphones"]));
+    const mixed = searchCatalog(demoProducts, "TV under $1,000 or headphones").map(item => item.slug);
+    expect(mixed).toContain("sony-wh-1000xm5-headphones");
+    expect(mixed).not.toContain("lg-oled-c6-65-tv");
+    expect(searchCatalog(demoProducts, "Sony headphones not gift cards").map(item => item.slug)).toEqual(["sony-wh-1000xm5-headphones"]);
+  });
+  test("honors an inclusive minimum and an exact value in natural requests", () => {
+    const minimum = searchCatalog(demoProducts, "Walmart gift cards 75 dollars or higher");
+    const exact = searchCatalog(demoProducts, "Can you please show me any available deals for only $75 Walmart gift cards in the list");
+    expect(minimum.some(item => item.value === 75)).toBe(true);
+    expect(minimum.every(item => item.value >= 75)).toBe(true);
+    expect(exact.length).toBeGreaterThan(0);
+    expect(exact.every(item => item.value === 75 && item.retailer.startsWith("Walmart"))).toBe(true);
+  });
   test.each(["Walmart $100", "Walmart 100", "Walmart 100 dollars", "Walmart one hundred dollars", "Walmart for like a hundred dollars"])("matches the retailer and exact prize value for %s", query => {
     const matches = searchCatalog(demoProducts, query);
     expect(matches.length).toBeGreaterThan(0);

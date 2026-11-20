@@ -13,6 +13,18 @@ import { ResetAllDemoActivityButton } from "./ResetAllDemoActivityButton";
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.mocked(previewAllDemoActivityReset).mockReset(); vi.mocked(resetAllDemoActivity).mockReset(); vi.mocked(checkOwnDemoActivityReset).mockReset(); });
 
+test("reopening the account menu can check an unresolved reset without sending another", async () => {
+  const key = "original-demo-reset-request";
+  sessionStorage.setItem("zero-loss-demo-reset:demo-owner", key);
+  vi.mocked(checkOwnDemoActivityReset).mockResolvedValue({ status: "checked", receipt: { clearedCount: 3, clearedCents: 2500 }, current: null });
+  render(<ResetAllDemoActivityButton ownerId="demo-owner" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Check saved demo reset" }));
+  expect(await screen.findByText("This reset cleared 3 demo entries and $25 in playable funds.")).toBeTruthy();
+  expect(checkOwnDemoActivityReset).toHaveBeenCalledWith(key);
+  expect(resetAllDemoActivity).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem("zero-loss-demo-reset:demo-owner")).toBeNull();
+});
+
 test("confirmation explains both empty histories and preserves sign-in; cancel makes no change", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };

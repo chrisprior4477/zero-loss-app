@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { blankDraft, guestDraftKey, readDeviceDraft, type BusinessDraft, type BusinessRecord } from "@/lib/business/application";
 import { readBusinessApplication, saveBusinessApplication } from "@/lib/business/actions";
 import { releaseMaterials, uploadMaterials } from "@/lib/business/materials";
+import { recoverBusinessDraft } from "@/lib/business/recover-draft";
 
 export function useBusinessApplication(owner: string | null, record: BusinessRecord | null, completeLegacy: (draft: BusinessDraft) => BusinessDraft) {
   const [draft, setDraft] = useState<BusinessDraft>(() => record ? completeLegacy(record.document) : blankDraft);
@@ -14,10 +15,10 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [recoveredDraft, setRecoveredDraft] = useState<BusinessDraft | null>(null);
+  const [conflictingFields, setConflictingFields] = useState<string[]>([]);
   const [reviewingRecovery, setReviewingRecovery] = useState(false);
   const [conflictPending, setConflictPending] = useState(false);
   const recoveryKey = owner ? `zero-loss-business-draft:${owner}` : null;
-  const recoveredRevision = useRef<number | null>(null);
   const revision = useRef(record?.revision ?? 0);
   const lastSaved = useRef(draft);
   const uploaded = useRef(new Set(record?.document.files.map(f => f.id)));
@@ -36,12 +37,17 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
       if (recoveryKey) try {
         const copy = JSON.parse(sessionStorage.getItem(recoveryKey) ?? "null");
         const snapshot = copy && readDeviceDraft(JSON.stringify(copy.draft));
-        if (snapshot && !locked.current && Number.isSafeInteger(copy.revision) && copy.revision >= 0
+        if (snapshot && Number.isSafeInteger(copy.revision) && copy.revision >= 0
           && JSON.stringify(snapshot) !== JSON.stringify(lastSaved.current)) {
-          if (copy.revision === revision.current) setDraft(completeLegacy(snapshot));
+          if (!locked.current && copy.revision === revision.current && copy.review !== true) setDraft(completeLegacy(snapshot));
           else {
-            recoveredRevision.current = copy.revision;
-            setRecoveredDraft(completeLegacy(snapshot));
+            const local = completeLegacy(snapshot);
+            const previous = !locked.current && copy.revision !== revision.current && copy.baseline
+              ? readDeviceDraft(JSON.stringify(copy.baseline)) : null;
+            const recovered = previous ? recoverBusinessDraft(completeLegacy(previous), local, lastSaved.current) : null;
+            setRecoveredDraft(recovered?.draft ?? local);
+            const previousConflicts = Array.isArray(copy.conflicts) ? copy.conflicts.filter((item: unknown) => typeof item === "string") : [];
+            setConflictingFields([...new Set([...previousConflicts, ...recovered?.conflicts ?? []])]);
           }
         } else sessionStorage.removeItem(recoveryKey);
       } catch { /* The saved account draft is still available. */ }
@@ -64,9 +70,11 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   useLayoutEffect(() => {
     if (!recoveryKey || !initialized || submitted || draft === savedDraft || recoveredDraft) return;
     try {
-      sessionStorage.setItem(recoveryKey, JSON.stringify({ draft, revision: recoveredRevision.current ?? revision.current }));
+      sessionStorage.setItem(recoveryKey, JSON.stringify({
+        draft, revision: revision.current, baseline: lastSaved.current, review: reviewingRecovery, conflicts: conflictingFields,
+      }));
     } catch { /* The server draft can still be saved normally. */ }
-  }, [recoveryKey, initialized, submitted, draft, savedDraft, recoveredDraft]);
+  }, [recoveryKey, initialized, submitted, draft, savedDraft, recoveredDraft, reviewingRecovery, conflictingFields]);
 
   const loadConflict = useCallback(async () => {
     if (!owner || !conflict.current) return;
@@ -77,31 +85,25 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
       const baseline = lastSaved.current;
       const saved = result.record ? completeLegacy(result.record.document) : blankDraft;
       const newer = result.record?.revision ?? 0;
-      const listingSectionChanged = JSON.stringify([local.listings, local.files]) !== JSON.stringify([baseline.listings, baseline.files]);
-      const recovered = {
-        ...local,
-        values: { ...saved.values, ...Object.fromEntries(Object.entries(local.values).filter(([key, value]) => value !== baseline.values[key])) },
-        // Listings and uploads share slot indices, so keep a coherent version of both.
-        listings: listingSectionChanged ? local.listings : saved.listings,
-        files: listingSectionChanged ? local.files : saved.files,
-      };
+      const recovery = result.record?.status === "submitted" ? { draft: local, conflicts: [] } : recoverBusinessDraft(baseline, local, saved);
+      const recovered = recovery.draft;
       if (recoveryKey) try {
-        sessionStorage.setItem(recoveryKey, JSON.stringify({ draft: recovered, revision: revision.current }));
+        sessionStorage.setItem(recoveryKey, JSON.stringify({ draft: recovered, revision: newer, baseline: saved, review: true, conflicts: recovery.conflicts }));
       } catch { /* The in-memory recovery remains available in this tab. */ }
-      recoveredRevision.current = revision.current;
       revision.current = newer;
       lastSaved.current = saved;
       saved.files.forEach(file => uploaded.current.add(file.id));
       setSavedDraft(saved);
       setDraft(saved);
       setConflictPending(false);
+      setRecoveredDraft(recovered);
+      setConflictingFields(recovery.conflicts);
       if (result.record?.status === "submitted") {
         locked.current = true;
         setSubmitted(true);
         setMessage("Another tab already submitted your application. Your previous edits are still in this tab’s recovery copy.");
         return;
       }
-      setRecoveredDraft(recovered);
       setMessage("The latest saved draft is ready. Review your edits before saving again.");
     } catch { setMessage("We couldn’t check the latest saved draft. Your edits are still here."); }
   }, [owner, completeLegacy, recoveryKey]);
@@ -143,7 +145,7 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
         lastSaved.current = snapshot;
         setSavedDraft(snapshot);
         locked.current = submit;
-        recoveredRevision.current = null;
+        setConflictingFields([]);
         setReviewingRecovery(false);
         setSubmitted(submit);
         setMessage(submit ? "Application submitted for review." : "Draft saved to your account.");
@@ -186,8 +188,8 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   }
   function discardRecoveredDraft() {
     conflict.current = false;
-    recoveredRevision.current = null;
     setRecoveredDraft(null);
+    setConflictingFields([]);
     if (recoveryKey) try { sessionStorage.removeItem(recoveryKey); } catch { /* Tab storage is optional. */ }
   }
 
@@ -212,5 +214,5 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
     return !submitted && draft !== lastSaved.current;
   }
   const status = savedDraft !== draft && message.startsWith("Draft saved") ? "Unsaved changes." : message;
-  return { draft, setDraft, initialized, saving, submitted, hasUnsavedChanges, message: status, setMessage, save, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict };
+  return { draft, setDraft, initialized, saving, submitted, hasUnsavedChanges, message: status, setMessage, save, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields };
 }

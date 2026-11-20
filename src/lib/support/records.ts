@@ -8,6 +8,7 @@ export type SupportRecord = {
   date: string;
   status: string;
   attachable?: boolean;
+  verifyAgain?: boolean;
 };
 export type SupportRecordPage = { records: SupportRecord[]; more: boolean } | { error: string };
 

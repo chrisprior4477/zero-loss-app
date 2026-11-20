@@ -45,7 +45,9 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const backButton = useRef<HTMLButtonElement>(null);
   const instructionScroll = useRef<number | null>(null);
   const latestDraft = useRef<PrintDraft | null>(null);
-  const reference = useMemo(() => shortReference(`${offeringSlug}-${accountReference}`), [accountReference, offeringSlug]);
+  const cleanAccountReference = accountReference.trim();
+  const reference = useMemo(() => shortReference(`${offeringSlug}-${cleanAccountReference}`), [cleanAccountReference, offeringSlug]);
+  const flipLabel = addressSide ? "Show artwork side of postcard" : "Show address and entry details";
 
   useEffect(() => {
     const restoreView = () => {
@@ -62,6 +64,9 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
         if (showingPrint && (saved?.revision ?? -1) < current.revision) {
           window.history.replaceState({ ...window.history.state, zeroLossPrintDraft: { ...current, scroll: saved?.scroll } }, "");
         }
+      } else {
+        setName(initialLegalName);
+        setAccountReference(initialAccountReference);
       }
       if (showingPrint && instructionScroll.current === null) instructionScroll.current = typeof saved?.scroll === "number" ? saved.scroll : window.scrollY;
       setPrintPreview(showingPrint);
@@ -75,7 +80,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       cancelAnimationFrame(initial);
       window.removeEventListener("popstate", restoreView);
     };
-  }, [offeringSlug, initialAccountReference]);
+  }, [offeringSlug, initialLegalName, initialAccountReference]);
 
   function updateDraft(nextName: string, nextAccount: string) {
     setName(nextName);
@@ -84,6 +89,9 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       offering: offeringSlug, owner: initialAccountReference, name: nextName, account: nextAccount,
       revision: Math.max(Date.now(), (latestDraft.current?.revision ?? 0) + 1),
     };
+    try {
+      window.history.replaceState({ ...window.history.state, zeroLossPrintDraft: latestDraft.current }, "");
+    } catch { /* The current tab still has the visible draft. */ }
   }
 
   function openPrintPreview() {
@@ -130,12 +138,13 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       <label className="text-sm font-bold">Your full legal name<input value={name} maxLength={80} onChange={(event) => updateDraft(event.target.value, accountReference)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
       <div><label className="block text-sm font-bold">Zero Loss account reference<input value={accountReference} maxLength={80} onChange={(event) => updateDraft(name, event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
         {signInHref ? <Link className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300 underline" href={signInHref}>Sign in to fill your account reference</Link> : null}
+        {(name !== initialLegalName || accountReference !== initialAccountReference) && <button type="button" className="mt-1 min-h-11 text-sm font-bold text-cyan-300 underline" onClick={() => updateDraft(initialLegalName, initialAccountReference)}>Clear print edits</button>}
       </div>
     </div>
 
-    <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>{addressSide ? "Address side" : "Entry side"}</button></div>
+    <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={flipLabel}>{addressSide ? "Show artwork" : "Show address and entry details"}</button></div>
 
-    <div ref={postcard} role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setAddressSide((side) => !side); } }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [container-type:inline-size] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>
+    <div ref={postcard} role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setAddressSide((side) => !side); } }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [container-type:inline-size] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={flipLabel}>
       <div className="amo-postcard-artwork">
         <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
           <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden border border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:shadow-none">

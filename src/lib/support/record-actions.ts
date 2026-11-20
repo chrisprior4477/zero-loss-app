@@ -1,6 +1,6 @@
 "use server";
 
-import { getOrderSupportTransactionId } from "@/lib/account/order-support";
+import { checkOrderSupportTransaction } from "@/lib/account/order-support";
 import { getAccountOrders, type AccountOrderStatus } from "@/lib/account/orders";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
@@ -33,8 +33,10 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number):
           amount: order.amountPaidCents, date: order.createdAt, status: orderStatus[order.status] });
         return record ? [record] : [];
       });
-      const attachable = await Promise.all(records.map(record => getOrderSupportTransactionId(db, user.id, record.id)));
-      return { records: records.map((record, index) => ({ ...record, attachable: Boolean(attachable[index]) })), more: orders.length > offset + pageSize };
+      const checks = await Promise.all(records.map(record => checkOrderSupportTransaction(db, user.id, record.id)));
+      return { records: records.map((record, index) => ({
+        ...record, attachable: checks[index].status === "found", verifyAgain: checks[index].status === "unavailable",
+      })), more: orders.length > offset + pageSize };
     }
 
     const wallet = await getWalletSnapshot(user.id);

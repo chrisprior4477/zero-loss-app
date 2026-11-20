@@ -5,6 +5,10 @@ import { useLayoutEffect, type RefObject } from "react";
 const stateKey = "zeroLossShoppingRows";
 type Position = { left: number; anchor: string | null; inset: number };
 type Bookmark = { path: string; rows: Record<string, Position> };
+const choiceReturns: Record<string, { hash: string; param: string }> = {
+  "dollar-choice": { hash: "#dollar-choice-title", param: "choice-prize" },
+  "everyday-upgrade": { hash: "#dollar-choice-light-title", param: "upgrade-prize" },
+};
 
 function bookmark(): Bookmark | null {
   const value = window.history.state?.[stateKey];
@@ -51,19 +55,29 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
         ? new URLSearchParams(window.location.search).get("marketplace-prize") : null;
       const marketplaceAnchor = marketplacePrize && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(marketplacePrize)
         ? `/items/${marketplacePrize}?from=${encodeURIComponent(`/?marketplace-prize=${marketplacePrize}#marketplace-mosaic-title`)}` : null;
-      const anchorHref = retailer ?? prizeAnchor ?? marketplaceAnchor;
+      const choice = choiceReturns[id];
+      const chosen = choice && window.location.hash === choice.hash ? new URLSearchParams(window.location.search).get(choice.param) : null;
+      const item = chosen && /^[a-z0-9-]+$/.test(chosen) ? `/items/${chosen}` : null;
+      const anchorHref = retailer ?? prizeAnchor ?? marketplaceAnchor ?? item;
       const saved = bookmark()?.rows[id] ?? (anchorHref ? { left: 0, anchor: anchorHref, inset: 4 } : null);
       if (!saved || !Number.isFinite(saved.left) || saved.left < 0 || !Number.isFinite(saved.inset)) return;
       restoring = true;
       let focused = false;
       const align = () => {
         if (!restoring || !track?.clientWidth) return;
-        const anchor = typeof saved.anchor === "string" ? children().find(child => links(child).some(link => link.getAttribute("href") === saved.anchor)) : null;
+        const anchor = typeof saved.anchor === "string" ? children().find(child => links(child).some(link => {
+          const href = link.getAttribute("href");
+          return href === saved.anchor || Boolean(item && saved.anchor === item && href?.split("?")[0] === item);
+        })) : null;
         const left = anchor ? track.scrollLeft + anchor.getBoundingClientRect().left - track.getBoundingClientRect().left - saved.inset : saved.left;
         track.scrollLeft = Math.max(0, Math.min(left, track.scrollWidth - track.clientWidth));
         if (retailer && !focused) {
           const link = Array.from(track.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === retailer);
           if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
+        }
+        if (!retailer && anchorHref && !focused && document.activeElement === document.body) {
+          const heart = anchor?.querySelector<HTMLButtonElement>("button[aria-pressed]");
+          if (heart?.getClientRects().length) { heart.focus({ preventScroll: true }); focused = true; }
         }
       };
       align();

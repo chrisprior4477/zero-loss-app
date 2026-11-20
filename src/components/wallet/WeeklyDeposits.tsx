@@ -33,7 +33,7 @@ function ReceiptDetails({ request, timeZone, open }: { request: DemoFundingReque
     <p>Payment &amp; credit matched</p><p>Request {request.id}</p><DepositCreditLink request={request} fromWeek /></details>;
 }
 
-type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; asOf: string; timeZone?: string; restoreReceipt?: string };
+type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; hideArchived?: boolean; asOf: string; timeZone?: string; restoreReceipt?: string };
 
 export function WeeklyDeposits(props: ChartProps) {
   const viewport = useMenuViewport();
@@ -49,7 +49,7 @@ function MobileReceiptReturn({ requestKey }: { requestKey: string }) {
   return <p id="weekly-deposit-heading"><Link href={href}>Open this receipt in Payment deposits</Link></p>;
 }
 
-function DepositChart({ requests, hiddenIds, asOf, timeZone, restoreReceipt }: ChartProps) {
+function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, restoreReceipt }: ChartProps) {
   const [openReceipt, setOpenReceipt] = useState<string | null>(null);
   const chart = useMemo(() => {
     if (!requests) return null;
@@ -73,10 +73,13 @@ function DepositChart({ requests, hiddenIds, asOf, timeZone, restoreReceipt }: C
   }, [chart, restoreReceipt]);
   const total = chart?.weeks.reduce((sum, week) => sum + week.cents, BigInt(0)) ?? BigInt(0);
   const largest = Math.max(1, ...(chart?.weeks.map(week => Number(week.cents)) ?? []));
+  const requestedReceipt = restoreReceipt ? requests?.find(request => request.idempotencyKey === restoreReceipt
+    && request.reconciliation === "reconciled" && (!hideArchived || !hiddenIds?.includes(request.id))) : undefined;
+  const requestedArchived = requestedReceipt && hiddenIds?.includes(requestedReceipt.id);
   const displayedReceipt = (openReceipt && requests?.find(request => request.id === openReceipt
     && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id))) ||
     (openWeek === null && restoredReceipt ? requests?.find(request => request.idempotencyKey === restoredReceipt
-      && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id)) : undefined) || chart?.latest;
+      && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id)) : undefined) || (restoreReceipt ? requestedReceipt : chart?.latest);
   return <aside className={styles.weeklyPanel} aria-labelledby="weekly-deposit-heading">
     <h2 id="weekly-deposit-heading" tabIndex={-1}>Weekly deposits</h2>
     {!chart ? <p role="status">Weekly deposit history is unavailable.</p> : <>
@@ -93,7 +96,8 @@ function DepositChart({ requests, hiddenIds, asOf, timeZone, restoreReceipt }: C
         </div>)}
       </div>
       <p className={styles.weekHint}>{total ? "Select a week to see its deposits." : "No posted deposits in the last four weeks."}</p>
-      {displayedReceipt && <div className={styles.latestDeposit}><strong>{displayedReceipt.id === chart.latest?.id ? "Latest posted deposit" : "Deposit receipt"}</strong><details key={displayedReceipt.id} open={openWeek === null && restoredReceipt === displayedReceipt.idempotencyKey ? true : undefined} className={styles.weekReceipt}
+      {restoreReceipt && !requestedReceipt ? <p role="status">This deposit receipt is unavailable.</p> : null}
+      {displayedReceipt && <div className={styles.latestDeposit}><strong>{requestedArchived && displayedReceipt.id === requestedReceipt.id ? "Archived deposit receipt" : displayedReceipt.id === chart.latest?.id ? "Latest posted deposit" : "Deposit receipt"}</strong><details key={displayedReceipt.id} open={openWeek === null && restoredReceipt === displayedReceipt.idempotencyKey ? true : undefined} className={styles.weekReceipt}
         onToggle={event => { setOpenReceipt(event.currentTarget.open ? displayedReceipt.id : null); }}>
         <summary><DepositReceiptDate request={displayedReceipt} timeZone={timeZone} /><b>View {formatUsdFromCents(displayedReceipt.amount)} receipt</b></summary>
         <p>Payment &amp; credit matched</p><p>Request {displayedReceipt.id}</p><DepositCreditLink request={displayedReceipt} fromWeek />

@@ -20,7 +20,7 @@ type FavoritesContextValue = {
   isSignedIn: boolean;
   available: boolean;
   busySlugs: string[];
-  toggle: (slug: string) => void;
+  toggle: (slug: string, returnTo?: string) => void;
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
@@ -129,14 +129,14 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     });
   }, [accountId, available, handoffAttempt, initialSlugs, isSignedIn]);
 
-  const toggle = (slug: string) => {
+  const toggle = (slug: string, sourceReturn?: string) => {
     if (!slugPattern.test(slug) || inFlight.current.has(slug)) return;
     const favoriteLogin = () => {
       const { pathname, search } = window.location;
       const draft = window.history.state?.freeEntryDraft;
       const selection = draft?.slug === slug && isEntryQuantity(draft.quantity) ? { slug, quantity: draft.quantity } : null;
       const returnTo = pathname === "/browse" ? signInReturnPath(`${pathname}${search}#prize-${slug}`)
-        : currentProductEntryHref(pathname, search, selection);
+        : pathname === "/" ? signInReturnPath(sourceReturn) : currentProductEntryHref(pathname, search, selection);
       return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`);
     };
     if (!isSignedIn) {

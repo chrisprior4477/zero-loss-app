@@ -26,6 +26,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const received = useRef(new Map<string, AccountNotification>());
   const readChanges = useRef(new Map<string, boolean>());
   const readOperations = useRef(new Map<string, number>());
+  const verifiedReads = useRef(new Set(initial?.readAvailable ? initial.readIds : []));
   const revision = useRef(0);
   const bannerChannel = useRef<BroadcastChannel | null>(null);
   useEffect(() => {
@@ -36,6 +37,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
       if (!Array.isArray(event.data)) return;
       const ids = new Set(event.data.filter((id): id is string => typeof id === "string"));
       revision.current++;
+      ids.forEach(id => verifiedReads.current.delete(id));
       ids.forEach(id => { readOperations.current.delete(id); readChanges.current.delete(id); });
       setSnapshot(snapshot => snapshot ? { ...snapshot, readIds: snapshot.readIds.filter(id => !ids.has(id)) } : null);
       window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
@@ -54,6 +56,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   useEffect(() => { if (!previewActive.current) setDisplaySeconds(initialDisplaySeconds); }, [initialDisplaySeconds]);
   useEffect(() => {
     // Merge incoming server snapshots without discarding verified read state.
+    if (initial?.readAvailable) verifiedReads.current = new Set(initial.readIds);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSnapshot(current => mergeReads(initial && {
       ...initial,
@@ -82,7 +85,10 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
           if (requestedRevision !== revision.current) return;
           next.notifications.forEach(n => received.current.delete(n.id));
           const confirmed = new Set(next.readIds);
-          if (next.readAvailable) readChanges.current.forEach((isRead, id) => { if (confirmed.has(id) === isRead) readChanges.current.delete(id); });
+          if (next.readAvailable) {
+            verifiedReads.current = confirmed;
+            readChanges.current.forEach((isRead, id) => { if (confirmed.has(id) === isRead) readChanges.current.delete(id); });
+          }
           setSnapshot(current => mergeReads({
             ...next,
             preferences: next.preferences ?? current?.preferences ?? null,
@@ -121,10 +127,14 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
         const response = await fetch("/api/account/notifications/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: batch }), keepalive: true, cache: "no-store" });
         const result = await response.json();
         if (!response.ok || !result.ok) throw new Error(result.message ?? "Notification status could not be saved.");
-        batch.forEach(id => remaining.delete(id));
+        batch.forEach(id => {
+          remaining.delete(id);
+          if (readOperations.current.get(id) === operation) verifiedReads.current.add(id);
+        });
       }
     } catch (error) {
-      const rollback = [...remaining].filter(id => readOperations.current.get(id) === operation);
+      const rollback = [...remaining].filter(id => readOperations.current.get(id) === operation
+        && readChanges.current.get(id) === true && !verifiedReads.current.has(id));
       rollback.forEach(id => readChanges.current.delete(id));
       setSnapshot(current => current ? { ...current, readIds: current.readIds.filter(id => !rollback.includes(id)) } : null);
       throw error;
@@ -138,7 +148,11 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     const result = await restoreNotificationBanner();
     if (!result.ok) throw new Error(result.message);
     revision.current++;
-    result.ids.forEach(id => readChanges.current.set(id, false));
+    result.ids.forEach(id => {
+      verifiedReads.current.delete(id);
+      readOperations.current.delete(id);
+      readChanges.current.set(id, false);
+    });
     setSnapshot(mergeReads(result.snapshot));
     bannerChannel.current?.postMessage(result.ids);
     setEnabled(true);
@@ -158,6 +172,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     received.current.clear();
     readChanges.current.clear();
     readOperations.current.clear();
+    verifiedReads.current.clear();
     setSnapshot(current => current ? { ...current, notifications: [], readIds: [] } : null);
     setOpen(false);
   }, []);

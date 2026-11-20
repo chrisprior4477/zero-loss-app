@@ -14,12 +14,17 @@ export function searchCatalogMatches(
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const { text, values, budget, exactOnly, merchant } = denomination;
-  if (!values.size && !budget) {
-    const alternatives = query.split(/\s+or\s+/i).map(value => value.trim());
-    if (alternatives.length > 1 && alternatives.every(value => queryWords(value).length)) {
+  const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:any\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  if (withoutGiftCards !== query) {
+    return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
+  }
+  if (!values.size && /\s+or\s+/i.test(query)) {
+    const alternatives = query.split(/\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+/i).map(value => ({ query: value.trim(), denomination: searchDenominations(value.trim(), products) }));
+    if (alternatives.length > 1 && alternatives.every(value => queryWords(value.denomination.text).length > 0)
+      && (!budget || alternatives.some(value => value.denomination.budget))) {
       const matches = new Map<string, CatalogSearchMatch>();
       for (const alternative of alternatives) {
-        for (const match of searchCatalogMatches(products, alternative, undefined, { includeLowerGiftCards })) {
+        for (const match of searchCatalogMatches(products, alternative.query, alternative.denomination, { includeLowerGiftCards })) {
           if (!matches.has(match.product.slug) || match.kind === "product") matches.set(match.product.slug, match);
         }
       }

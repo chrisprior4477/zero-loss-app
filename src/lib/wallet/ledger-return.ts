@@ -1,18 +1,21 @@
+import type { FulfillmentFilter } from "@/lib/account/fulfillment";
+
 export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refunds";
 
 export const ledgerReturnKey = "zeroLossWalletLedgerReturn";
 
-export function walletSupportReturnHref(transactionId: string, restoreView: boolean, depositList = false) {
+export function walletSupportReturnHref(transactionId: string, restoreView: boolean, depositList = false, ordersFilter?: FulfillmentFilter) {
   const id = encodeURIComponent(transactionId);
-  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}#transaction-${id}`;
+  const orders = ordersFilter ? `&panel=transactions&fromOrders=1&orderFilter=${ordersFilter}` : "";
+  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}${orders}#transaction-${id}`;
 }
 
 function supportReturnKey(walletId: string, transactionId: string) {
   return `zero-loss-wallet-support:${walletId}:${transactionId}`;
 }
 
-export function rememberLedgerSupportReturn(saved: LedgerReturn, transactionId: string) {
-  const href = new URL(walletSupportReturnHref(transactionId, true), window.location.origin).href;
+export function rememberLedgerSupportReturn(saved: LedgerReturn, transactionId: string, ordersFilter?: FulfillmentFilter) {
+  const href = new URL(walletSupportReturnHref(transactionId, true, false, ordersFilter), window.location.origin).href;
   const state = { [ledgerReturnKey]: { ...saved, href, selectedId: transactionId } };
   try { sessionStorage.setItem(supportReturnKey(saved.walletId, transactionId), JSON.stringify(state)); }
   catch { /* The exact transaction link still works. */ }

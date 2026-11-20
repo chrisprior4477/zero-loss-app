@@ -23,6 +23,7 @@ export function productReturnFromReferer(referer: unknown, requestHost: unknown)
 /** Resume only known in-site destinations, never an arbitrary redirect URL. */
 export function signInReturnPath(value: unknown): string | null {
   if (value === businessSignupPath) return businessSignupPath;
+  if (typeof value === "string" && /^\/\?(?:(?:ending-prize=[a-z0-9-]+#ending-soon)|(?:marketplace-prize=[a-z0-9-]+#marketplace-mosaic-title)|(?:choice-prize=[a-z0-9-]+#dollar-choice-title)|(?:upgrade-prize=[a-z0-9-]+#dollar-choice-light-title))$/.test(value)) return value;
   if (typeof value === "string" && /^\/browse(?:[?#]|$)/.test(value)) {
     const path = value.endsWith("#search-results") ? value.slice(0, -"#search-results".length) : value;
     if (productBrowseReturnPath(path)) return value;

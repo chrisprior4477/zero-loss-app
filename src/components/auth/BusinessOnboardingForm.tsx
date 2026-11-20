@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { createContext, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
 
-import { businessIdentityFields, businessSignupPath, invalidBusinessCounts, invalidBusinessListings, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
+import { businessIdentityFields, businessSignupPath, defaultBusinessListingCapacity, invalidBusinessCounts, invalidBusinessListings, invalidBusinessOfferFields, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { downloadMaterial, materialTypes, stageMaterials } from "@/lib/business/materials";
 import { useBusinessApplication } from "./useBusinessApplication";
@@ -160,7 +160,7 @@ function StepHeading({ title, description, action }: { title: string; descriptio
 }
 
 function exampleListings(demo: "restaurant" | "tools") {
-  return partnerListings[demo].map((listing, demoArtworkIndex) => ({ ...listing, demoArtworkIndex }));
+  return partnerListings[demo].map((listing, demoArtworkIndex) => ({ ...listing, id: `${demo}-${demoArtworkIndex}`, demoArtworkIndex }));
 }
 
 function restoreListings(draft: BusinessDraft): BusinessDraft {
@@ -168,10 +168,14 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
   if (demo !== "restaurant" && demo !== "tools") return draft;
   if (!draft.listings.length) return { ...draft, listings: exampleListings(demo) };
   const originals = partnerListings[demo];
-  const listings = draft.listings.map(listing => {
-    if (listing.demoArtworkIndex !== undefined) return listing;
-    const index = originals.findIndex(original => original.title === listing.title || original.summary === listing.summary);
-    return index === -1 ? listing : { ...listing, demoArtworkIndex: index };
+  const assigned = new Set(draft.listings.flatMap(listing => listing.id ?? []));
+  const listings = draft.listings.map((listing, currentIndex) => {
+    const index = listing.demoArtworkIndex ?? originals.findIndex(original => original.title === listing.title || original.summary === listing.summary);
+    const exampleId = `${demo}-${index}`;
+    const id = listing.id ?? (index >= 0 && !assigned.has(exampleId) ? exampleId : `legacy-${currentIndex}`);
+    assigned.add(id);
+    if (id === listing.id && (index < 0 || index === listing.demoArtworkIndex)) return listing;
+    return { ...listing, id, ...(index >= 0 ? { demoArtworkIndex: index } : {}) };
   });
   return listings.some((listing, index) => listing !== draft.listings[index]) ? { ...draft, listings } : draft;
 }
@@ -179,7 +183,7 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
   const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
-    guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict } = useBusinessApplication(owner, record, restoreListings);
+    guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields } = useBusinessApplication(owner, record, restoreListings);
   const { values, step } = draft;
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
@@ -194,6 +198,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
   const mainProposal = String(values[proposalKey] || "Not provided yet");
   const invalidListings = values.partnership === "products" ? invalidBusinessListings(draft.listings) : [];
+  const invalidOfferFields = invalidBusinessOfferFields(values);
   const missing = missingBusinessFields(values, draft.files, draft.listings);
   useEffect(() => {
     if (step !== 2 || listingToReview === null) return;
@@ -282,9 +287,10 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const identity = businessIdentityFields(values).map(([key]) => key);
   function next() {
     if (step === 0) {
-      const incomplete = identity.find(key => !String(values[key] ?? "").trim() || (key === "work_email" && missing.includes("Valid work email")));
+      const incomplete = identity.find(key => !String(values[key] ?? "").trim() || (key === "work_email" && missing.includes("Valid work email")))
+        ?? invalidOfferFields.find(([key]) => key === "website")?.[0];
       if (incomplete) {
-        setErrors(["Complete the starred business fields and enter a valid work email"]);
+        setErrors([incomplete === "website" ? "Enter a valid website address, such as https://example.com" : "Complete the starred business fields and enter a valid work email"]);
         const field = formRef.current?.elements.namedItem(incomplete);
         if (field instanceof HTMLElement) {
           field.focus({ preventScroll: true });
@@ -300,7 +306,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       const incomplete = Array.from(form?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("[required][name]") ?? [])
         .find(field => !field.value.trim() || !field.validity.valid);
       const field = incomplete ?? form?.elements.namedItem(
-        invalidBusinessCounts(values)[0]?.[0] ?? (detailsMissing.includes("Fulfillment-capacity acknowledgment") ? "capacity_ack" :
+        invalidOfferFields.find(([key]) => key !== "website")?.[0] ?? invalidBusinessCounts(values)[0]?.[0] ?? (detailsMissing.includes("Fulfillment-capacity acknowledgment") ? "capacity_ack" :
           detailsMissing.includes("Card-on-file billing authorization") ? "card_billing" : ""),
       );
       if (field instanceof HTMLElement) {
@@ -348,6 +354,11 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     <p className="my-4">{String(values.business_name)} · {selected.title}</p>
     <p>Your submission is saved to your account. You can return here to view it.</p>
     <SubmissionDetails draft={draft} owner={owner!}/>
+    {recoveredDraft ? <div className="mt-4">
+      <p>This tab has unsaved edits from before the application was submitted.</p>
+      <SubmissionDetails draft={recoveredDraft} owner={owner!} recovery />
+      <button type="button" className="mt-3 text-cyan-200 underline" onClick={discardRecoveredDraft}>Discard unsaved edits in this tab</button>
+    </div> : null}
   </div>;
   return <BusinessEditor.Provider value={{ draft, setDraft, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
     <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
@@ -361,6 +372,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
         </div>}
         {recoveredDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4">
           <p>Your account has a newer draft. This tab also has unsaved edits.</p>
+          {conflictingFields.length ? <p className="mt-2">Review edits made in both tabs to {conflictingFields.join(", ")} before saving.</p> : null}
           <button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={reviewRecoveredDraft}>Review my unsaved edits</button>
           <button type="button" onClick={discardRecoveredDraft}>Use the saved draft</button>
         </div>}
@@ -391,15 +403,16 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   </div></BusinessEditor.Provider>;
 }
 
-function SubmissionDetails({ draft, owner }: { draft: BusinessDraft; owner: string }) {
+function SubmissionDetails({ draft, owner, recovery = false }: { draft: BusinessDraft; owner: string; recovery?: boolean }) {
   return <details className="mt-5 rounded-xl border border-cyan-300/25 p-4">
-    <summary className="cursor-pointer font-bold">View submitted details</summary>
+    <summary className="cursor-pointer font-bold">{recovery ? "View unsaved edits" : "View submitted details"}</summary>
     <dl className="mt-4 grid gap-3 sm:grid-cols-2">{Object.entries(draft.values).map(([key,value]) => <div key={key}>
       <dt className="text-xs capitalize text-cyan-200">{key.replaceAll("_"," ")}</dt><dd className="whitespace-pre-wrap break-words">{typeof value === "boolean" ? value ? "Yes" : "No" : value}</dd>
     </div>)}</dl>
     {draft.listings.map((item,index) => <details key={index} className="mt-3"><summary>Listing {index + 1}: {item.title}</summary>
-      <dl>{Object.entries(item).map(([key,value]) => <div key={key}><dt className="font-bold capitalize">{key}</dt><dd className="whitespace-pre-wrap">{Array.isArray(value) ? value.map(v => Array.isArray(v) ? v.join(": ") : v).join("\n") : value}</dd></div>)}</dl></details>)}
-    {draft.files.map(file => <MaterialDownload key={file.id} owner={owner} file={file}/>)}
+      <dl>{Object.entries(item).filter(([key]) => key !== "id").map(([key,value]) => <div key={key}><dt className="font-bold capitalize">{key}</dt><dd className="whitespace-pre-wrap">{Array.isArray(value) ? value.map(v => Array.isArray(v) ? v.join(": ") : v).join("\n") : value}</dd></div>)}</dl></details>)}
+    {draft.files.map(file => recovery ? <p key={file.id}>{file.name}{file.listingIndex === null ? "" : ` · Listing ${file.listingIndex + 1}`}</p>
+      : <MaterialDownload key={file.id} owner={owner} file={file}/>)}
   </details>;
 }
 
@@ -662,12 +675,12 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
     setDraft(current => ({ ...current, listings: current.listings.map((item, index) => {
       if (index !== selected) return item;
       if (field === "capacity") return { ...item, capacity: value, capacityManuallySet: true };
-      const manual = item.capacityManuallySet ?? item.capacity !== item.value * 3;
-      return { ...item, value, capacity: manual ? item.capacity : value * 3, capacityManuallySet: manual };
+      const manual = item.capacityManuallySet ?? (item.capacity !== item.value * 3 && item.capacity !== defaultBusinessListingCapacity(item.value));
+      return { ...item, value, capacity: manual ? item.capacity : defaultBusinessListingCapacity(value), capacityManuallySet: manual };
     }) }));
   }
   function addProduct() {
-    const next: PartnerListing = { title: "New product listing", brand: demo === "tools" ? "Forge & Field" : "Bellamora Italian Kitchen", category: demo === "tools" ? "Tools" : "Dining", value: 100, entryPrice: 1, capacity: 300, summary: "Describe exactly what the customer receives.", highlights: ["Add the first customer-facing highlight"], specifications: [["Model or offer","Add details"]], included: ["Describe what is included"], fulfillment: "Describe who fulfills this listing and how.", availability: "Describe inventory, locations, dates, and geographic limits." };
+    const next: PartnerListing = { id: crypto.randomUUID(), title: "New product listing", brand: demo === "tools" ? "Forge & Field" : "Bellamora Italian Kitchen", category: demo === "tools" ? "Tools" : "Dining", value: 100, entryPrice: 1, capacity: 300, summary: "Describe exactly what the customer receives.", highlights: ["Add the first customer-facing highlight"], specifications: [["Model or offer","Add details"]], included: ["Describe what is included"], fulfillment: "Describe who fulfills this listing and how.", availability: "Describe inventory, locations, dates, and geographic limits." };
     setDraft(current => ({ ...current, listings: [next, ...current.listings],
       values: countEditedListings(current, 1),
       files: current.files.map(file => file.listingIndex === null ? file : { ...file, listingIndex: file.listingIndex + 1 }) })); setSelected(0); setAddedMessage("New product added and opened below.");

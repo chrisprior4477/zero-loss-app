@@ -65,7 +65,7 @@ export function supportReferencePrefix(rewardId = "", deposit?: SupportDeposit, 
     const rewardReturn = transactionOrigin.startsWith("reward:") ? supportRewardReturn(transactionOrigin.slice(7), rewardId) : null;
     return `Reward reference: ${rewardId}${orderOrigin ? `\nReward opened from: ${orderOrigin[1]}` : ""}${rewardReturn ? `\nReward return: ${rewardReturn}` : ""}\n\n`;
   }
-  return /^(?:wallet|order:(?:all|processing|fulfilled|exceptions|payment)(?::details)?)$/.test(transactionOrigin)
+  return /^(?:wallet(?::orders:(?:all|processing|fulfilled|exceptions|payment))?|order:(?:all|processing|fulfilled|exceptions|payment)(?::details)?)$/.test(transactionOrigin)
     ? `Transaction opened from: ${transactionOrigin}\n\n` : "";
 }
 

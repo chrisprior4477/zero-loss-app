@@ -26,6 +26,7 @@ import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/w
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
+  ownerId?: string;
   displayName: string;
   email: string | null;
   avatarUrl: string | null;
@@ -68,7 +69,7 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
@@ -308,7 +309,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
             </div>
             {showAccountContent ? (
               <div className={styles.accountFooter}>
-                {fundingEnabled ? <ResetAllDemoActivityButton /> : null}
+                {fundingEnabled ? <ResetAllDemoActivityButton ownerId={ownerId} /> : null}
                 <SignOutForm>
                   <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
                 </SignOutForm>

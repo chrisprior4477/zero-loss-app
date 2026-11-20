@@ -40,6 +40,8 @@ type Props = {
   entries: OwnCrewEntry[];
   selectedMemberId: string | null;
   selectedPicksUnavailable?: boolean;
+  bookmarkedMember?: string;
+  bookmarkedPick?: string;
   selectedPicks: SharedCrewPick[];
   available: boolean;
   initialTab: CrewTab;
@@ -54,7 +56,7 @@ const subscribeToOrigin = () => () => {};
 const getBrowserOrigin = () => window.location.origin;
 const getServerOrigin = () => "";
 
-export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, selectedPicksUnavailable = false, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
+export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, selectedPicksUnavailable = false, bookmarkedMember, bookmarkedPick, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const { tab, selectTab } = useCrewTab(initialTab);
@@ -237,6 +239,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   }, [invitations, selectedPicks, selectedMemberId, selectedPicksUnavailable, available, tab]);
   const visibleMemberPicks = activeMember ? memberPicks : [];
   const activeKey = samplePerson ? `sample-${samplePerson}` : activeMember?.memberId ?? null;
+  const missingBookmarkedMember = available && Boolean(bookmarkedMember) && !people.some(person => person.memberId === bookmarkedMember)
+    && !samples.some(person => "sample-" + person === bookmarkedMember);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
@@ -275,7 +279,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
-        <CrewConnectedGallery ownerId={currentUserId} people={people} samples={samples} selectedKey={activeKey}
+        {missingBookmarkedMember ? <p role="status">This Crew member is unavailable. <Link href="/account/crew#crew-intro" className="underline">Back to your Crew list</Link></p> : null}
+        <CrewConnectedGallery bookmarkedPick={activeKey && bookmarkedMember === activeKey ? bookmarkedPick : undefined} ownerId={currentUserId} people={people} samples={samples} selectedKey={activeKey}
           picks={visibleMemberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId); }}

@@ -55,9 +55,9 @@ function PickCard({ pick, selectedKey }: { pick: CrewActivityPick; selectedKey: 
   </article>;
 }
 
-export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, picks, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
+export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, picks, bookmarkedPick, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
   ownerId: string;
-  people: CrewPersonCard[]; samples: SampleCrewName[]; selectedKey: string | null; picks: CrewActivityPick[]; loading: boolean; error: boolean; pending: boolean;
+  people: CrewPersonCard[]; samples: SampleCrewName[]; selectedKey: string | null; picks: CrewActivityPick[]; bookmarkedPick?: string; loading: boolean; error: boolean; pending: boolean;
   onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: MouseEventHandler<HTMLButtonElement>; onAdd: MouseEventHandler<HTMLButtonElement>;
 }) {
   const space = useRef<HTMLElement>(null);
@@ -76,6 +76,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
   const hidden = useResolvedCatalogSlugs();
   const sampleFinds = (name: SampleCrewName) => samplePicks[name].filter(pick => !hidden.has(pick.slug));
   const visiblePicks = selected?.sample ? sampleFinds(selected.name as SampleCrewName) : picks.filter(pick => !hidden.has(pick.slug));
+  const missingBookmarkedPick = selected && bookmarkedPick && !loading && !error && !visiblePicks.some(pick => pick.slug === bookmarkedPick);
   const pickKeys = visiblePicks.map(pick => pick.slug).join(",");
   useEffect(() => {
     let frame = 0, secondFrame = 0;
@@ -159,6 +160,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
     </CrewRail>
     <section className={styles.activityPanel} aria-label={selected ? `${selected.name}'s shared activity` : "Crew member activity"}>
       <header className={styles.personHeading}><div><span>{selected?.sample ? "SAMPLE PROFILE" : "YOUR CREW"}</span><h2>{selected ? `${selected.name}’s shared picks` : "Choose someone to explore"}</h2><p aria-live="polite">{loading ? "Loading picks…" : selected ? `${visiblePicks.length} ${visiblePicks.length === 1 ? "find" : "finds"} to explore` : "Their shared finds will appear here."}</p></div><button type="button" className={styles.headingShare} onClick={onShare} aria-label="Share a find"><ShareIcon name="share" /><span>Share a find</span></button></header>
+      {missingBookmarkedPick ? <p role="status">This shared pick is no longer available. Other shared picks from this member are shown here.</p> : null}
       {selected && !loading && !error && visiblePicks.length ? <CrewRail key={selected.key} label={`${selected.name}'s shared picks`} kind="picks" count={visiblePicks.length}>{visiblePicks.map((pick, index) => <PickCard key={`${pick.slug}-${index}`} pick={pick} selectedKey={selected.key} />)}</CrewRail> : <div className={styles.emptyPicks} role={error ? "alert" : "status"}>{loading ? "Loading shared activity…" : error ? <><p>We couldn’t load this Crew member’s activity.</p><button type="button" onClick={onRetry}>Retry shared activity</button></> : selected ? <><p>No activity shared with Crew yet.</p><button type="button" data-crew-recipient={selected.sample ? undefined : selected.key} onClick={onShare}>Share a find with them</button></> : "Select a person above to see the picks they’ve chosen to share."}</div>}
     </section>
   </section>;

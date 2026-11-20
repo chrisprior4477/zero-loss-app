@@ -66,7 +66,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref }: { notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter }: { ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
@@ -273,7 +273,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
     const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/") || destination.pathname === "/account/declined-offers") && destination.searchParams.get("walletView") === "1";
-    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId);
+    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId, anchor.hasAttribute("data-wallet-support") ? ordersFilter : undefined);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
@@ -330,7 +330,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
       ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}) })}` : productPath;
     const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
-    const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
+    const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" || ordersFilter ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}`;
     const selected = entry.id === selectedId;
     return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
       ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>

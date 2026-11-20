@@ -45,11 +45,19 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const [mode, setMode] = useState(presetValue);
   const [bounds, setBounds] = useState({ minValue: String(filters.minValue ?? ""), maxValue: String(filters.maxValue ?? "") });
   const fields = ["minValue", "maxValue"] as const;
-  const invalidAmount = fields.find(field => bounds[field] !== "" && (!/^\d+$/.test(bounds[field]) || Number(bounds[field]) > MAX_PRIZE_VALUE));
+  const invalidAmount = fields.find(field => bounds[field] !== "" && bounds[field] !== String(filters[field] ?? "") && (!/^\d+$/.test(bounds[field]) || Number(bounds[field]) > MAX_PRIZE_VALUE));
   const reversed = bounds.minValue !== "" && bounds.maxValue !== "" && Number(bounds.minValue) > Number(bounds.maxValue);
   const issue = invalidAmount ? "Enter a whole dollar amount from $0 to $1,000,000."
     : reversed ? "Maximum must be at least the minimum." : "";
   const issueField = invalidAmount ?? "maxValue";
+  const draftedMinimum = mode === "custom" && bounds.minValue !== "" ? Number(bounds.minValue) : null;
+  const draftedMaximum = mode === "custom" ? bounds.maxValue === "" ? null : Number(bounds.maxValue)
+    : mode === "all" ? null : Number(mode);
+  function focusIssue(form: HTMLFormElement) {
+    const trigger = form.querySelector<HTMLButtonElement>(`button[data-bound="${issueField}"]`);
+    const input = form.elements.namedItem(issueField) as HTMLInputElement;
+    (trigger?.getClientRects().length ? trigger : input).focus();
+  }
   const clearUrl = new URL(clearHref, "https://zeroloss.local");
   const retainedSearch = searchDraft.trim();
   if (retainedSearch) clearUrl.searchParams.set("q", retainedSearch);
@@ -63,14 +71,12 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const valueMode = data.get("valueMode")?.toString() ?? "all";
     if (valueMode === "custom") {
       if (issue) {
-        const trigger = form.querySelector<HTMLButtonElement>(`button[data-bound="${issueField}"]`);
-        const input = form.elements.namedItem(issueField) as HTMLInputElement;
-        (trigger?.getClientRects().length ? trigger : input).focus();
+        focusIssue(form);
         return;
       }
       for (const field of fields) {
         const input = form.elements.namedItem(field) as HTMLInputElement;
-        if (!input.reportValidity()) return;
+        if (bounds[field] !== String(filters[field] ?? "") && !input.reportValidity()) return;
         if (bounds[field] !== "") params.set(field, String(Number(bounds[field])));
       }
     } else if (["25", "50", "75", "100"].includes(valueMode)) {
@@ -141,9 +147,11 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft,
+              <Link key={group.id} href={discoveryCategoryHref(group.id, mode === "custom" && issue ? filters : { ...filters, minValue: draftedMinimum, maxValue: draftedMaximum }, selectedCategory, "", ticketsLeft,
                 retainedSearch)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                const form = event.currentTarget.closest("form");
+                if (form && mode === "custom" && issue) { event.preventDefault(); focusIssue(form); return; }
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;
                 if (onNavigate) { event.preventDefault(); onNavigate(`${event.currentTarget.pathname}${event.currentTarget.search}#search-results`); }

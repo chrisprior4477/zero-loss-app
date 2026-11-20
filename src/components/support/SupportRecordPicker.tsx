@@ -117,10 +117,11 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
                 attachedPage.current = { id: item.id, kind: item.kind, page };
                 onChange(item);
                 dialog.current?.close();
-              }}><RecordDetails record={item} timeZone={timeZone} />{item.attachable === false ? <span className={styles.recordMeta}>Payment could not be verified. You can send your request without attaching this order.</span> : null}</button>
+              }}><RecordDetails record={item} timeZone={timeZone} />{item.attachable === false ? <span className={styles.recordMeta}>{item.verifyAgain ? "Payment verification is temporarily unavailable." : "No verified payment was found for this order. You can send your request without attaching it."}</span> : null}</button>
             </li>)}
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>
+        {result && "records" in result && result.records.some(item => item.verifyAgain) ? <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Retry payment verification</button> : null}
         {page > 0 || (result && "more" in result && result.more) ? <div className={styles.controls}>
           {page > 0 ? <button type="button" className={styles.control} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
           {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1, true)}>Next</button> : null}
