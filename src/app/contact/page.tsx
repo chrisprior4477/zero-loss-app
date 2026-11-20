@@ -37,12 +37,12 @@ export default async function ContactPage() {
   const quickAnswers = faqItems.filter(item => ["open-reward", "purchase-options", "undo-entry", "password"].includes(item.id));
   const panel = "rounded-2xl border border-cyan-300/30 bg-[#052344] p-5 sm:p-7";
   return <PageContainer>
-    <HelpLandingScroll target="" focusAnchorPrefix="faq-" />
+    <HelpLandingScroll target="" focusAnchor="message" focusAnchorPrefix="faq-" />
     <header><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-300">Let’s get you to the right place</p><ContactHeading /><p className="mt-4 max-w-2xl leading-7 text-white/70">A question, a missing update, or something that doesn’t look right? Find a quick answer or send us a message right here.</p></header>
     <HelpShortcuts activity={account?.activity} />
     <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_1fr]">
       <section id="message" aria-labelledby="contact-message-heading" className={`${panel} scroll-mt-48`}>
-        <p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your conversation stays together</p><h2 id="contact-message-heading" className="mb-3 mt-2 text-2xl font-black">Send us a message</h2>
+        <p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your conversation stays together</p><h2 id="contact-message-heading" tabIndex={-1} className="mb-3 mt-2 text-2xl font-black">Send us a message</h2>
         {accountUnavailable ? <p role="alert">We couldn’t load your account. Refresh this page to try again. The answers and password-recovery link are still available.</p> : !account ? <>
           <p className="leading-7 text-white/75">Sign in to send a private request and keep track of the reply. We’ll bring you straight back to this form.</p><Link href={authNavigationHref("/login", "/contact#message")} className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in to message us</Link><Link href={authNavigationHref("/forgot-password", "/contact#message")} className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Can’t sign in? Reset your password</Link><p className="mt-3 text-sm leading-6 text-white/60">A public contact email has not been added yet. You can read all FAQs without an account.</p>
         </> : !enabled ? <p role="status">Message submission is unavailable in this environment. You can still use the FAQs and account shortcuts.</p> : <>

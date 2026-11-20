@@ -68,7 +68,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       // Restore after hydration, scoped to this account and support reference.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(saved);
-      if (saved.uncertain) {
+      if (saved.uncertain && !saved.recordUnavailable) {
         const payload = new FormData();
         const savedRecord = allowRecordPicker ? saved.record : undefined;
         Object.entries({ requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: savedRecord?.kind === "transaction" ? savedRecord.id : transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
@@ -86,7 +86,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   function changeRecord(nextRecord: SupportDraft["record"]) {
     const previousDefaults = recordDefaults(record);
     const nextDefaults = recordDefaults(nextRecord) ?? initialDraft;
-    const change: Partial<SupportDraft> = { record: nextRecord };
+    const change: Partial<SupportDraft> = { record: nextRecord, recordUnavailable: false };
     if (!draft.subjectEdited && (subject === initialDraft.subject || (draft.subjectEdited === false && subject === previousDefaults?.subject))) {
       change.subject = nextDefaults.subject;
       change.subjectEdited = false;
@@ -98,10 +98,18 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     changeDraft(change);
   }
   const [state, action, pending] = useActionState(async (previous: SupportFormState, data: FormData): Promise<SupportFormState> => {
+    if (data.get("intent") === "edit-checked-draft" && previous.status === "error" && previous.canResend && draft.recordUnavailable) {
+      changeDraft({ uncertain: false, reuseRequestKey: true });
+      sending.current = false;
+      return { status: "idle" };
+    }
     if (data.get("intent") === "check") {
       try {
         const result = await checkSupportMessage(draft.requestKey, caseId);
         if (result.status === "saved") writeSupportDraft(draftKey, null);
+        if (result.status === "error" && result.canResend && draft.recordUnavailable) return {
+          ...result, message: "No saved message was found. You can edit the draft and replace the unavailable attachment.",
+        };
         return result;
       } catch {
         return { status: "error", uncertain: true, message: "Could not check your message. Your text is still here. Try checking again." };
@@ -142,7 +150,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     event.preventDefault();
     if (locked || sending.current || extraCharacters > 0) return;
     const data = new FormData(event.currentTarget);
-    data.set("requestKey", crypto.randomUUID());
+    data.set("requestKey", draft.reuseRequestKey ? draft.requestKey : crypto.randomUUID());
     sending.current = true;
     startTransition(() => action(data));
   }} className="space-y-4">
@@ -165,6 +173,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       Trim {extraCharacters} {extraCharacters === 1 ? "character" : "characters"} to fit the {bodyLimit.toLocaleString("en-US")}-character limit.
     </p> : null}
     <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {attachedOrder ? "The selected order is already attached." : transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
+    {draft.recordUnavailable ? <p role="status" className="text-sm">The previous attachment is unavailable. {draft.uncertain ? "Check the saved message before sending anything again." : "Choose another record to attach, or send the message by itself."}</p> : null}
     {allowRecordPicker ? <SupportRecordPicker record={record} onChange={changeRecord} timeZone={timeZone} disabled={locked} /> : null}
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
@@ -179,7 +188,14 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         data.set("intent", "check");
         startTransition(() => action(data));
       }}>{pending ? "Checking…" : "Check saved message"}</button>
-      {state.status === "error" && state.canResend ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
+      {state.status === "error" && state.canResend && draft.recordUnavailable ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
+        if (sending.current) return;
+        sending.current = true;
+        const data = new FormData();
+        data.set("intent", "edit-checked-draft");
+        startTransition(() => action(data));
+      }}>Edit draft</button> : null}
+      {state.status === "error" && state.canResend && !draft.recordUnavailable ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
         if (!attempted.current || sending.current) return;
         sending.current = true;
         startTransition(() => action(attempted.current!));

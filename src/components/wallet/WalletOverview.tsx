@@ -71,12 +71,12 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const requestedEntry = selectedTransaction?.entry;
   const selected = requestedEntry && !(demoHistoryVisibility?.fullReset && demoHistoryVisibility.ledgerEntryIds.includes(requestedEntry.id)) ? requestedEntry : null;
   const landingId = selected ? `transaction-${selected.id}` : "transactions";
-  const ready = activity && activity.source !== "unavailable" ? readyWalletRewards(activity) : null;
-  const optionCount = activity && activity.source !== "unavailable" ? activity.activity.filter(item => item.status === "completion").length : null;
+  const ready = activity && activity.source !== "unavailable" && !activity.incomplete ? readyWalletRewards(activity) : null;
+  const optionCount = activity && activity.source !== "unavailable" && !activity.incomplete ? activity.activity.filter(item => item.status === "completion").length : null;
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <div className={styles.page}>
-    {landOnBalance ? <AccountSettingsLandingScroll target="balance" initialTarget="balance" focusTarget="balance" settleAfterNavigation allScreens /> : null}
+    <AccountSettingsLandingScroll target="balance" initialTarget={landOnBalance ? "balance" : undefined} focusTarget="balance" settleAfterNavigation allScreens restrictToTargetHash />
     <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={!landOnBalance && !recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
@@ -123,7 +123,6 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         </article>
       </section>
 
-      {ordersReturnHref && !selectedTransaction?.requested ? <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash /> : null}
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{ordersReturnHref ? <Link className="font-bold text-[#126bbb] hover:underline" href={ordersReturnHref}>← Back to Orders &amp; Fulfillment</Link> : null}</div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}

@@ -314,7 +314,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span>Help, Rules & Policies</span><span aria-hidden="true" className="text-cyan-300">{moreOpen ? "⌄" : "›"}</span>
                 </button>
-                {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} replace={replaceDrawerStep} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
+                <nav hidden={!moreOpen} id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} replace={replaceDrawerStep} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>
               </div> : null}
             </div>
             {showAccountContent ? (

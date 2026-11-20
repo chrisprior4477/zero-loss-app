@@ -375,3 +375,37 @@ describe("catalog search", () => {
     expect(searchCatalogMatches(demoProducts, "baby stuff")[0].kind).toBe("product");
   });
 });
+
+test.each([
+  ["Amazon gift cards from $25 up to $75", [25, 50, 75]],
+  ["Amazon gift cards between US$25 and US$75", [25, 50, 75]],
+  ["Amazon gift cards no higher than seventy five", [25, 50, 75]],
+  ["Amazon gift cards under $75.00, thanks", [25, 50]],
+  ["Amazon gift cards starting at $50", [50, 75, 100]],
+  ["Amazon gift cards with a maximum of $75", [25, 50, 75]],
+  ["Amazon $50 USD gift cards under $75", [50]],
+  ["Amazon gift cards $25 to $75 total", [25, 50, 75]],
+] as const)("keeps the requested retailers and values for %s", (query, expected) => {
+  const matches = searchCatalog(demoProducts, query);
+  expect(matches.every(product => product.retailer === "Amazon")).toBe(true);
+  expect([...new Set(matches.map(product => product.value))].sort((a, b) => a - b)).toEqual(expected);
+});
+
+test("keeps retailer alternatives separate from the conjunction inside a range", () => {
+  const results = searchCatalog(demoProducts, "Amazon and Walmart gift cards between $50 and $75");
+  expect(new Set(results.map(product => product.retailer))).toEqual(new Set(["Amazon", "Walmart"]));
+  expect(new Set(results.map(product => product.value))).toEqual(new Set([50, 75]));
+  const excluded = searchCatalog(demoProducts, "gift cards for fifty dollars, no Walmart");
+  expect(excluded.some(product => product.retailer === "Amazon")).toBe(true);
+  expect(excluded.some(product => product.retailer.startsWith("Walmart"))).toBe(false);
+});
+
+test.each([
+  ["Apple Air Pods", "airpods-pro"],
+  ["Sony WH1000 XM 5 headphones", "sony-wh-1000xm5-headphones"],
+  ["65” class TV", "lg-oled-c6-65-tv"],
+  ["PS5 Slim 1 terabyte", "playstation-5-slim"],
+  ["10¼ Lodge cast iron", "lodge-classic-10-inch-skillet"],
+])("finds the pictured item for %s", (query, slug) => {
+  expect(searchCatalog(demoProducts, query).some(product => product.slug === slug)).toBe(true);
+});

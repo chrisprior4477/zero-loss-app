@@ -13,10 +13,17 @@ export function supportNotifications(rows: unknown, timeZone = "America/New_York
       !Number.isFinite(Date.parse(r.updated_at)) || !["open", "awaiting_customer", "resolved"].includes(r.status)) return [];
     const reply = latestReply.get(r.id);
     const awaiting = r.status === "awaiting_customer";
-    const when = reply?.created_at ?? (awaiting ? r.updated_at : r.created_at ?? r.updated_at);
+    const resolved = r.status === "resolved";
+    const statusReply = reply?.status === r.status ? reply : undefined;
+    const when = awaiting || resolved
+      ? statusReply?.created_at ?? r.updated_at
+      : reply?.created_at ?? (Number.isFinite(Date.parse(r.created_at)) ? r.created_at : r.updated_at);
     if (!include(when)) return [];
+    const id = resolved || awaiting
+      ? `support-${r.id}-${resolved ? "resolved" : "awaiting"}-${statusReply?.id ?? Date.parse(when)}`
+      : reply ? `support-${r.id}-reply-${reply.id}` : `support-${r.id}-opened`;
     return [{
-      id: reply ? `support-${r.id}-reply-${reply.id}` : awaiting ? `support-${r.id}-awaiting-${Date.parse(when)}` : `support-${r.id}-opened`,
+      id,
       category: awaiting ? "action" : "account", tone: "account",
       title: r.status === "resolved" ? "Support case resolved" : awaiting ? "Your support case needs a reply" : reply ? "Support replied to your case" : "Support case received",
       body: r.subject, meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(when)),

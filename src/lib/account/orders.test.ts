@@ -19,3 +19,7 @@ test("keeps valid orders when a separate row is malformed", async () => {
 test.each([undefined, null, "", "   ", 123])("a missing or invalid reward ID cannot become an ambiguous product link: %s", async id => {
   await expect(getAccountOrders(client([{ ...row, reward_id: id }]))).rejects.toThrow("Invalid order");
 });
+test("an empty order number is withheld while another order remains usable", async () => {
+  const result = await getAccountOrders(client([row, { ...row, order_number: "", reward_id: "reward-2" }]));
+  expect(result).toMatchObject({ incomplete: true, orders: [{ orderNumber: row.order_number }] });
+});

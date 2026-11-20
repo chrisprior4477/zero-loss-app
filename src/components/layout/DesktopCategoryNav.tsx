@@ -202,6 +202,9 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], unavai
         key={category}
         className="flex h-full shrink-0 items-center"
         onMouseEnter={() => openMenu(category)}
+        onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setOpenCategory(current => current === category ? null : current);
+        }}
       >
         <Link
           ref={element => { if (element) categoryLinks.current.set(category, element); else categoryLinks.current.delete(category); }}
@@ -220,7 +223,9 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], unavai
           }}
           aria-expanded={preview ? undefined : isOpen}
           aria-haspopup={preview ? undefined : "menu"}
-          onFocus={() => openMenu(category)}
+          onFocus={event => {
+            if (!(event.relatedTarget instanceof Element && event.relatedTarget.closest('[role="menu"]'))) openMenu(category);
+          }}
           onClick={() => setOpenCategory(null)}
           className={
             isMerchandising

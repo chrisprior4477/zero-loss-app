@@ -9,8 +9,10 @@ export type SupportDraft = {
   subjectEdited?: boolean;
   caseStatus: string;
   uncertain: boolean;
+  reuseRequestKey?: boolean;
   transactionOrigin?: string;
   record?: SupportRecord;
+  recordUnavailable?: boolean;
 };
 
 const prefix = "zero-loss-support-draft:";
@@ -35,11 +37,11 @@ export function readSupportDraft(key: string | null): SupportDraft | null {
       || !["open", "awaiting_customer", "resolved"].includes(caseStatus) || typeof uncertain !== "boolean") return null;
     const transactionOrigin = typeof saved.transactionOrigin === "string" ? saved.transactionOrigin : undefined;
     const record = parseSupportRecord(saved.record);
-    // An uncertain retry must preserve the exact attachment it was sent with.
-    if (saved.record !== undefined && !record) return null;
+    const recordUnavailable = saved.recordUnavailable === true || saved.record !== undefined && !record;
     const categoryEdited = typeof saved.categoryEdited === "boolean" ? saved.categoryEdited : undefined;
     const subjectEdited = typeof saved.subjectEdited === "boolean" ? saved.subjectEdited : undefined;
-    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin, record, categoryEdited, subjectEdited };
+    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin, record, recordUnavailable, categoryEdited, subjectEdited,
+      ...(saved.reuseRequestKey === true ? { reuseRequestKey: true } : {}) };
   } catch { return null; }
 }
 

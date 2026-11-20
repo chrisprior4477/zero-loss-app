@@ -20,7 +20,7 @@ const rewardReturnFields: Record<string, RegExp> = {
   receipt: rewardIdPattern,
   reward: /^[a-z0-9-]{1,150}$/,
   via: /^(?:purchase|completed|orders|order-notification|order-selection|activity-win|completed-win|won)$/,
-  orderFilter: /^(?:processing|fulfilled|exceptions|payment)$/,
+  orderFilter: /^(?:all|processing|fulfilled|exceptions|payment)$/,
   rewards: /^(?:ready|used|expired|history)$/,
   fromOrders: /^1$/, rewardHistory: /^1$/, tile: /^1$/,
 };
@@ -37,6 +37,7 @@ export function supportRewardReturn(value: unknown, rewardId?: string): string |
     query.set(key, field);
   }
   if (query.has("receipt") && (query.get("via") !== "purchase" || !query.has("reward"))) return null;
+  if (query.get("orderFilter") === "all") query.delete("orderFilter");
   return `/account/wallet?${query}#reward-pass`;
 }
 

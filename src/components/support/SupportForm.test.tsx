@@ -5,9 +5,33 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, 
 vi.mock("@/lib/support/actions", () => ({ saveSupportCase: mocks.save, checkSupportMessage: mocks.check }));
 vi.mock("@/lib/support/record-actions", () => ({ loadSupportRecords: mocks.records }));
 import { SupportForm } from "./SupportForm";
+import { supportDraftKey } from "@/lib/support/draft";
 const caseId = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
+
+test("restores a draft with an unreadable attachment and checks an uncertain save before enabling edits", async () => {
+  const props = { ownerId: "account", requestKey: "support_request_001", allowRecordPicker: true };
+  const requestKey = "existing_draft_key";
+  sessionStorage.setItem(supportDraftKey(props.ownerId, "new")!, JSON.stringify({
+    savedAt: Date.now(), requestKey, subject: "Missing receipt", body: "My unsent draft message.", category: "wallet",
+    caseStatus: "open", uncertain: true, record: { kind: "transaction", id: "retired-reference" },
+  }));
+  mocks.check.mockResolvedValue({ status: "error", uncertain: true, canResend: true, message: "No saved message was found." });
+  const { unmount } = render(<SupportForm {...props} />);
+  expect(screen.getByDisplayValue("My unsent draft message.")).toHaveProperty("disabled", true);
+  expect(screen.getByText(/previous attachment is unavailable/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Edit draft" }));
+  await waitFor(() => expect(screen.getByDisplayValue("My unsent draft message.")).toHaveProperty("disabled", false));
+  expect(mocks.check).toHaveBeenCalledWith(requestKey, undefined);
+  unmount();
+
+  mocks.save.mockResolvedValue({ status: "saved", caseId });
+  render(<SupportForm {...props} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Send support request" }).closest("form")!);
+  await waitFor(() => expect(mocks.save.mock.calls[0]?.[1].get("requestKey")).toBe(requestKey));
+});
 
 test("a paid order uses gift-card support defaults while retaining the exact transaction", () => {
   const { container } = render(<SupportForm requestKey="support_request_001" transactionId={caseId} transactionOrigin="order:payment:details" />);

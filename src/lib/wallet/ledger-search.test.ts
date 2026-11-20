@@ -3,6 +3,27 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("keeps natural amount phrases scoped to posted values and transaction type", () => {
+  const created_at = "2026-11-05T20:00:00Z";
+  const entries: LedgerEntryRow[] = [
+    { id: "fund", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "larger", entry_type: "DEPOSIT", amount: 5000, created_at },
+    { id: "max", entry_type: "DEPOSIT", amount: 7500, created_at },
+    { id: "debit", entry_type: "PURCHASE_DEBIT", amount: -2500, created_at },
+    { id: "more", entry_type: "PURCHASE_DEBIT", amount: -5000, created_at },
+    { id: "negative-cents", entry_type: "CORRECTION", amount: -25, created_at },
+    { id: "positive-cents", entry_type: "REFUND", amount: 25, created_at },
+  ];
+  const search = (query: string) => searchLedger(entries, query, entry => ledgerDescription(entry.entry_type)).map(entry => entry.id);
+  for (const query of ["deposits of $25", "deposit USD $25", "deposit 25", "deposit for twenty-five dollars"]) expect(search(query), query).toEqual(["fund"]);
+  for (const query of ["negative $25", "$-25"]) expect(search(query), query).toEqual(["debit"]);
+  for (const query of ["minus twenty-five cents", "25 cents adjustment", "adjustment twenty-five cents"]) expect(search(query), query).toEqual(["negative-cents"]);
+  expect(search("purchases $25, $50")).toEqual(["debit", "more"]);
+  expect(search("deposits between $25 and $50")).toEqual(["fund", "larger"]);
+  expect(search("deposit at least $25")).toEqual(["fund", "larger", "max"]);
+  expect(search("transaction $25")).toEqual(["fund", "debit"]);
+});
+
 test("keeps posted amounts, card denominations and transaction alternatives independent", () => {
   const created_at = "2026-11-05T20:00:00Z";
   const product = { title: "$75 Amazon Gift Card", slug: "amazon-75-gift-card", retailer: "Amazon", image: "/gift-card.png" };

@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const query = await searchParams;
-  const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
+  const requestedQuantity = parseEntryQuantity(query.quantity);
   const transactionReturn = transactionOriginHref(query);
   const browseReturnHref = productBrowseReturnHref(transactionReturn ?? query.from);
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
@@ -55,15 +55,24 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     }
     permanentRedirect(`/items/${product.slug}${params.size ? `?${params}` : ""}`);
   }
-  const { account, availability, hidden, unavailable } = await getShoppingCatalog();
+  const { account, availability, hidden, unavailable, unverifiedSlugs } = await getShoppingCatalog();
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
   const hiddenPool = hidden.has(product.slug);
   const current = availability?.[product.slug];
+  const remaining = current?.remaining ?? product.capacity - product.sold;
+  const savedQuantityTooHigh = requestedQuantity !== null && remaining > 0 && requestedQuantity > remaining;
+  const invalidBookmark = query.quantity !== undefined && (requestedQuantity === null || savedQuantityTooHigh)
+    ? (typeof query.quantity === "string" ? query.quantity.slice(0, 32) : "") : null;
+  const initialQuantity = invalidBookmark === null ? requestedQuantity ?? 1 : 1;
+  const selectionKey = `${product.slug}:${initialQuantity}:${invalidBookmark ?? "valid"}`;
+  const bookmarkedQuantityMessage = invalidBookmark === null ? undefined : savedQuantityTooHigh
+    ? `You requested ${requestedQuantity?.toLocaleString("en-US")} entries. ${remaining.toLocaleString("en-US")} are available. Choose a quantity to continue.`
+    : "This link contains an invalid quantity. Enter a whole number of tickets to continue.";
   const requestHead: EntryRequestHead = account && (hiddenPool || account.wallet?.scope === "demo") && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
-  if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) {
+  if (hiddenPool && ((!unavailable && !unverifiedSlugs?.has(product.slug)) || savedResult) && !(requestHead.ready && requestHead.validating)) {
     if (savedResult) {
       const origin = transactionOriginParams(query);
       if (!origin) redirect(savedResult.href);
@@ -89,7 +98,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (
-    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={shareToken} browseReturnHref={query.from === undefined && !transactionReturn ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel compact key={selectionKey} productSlug={product.slug} shareToken={shareToken} browseReturnHref={query.from === undefined && !transactionReturn ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={initialQuantity} bookmarkedQuantityMessage={bookmarkedQuantityMessage} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
@@ -131,8 +140,8 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
 
   return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title, returnHref: browseReturnHref }} /><div className={entryStyles.page}>
     {!hiddenPool ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
-    <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
-    <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>
+    <ProductEntryAutoScroll productKey={`${selectionKey}:${query.funded ?? ""}`} />
+    <ProductEntrySelection key={selectionKey} slug={product.slug} initialQuantity={initialQuantity} invalidBookmark={invalidBookmark} remaining={remaining}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
       <div className={entryStyles.nav}>
         <Link href={transactionReturn ?? browseReturnHref}>← Back to {transactionReturn ? "this transaction" : browseReturnLabel}</Link>

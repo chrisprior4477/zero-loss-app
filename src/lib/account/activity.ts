@@ -28,6 +28,7 @@ export type AccountActivity = {
   isPreview: boolean;
   activity: ActivityItem[];
   activeCount: number | null;
+  incomplete?: boolean;
   source: "stored" | "customer-empty" | "unavailable";
 };
 

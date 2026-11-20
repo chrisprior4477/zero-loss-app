@@ -71,6 +71,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const forwardReview = useRef<string | null>(null);
   const [refreshingReview, refreshReview] = useTransition();
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
+  const offerDetailsTrigger = useRef<HTMLButtonElement>(null);
   const offerDetailsBody = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!offerDetailsOpen) return;
@@ -491,8 +492,14 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
           <span className={styles.choiceCount}><span>Keeping for later</span>{" "}<b>{rest}</b></span>
         </button>
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
-      {singleOffer ? <div className={styles.singleOfferDetails}>
-        <button type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => setOfferDetailsOpen(open => !open)}>
+      {singleOffer ? <div className={styles.singleOfferDetails} onKeyDown={event => {
+        if (event.key !== "Escape" || !offerDetailsOpen) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setOfferDetailsOpen(false);
+        offerDetailsTrigger.current?.focus({ preventScroll: true });
+      }}>
+        <button ref={offerDetailsTrigger} type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => setOfferDetailsOpen(open => !open)}>
           Offer details<AccountIcon name="chevron" />
         </button>
         <div ref={offerDetailsBody} id={offerDetailsId} className={styles.offerDetailsBody} hidden={!offerDetailsOpen}>

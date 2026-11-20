@@ -412,7 +412,7 @@ test.each(["button", "wallet link"])("a completed deposit can start again throug
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByRole("region", { name: "Deposit complete" })).toBeTruthy());
   expect(screen.queryByRole("form", { name: "Add funds" })).toBeNull();
-  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("#balance");
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history&landing=balance#balance");
   if (entrance === "button") fireEvent.click(screen.getByRole("button", { name: "Add more funds" }));
   else { window.history.replaceState(null, "", "#add-funds"); fireEvent(window, new HashChangeEvent("hashchange")); }
 

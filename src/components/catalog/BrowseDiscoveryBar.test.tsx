@@ -116,12 +116,13 @@ test("All categories exits the selected collection while keeping the selected bu
   expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=50&q=makeup#search-results", { scroll: false });
 });
 
-test("View all returns to the full prize category after selecting a retailer", () => {
+test("View all removes only the selected retailer and stale batch", () => {
   render(<BrowseDiscoveryBar {...props} selectedCategory="electronics"
-    browseHref="/browse?category=electronics&partnerCategory=specialty-retail&retailer=Best+Buy&maxValue=100"
+    selectedRetailerGroup={{ id: "digital-and-gaming", category: "Digital & Gaming", options: [] }}
+    browseHref="/browse?category=electronics&partnerCategory=digital-and-gaming&retailer=Best+Buy&maxValue=100&batch=2"
     filters={{ ...props.filters, retailer: "Best Buy", maxValue: 100 }} />);
   expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href"))
-    .toBe("/browse?category=electronics&maxValue=100#search-results");
+    .toBe("/browse?category=electronics&partnerCategory=digital-and-gaming&maxValue=100#search-results");
 });
 
 test("category and retailer views reuse the search typed in the picker", () => {

@@ -27,7 +27,7 @@ function cents(value: unknown) {
 function parseOrder(value: unknown): AccountOrder {
   if (!value || typeof value !== "object") throw new Error("Invalid order");
   const row = value as Record<string, unknown>;
-  if (typeof row.order_number !== "string" || typeof row.reward_slug !== "string"
+  if (typeof row.order_number !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(row.order_number) || typeof row.reward_slug !== "string"
       || typeof row.reward_id !== "string" || !row.reward_id.trim()
       || typeof row.title !== "string" || typeof row.retailer !== "string"
       || typeof row.image !== "string" || typeof row.status !== "string" || !statuses.has(row.status as AccountOrderStatus)

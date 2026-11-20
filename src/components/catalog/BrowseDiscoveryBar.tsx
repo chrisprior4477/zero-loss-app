@@ -82,7 +82,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const searchLabel = scope ? `Search ${scope}` : "Search all prizes";
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");
-  if (props.selectedCategory) withoutRetailer.searchParams.delete("partnerCategory");
+  if (!props.selectedRetailerGroup) withoutRetailer.searchParams.delete("partnerCategory");
+  withoutRetailer.searchParams.delete("batch");
   const withoutRetailerGroup = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailerGroup.searchParams.delete("partnerCategory");
   withoutRetailerGroup.searchParams.delete("batch");

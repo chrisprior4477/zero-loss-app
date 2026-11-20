@@ -22,7 +22,7 @@ test.each(["Choose saved card", "Manage saved cards"])("full funding card list o
   expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
   const chase = container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!;
-  fireEvent.click(within(chase).getByRole("button", { name: "Edit" }));
+  fireEvent.click(within(chase).getByRole("button", { name: /^Edit(?: |$)/ }));
   expect(screen.getByRole("heading", { name: "Edit card" })).toBeTruthy();
   expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[4].number);
   expect((screen.getByRole("checkbox", { name: "Use this card for deposits" }) as HTMLInputElement).checked).toBe(false);
@@ -48,7 +48,7 @@ test.each(["add", "edit"])("refresh inside the funding card editor restores the 
   fireEvent.change(screen.getByRole("combobox", { name: "Current card in use" }), { target: { value: "demo_card_4242" } });
   if (mode === "edit") {
     fireEvent.click(screen.getByRole("button", { name: "Manage saved cards" }));
-    fireEvent.click(within(page.container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!).getByRole("button", { name: "Edit" }));
+    fireEvent.click(within(page.container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!).getByRole("button", { name: /^Edit(?: |$)/ }));
   }
   else fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
   fireEvent.change(screen.getByLabelText("Security code"), { target: { value: "unsaved-code" } });
@@ -108,7 +108,7 @@ test.each(["methods", "wallet", "legacy"])("all saved cards open the list instea
   expect(screen.getByText("All five sample cards are saved. Choose a saved card to edit.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Choose saved card" }));
   expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
-  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: "Edit" }));
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: /^Edit(?: |$)/ }));
   expect(screen.getByRole("heading", { name: "Edit card" })).toBeTruthy();
   expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[2].number);
   expect((screen.getByRole("checkbox", { name: "Use this card for future transactions" }) as HTMLInputElement).checked).toBe(false);
@@ -121,7 +121,7 @@ test.each([{ cards: allCards }, { cards: allCards.slice(0, 3) }])("refresh resto
   window.history.replaceState(null, "", "/account/wallet?view=history&panel=methods#payment-methods");
   const open = () => render(<WalletPaymentMethods enabled initialSection="methods" savedCards={cards} />);
   const page = open();
-  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 5556" })).getByRole("button", { name: "Edit" }));
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 5556" })).getByRole("button", { name: /^Edit(?: |$)/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Use this card for deposits" }));
   page.unmount();
   open();
@@ -135,7 +135,7 @@ test.each([{ cards: allCards }, { cards: allCards.slice(0, 3) }])("refresh resto
 test("a link to a removed card returns to the saved list instead of editing another card", () => {
   window.history.replaceState(null, "", "#payment-methods");
   const { rerender } = render(<WalletPaymentMethods enabled savedCards={allCards} />);
-  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: "Edit" }));
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: /^Edit(?: |$)/ }));
   rerender(<WalletPaymentMethods enabled savedCards={initialCards} />);
   expect(window.location.hash).toBe("#payment-methods");
   expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy();
@@ -204,7 +204,7 @@ test("new card preferences can be independently unchecked without changing the c
 test("the editor's See card button toggles a preview without saving or losing entered fields", () => {
   render(<WalletCardEditor token="demo_card_5556" displayName="Demo Customer" onSaved={vi.fn()} onCancel={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Updated name" } });
-  const toggle = screen.getByRole("button", { name: "See card", expanded: false });
+  const toggle = screen.getByRole("button", { name: /^See card(?: |:|$)/, expanded: false });
   fireEvent.click(toggle);
   expect(screen.getByRole("button", { name: "Hide card", expanded: true })).toBeTruthy();
   expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.hidden).toBe(false);
@@ -257,7 +257,7 @@ test("a failed card lookup disables card mutations", () => {
   render(<WalletPaymentMethods enabled unavailable savedCards={initialCards} />);
   const panel = within(screen.getByRole("region", { name: "Payment methods" }));
   expect((panel.getByRole("button", { name: "Add Card" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((panel.getByRole("button", { name: "Delete Card" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((panel.getByRole("button", { name: /^Delete Card(?: |:|$)/ }) as HTMLButtonElement).disabled).toBe(true);
   expect(panel.getByRole("alert").textContent).toContain("couldn’t be loaded");
 });
 
@@ -265,7 +265,7 @@ test("payment-method default changes use the shared action without a deposit", a
   window.history.replaceState(null, "", "#payment-methods");
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Preference saved" });
   render(<WalletPaymentMethods enabled savedCards={initialCards} />);
-  fireEvent.click(screen.getByRole("checkbox", { name: "Use as my default payment method" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Use .*as my default payment method/ }));
   await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalled());
   expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0][1].get("makeDefault")).toBe("false");
   expect(completeDemoFunding).not.toHaveBeenCalled();
@@ -304,7 +304,7 @@ test.each([390, 1280])("payment-method navigation lands below the header at %i p
   fireEvent.click(screen.getByRole("link", { name: "View payment methods" }));
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
   expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Payment methods" }));
-  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Edit(?: |$)/ }));
   fireEvent.click(screen.getByRole("button", { name: "Update card" }));
   await screen.findByText("Card updated.");
   fireEvent.click(screen.getByRole("button", { name: "Back to payment methods" }));
@@ -360,7 +360,7 @@ test("Back to wallet waits for the update, then leaves the editor with the updat
   window.history.replaceState(null, "", "#payment-methods");
   render(<><a href="#payment-methods">View payment methods</a><WalletPaymentMethods enabled savedCards={initialCards} displayName="Demo Customer" /></>);
 
-  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Edit(?: |$)/ }));
   const editorHash = window.location.hash;
   fireEvent.click(screen.getByRole("checkbox", { name: "Use this card for future transactions" }));
   fireEvent.click(screen.getByRole("button", { name: "Update card" }));
@@ -377,7 +377,7 @@ test("Back to wallet waits for the update, then leaves the editor with the updat
   expect(window.location.hash).toBe("#balance");
 
   fireEvent.click(screen.getByRole("link", { name: "View payment methods" }));
-  expect(screen.getByRole("checkbox", { name: "Use as my default payment method" })).toHaveProperty("checked", false);
+  expect(screen.getByRole("checkbox", { name: /Use .*as my default payment method/ })).toHaveProperty("checked", false);
   expect(saveDemoPaymentMethod).toHaveBeenCalledOnce();
   expect(completeDemoFunding).not.toHaveBeenCalled();
 });
@@ -388,7 +388,7 @@ test("a failed update unlocks Back to wallet and keeps the edited choice availab
     .mockResolvedValueOnce({ status: "succeeded", message: "Saved" });
   window.history.replaceState(null, "", "#payment-methods");
   render(<WalletPaymentMethods enabled savedCards={initialCards} displayName="Demo Customer" />);
-  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Edit(?: |$)/ }));
   const editorHash = window.location.hash;
   fireEvent.click(screen.getByRole("checkbox", { name: "Use this card for deposits" }));
   fireEvent.click(screen.getByRole("button", { name: "Update card" }));
@@ -411,7 +411,7 @@ test.each(["methods", "funding"] as const)("a save finishing after browser navig
   render(source === "methods"
     ? <WalletPaymentMethods enabled savedCards={initialCards} displayName="Demo Customer" />
     : <DemoFundingForm requestKey="late_card_save" savedCards={initialCards} displayName="Demo Customer" />);
-  fireEvent.click(screen.getByRole("button", { name: source === "methods" ? "Edit" : "Add Card" }));
+  fireEvent.click(screen.getByRole("button", { name: source === "methods" ? /^Edit(?: |$)/ : "Add Card" }));
   fireEvent.click(screen.getByRole("button", { name: source === "methods" ? "Update card" : "Save card" }));
   expect(screen.getByRole("button", { name: "Back to wallet" })).toHaveProperty("disabled", true);
   await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalledOnce());

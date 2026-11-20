@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { availabilityForHref, availabilityStatus, filledPercent, parseAvailability } from "./availability";
+import { availabilityForHref, availabilityStatus, filledPercent, parseAvailability, parseAvailabilityReport } from "./availability";
 
 const row = { slug: "walmart-25-gift-card", capacity: 75, sold: 71, remaining: 4, entryPriceCents: 100, repeatableScenario: false };
 test("ordinary availability uses the database's sample-plus-purchase total", () => {
@@ -36,4 +36,12 @@ test("only maps known item routes, never external or account links", () => {
 });
 test("keeps only the documented aggregate fields", () => {
   expect(parseAvailability([{ ...row, customerId: "not-for-the-client" }])?.[row.slug]).toEqual(row);
+});
+test("returns verified counts while quarantining corrupt and duplicate pools", () => {
+  const invalid = { ...row, slug: "amazon-25-gift-card", remaining: 20 };
+  const duplicate = { ...row, slug: "target-25-gift-card" };
+  const report = parseAvailabilityReport([row, invalid, duplicate, duplicate]);
+  expect(report.snapshot).toEqual({ [row.slug]: row });
+  expect(report.unverifiedSlugs).toEqual(new Set([invalid.slug, duplicate.slug]));
+  expect(report.incomplete).toBe(true);
 });

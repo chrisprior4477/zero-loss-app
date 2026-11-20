@@ -46,7 +46,7 @@ const batchSize = 24;
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const incoming = await searchParams;
   const query = Object.fromEntries(Object.entries(incoming).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]));
-  const [{ availability, account, hidden, unavailable }, partnerGroups] = await Promise.all([getShoppingCatalog(), getGiftCardPartnerGroups()]);
+  const [{ availability, account, hidden, unavailable, availabilityIncomplete, unverifiedSlugs }, partnerGroups] = await Promise.all([getShoppingCatalog(), getGiftCardPartnerGroups()]);
   const resolved = new Set(resolvedCatalogSlugs(account?.activity));
   const availableProducts = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
@@ -73,7 +73,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const showCatalogDenominations = !unavailable
     && Boolean(searchTerm || selectedCategory || query.retailer || query.partnerCategory || query.type === "gift-cards");
   const unavailableDenominations = showCatalogDenominations ? demoProducts.filter(product =>
-    hidden.has(product.slug) && product.value === 100 && isGiftCardListing(product))
+    hidden.has(product.slug) && !unverifiedSlugs?.has(product.slug) && product.value === 100 && isGiftCardListing(product))
     .map(product => ({ ...product, sold: product.capacity })) : [];
   const searchableProducts = [...availableProducts, ...unavailableDenominations];
   const categoryProducts = filterCatalogSubcategory((endingSoon ? availableProducts : searchableProducts).filter(
@@ -309,6 +309,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
+          {availabilityIncomplete && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">Some prize counts could not be verified. Showing the available results. <a className="underline" href={searchHref + "#search-results"}>Check availability again</a></p> : null}
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}

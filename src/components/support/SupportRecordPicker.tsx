@@ -146,6 +146,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>
         {result && "records" in result && result.records.some(item => item.verifyAgain) ? <button type="button" className={styles.control} onClick={() => void load(kind, page, true, selectedLookup.current)}>Retry payment verification</button> : null}
+        {result && "records" in result && result.incomplete ? <div><p role="status">Some orders could not be loaded.</p><button type="button" className={styles.control} onClick={() => void load(kind, page, true, selectedLookup.current)}>Retry order list</button></div> : null}
         {page > 0 || (result && "more" in result && result.more) ? <div className={styles.controls}>
           {page > 0 ? <button type="button" className={styles.control} disabled={!result} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
           {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1, true)}>Next</button> : null}

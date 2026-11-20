@@ -33,6 +33,7 @@ type Props = {
   sold: number;
   capacity: number;
   initialQuantity?: number;
+  bookmarkedQuantityMessage?: string;
   shareToken?: unknown;
   availabilityConfirmed?: boolean;
   balanceLabel?: string;
@@ -58,6 +59,7 @@ export function DemoParticipationPanel({
   sold,
   capacity,
   initialQuantity = 1,
+  bookmarkedQuantityMessage,
   shareToken,
   availabilityConfirmed = true,
   balanceLabel = "Unavailable",
@@ -86,6 +88,7 @@ export function DemoParticipationPanel({
   const entryQuantityRef = useRef<HTMLInputElement>(null);
   const quantityErrorId = useId();
   const [selectedQuantity, setQuantity, invalidQuantity, setInvalidQuantity] = useEntrySelection(Math.max(1, initialQuantity));
+  const correctingBookmark = Boolean(bookmarkedQuantityMessage && invalidQuantity !== null);
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
@@ -380,7 +383,7 @@ export function DemoParticipationPanel({
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setInvalidQuantity(null); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); setTypedLimit(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <EntryQuantityInput inputRef={entryQuantityRef} errorId={quantityErrorId} value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} invalidDraft={invalidQuantity} onInvalidDraft={setInvalidQuantity} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
+            <EntryQuantityInput inputRef={entryQuantityRef} errorId={quantityErrorId} value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} invalidDraft={invalidQuantity} requireValidQuantity={correctingBookmark} onInvalidDraft={setInvalidQuantity} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
@@ -412,7 +415,7 @@ export function DemoParticipationPanel({
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
       </div> : null}
 
-      {invalidQuantity !== null ? <p id={quantityErrorId} role="status" className="mt-3 text-sm">Enter a whole number of tickets.</p> : null}
+      {invalidQuantity !== null ? <p id={quantityErrorId} role="status" className="mt-3 text-sm">{bookmarkedQuantityMessage ?? "Enter a whole number of tickets."}</p> : null}
       {isSignedIn && !requestHead.ready ? <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm"><p>We couldn’t verify your latest saved submission. Refresh to check its status before entering again.</p><button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh entry status</button></div> : null}
       {!availabilityConfirmed && !uncertain ? (
         <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">

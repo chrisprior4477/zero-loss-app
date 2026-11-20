@@ -7,24 +7,37 @@ export type OfferingAvailability = {
   repeatableScenario: boolean;
 };
 export type AvailabilitySnapshot = Record<string, OfferingAvailability>;
+export type AvailabilityReport = { snapshot: AvailabilitySnapshot | null; unverifiedSlugs: Set<string>; incomplete: boolean };
 
 /** Validate the public aggregate contract; never infer availability from a wallet. */
 export function parseAvailability(data: unknown): AvailabilitySnapshot | null {
-  if (!Array.isArray(data) || data.length === 0) return null;
-  const result: AvailabilitySnapshot = {};
+  return parseAvailabilityReport(data).snapshot;
+}
+
+export function parseAvailabilityReport(data: unknown): AvailabilityReport {
+  const result: AvailabilitySnapshot = Object.create(null);
+  const unverifiedSlugs = new Set<string>();
+  if (!Array.isArray(data) || !data.length) return { snapshot: null, unverifiedSlugs, incomplete: false };
+  let incomplete = false;
   for (const row of data) {
-    if (!row || typeof row.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug)
-      || !Number.isSafeInteger(row.capacity) || row.capacity <= 0
+    const slug = row && typeof row.slug === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug) ? row.slug : null;
+    if (!slug) { incomplete = true; continue; }
+    if (!Number.isSafeInteger(row.capacity) || row.capacity <= 0
       || !Number.isSafeInteger(row.sold) || row.sold < 0 || row.sold > row.capacity
       || !Number.isSafeInteger(row.remaining) || row.remaining !== row.capacity - row.sold
       || !Number.isSafeInteger(row.entryPriceCents) || row.entryPriceCents <= 0
-      || typeof row.repeatableScenario !== "boolean" || Object.hasOwn(result, row.slug)) return null;
-    result[row.slug] = {
-      slug: row.slug, capacity: row.capacity, sold: row.sold, remaining: row.remaining,
+      || typeof row.repeatableScenario !== "boolean" || Object.hasOwn(result, slug) || unverifiedSlugs.has(slug)) {
+      delete result[slug];
+      unverifiedSlugs.add(slug);
+      incomplete = true;
+      continue;
+    }
+    result[slug] = {
+      slug, capacity: row.capacity, sold: row.sold, remaining: row.remaining,
       entryPriceCents: row.entryPriceCents, repeatableScenario: row.repeatableScenario,
     };
   }
-  return result;
+  return { snapshot: Object.keys(result).length ? { ...result } : null, unverifiedSlugs, incomplete };
 }
 
 export function availabilityForHref(snapshot: AvailabilitySnapshot | null, href?: string): OfferingAvailability | undefined {

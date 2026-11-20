@@ -6,7 +6,7 @@ import RewardBrandPage from "./page";
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: async () => null }));
 const availability = vi.hoisted(() => vi.fn(async (): Promise<unknown> => null));
-vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: availability }));
+vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailabilityReport: async () => ({ snapshot: await availability(), unverifiedSlugs: new Set(), incomplete: false }) }));
 
 afterEach(() => { cleanup(); availability.mockResolvedValue(null); });
 

@@ -49,7 +49,7 @@ export function matchesFulfillmentFilter(record: FulfillmentRecord, filter: Fulf
     case "processing": return record.status === "payment_confirmed" || record.status === "issuance_pending";
     case "fulfilled": return record.status === "fulfilled";
     case "exceptions": return ["exception", "expired", "cancelled", "corrected"].includes(record.status);
-    case "payment": return record.orderNumber !== null;
+    case "payment": return Boolean(record.orderNumber && record.amountPaidCents !== null && record.amountPaidCents > 0);
     default: return true;
   }
 }
@@ -87,8 +87,13 @@ export function accountFulfillment(orders: AccountOrders, activity: AccountActiv
     });
   }
   return {
-    complete: !orders.incomplete && orders.source !== "unavailable" && activity.source !== "unavailable",
+    complete: !orders.incomplete && !activity.incomplete && orders.source !== "unavailable" && activity.source !== "unavailable",
     available: orders.source !== "unavailable" || activity.source !== "unavailable",
-    records: [...records.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.rewardId.localeCompare(b.rewardId)),
+    records: [...records.values()].sort((a, b) => orderTime(b.createdAt) - orderTime(a.createdAt) || a.rewardId.localeCompare(b.rewardId)),
   };
+}
+
+function orderTime(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }

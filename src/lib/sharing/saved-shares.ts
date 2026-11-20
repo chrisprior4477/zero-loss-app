@@ -4,19 +4,25 @@ export type SavedProductShare = {
 };
 export const shareUuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 export function parseSavedProductShares(value: unknown): SavedProductShare[] | null {
+  return parseSavedProductShareList(value)?.shares ?? null;
+}
+
+export function parseSavedProductShareList(value: unknown): { shares: SavedProductShare[]; incomplete: boolean } | null {
   if (!Array.isArray(value)) return null;
   const result: SavedProductShare[] = [];
+  const validDate = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
   for (const item of value) {
-    if (!item || typeof item !== "object") return null;
+    if (!item || typeof item !== "object") continue;
     const v = item as Record<string, unknown>;
     if (typeof v.id !== "string" || !shareUuid.test(v.id) || typeof v.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v.slug)
-      || typeof v.title !== "string" || typeof v.sender !== "string" || typeof v.createdAt !== "string"
-      || (v.token !== null && (typeof v.token !== "string" || !shareUuid.test(v.token)))) return null;
+      || typeof v.title !== "string" || typeof v.sender !== "string" || typeof v.createdAt !== "string" || !validDate(v.createdAt)
+      || [v.declinedAt, v.savedAt, v.viewedAt].some(date => date != null && !validDate(date))
+      || (v.token !== null && (typeof v.token !== "string" || !shareUuid.test(v.token)))) continue;
     result.push({ id: v.id, token: v.token as string | null, slug: v.slug, title: v.title, sender: v.sender, createdAt: v.createdAt,
       viewedAt: typeof v.viewedAt === "string" ? v.viewedAt : null, savedAt: typeof v.savedAt === "string" ? v.savedAt : null,
       declinedAt: typeof v.declinedAt === "string" ? v.declinedAt : null, demo: v.demo === true });
   }
-  return result;
+  return { shares: result, incomplete: result.length !== value.length };
 }
 export const sharedWithYouHref = "/account/favorites?tab=shared";
 export type SharedView = "available" | "declined";

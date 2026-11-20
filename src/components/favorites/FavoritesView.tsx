@@ -21,6 +21,7 @@ type Props = {
   hiddenSlugs?: string[];
   availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
+  sharesIncomplete?: boolean;
   initialSharedView?: SharedView;
   initialFavoriteFilter?: FavoriteFilter;
 };
@@ -57,7 +58,7 @@ function restoreListPosition(target?: string, top?: number, artwork = false) {
   }));
 }
 
-export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all" }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all" }: Props) {
   const timeZone = useAccountTimeZone();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
   const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
@@ -409,9 +410,10 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
             <button type="button" aria-pressed={sharedView === "declined"} onClick={() => chooseSharedView("declined")}>Declined <span>{initialShares ? declinedCount : "–"}</span></button>
           </div>
           <p className={styles.note}>{sharedView === "declined" ? "Shares you declined. Reopen a prize while its pool is still available." : "Open prizes shared with you. Declined shares are in the Declined view."}</p>
+          {sharesIncomplete ? <p role="status" className={styles.notice}>Some shared prizes or their status could not be verified. <a href={savedShareHref(undefined, sharedView)}>Check shared prizes again</a></p> : null}
           {requestedShareUnavailable ? <div role="status" className={styles.empty}><h2 ref={unavailableShareHeading} tabIndex={-1} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>This shared prize is no longer available</h2><p>You can browse other prizes or view any other available items shared with you.</p><Link href="/browse">Browse products →</Link></div> : null}
           {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
-            : !visibleShares.length ? requestedShareUnavailable ? null : <div className={styles.empty}><h2>{!shares.length && sharedView === "available" ? "Nothing shared with you yet" : sharedView === "declined" ? "No declined shares" : "No available shares"}</h2><p>{sharedView === "declined" ? "Shares you decline appear here while their pools remain open." : declinedCount ? "Check Declined to revisit a share." : "Items people send you will appear here."}</p></div>
+            : !visibleShares.length ? requestedShareUnavailable || sharesIncomplete ? null : <div className={styles.empty}><h2>{!shares.length && sharedView === "available" ? "Nothing shared with you yet" : sharedView === "declined" ? "No declined shares" : "No available shares"}</h2><p>{sharedView === "declined" ? "Shares you decline appear here while their pools remain open." : declinedCount ? "Check Declined to revisit a share." : "Items people send you will appear here."}</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{visibleShares.map(share => {
                 const { product, status } = productState(share.slug);
                 const reopenHref = share.declinedAt && product && status?.remaining !== 0

@@ -8,7 +8,7 @@ const rewardStatuses = new Set<RewardStatus>(["ready", "redeemed", "expired", "c
 const rewardSources = new Set<RewardSource>(["winner", "purchase"]);
 
 function cents(value: unknown): number {
-  const parsed = typeof value === "number" ? value : Number(value);
+  const parsed = typeof value === "number" || (typeof value === "string" && /^\d+$/.test(value)) ? Number(value) : NaN;
   if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error("Invalid activity amount");
   return parsed;
 }
@@ -19,7 +19,7 @@ function optionalString(value: unknown): string | null {
   return value;
 }
 
-function parseItem(value: unknown): ActivityItem {
+function parseItem(value: unknown): { item: ActivityItem; claimUnverified: boolean } {
   if (!value || typeof value !== "object") throw new Error("Invalid activity record");
   const row = value as Record<string, unknown>;
   if (typeof row.slug !== "string" || typeof row.title !== "string"
@@ -31,7 +31,9 @@ function parseItem(value: unknown): ActivityItem {
     || (row.reward_source != null && (typeof row.reward_source !== "string" || !rewardSources.has(row.reward_source as RewardSource)))) {
     throw new Error("Invalid activity record");
   }
-  return {
+  const claimUnverified = row.reward_claimed_at != null
+    && (typeof row.reward_claimed_at !== "string" || !Number.isFinite(Date.parse(row.reward_claimed_at)));
+  const item: ActivityItem = {
     entryId: optionalString(row.entry_id),
     enteredAt: optionalString(row.created_at),
     slug: row.slug,
@@ -47,22 +49,33 @@ function parseItem(value: unknown): ActivityItem {
     completionOptionId: optionalString(row.completion_option_id),
     completionOptionStatus: row.completion_option_status as CompletionOptionStatus | null | undefined,
     completionExpiresAt: optionalString(row.completion_expires_at),
-    rewardStatus: (row.reward_status ?? null) as RewardStatus | null,
+    rewardStatus: (claimUnverified ? null : row.reward_status ?? null) as RewardStatus | null,
     rewardSource: row.reward_source as RewardSource | null | undefined,
     rewardId: optionalString(row.reward_id),
     rewardClaimExpiresAt: optionalString(row.reward_claim_expires_at),
-    rewardClaimedAt: optionalString(row.reward_claimed_at),
+    rewardClaimedAt: claimUnverified ? null : optionalString(row.reward_claimed_at),
   };
+  return { item, claimUnverified };
 }
 
 export async function getStoredAccountActivity(db: SupabaseClient): Promise<AccountActivity> {
   const { data, error } = await db.rpc("get_account_activity");
   if (error || !Array.isArray(data)) throw new Error("Account activity unavailable");
-  const activity = data.map(parseItem);
+  const activity: ActivityItem[] = [];
+  let incomplete = false;
+  for (const row of data) {
+    try {
+      const { item, claimUnverified } = parseItem(row);
+      activity.push(item);
+      incomplete ||= claimUnverified;
+    } catch { incomplete = true; }
+  }
+  if (incomplete && !activity.length) throw new Error("Invalid activity record");
   return {
     isPreview: true,
     activity,
-    activeCount: activity.filter((item) => item.status === "active").length,
+    activeCount: incomplete ? null : activity.filter((item) => item.status === "active").length,
+    ...(incomplete ? { incomplete: true } : {}),
     source: activity.length ? "stored" : "customer-empty",
   };
 }

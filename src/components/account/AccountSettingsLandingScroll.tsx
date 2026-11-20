@@ -58,6 +58,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
         return;
       }
       requestedId = id;
+      focused = false;
       interrupted = false;
       settlingUntil = Date.now() + (settleAfterNavigation ? 1500 : 1000);
       align();

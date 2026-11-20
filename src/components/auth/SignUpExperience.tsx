@@ -33,7 +33,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
   }
 
   if (returnTo === businessSignupPath) {
-    return <section><h2 className="text-3xl font-black">Create your business account</h2>
+    return <section><h2 id="personal-signup-heading" tabIndex={-1} className="text-3xl font-black">Create your business account</h2>
       <p className="my-4 text-sm text-white/70">Verify your email and sign in to continue your business application. Already registered? <Link className="font-bold text-cyan-300 underline" href={authNavigationHref("/login", returnTo)}>Sign in</Link></p>
       <SignUpForm returnTo={returnTo} />
     </section>;
@@ -54,7 +54,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
 
       <div ref={setupRef} className="mt-8 scroll-mt-[184px]">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">{isPleasure ? "Create an account" : "Business launch setup"}</p>
-        <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{isPleasure ? "Let’s get you set up." : "Launch an offer on Zero Loss."}</h2>
+        <h2 id="personal-signup-heading" tabIndex={-1} className="mt-2 text-3xl font-black tracking-[-0.04em]">{isPleasure ? "Let’s get you set up." : "Launch an offer on Zero Loss."}</h2>
         <p className="mt-2 text-sm leading-6 text-white/60">
           {isPleasure ? <>Already registered? <Link href={authNavigationHref("/login", returnTo)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
         </p>

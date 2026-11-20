@@ -7,6 +7,7 @@ import { groceryThemes, groceryThemeImage, type GroceryTheme } from "@/lib/catal
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useCrewCarousel } from "@/components/account/useCrewCarousel";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./grocery-inspiration.module.css";
 
 export type GroceryInspirationOffer = { slug: string; title: string; entryPrice: number; remaining: number };
@@ -57,7 +58,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf 
   useLayoutEffect(() => {
     if (!selected) return;
     const element = dialog.current;
-    const trigger = opener.current ?? shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${selected.id}"]`)
+    const trigger = opener.current?.isConnected ? opener.current : shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${selected.id}"]`)
       ?? document.getElementById("browse-results-heading");
     const overflow = document.body.style.overflow;
     const rootOverflow = document.documentElement.style.overflow;
@@ -72,11 +73,14 @@ export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf 
       element?.close();
       document.body.style.overflow = overflow;
       document.documentElement.style.overflow = rootOverflow;
-      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      if (trigger?.isConnected && window.location.pathname === "/browse") {
+        trigger.focus({ preventScroll: true });
+        revealBelowHeader(trigger);
+      }
     };
   }, [selected]);
   function choose(theme: GroceryTheme) {
-    opener.current = document.activeElement as HTMLElement;
+    opener.current = shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${theme.id}"]`) ?? null;
     window.history.pushState({ ...window.history.state, zeroLossGroceryIdea: theme.id, zeroLossGroceryOffer: null }, "", ideaHref(theme));
     setSelected(theme);
   }

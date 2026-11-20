@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 
 export const metadata: Metadata = { title: "Continue password reset" };
 
@@ -27,7 +28,8 @@ export default async function RecoveryPage({ searchParams }: Props) {
         </form>
         <p className="mt-4 text-xs leading-5 text-white/55">If you didn&apos;t request this, you can close this page. Your password will stay the same.</p>
       </> : <>
-        <p role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">This reset link is incomplete. Please request a new one.</p>
+        <HelpLandingScroll target="recovery-link-error" focusOnArrival />
+        <p id="recovery-link-error" tabIndex={-1} role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">This reset link is incomplete. Please request a new one.</p>
         <Link href={authNavigationHref("/forgot-password", returnTo)} className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Request a new link</Link>
       </>}
     </section>

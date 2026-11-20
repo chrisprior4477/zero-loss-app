@@ -4,8 +4,9 @@ import type { Ref } from "react";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 import styles from "./entry-quantity-input.module.css";
 
-export function EntryQuantityInput({ value, maximum, disabled, label, testId, inputRef, errorId, onChange, invalidDraft, onInvalidDraft }: {
+export function EntryQuantityInput({ value, maximum, disabled, label, testId, inputRef, errorId, onChange, invalidDraft, onInvalidDraft, requireValidQuantity = false }: {
   value: number; maximum: number; disabled?: boolean; label: string; testId?: string; inputRef?: Ref<HTMLInputElement>; errorId?: string;
+  requireValidQuantity?: boolean;
   invalidDraft: string | null; onInvalidDraft: (draft: string | null) => void;
   onChange: (quantity: number, clamped?: boolean) => void;
 }) {
@@ -18,7 +19,7 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, in
     onChange={event => {
       const text = event.currentTarget.value;
       const next = Number(text);
-      if (!/^[0-9]+$/.test(text) || !isEntryQuantity(next) || maximum < 1) {
+      if (!/^[0-9]+$/.test(text) || !isEntryQuantity(next) || maximum < 1 || requireValidQuantity && next > maximum) {
         onInvalidDraft(text);
         return;
       }
@@ -30,7 +31,7 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, in
       if (event.key === "Enter" || event.key === "Escape") {
         event.preventDefault();
         if (event.key === "Escape") {
-          onInvalidDraft(null);
+          if (!requireValidQuantity) onInvalidDraft(null);
           event.currentTarget.select();
         }
       } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {

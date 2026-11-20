@@ -8,6 +8,15 @@ const activity = (...items: ActivityItem[]): AccountActivity => ({ source: items
 const empty: AccountOrders = { source: "customer-empty", orders: [] };
 const purchase: AccountOrder = { orderNumber: "order-1", rewardSlug: "same-product", rewardId: "reward-1", title: "Prize", retailer: "Retailer", image: "/prize.png", status: "fulfilled", faceValueCents: 2500, amountPaidCents: 2400, createdAt: "2026-10-23T13:00:00Z" };
 
+test("orders use actual chronology and zero-payment exceptions stay outside confirmed payments", () => {
+  const recent = { ...purchase, createdAt: "2026-11-08T23:59:59-05:00" };
+  const older = { ...purchase, rewardId: "reward-2", createdAt: "2026-11-09T02:00:00Z", amountPaidCents: 0, status: "cancelled" as const };
+  const result = accountFulfillment({ source: "stored", orders: [older, recent] }, activity());
+  expect(result.records.map(item => item.rewardId)).toEqual([recent.rewardId, older.rewardId]);
+  expect(result.records.filter(item => matchesFulfillmentFilter(item, "payment")).map(item => item.rewardId)).toEqual([recent.rewardId]);
+  expect(matchesFulfillmentFilter(result.records[1], "exceptions")).toBe(true);
+});
+
 test("includes a saved win with no checkout and never invents an order or payment", () => {
   const result = accountFulfillment(empty, activity(reward));
   expect(result.complete).toBe(true);

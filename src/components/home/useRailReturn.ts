@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, type RefObject } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const stateKey = "zeroLossShoppingRows";
 type Position = { left: number; anchor: string | null; inset: number };
@@ -20,7 +21,7 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
   useLayoutEffect(() => {
     const track = ref.current;
     if (!track) return;
-    const path = window.location.pathname + window.location.search;
+    let path = window.location.pathname + window.location.search;
     let saving: ReturnType<typeof setTimeout> | undefined;
     let frame = 0;
     let restoring = false;
@@ -47,6 +48,18 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
       const brand = id === "popular-rewards" && window.location.hash === "#popular-rewards"
         ? new URLSearchParams(window.location.search).get("reward-brand") : null;
       const retailer = brand && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(brand) ? `/rewards/${brand}` : null;
+      if (brand !== null && track?.clientWidth && !children().some(child => links(child).some(link => link.getAttribute("href") === retailer))) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("reward-brand");
+        window.history.replaceState(window.history.state, "", url);
+        path = url.pathname + url.search;
+        const heading = document.getElementById("popular-rewards-heading");
+        if (heading) {
+          heading.focus({ preventScroll: true });
+          revealBelowHeader(heading);
+        }
+        return;
+      }
       const prize = id === "ending-soon" && window.location.hash === "#ending-soon"
         ? new URLSearchParams(window.location.search).get("ending-prize") : null;
       const prizeAnchor = prize && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(prize)

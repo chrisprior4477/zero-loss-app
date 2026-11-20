@@ -19,7 +19,7 @@ export function searchCatalogMatches(
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
-  const retailerExclusion = /(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?$/i.exec(query);
+  const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
     const suffix = retailerExclusion[1];
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
@@ -118,7 +118,12 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
   if (hasOr && parts.every(part => part.budget) && parts[0].text && parts.slice(1).every(part => !part.text)) {
     return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant }));
   }
-  if (!hasOr && !parts.every(part => part.merchant)) return null;
+  if (!hasOr && !parts.every(part => part.merchant)) {
+    if (!giftCards || !denomination.budget || !/\bbetween\b/i.test(query)) return null;
+    const merchants = denomination.text.split(/\s+(?:and|&)\s+/i).map(part => catalogMerchant(part, products));
+    if (merchants.length < 2 || merchants.some(merchant => !merchant)) return null;
+    return merchants.map(merchant => ({ ...denomination, text: "gift card", merchant }));
+  }
   if (denomination.budget && !parts.some(part => part.budget)) return null;
   const merchants = new Set(parts.flatMap(part => part.merchant ? [part.merchant] : []));
   const priced = parts.filter(part => part.values.size);

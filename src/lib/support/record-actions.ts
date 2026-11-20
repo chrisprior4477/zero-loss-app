@@ -26,7 +26,7 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number, 
     const { data: { user }, error } = await db.auth.getUser();
     if (error || !user) return { error: "Sign in again to choose a record." };
     if (kind === "order") {
-      const { orders } = await getAccountOrders(db);
+      const { orders, incomplete } = await getAccountOrders(db);
       const index = selectedId ? orders.findIndex(order => order.orderNumber === selectedId) : -1;
       if (index >= 0) page = Math.floor(index / pageSize);
       const offset = page * pageSize;
@@ -38,7 +38,7 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number, 
       const checks = await Promise.all(records.map(record => checkOrderSupportTransaction(db, user.id, record.id)));
       return { records: records.map((record, index) => ({
         ...record, attachable: checks[index].status === "found", verifyAgain: checks[index].status === "unavailable",
-      })), more: orders.length > offset + pageSize, page };
+      })), more: orders.length > offset + pageSize, page, ...(incomplete ? { incomplete } : {}) };
     }
 
     const wallet = await getWalletSnapshot(user.id);

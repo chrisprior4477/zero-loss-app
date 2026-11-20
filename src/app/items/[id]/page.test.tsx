@@ -5,7 +5,7 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
 const mocks = vi.hoisted(() => ({ account: vi.fn(), availability: vi.fn(), requestHead: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
-vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: mocks.availability }));
+vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailabilityReport: async () => ({ snapshot: await mocks.availability(), unverifiedSlugs: new Set(), incomplete: false }) }));
 vi.mock("@/lib/entries/request-head", () => ({ getEntryRequestHead: mocks.requestHead }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/sharing/receiving-reader", () => ({ getSharedProductContext: vi.fn(async () => null) }));

@@ -7,11 +7,12 @@ export type AccountSettingsOverview = { balanceLabel: string; fundingEnabled: bo
 
 export function AccountSettingsStatusStrip({ overview }: { overview: AccountSettingsOverview }) {
   const rewards = readyWalletRewards(overview.activity);
-  const singleReward = rewards.length === 1 ? rewards[0] : null;
-  const optionCount = overview.activity.source === "unavailable" ? null : overview.activity.activity.filter((item) => item.status === "completion").length;
+  const verified = overview.activity.source !== "unavailable" && !overview.activity.incomplete;
+  const singleReward = verified && rewards.length === 1 ? rewards[0] : null;
+  const optionCount = verified ? overview.activity.activity.filter((item) => item.status === "completion").length : null;
   return <div className={styles.row} aria-label="Your account overview">
     <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-    <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(rewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+    <StatusTicket variant="reward" size="top" label="Prize Ready" value={verified ? String(rewards.length) : "Unavailable"} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
     <StatusTicket variant="option" size="top" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
   </div>;
 }

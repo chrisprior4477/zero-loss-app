@@ -1,4 +1,4 @@
-import { searchDenominations } from "@/lib/catalog/search-denomination";
+import { searchDenominations, smallNumberWords } from "@/lib/catalog/search-denomination";
 import { normalizeSearch } from "@/lib/catalog/search-text";
 import type { LedgerEntryRow } from "./snapshot";
 
@@ -8,7 +8,12 @@ const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:do
 const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?:\s+(?:dollars?|USD)\b)?(?=\s|$)`, "gi");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
 const markedAmount = String.raw`[+−-]?\s*\$\s*${dollars}`;
-const labeledAlternatives = new RegExp(String.raw`(${markedAmount}(?:\s+or\s+${markedAmount})+)(?=\s|$)`, "i");
+const amountSeparator = /\s+or\s+|\s*,\s*(?=[+−-]?\s*\$)/i;
+const labeledAlternatives = new RegExp(String.raw`(${markedAmount}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
+const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|transactions?)\s+(?:of\s+|for\s+)?(?=\d|[$+−-]|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|cents?)\b)/gi;
+const centsValue = String.raw`(\d{1,2}|${smallNumberWords})\s+cents?\b`;
+const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
+const spokenCentsPattern = new RegExp(String.raw`(\b(?:dollars?|bucks?))\s+(?:and\s+)?${centsValue}`, "i");
 
 function amountCents(token: string) {
   const [whole, fraction = ""] = token.replace(/[^\d.]/g, "").split(".");
@@ -27,10 +32,15 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   if (!trimmed) return entries;
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*:/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
+    .replace(/\b(?:US\s*)?USD\s+(?=[$+−-])/gi, "")
+    .replace(/\$\s*([+−-])\s*(?=\d)/g, "$1$$")
+    .replace(/\b(minus|negative|plus|positive)\s+(?=\$)/gi, (_, sign: string) => /^(?:minus|negative)$/i.test(sign) ? "-" : "+")
     .replace(/\b(?:posted\s+)?amount\s*:\s*(?=[+−($\d-])/gi, "")
     .replace(new RegExp(String.raw`(^|\s|[()+−-])(${dollars})\s*\$(?=\s|$|\))`, "g"), "$1$$$2")
     .replace(/\(\s*[+−-]?\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1")
-    .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "");
+    .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "")
+    .replace(typeAmount, "$1 ")
+    .replace(/^transactions?\s+(?=[+−-]?\s*\$)/i, "");
   const typeAlternative = /^([a-z]+(?:\s+or\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
   const typeOptions = typeAlternative?.[1].toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
   if (typeOptions?.every(Boolean) && typeAlternative) {
@@ -38,13 +48,17 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const remaining = typeAlternative[2].trim();
     return searchLedger(matched, remaining ? (explicitPostedAmount ? "amount: " : "") + remaining : "", describe);
   }
-  const centsOnly = /^(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?$/i.exec(query);
+  const centsOnly = signedCents.exec(query);
   if (centsOnly) {
-    const { values } = searchDenominations(centsOnly[1] + " dollars", []);
+    const { values } = searchDenominations(centsOnly[2] + " dollars", []);
     const [cents] = values;
-    if (values.size === 1 && cents < 100) return entries.filter(entry => Math.abs(entry.amount) === cents);
+    const remainder = query.replace(centsOnly[0], " ").trim();
+    if (values.size === 1 && cents < 100 && !/\b(?:dollars?|bucks?|USD)\b/i.test(remainder)) {
+      const sign = centsOnly[1] ? /^(?:minus|negative|[-−])$/i.test(centsOnly[1]) ? -1 : 1 : 0;
+      return searchLedger(entries.filter(entry => Math.abs(entry.amount) === cents && (!sign || Math.sign(entry.amount) === sign)), remainder, describe);
+    }
   }
-  const spokenCents = /(\b(?:dollars?|bucks?))\s+(?:and\s+)?(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?\b/i.exec(query);
+  const spokenCents = spokenCentsPattern.exec(query);
   if (spokenCents) {
     const fractionValue = searchDenominations(spokenCents[2] + " dollars", []);
     const [fraction] = fractionValue.values;
@@ -64,6 +78,20 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     return entries.filter(entry => matches(entry.amount));
   }
 
+  const typedAmount = /^(deposits?|funding|refunds?|adjustments?|corrections?|purchases?)\s+(.+)$/i.exec(query);
+  if (typedAmount && amountOnly.test(typedAmount[2])) {
+    const matches = amountMatch(typedAmount[2]);
+    return searchLedger(entries.filter(entry => matches(entry.amount)), typedAmount[1], describe);
+  }
+  if (/\b(?:between|from|at least|at most|no more than|under|over|up to)\b|\$[\d,.]+\s*[-–—]\s*\$[\d,.]+/i.test(query)) {
+    const { budget, text } = searchDenominations(query, []);
+    if (budget) return searchLedger(entries.filter(entry => {
+      const amount = Math.abs(entry.amount) / 100;
+      return (budget.minimum === undefined || (budget.exclusiveMinimum ? amount > budget.minimum : amount >= budget.minimum))
+        && (budget.maximum === null || (budget.inclusive ? amount <= budget.maximum : amount < budget.maximum));
+    }), text, describe);
+  }
+
   const alternatives = query.split(/\s+or\s+/i);
   if (alternatives.length > 1 && alternatives.every(amount => amountOnly.test(amount))) {
     const matches = alternatives.map(amountMatch);
@@ -71,7 +99,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
 
   const labeled = labeledAlternatives.exec(query);
-  const matchingAnyAmount = labeled?.[1].split(/\s+or\s+/i).map(value => amountMatch(value.trim()));
+  const matchingAnyAmount = labeled?.[1].split(amountSeparator).map(value => amountMatch(value.trim()));
   const amountTokens: string[] = [];
   let text = (labeled ? query.replace(labeled[0], " ") : query).replace(amountInText, (_, token: string) => {
     amountTokens.push(token.trim());

@@ -8,7 +8,7 @@ vi.setConfig({ testTimeout: 20000 });
 
 const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
 const availability = vi.hoisted(() => vi.fn().mockResolvedValue(null));
-vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: availability }));
+vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailabilityReport: async () => ({ snapshot: await availability(), unverifiedSlugs: new Set(), incomplete: false }) }));
 
 test("the Headphones menu filters Electronics and preserves its return path", async () => {
   render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", subcategory: "Headphones" }) }));

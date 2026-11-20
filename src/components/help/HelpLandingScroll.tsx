@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string; focusAnchorPrefix?: string; missingAnchorTarget?: string }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string; focusAnchorPrefix?: string; missingAnchorTarget?: string; focusOnArrival?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -27,7 +27,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           if (target === "faq-intro" && readFaqReturn(window.history.state, window.location.href)) return;
           const anchors = window.location.hash.slice(1).split("#");
           const [anchor] = anchors;
-          const id = anchor && anchor !== landingAlias ? anchor : target;
+          const id = anchor && anchor !== landingAlias && !focusOnArrival ? anchor : target;
           if (anchors.length > 1 && !anchors.every(value => value === anchor)) return;
           const prefixed = Boolean(focusAnchorPrefix && id.startsWith(focusAnchorPrefix));
           if (focusAnchorPrefix && !prefixed && id !== focusAnchor) return;
@@ -37,7 +37,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           if (anchors.length > 1 || destinationId !== id) window.history.replaceState(window.history.state, "", `#${destinationId}`);
           if (prefixed && element instanceof HTMLDetailsElement) element.open = true;
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
-          if ((focusReport && id === "report-problem") || (anchor && id === focusAnchor) || prefixed) {
+          if (focusOnArrival || (focusReport && id === "report-problem") || (anchor && id === focusAnchor) || prefixed) {
             (element.querySelector<HTMLElement>("summary, h2[tabindex]") ?? element).focus({ preventScroll: true });
           }
         });
@@ -65,6 +65,6 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
       window.removeEventListener("keydown", stop);
       document.documentElement.style.removeProperty("--help-header-height");
     };
-  }, [target, visitKey, landingAlias, focusReport, focusAnchor, focusAnchorPrefix, missingAnchorTarget]);
+  }, [target, visitKey, landingAlias, focusReport, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival]);
   return null;
 }

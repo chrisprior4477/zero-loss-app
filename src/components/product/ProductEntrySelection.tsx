@@ -8,19 +8,19 @@ import { isEntryQuantity } from "@/lib/entries/quantity";
 type Selection = [quantity: number, setQuantity: (quantity: number) => void, invalidDraft: string | null, setInvalidDraft: (draft: string | null) => void];
 const EntrySelection = createContext<{ selection: Selection; maximum: number } | null>(null);
 
-export function ProductEntrySelection({ slug, initialQuantity, remaining, children }: {
-  slug: string; initialQuantity: number; remaining: number; children: ReactNode;
+export function ProductEntrySelection({ slug, initialQuantity, invalidBookmark = null, remaining, children }: {
+  slug: string; initialQuantity: number; invalidBookmark?: string | null; remaining: number; children: ReactNode;
 }) {
   const maximum = Math.max(1, remaining);
   const [quantity, setQuantity] = useState(initialQuantity);
-  const [invalidDraft, setInvalidDraft] = useState<string | null>(null);
+  const [invalidDraft, setInvalidDraft] = useState<string | null>(invalidBookmark);
   useLayoutEffect(() => {
     // Browser Back restores this specific visit, even when the page is remounted.
     const { freeEntryDraft } = window.history.state ?? {};
-    if (freeEntryDraft?.slug !== slug || !isEntryQuantity(freeEntryDraft.quantity)) return;
+    if (invalidBookmark !== null || freeEntryDraft?.slug !== slug || !isEntryQuantity(freeEntryDraft.quantity)) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuantity(freeEntryDraft.quantity);
-  }, [slug]);
+  }, [slug, invalidBookmark]);
   return <EntrySelection.Provider value={{ maximum, selection: [quantity, next => {
     setQuantity(next);
     try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next } }, ""); }

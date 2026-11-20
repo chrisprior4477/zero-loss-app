@@ -1,5 +1,5 @@
 import type { DemoProduct } from "./demo-products";
-import { isGiftCardListing } from "./navigation";
+import { isGiftCardListing, marketplaceCategoryId } from "./navigation";
 import type { GiftCardPartnerGroup } from "./gift-card-partners";
 import { partnerDisplayName } from "./partner-display-name";
 
@@ -55,7 +55,7 @@ export function parseBrowseFilterState(query: Record<string, string | string[] |
     retailer: retailers.find(name => retailerKey(name) === retailerKey(retailer)) ?? "",
     availableOnly: ["1", "true"].includes(first(query.available) ?? ""),
     sort: sortOptions.includes(sort as BrowseSort) ? sort as BrowseSort
-      : sort === "ending-soon" || first(query.category) === "ending-soon" ? "fewest-left" : "featured",
+      : sort === "ending-soon" || marketplaceCategoryId(first(query.category) ?? "") === "ending-soon" ? "fewest-left" : "featured",
     minValue: parsePrizeValue(first(query.minValue)),
     maxValue: parsePrizeValue(first(query.maxValue)),
   };
