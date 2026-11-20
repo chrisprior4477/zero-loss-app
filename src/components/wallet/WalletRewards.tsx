@@ -307,7 +307,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                   afterShopping={checkoutContext ? <Link className={`${checkoutStyles.secondary} ${checkoutStyles.returnButton}`} href={completedActivityHref(item.entryId, { slug: item.slug, receipt: checkoutContext.receipt })}>← Back to My Activity</Link> : undefined}
                   remainingOffers={rewardReady && remainingCount > 0 ? { count: remainingCount, retailer: item.retailer, slug: item.slug } : undefined} />
               )}
-              {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} checkHref={supportRewardContext(claimCheckHref ?? walletRewardHref(item), item.rewardId) ?? `${walletRewardHref(item)}#reward-pass`} /> : null}
+              {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl key={item.rewardId} rewardId={item.rewardId} checkHref={supportRewardContext(claimCheckHref ?? walletRewardHref(item), item.rewardId) ?? `${walletRewardHref(item)}#reward-pass`} /> : null}
               {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
             </div>
           </div>
@@ -331,7 +331,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         </aside> : null}
       </div>
 
-      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <a href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</a></p> : <ShareWinWithCrew rewardId={item.rewardId} members={crewMembers} initialShared={sharedCrewRecipients} /> : null}
+      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <a href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</a></p> : <ShareWinWithCrew key={item.rewardId} rewardId={item.rewardId} members={crewMembers} initialShared={sharedCrewRecipients} /> : null}
 
       <p className={styles.rewardDisclosure}>This retailer gift card is not restricted to the featured product. Availability, pricing, and redemption methods are controlled by {item.retailer}.</p>
       {isPreview ? <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-[#31e800]/40 bg-[#06223d] p-4 text-center text-white">
