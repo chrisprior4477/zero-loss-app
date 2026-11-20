@@ -6,7 +6,7 @@ import { signInReturnPath } from "@/lib/auth/entry-return";
 
 vi.mock("@/lib/business/actions", () => ({ saveBusinessApplication: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); localStorage.clear(); window.history.replaceState(null, ""); vi.unstubAllGlobals(); });
 
 test("replay and a device reload preserve edited fields, listings, permissions and the selected demo", async () => {
   vi.stubGlobal("scrollTo", vi.fn());
@@ -33,7 +33,7 @@ test("replay and a device reload preserve edited fields, listings, permissions a
   await screen.findByRole("button", { name: "Replay demo upload" });
   expect(document.querySelector<HTMLInputElement>('input[name="asset_rights"]')?.checked).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "Back" }));
-  expect(screen.getByLabelText("Product or offer name")).toHaveProperty("value","Edited first listing");
+  expect(await screen.findByLabelText("Product or offer name")).toHaveProperty("value","Edited first listing");
 });
 
 test("older unversioned device drafts recover their own demo and the business auth return is exact", async () => {

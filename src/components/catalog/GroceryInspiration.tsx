@@ -34,7 +34,7 @@ function ThemeCard({ theme, onChoose }: { theme: GroceryTheme; onChoose: () => v
   </button>;
 }
 
-export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers: GroceryInspirationOffer[]; browseHref: string; initialIdea?: string | string[] }) {
+export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf = true }: { offers: GroceryInspirationOffer[]; browseHref: string; initialIdea?: string | string[]; showShelf?: boolean }) {
   const [selected, setSelected] = useState<GroceryTheme | null>(() => groceryThemes.find(theme => theme.id === initialIdea) ?? null);
   const shelf = useRef<HTMLElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -57,7 +57,8 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
   useLayoutEffect(() => {
     if (!selected) return;
     const element = dialog.current;
-    const trigger = opener.current ?? shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${selected.id}"]`);
+    const trigger = opener.current ?? shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${selected.id}"]`)
+      ?? document.getElementById("browse-results-heading");
     const overflow = document.body.style.overflow;
     const rootOverflow = document.documentElement.style.overflow;
     element?.showModal();
@@ -92,7 +93,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
     }
   }
   return <>
-    <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
+    {showShelf ? <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
       <header className={styles.panelHeader}>
         <p className={styles.eyebrow}>A little inspiration for your next grocery run</p>
         <h2 id="grocery-inspiration-heading" tabIndex={-1}>Follow your appetite.</h2>
@@ -101,7 +102,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
         <h3>{index === 0 ? "Keep it easy" : "Make a little occasion of it"}</h3>
         <GroceryRail label={index === 0 ? "Easy grocery ideas" : "Occasion grocery ideas"}>{groceryThemes.filter(theme => theme.mood === mood).map(theme => <ThemeCard key={theme.id} theme={theme} onChoose={() => choose(theme)} />)}</GroceryRail>
       </div>)}</div>
-    </section>
+    </section> : null}
     {selected ? <dialog ref={dialog} className={styles.dialog} aria-labelledby="grocery-theme-title" onCancel={event => { event.preventDefault(); dismissIdea(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) dismissIdea(); }}>
       <div className={styles.dialogBody}>
         <button type="button" className={styles.close} aria-label="Close grocery idea" onClick={dismissIdea}>×</button>
@@ -116,7 +117,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
             <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span>
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>
           <p className={styles.disclaimer}>Choose your groceries at the retailer. Pictures are inspiration; the reward is a gift card.</p>
-          <button type="button" className={styles.back} onClick={dismissIdea}>Keep exploring ideas</button>
+          <button type="button" className={styles.back} onClick={dismissIdea}>{showShelf ? "Keep exploring ideas" : "Back to grocery results"}</button>
         </div>
       </div>
     </dialog> : null}

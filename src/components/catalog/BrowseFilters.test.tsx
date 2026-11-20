@@ -8,7 +8,7 @@ const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 afterEach(cleanup);
 
-test("Apply filters preserves the applied query when the search draft is cleared", () => {
+test("Apply filters honors an explicit clear of the search term", () => {
   render(<FilterForm id="clear-query"
     filters={{ type: "all", retailer: "", availableOnly: true, sort: "fewest-left", minValue: null, maxValue: 100 }}
     retailerGroups={[]} selectedRetailerGroup={null} selectedCategory="ending-soon" ticketsLeft="2-5"
@@ -18,7 +18,7 @@ test("Apply filters preserves the applied query when the search draft is cleared
   fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
   const url = new URL(push.mock.lastCall![0], "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
-    category: "ending-soon", q: "Walmart", ticketsLeft: "2-5", available: "1", sort: "fewest-left", maxValue: "100",
+    category: "ending-soon", ticketsLeft: "2-5", available: "1", sort: "fewest-left", maxValue: "100",
   });
 });
 
@@ -49,11 +49,11 @@ test("sorting keeps an open custom range until Apply filters", () => {
   expect(onNavigate).toHaveBeenCalledOnce();
 });
 
-test("Browse search offers a direct category link while typing", () => {
+test("a filter category suggestion preserves the applied query until the user searches", () => {
   render(<BrowseFilters
     filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: null }}
     retailerGroups={[{ id: "automotive", category: "Automotive", options: [{ label: "AutoZone®", value: "AutoZone®", hasOffer: false }] }]}
-    selectedRetailerGroup={null} selectedCategory={null} searchTerm="" subcategory="" clearHref="/browse"
+    selectedRetailerGroup={null} selectedCategory={null} searchTerm="paper towels" subcategory="" clearHref="/browse"
   />);
   const search = screen.getAllByRole("searchbox", { name: "Search all prizes" })[0];
   const searchField = search.parentElement!;
@@ -65,7 +65,7 @@ test("Browse search offers a direct category link while typing", () => {
   expect(within(searchField).getByRole("button", { name: "Go to search results" }).textContent).toBe("Go");
   const results = within(screen.getByRole("region", { name: "Matching retailer categories" }));
   expect(results.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
-    .toBe("/browse?partnerCategory=automotive&q=spark+plugs#search-results");
+    .toBe("/browse?partnerCategory=automotive&q=paper+towels#search-results");
 });
 
 test("Filter and sort suggestions retain Ending Soon and the selected price range", () => {
@@ -82,7 +82,7 @@ test("Filter and sort suggestions retain Ending Soon and the selected price rang
   const url = new URL(suggestion.getAttribute("href")!, "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
     category: "ending-soon", partnerCategory: "pharmacy", type: "gift-cards", available: "1",
-    minValue: "5", maxValue: "25", sort: "fewest-left", q: "beauty",
+    minValue: "5", maxValue: "25", sort: "fewest-left",
   });
   expect(url.hash).toBe("#search-results");
   fireEvent.click(suggestion, { ctrlKey: true });

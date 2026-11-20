@@ -22,6 +22,15 @@ test("only signed-in customers can open declined offers", async () => {
   await expect(DeclinedOffersPage({})).rejects.toThrow(/redirect:.*login.*declined-offers/);
 });
 
+test("a declined offer opened from Wallet can return to the exact transaction", async () => {
+  const offer = "11111111-1111-4111-8111-111111111111";
+  const transaction = "22222222-2222-4222-8222-222222222222";
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [] } });
+  render(await DeclinedOffersPage({ searchParams: Promise.resolve({ offer, transaction, walletView: "1" }) }));
+  expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href"))
+    .toBe("/account/wallet?view=history&transaction=" + transaction + "&walletView=1#transaction-" + transaction);
+});
+
 test("all exit links restore the purchase-options filter, even when the list is empty", async () => {
   mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [] } });
   render(await DeclinedOffersPage({ searchParams: Promise.resolve({ filter: "completion" }) }));

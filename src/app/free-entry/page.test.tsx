@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import FreeEntryPage from "./page";
 import PrintFreeEntryPage from "./print/page";
+import { getAccountContext } from "@/lib/account/context";
 
 vi.mock("@/lib/account/context", () => ({ getAccountContext: vi.fn(async () => null) }));
 afterEach(cleanup);
@@ -37,6 +38,14 @@ test.each([
 test("free-entry rejects unsafe return destinations", async () => {
   render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", from: "https://evil.test/browse" }) }));
   expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro#entry-action");
+});
+
+test("an old authenticated print URL resumes the filled instructions with the same prize and quantity", async () => {
+  vi.mocked(getAccountContext).mockResolvedValue({ userId: "demo-user", legalFirstName: "Luka", legalLastName: "Łowicki" } as Awaited<ReturnType<typeof getAccountContext>>);
+  try {
+    await expect(PrintFreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", quantity: "3", from: "/browse?q=Apple" }) }))
+      .rejects.toMatchObject({ digest: expect.stringContaining("/free-entry?offering=airpods-pro&quantity=3&from=%2Fbrowse%3Fq%3DApple#free-entry-intro") });
+  } finally { vi.mocked(getAccountContext).mockResolvedValue(null); }
 });
 
 test("seven unsubmitted entries survive the instructions and print-preview round trip", async () => {

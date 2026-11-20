@@ -31,6 +31,13 @@ function retailerName(value: string) {
 function extractValues(query: string, products: readonly { retailer: string }[]) {
   const values = new Set<number>();
   if (query.length > 512) return { text: query, values };
+  const joinedValues = /\bgift card\b/i.test(query)
+    ? new RegExp(String.raw`(?:^|\s)(\$?\s*${digits}(?:\s+(?:or|and)\s+\$?\s*${digits})+)(?=\s|$)`, "i").exec(query)
+    : null;
+  if (joinedValues && joinedValues[1].includes("$")) {
+    for (const value of joinedValues[1].split(/\s+(?:or|and)\s+/i)) values.add(Number(value.replace(/[$,\s]/g, "")));
+    return { text: query.replace(joinedValues[0], " ").trim(), values };
+  }
   const remainder = query.replace(currency, (_match, prefix: string, suffix: string, spoken: string) => {
     values.add(spoken ? spokenValue(spoken) : Number((prefix ?? suffix).replaceAll(",", "")));
     return " ";
@@ -131,7 +138,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       },
     };
   }
-  const trailing = /^(.*?)(?:\b(?:and|or)|&)\s+(?:under|below|less)\s*$/i.exec(normalized);
+  const trailing = /^(.*?)(?:(?:\b(?:and|or)|&)\s+(?:under|below|less)|\s+(?:max|maximum))\s*$/i.exec(normalized);
   const maximum = trailing && extractValues(trailing[1], products);
   if (maximum?.values.size !== 1) return null;
   const amount = [...maximum.values][0];
@@ -139,7 +146,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
-  let normalized = query.trim().replace(/[.!?]+$/, "").replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
+  let normalized = query.trim().replace(/[,.!?]+$/, "").replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
   if (normalized.length <= 512 && /\bgc\b/i.test(normalized)) {
     const expanded = normalized.replace(/\bgc\b/gi, "gift card");
     const amountText = searchBudget(expanded, products)?.text ?? extractValues(expanded, products).text;

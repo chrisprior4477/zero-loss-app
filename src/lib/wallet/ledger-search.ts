@@ -70,7 +70,9 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && amounts[0](amountCents(value)) && terms.every(term => keywords.has(term)))) return true;
     }
     if (!amounts.every(matches => matches(entry.amount))) return false;
-    const searchable = normalizeSearch([...describe(entry), entry.product?.title, entry.product?.retailer].join(" "));
+    const transactionType = entry.entry_type === "DEPOSIT" ? "deposit"
+      : entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "refund" : "";
+    const searchable = normalizeSearch([...describe(entry), transactionType, entry.product?.title, entry.product?.retailer].join(" "));
     return terms.every(term => searchable.includes(term));
   });
 }

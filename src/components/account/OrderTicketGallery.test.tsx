@@ -4,6 +4,7 @@ import { OrderTicketGallery, orderSupportSummary } from "./OrderTicketGallery";
 import type { FulfillmentRecord } from "@/lib/account/fulfillment";
 import { activityHref } from "@/lib/account/activity";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
+import { TimeZoneProvider } from "./TimeZoneProvider";
 
 vi.mock("next/image", () => ({ default: () => null }));
 beforeEach(() => { window.history.replaceState({}, "", "/account/orders"); });
@@ -13,6 +14,12 @@ const record = (id: number, changes: Partial<FulfillmentRecord> = {}): Fulfillme
   title: `Reward ${id}`, retailer: "Retailer", image: "/test.png", faceValueCents: 10000, amountPaidCents: 9900,
   status: "fulfilled", createdAt: "2026-10-26T12:00:00Z", entryId: `entry-full-reference-${id}`, source: "purchase",
   rewardStatus: "ready", claimedAt: "2026-10-26T12:00:00Z", ...changes,
+});
+
+test("order details use the customer's locale and time zone for dates", () => {
+  render(<TimeZoneProvider value="Europe/London" locale="en-GB"><OrderTicketGallery orders={[record(1)]} /></TimeZoneProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  expect(screen.getByText("26 Oct 2026").getAttribute("dateTime")).toBe("2026-10-26T12:00:00Z");
 });
 
 test("mobile pages two cards; desktop pages six, without dropping repeated products", () => {

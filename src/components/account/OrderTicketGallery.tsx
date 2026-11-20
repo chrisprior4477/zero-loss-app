@@ -10,7 +10,7 @@ import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
-import { useAccountTimeZone } from "./TimeZoneProvider";
+import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
 import { containDialogTab } from "./dialog-keyboard";
 import { useDialogBack } from "./useDialogBack";
 import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
@@ -47,8 +47,8 @@ function orderPresentation(order: FulfillmentRecord) {
   }
 }
 
-function displayDate(value: string, timeZone: string) {
-  return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(value)) : "Unavailable";
+function displayDate(value: string, timeZone: string, locale: string) {
+  return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(value)) : "Unavailable";
 }
 
 /** Support gets the full saved references, never the redeemable gift-card code. */
@@ -153,6 +153,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   }
 
   const timeZone = useAccountTimeZone();
+  const locale = useAccountLocale();
   const references = [
     { label: order.orderNumber ? "Order number" : "Reward reference", value: order.orderNumber ?? order.rewardId },
     ...(order.entryId ? [{ label: "Entry reference", value: order.entryId }] : []),
@@ -164,7 +165,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
       <dl className={styles.references}>
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
-        <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
+        <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone, locale)}</time> : "Unavailable"}</dd></div>
       </dl>
       <dl className={styles.detailsAmounts}>
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>

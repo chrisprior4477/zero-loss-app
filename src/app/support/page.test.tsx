@@ -65,6 +65,14 @@ test("sign-in preserves a selected wallet transaction", async () => {
   expect(mocks.from).not.toHaveBeenCalled();
 });
 
+test("a verified session can reach the general form when the linked transaction is unavailable", async () => {
+  mocks.from.mockReturnValueOnce(query(null));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  const recovery = screen.getByRole("link", { name: "Get general support" });
+  expect(recovery.getAttribute("href")).toBe("/support#report-problem");
+  expect(screen.queryByTestId("support-form")).toBeNull();
+});
+
 test('sign-in preserves an exact reward support handoff',async()=>{
  mocks.account.mockResolvedValue(null);
  render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));

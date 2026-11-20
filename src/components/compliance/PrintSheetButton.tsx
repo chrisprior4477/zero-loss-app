@@ -33,6 +33,12 @@ export function PrintSheetButton({ offering, name, account, reference }: {
     }
     try {
       const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      if (response.status === 422) {
+        popup?.close();
+        window.focus();
+        setError("Use Open print dialog to print every character in your entry details.");
+        return;
+      }
       if (!response.ok || !response.headers.get("Content-Type")?.includes("application/pdf")) {
         throw new Error("PDF unavailable");
       }

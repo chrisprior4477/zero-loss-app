@@ -56,7 +56,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const endingSoon = selectedCategory === "ending-soon";
   const ticketsLeft = endingSoon ? parseEndingSoonTicketRange(query.ticketsLeft) : null;
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
-  const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
+  const subcategory = (Array.isArray(query.subcategory) ? query.subcategory[0] : query.subcategory)?.trim().slice(0, 128) ?? "";
   const showCatalogDenominations = !unavailable
     && Boolean(searchTerm || selectedCategory || query.retailer || query.partnerCategory || query.type === "gift-cards");
   const unavailableDenominations = showCatalogDenominations ? demoProducts.filter(product =>
@@ -162,7 +162,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
     if (reversedRange && (key === "minValue" || key === "maxValue")) continue;
-    const value = query[key];
+    const value = key === "subcategory" ? subcategory : query[key];
     if (value) searchParamsForView.set(key, value);
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
@@ -270,10 +270,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
           {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
-          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} previews={categoryPreviews}
+          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={subcategory} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} />
-          {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}
+          {showGroceryInspiration || (selectedCategory === "groceries" && typeof query.groceryIdea === "string") ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} showShelf={showGroceryInspiration} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-sm font-bold text-white">Shop by retailer</span>
@@ -302,7 +302,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           </section>
         ) : null}
 
-        {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
+        {subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{subcategory}</strong>.</p> : null}
         {subcategory && !products.length && !unavailable ? <BrowseResultsLink href={parentCategoryHref} target="heading" className="mt-2 inline-flex min-h-11 items-center font-bold text-cyan-200 underline">
           Back to {selectedLabel ?? "all Browse results"}
         </BrowseResultsLink> : null}

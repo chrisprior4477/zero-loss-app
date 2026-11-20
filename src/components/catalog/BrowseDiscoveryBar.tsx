@@ -29,6 +29,7 @@ type ControlsPosition = "top" | "bottom";
 type PrizeCategoryChoice = { id: MarketplaceCategoryId | ""; label: string };
 export type BrowsePreviewProduct = { slug: string; title: string; image: string; remaining: number };
 type PreviewResume = { destination: string; category: string; position: ControlsPosition; expires: number };
+const previewHistoryKey = "zeroLossCategoryPreviewReturn";
 let pendingPreview: PreviewResume | null = null;
 
 function rememberPreview(destination: string, category: string, position: ControlsPosition) {
@@ -57,6 +58,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const searchInput = useRef<HTMLInputElement>(null);
   const pickerInput = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLElement>(null);
+  const previewFocus = useRef<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
   const topCategories = useRef<HTMLButtonElement>(null);
   const bottomCategories = useRef<HTMLButtonElement>(null);
@@ -132,19 +134,42 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }, [desktop, panel]);
 
   useLayoutEffect(() => {
-    if (panel === "categories" && preview !== null) previewRef.current?.scrollIntoView?.({ block: "nearest" });
+    if (panel !== "categories" || preview === null) return;
+    previewRef.current?.scrollIntoView?.({ block: "nearest" });
+    const target = previewFocus.current;
+    if (!target) return;
+    previewFocus.current = null;
+    const control = target === "refine"
+      ? previewRef.current?.querySelector<HTMLButtonElement>("[data-refine-preview]")
+      : Array.from(previewRef.current?.querySelectorAll<HTMLAnchorElement>("[data-preview-prize]") ?? [])
+        .find(link => link.dataset.previewPrize === target);
+    control?.focus({ preventScroll: true });
   }, [panel, preview]);
 
   useLayoutEffect(() => {
-    const resume = pendingPreview;
-    if (!desktop || !resume || resume.expires < Date.now() || resume.destination !== comparableBrowseHref(props.browseHref)) return;
-    pendingPreview = null;
-    opener.current = (resume.position === "top" ? topCategories : bottomCategories).current;
-    // A filter navigation replaces the component with the newly filtered results.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPreview(resume.category);
-    setOpenPanel({ panel: "categories", position: resume.position });
-  }, [desktop, props.browseHref]);
+    if (!desktop) return;
+    function restorePreview() {
+      const destination = comparableBrowseHref(props.browseHref);
+      const state = window.history.state;
+      const saved = state?.[previewHistoryKey];
+      const fromPrize = saved?.destination === destination && (saved.position === "top" || saved.position === "bottom")
+        && typeof saved.slug === "string" && typeof saved.category === "string" && Object.hasOwn(props.previews ?? {}, saved.category);
+      const resume = fromPrize ? saved as Pick<PreviewResume, "category" | "position"> : pendingPreview;
+      if (!resume || (!fromPrize && (!pendingPreview || pendingPreview.expires < Date.now() || pendingPreview.destination !== destination))) return;
+      if (fromPrize) {
+        previewFocus.current = saved.slug;
+        const nextState = { ...state };
+        delete nextState[previewHistoryKey];
+        window.history.replaceState(nextState, "");
+      } else pendingPreview = null;
+      opener.current = (resume.position === "top" ? topCategories : bottomCategories).current;
+      setPreview(resume.category);
+      setOpenPanel({ panel: "categories", position: resume.position });
+    }
+    restorePreview();
+    window.addEventListener("popstate", restorePreview);
+    return () => window.removeEventListener("popstate", restorePreview);
+  }, [desktop, props.browseHref, props.previews]);
 
   function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
@@ -161,6 +186,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       session.setEditor(null);
     }
     if (returnToPreview && refining && panel === "filters") {
+      previewFocus.current = "refine";
       setRefining(null);
       setOpenPanel(current => current && { ...current, panel: "categories" });
       return true as const;
@@ -264,8 +290,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       <div className={styles.previewHeader}><h3>{category.label}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
         const destination = productHrefWithBrowseReturn(product.slug, href.replace("#search-results", `#prize-${product.slug}`));
-        return <Link key={product.slug} className={styles.previewProduct} prefetch={false} href={destination}
-          onNavigate={event => { event.preventDefault(); navigateFromPanel(destination); }}>
+        return <Link key={product.slug} data-preview-prize={product.slug} className={styles.previewProduct} prefetch={false} href={destination}
+          onNavigate={() => {
+            window.history.replaceState({ ...window.history.state, [previewHistoryKey]: {
+              destination: comparableBrowseHref(props.browseHref), category: category.id, position: openPanel?.position ?? "top", slug: product.slug,
+            } }, "");
+          }}>
           <div className={styles.previewImage}><Image src={product.image} alt="" fill sizes="190px" /></div>
           <strong>{product.title}</strong>
           <small>{product.remaining ? `${product.remaining.toLocaleString()} left` : "No open entries"}</small>
@@ -275,7 +305,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         <Link href={href} prefetch={false} scroll={false} onNavigate={event => { event.preventDefault(); navigateFromPanel(href); }}>
           {category.id ? `See all ${category.label}` : "See all products"} <span aria-hidden="true">→</span>
         </Link>
-        <button type="button" onClick={() => {
+        <button type="button" data-refine-preview onClick={() => {
           pickerVoice.cancel();
           setRefining({ category: category.id || null, href });
           setOpenPanel(current => current && { ...current, panel: "filters" });

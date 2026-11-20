@@ -4,7 +4,7 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
-import { freeEntryHref, productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { freeEntryHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { shareUuid } from "@/lib/sharing/saved-shares";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -46,12 +46,13 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <p className="mt-3">We couldn’t check this prize. Try again to open its free-entry instructions.</p>
     <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={freeEntryHref(offering ?? "", from, parseEntryQuantity(rawQuantity), share)}>Try again</Link>
   </div>;
+  const browseReturn = productBrowseReturnPath(from);
+  const returnLabel = productBrowseReturnLabel(browseReturn ?? "/browse");
   if (!product) return <div className="mx-auto max-w-3xl p-6 text-white">
     <h1 className="text-2xl font-black">Free-entry instructions unavailable</h1>
     <p className="mt-3">This prize is no longer available for entry.</p>
-    <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse"}>Back to Browse</Link>
+    <Link className="mt-4 inline-block text-cyan-300 underline" href={browseReturn ?? "/browse"}>Back to {returnLabel === "marketplace" ? "Browse" : returnLabel}</Link>
   </div>;
-  const browseReturn = productBrowseReturnPath(from);
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
   const sharedToken = offering === product.slug && typeof share === "string" && shareUuid.test(share) ? share : undefined;
   const backHref = productEntryHref(product.slug, quantity ?? 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action");

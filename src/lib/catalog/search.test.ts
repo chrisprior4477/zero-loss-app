@@ -52,6 +52,9 @@ describe("catalog search", () => {
     ["Walmart gift cards no less than $75", [75, 100]],
     ["Walmart GC under $75", [25, 50]],
     ["Walmart gift cards 25 or 75", [25, 75]],
+    ["Walmart gift cards $75 max", [25, 50, 75]],
+    ["Walmart gift cards $75 or less,", [25, 50, 75]],
+    ["Walmart gift cards $25 or 75", [25, 75]],
   ])("applies the requested prize values for %s", (query, expected) => {
     const cards = searchCatalog(demoProducts, query);
     expect(cards.every(card => card.retailer.startsWith("Walmart") && card.title.includes("Gift Card"))).toBe(true);
@@ -60,6 +63,14 @@ describe("catalog search", () => {
 
   test.each(["PS-5", "Play Station 5"])("finds the pictured console for %s", query => {
     expect(searchCatalog(demoProducts, query)[0]?.slug).toBe("playstation-5-slim");
+  });
+
+  test.each([
+    ["Sony WH1000XM5", "sony-wh-1000xm5-headphones"],
+    ["Sony WH 1000 XM5", "sony-wh-1000xm5-headphones"],
+    ["Nintendo Switch O.L.E.D.", "nintendo-switch"],
+  ])("finds the advertised model for %s", (query, slug) => {
+    expect(searchCatalog(demoProducts, query)[0]?.slug).toBe(slug);
   });
 
   test.each(["Only $100 Walmart gift cards", "Walmart gift cards only $100"])("keeps exact-only meaning for %s", query => {

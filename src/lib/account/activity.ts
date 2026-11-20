@@ -50,10 +50,14 @@ export const walletHistoryHref = "/account/wallet?view=history";
 export const walletTransactionsHref = `${walletHistoryHref}&panel=transactions#transactions`;
 export const walletDepositsHref = `${walletHistoryHref}&panel=deposits#payment-deposits`;
 
-export function declinedOfferHref(optionId?: string | null, filter: ActivityFilter = "all") {
+export function declinedOfferHref(optionId?: string | null, filter: ActivityFilter = "all", transaction?: { id: string; restoreView: boolean }) {
   const params = new URLSearchParams();
   if (optionId) params.set("offer", optionId);
   if (filter !== "all") params.set("filter", filter);
+  if (optionId && transaction) {
+    params.set("transaction", transaction.id);
+    if (transaction.restoreView) params.set("walletView", "1");
+  }
   return `/account/declined-offers${params.size ? `?${params}` : ""}${optionId ? `#declined-offer-${encodeURIComponent(optionId)}` : ""}`;
 }
 export function revivableDeclinedOfferCount(activity: readonly ActivityItem[], now = Date.now()) {

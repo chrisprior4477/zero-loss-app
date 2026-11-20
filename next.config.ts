@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@resvg/resvg-js"],
   // The public share-image endpoint reads catalog art without contacting the app.
   outputFileTracingIncludes: {
+    "/api/free-entry-pdf": ["./src/lib/compliance/fonts/NotoSans-Regular.ttf"],
     "/items/*/opengraph-image": [
       "./public/catalog/**/*",
       "./public/dollar-choice*.png",

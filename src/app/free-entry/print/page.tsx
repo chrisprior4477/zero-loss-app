@@ -5,6 +5,7 @@ import { FreeEntryPrintSheet } from "@/components/compliance/FreeEntryPrintCard"
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { freeEntryHref } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
+import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "Print AMOE Entry Insert" };
 
@@ -32,10 +33,12 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
       <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={instructions.replace("/free-entry?", "/free-entry/print?")}>Try again</Link>
     </div>;
   }
-  if (!product) redirect("/browse");
+  if (!product) redirect(freeEntryHref(params.offering, params.from, parseEntryQuantity(params.quantity), params.share));
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;
   const instructions = freeEntryHref(product.slug, params.from, quantity, params.offering === product.slug ? params.share : undefined);
-  if (params.name !== undefined || params.account !== undefined || params.reference !== undefined) redirect(instructions);
+  if (params.name !== undefined || params.account !== undefined || params.reference !== undefined || await getAccountContext()) {
+    redirect(`${instructions}#free-entry-intro`);
+  }
   return <FreeEntryPrintSheet offering={product.slug} title={product.title}
     name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001"
     back={<Link href={`${instructions}#free-entry-intro`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>} />;

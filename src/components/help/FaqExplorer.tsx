@@ -8,6 +8,9 @@ import styles from "./help-tickets.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { faqReturnKey, readFaqReturn, type FaqReturn } from "@/lib/help/faq-return";
 
+const productRequestReturnKey = "zero-loss-faq-product-request-return";
+const productRequestAnchor = "#faq-request-product";
+
 export function FaqExplorer() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FaqCategory>("all");
@@ -34,27 +37,35 @@ export function FaqExplorer() {
     function cancel() { cancelAnimationFrame(first); cancelAnimationFrame(second); timers.splice(0).forEach(clearTimeout); }
     function interrupt() { interrupted = true; cancel(); }
     function restore() {
-      const saved = readFaqReturn(window.history.state, window.location.href) ??
-        (window.location.hash === "#faq-request-product" ? {
+      let saved = readFaqReturn(window.history.state, window.location.href);
+      if (!saved && window.location.hash === productRequestAnchor) {
+        try {
+          saved = readFaqReturn(JSON.parse(sessionStorage.getItem(productRequestReturnKey) ?? "null"), window.location.href);
+          sessionStorage.removeItem(productRequestReturnKey);
+          if (saved) window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
+        } catch { /* The direct answer link works without a recorded search. */ }
+      }
+      const destination = saved ??
+        (window.location.hash === productRequestAnchor ? {
           href: window.location.href, query: "", category: "all" as const, expanded: ["request-product"], collapsed: [],
           scrollY: 0, answer: "request-product", answerTop: 0, answerLink: "/contact/product-request?origin=faq#requested-item",
         } : null);
-      if (!saved) return;
-      setQuery(saved.query); setCategory(saved.category); setExpanded(saved.expanded);
-      setCollapsed(saved.collapsed ?? []);
+      if (!destination) return;
+      setQuery(destination.query); setCategory(destination.category); setExpanded(destination.expanded);
+      setCollapsed(destination.collapsed ?? []);
       cancel(); interrupted = false;
       let focused = false;
       const align = () => {
         if (interrupted) return;
         cancelAnimationFrame(first); cancelAnimationFrame(second);
         first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
-          if (interrupted || window.location.href !== saved.href) return;
-          const answer = Array.from(panel.current?.querySelectorAll<HTMLElement>("[data-faq-id]") ?? []).find(element => element.dataset.faqId === saved.answer);
+          if (interrupted || window.location.href !== destination.href) return;
+          const answer = Array.from(panel.current?.querySelectorAll<HTMLElement>("[data-faq-id]") ?? []).find(element => element.dataset.faqId === destination.answer);
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
-          const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, saved.answerTop) : saved.scrollY;
+          const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, destination.answerTop) : destination.scrollY;
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-          if (!focused && saved.answerLink) {
-            const link = Array.from(answer?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === saved.answerLink);
+          if (!focused && destination.answerLink) {
+            const link = Array.from(answer?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === destination.answerLink);
             if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
           }
         }); });
@@ -78,6 +89,13 @@ export function FaqExplorer() {
       scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0,
       answerLink: answer ? anchor.getAttribute("href") ?? undefined : undefined };
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
+    if (saved.answer === "request-product" && anchor.pathname === "/contact/product-request") {
+      try {
+        sessionStorage.setItem(productRequestReturnKey, JSON.stringify({
+          [faqReturnKey]: { ...saved, href: new URL("/faq" + productRequestAnchor, window.location.origin).href },
+        }));
+      } catch { /* Browser Back still has its own bookmark. */ }
+    }
   }}>
     <div className={`${styles.ticket} ${styles.panel}`}>
       <label htmlFor="faq-search" className="block text-lg font-extrabold">What do you need help with?</label>

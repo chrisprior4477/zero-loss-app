@@ -1,6 +1,7 @@
 "use client";
 
-import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Link from "next/link";
@@ -22,6 +23,14 @@ function useEditor() {
 }
 
 const steps = ["Business", "Partnership", "Details", "Assets", "Review"] as const;
+const stepHistoryKey = "zeroLossBusinessSteps";
+
+function businessStepTrail(owner: string | null) {
+  const marker = window.history.state?.[stepHistoryKey];
+  if (marker?.owner !== owner || marker?.href !== window.location.href || !Array.isArray(marker?.steps)
+    || !marker.steps.length || !marker.steps.every((step: unknown) => Number.isInteger(step) && Number(step) >= 0 && Number(step) < steps.length)) return null;
+  return marker.steps as number[];
+}
 const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-cyan-200/25 bg-[#001b3d] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10";
 const labelClass = "block text-sm font-bold text-white/90";
 
@@ -150,10 +159,21 @@ function StepHeading({ title, description, action }: { title: string; descriptio
   return <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><h2 className="text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-white/60 sm:text-base">{description}</p></div>{action}</div>;
 }
 
+function exampleListings(demo: "restaurant" | "tools") {
+  return partnerListings[demo].map((listing, demoArtworkIndex) => ({ ...listing, demoArtworkIndex }));
+}
+
 function restoreListings(draft: BusinessDraft): BusinessDraft {
   const demo = demoOf(draft.values);
-  if ((demo === "restaurant" || demo === "tools") && !draft.listings.length) return { ...draft, listings: partnerListings[demo] };
-  return draft;
+  if (demo !== "restaurant" && demo !== "tools") return draft;
+  if (!draft.listings.length) return { ...draft, listings: exampleListings(demo) };
+  const originals = partnerListings[demo];
+  const listings = draft.listings.map(listing => {
+    if (listing.demoArtworkIndex !== undefined) return listing;
+    const index = originals.findIndex(original => original.title === listing.title || original.summary === listing.summary);
+    return index === -1 ? listing : { ...listing, demoArtworkIndex: index };
+  });
+  return listings.some((listing, index) => listing !== draft.listings[index]) ? { ...draft, listings } : draft;
 }
 
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
@@ -173,7 +193,35 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
   const mainProposal = String(values[proposalKey] || "Not provided yet");
   const missing = missingBusinessFields(values, draft.files);
-  function setStep(next: number) { setDraft(current => ({ ...current, step: next })); }
+  useEffect(() => {
+    if (!initialized || submitted || recoveredDraft) return;
+    function restoreStep() {
+      const saved = businessStepTrail(owner)?.at(-1);
+      if (saved === undefined) return;
+      setErrors([]);
+      setDraft(current => current.step === saved ? current : { ...current, step: saved });
+    }
+    restoreStep();
+    window.addEventListener("popstate", restoreStep);
+    return () => window.removeEventListener("popstate", restoreStep);
+  }, [initialized, owner, recoveredDraft, setDraft, submitted]);
+
+  function setStep(next: number) {
+    if (next === step) return;
+    const trail = businessStepTrail(owner) ?? [step];
+    const existing = trail.lastIndexOf(next);
+    if (next < step && existing >= 0 && existing < trail.length - 1) {
+      window.history.go(existing - trail.length + 1);
+      return;
+    }
+    const marker = { owner, href: window.location.href, steps: trail };
+    const state = { ...window.history.state, [stepHistoryKey]: marker };
+    setErrors([]);
+    window.history.replaceState(state, "");
+    if (next > step) window.history.pushState({ ...state, [stepHistoryKey]: { ...marker, steps: [...trail, next] } }, "");
+    else window.history.replaceState({ ...state, [stepHistoryKey]: { ...marker, steps: [...trail.slice(0, -1), next] } }, "");
+    setDraft(current => ({ ...current, step: next }));
+  }
   async function attach(files: FileList | null, index: number | null) {
     if (!files?.length || stagingLock.current) return;
     stagingLock.current = true;
@@ -194,13 +242,13 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   }
   function fillDemoBusiness(chosenDemo: DemoCase) {
     if (chosenDemo === demoCase) return;
-    const hasBusinessDetails = Object.keys(demoBusinessByPartnership.products).some(key => String(values[key] ?? "").trim());
-    if (owner && (hasBusinessDetails || draft.files.length || draft.listings.length) &&
+    const hasBusinessDetails = Object.entries(values).some(([name, value]) => value !== initialValues[name] && (typeof value === "string" ? value.trim() : value));
+    if ((hasBusinessDetails || draft.files.length || draft.listings.length) &&
       !window.confirm("Replace the current business draft with this fictional example? Choose Cancel to keep your current details.")) return;
     const special = chosenDemo === "restaurant" || chosenDemo === "tools";
     const business = special ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
     const details = special ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
-    setDraft(current => ({ ...current, listings: special ? partnerListings[chosenDemo] : [],
+    setDraft(current => ({ ...current, listings: special ? exampleListings(chosenDemo) : [],
       files: current.files.map(file => ({ ...file, listingIndex: null })),
       values: { ...initialValues, partnership: demoPartnership[chosenDemo], demo_variant: chosenDemo,
         listing_count: chosenDemo === "tools" ? "10" : "1", recurrence_limit: chosenDemo === "tools" ? "10" : "1",
@@ -389,18 +437,121 @@ function AssetsStep({ partnership, demoCase, onLoadDemo, values, change }: { par
 
 function CampaignPreview({ partnership }: { partnership: DemoCase }) {
   const campaign = demoCampaigns[partnership];
-  const [selectedItem, setSelectedItem] = useState<number | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
   const { draft, setDraft } = useEditor();
+  const [selectedItem, setSelectedItem] = useState<number | null>(null);
+  const [editor, setEditor] = useState<{ index: number; headline: string; description: string } | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const closeControl = useRef<HTMLButtonElement>(null);
+  const detailedItems = partnership === "restaurant" || partnership === "tools" ? draft.listings : null;
   const headline = String(draft.values.preview_headline ?? campaign.headline);
   const description = String(draft.values.preview_description ?? campaign.body);
-  const setHeadline = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, preview_headline: value } }));
-  const setDescription = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, preview_description: value } }));
-  const detailedItems = partnership === "restaurant" || partnership === "tools" ? draft.listings : null;
-  const items = detailedItems?.map(item => item.title) ?? campaign.catalog ?? [campaign.eyebrow];
-  const listingValues = detailedItems?.map((item) => item.value) ?? [Number(campaign.value.replace(/[^0-9.]/g, "")) || 1];
-  const detail = selectedItem !== null ? detailedItems?.[selectedItem] : undefined;
-  return <><div className={`mx-auto grid gap-4 ${campaign.catalog ? "max-w-5xl grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "max-w-[320px]"}`}>{items.map((title, index) => <button key={index} type="button" onClick={() => setSelectedItem(index)} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30"><DemoGalleryImage demo={partnership} index={index} className="h-36 rounded-lg"/><div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div><h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{campaign.catalog ? title : headline}</h3><div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{campaign.catalog ? `$${listingValues[index]}` : campaign.value} value</span><strong>Enter for ${detailedItems?.[index]?.entryPrice ?? 1}</strong></div><span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for ${detailedItems?.[index]?.entryPrice ?? 1}</span></button>)}</div><button type="button" onClick={() => setEditorOpen(true)} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>{selectedItem !== null && <div role="dialog" aria-modal="true" aria-label="Listing detail preview" className={`${popupStyles.overlay} fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} relative m-auto w-full max-w-4xl rounded-3xl border border-cyan-300/25 bg-[#021d43] p-5 sm:p-8`}><button type="button" onClick={() => setSelectedItem(null)} className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#00132e] text-2xl text-white" aria-label="Close listing detail">×</button><div className="grid gap-6 md:grid-cols-[1.15fr_.85fr]"><div><DemoGalleryImage demo={partnership} index={selectedItem} className="aspect-square rounded-2xl"/><div className="mt-3 grid grid-cols-4 gap-2">{items.slice(0, 10).map((name, index) => <button type="button" key={name} onClick={() => setSelectedItem(index)} aria-label={`View ${name}`}><DemoGalleryImage demo={partnership} index={index} className="aspect-square rounded-lg"/></button>)}</div></div><div className="self-center"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">{campaign.brand}</p><h3 className="mt-3 text-3xl font-black">{campaign.catalog ? items[selectedItem] : headline}</h3><p className="mt-4 leading-7 text-white/65">{detail?.summary ?? description}</p>{detail && <><div className="mt-5"><h4 className="font-black">Highlights</h4><ul className="mt-2 grid gap-2 text-sm text-white/65">{detail.highlights.map((item) => <li key={item}>✓ {item}</li>)}</ul></div><dl className="mt-5 divide-y divide-white/10 rounded-xl border border-white/10 px-4">{detail.specifications.map(([label,value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/50">{label}</dt><dd className="text-right font-bold">{value}</dd></div>)}</dl><div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#001b3d] p-4"><strong>What is included</strong><ul className="mt-2 space-y-1 text-xs leading-5 text-white/60">{detail.included.map((item) => <li key={item}>• {item}</li>)}</ul></div><div className="rounded-xl bg-[#001b3d] p-4"><strong>Fulfillment &amp; availability</strong><p className="mt-2 text-xs leading-5 text-white/60">{detail.fulfillment}</p><p className="mt-2 text-xs leading-5 text-white/60">{detail.availability}</p></div></div></>}<div className="mt-6 rounded-2xl bg-[#001b3d] p-5"><div className="flex justify-between"><span className="text-white/55">Retail value</span><strong>{campaign.catalog ? `$${listingValues[selectedItem]}` : campaign.value}</strong></div><div className="mt-3 flex justify-between"><span className="text-white/55">Entry</span><strong>${detail?.entryPrice ?? 1}</strong></div>{detail && <div className="mt-3 flex justify-between"><span className="text-white/55">Entry capacity</span><strong>{detail.capacity.toLocaleString()}</strong></div>}<button type="button" className="mt-5 w-full rounded-xl bg-[#00b9ff] px-4 py-3 font-black text-[#00132e]">Enter for ${detail?.entryPrice ?? 1}</button></div><p className="mt-4 text-xs text-white/45">Interactive partner preview. No entry or purchase is created.</p></div></div></div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Listing editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><h3 className="text-2xl font-black">Edit the listing preview</h3><p className="mt-2 text-sm leading-6 text-white/60">Adjust the customer-facing headline and description before submitting the concept.</p><label className={`${labelClass} mt-5`}>Headline<input value={headline} onChange={(event) => setHeadline(event.target.value)} className={fieldClass}/></label><label className={`${labelClass} mt-4`}>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => { setHeadline(campaign.headline); setDescription(campaign.body); }} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Reset</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e]">Apply preview changes</button></div></div></div>}</>;
+  const items = detailedItems?.map(item => item.title) ?? campaign.catalog ?? [headline];
+  const selected = selectedItem === null ? null : detailedItems?.[selectedItem];
+  const modalOpen = selectedItem !== null || editor !== null;
+
+  function close() { setSelectedItem(null); setEditor(null); }
+  useDialogBack(modalOpen, close, false, true);
+  useEffect(() => {
+    if (!modalOpen) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeControl.current?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = overflow;
+      restoreDialogTrigger(trigger.current);
+    };
+  }, [modalOpen]);
+
+  function edit(index: number) {
+    const listing = detailedItems?.[index];
+    setEditor({ index, headline: listing?.title ?? headline, description: listing?.summary ?? description });
+  }
+  function apply() {
+    if (!editor) return;
+    const title = editor.headline.trim();
+    const summary = editor.description.trim();
+    if (!title || !summary) return;
+    setDraft(current => detailedItems
+      ? { ...current, listings: current.listings.map((item, index) => index === editor.index ? { ...item, title, summary } : item) }
+      : { ...current, values: { ...current.values, preview_headline: title, preview_description: summary } });
+    close();
+  }
+  function picture(index: number, className: string) {
+    const artIndex = detailedItems ? detailedItems[index]?.demoArtworkIndex : index;
+    return artIndex !== undefined && artIndex < demoCampaigns[partnership].filenames.length
+      ? <DemoGalleryImage demo={partnership} index={artIndex} className={className} />
+      : <span className={className + " block bg-slate-100"} aria-hidden="true" />;
+  }
+
+  return <>
+    <div className={"mx-auto grid gap-4 " + (campaign.catalog ? "max-w-5xl grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "max-w-[320px]")}>
+      {items.map((title, index) => <button key={index} type="button" onClick={event => {
+        trigger.current = event.currentTarget;
+        setSelectedItem(index);
+      }} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30">
+        {picture(index, "h-36 rounded-lg")}
+        <div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div>
+        <h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{title}</h3>
+        <div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{detailedItems ? "$" + detailedItems[index].value : campaign.value} value</span><strong>Enter for {detailedItems?.[index]?.entryPrice ?? 1}</strong></div>
+        <span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for {detailedItems?.[index]?.entryPrice ?? 1}</span>
+      </button>)}
+    </div>
+    <button type="button" onClick={event => { trigger.current = event.currentTarget; edit(0); }} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>
+    {modalOpen ? <div role="dialog" aria-modal="true" aria-label={editor ? "Listing editor" : "Listing detail preview"}
+      className={popupStyles.overlay + " fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4"}
+      onKeyDown={event => {
+        if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); }
+        else containDialogTab(event);
+      }}
+      onClick={event => { if (event.target === event.currentTarget) close(); }}>
+      {editor ? <div className={popupStyles.surface + " relative m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6"}>
+        <h3 className="text-2xl font-black">Edit the listing preview</h3>
+        <p className="mt-2 text-sm leading-6 text-white/60">Adjust the customer-facing headline and description before submitting the concept.</p>
+        {detailedItems && detailedItems.length > 1 ? <label className={labelClass + " mt-5"}>Listing
+          <select className={fieldClass} value={editor.index} onChange={event => edit(Number(event.target.value))}>
+            {items.map((title, index) => <option key={index} value={index}>{title}</option>)}
+          </select>
+        </label> : null}
+        <label className={labelClass + " mt-5"}>Headline<input value={editor.headline} onChange={event => setEditor({ ...editor, headline: event.target.value })} className={fieldClass} /></label>
+        <label className={labelClass + " mt-4"}>Description<textarea value={editor.description} onChange={event => setEditor({ ...editor, description: event.target.value })} rows={5} className={fieldClass + " py-3"} /></label>
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
+          <button ref={closeControl} type="button" onClick={close} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button>
+          <button type="button" onClick={() => {
+            const originals = partnership === "restaurant" || partnership === "tools" ? partnerListings[partnership] : null;
+            const index = detailedItems?.[editor.index]?.demoArtworkIndex;
+            const original = index === undefined ? detailedItems?.[editor.index] : originals?.[index];
+            setEditor({ ...editor, headline: original?.title ?? campaign.headline, description: original?.summary ?? campaign.body });
+          }} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Reset</button>
+          <button type="button" onClick={apply} disabled={!editor.headline.trim() || !editor.description.trim()} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Apply preview changes</button>
+        </div>
+      </div> : selectedItem !== null ? <div className={popupStyles.surface + " relative m-auto w-full max-w-4xl rounded-3xl border border-cyan-300/25 bg-[#021d43] p-5 sm:p-8"}>
+        <button ref={closeControl} type="button" onClick={close} className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#00132e] text-2xl text-white" aria-label="Close listing detail">×</button>
+        <div className="grid gap-6 md:grid-cols-[1.15fr_.85fr]">
+          <div>
+            {picture(selectedItem, "aspect-square rounded-2xl")}
+            <div className="mt-3 grid grid-cols-4 gap-2">{items.slice(0, 10).map((title, index) => <button type="button" key={index} onClick={() => setSelectedItem(index)} aria-label={"View " + title}>{picture(index, "aspect-square rounded-lg")}</button>)}</div>
+          </div>
+          <div className="self-center">
+            <p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">{campaign.brand}</p>
+            <h3 className="mt-3 text-3xl font-black">{items[selectedItem]}</h3>
+            <p className="mt-4 leading-7 text-white/65">{selected?.summary ?? description}</p>
+            {selected ? <>
+              <div className="mt-5"><h4 className="font-black">Highlights</h4><ul className="mt-2 grid gap-2 text-sm text-white/65">{selected.highlights.map((item, index) => <li key={index}>✓ {item}</li>)}</ul></div>
+              <dl className="mt-5 divide-y divide-white/10 rounded-xl border border-white/10 px-4">{selected.specifications.map(([label,value], index) => <div key={index} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/50">{label}</dt><dd className="text-right font-bold">{value}</dd></div>)}</dl>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#001b3d] p-4"><strong>What is included</strong><ul className="mt-2 space-y-1 text-xs text-white/60">{selected.included.map((item, index) => <li key={index}>• {item}</li>)}</ul></div><div className="rounded-xl bg-[#001b3d] p-4"><strong>Fulfillment &amp; availability</strong><p className="mt-2 text-xs leading-5 text-white/60">{selected.fulfillment}</p><p className="mt-2 text-xs leading-5 text-white/60">{selected.availability}</p></div></div>
+            </> : null}
+            <div className="mt-6 rounded-2xl bg-[#001b3d] p-5">
+              <div className="flex justify-between"><span className="text-white/55">Retail value</span><strong>{selected ? "$" + selected.value : campaign.value}</strong></div>
+              <div className="mt-3 flex justify-between"><span className="text-white/55">Entry</span><strong>{"$" + (selected?.entryPrice ?? 1)}</strong></div>
+              {selected ? <div className="mt-3 flex justify-between"><span className="text-white/55">Entry capacity</span><strong>{selected.capacity.toLocaleString()}</strong></div> : null}
+              <button type="button" className="mt-5 w-full rounded-xl bg-[#00b9ff] px-4 py-3 font-black text-[#00132e]">Enter for {"$" + (selected?.entryPrice ?? 1)}</button>
+            </div>
+            <p className="mt-4 text-xs text-white/45">Interactive partner preview. No entry or purchase is created.</p>
+          </div>
+        </div>
+      </div> : null}
+    </div> : null}
+  </>;
 }
 
 function DemoGalleryImage({ demo, index, className }: { demo: DemoCase; index: number; className: string }) {
@@ -491,6 +642,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   function addProduct() {
     const next: PartnerListing = { title: "New product listing", brand: demo === "tools" ? "Forge & Field" : "Bellamora Italian Kitchen", category: demo === "tools" ? "Tools" : "Dining", value: 100, entryPrice: 1, capacity: 300, summary: "Describe exactly what the customer receives.", highlights: ["Add the first customer-facing highlight"], specifications: [["Model or offer","Add details"]], included: ["Describe what is included"], fulfillment: "Describe who fulfills this listing and how.", availability: "Describe inventory, locations, dates, and geographic limits." };
     setDraft(current => ({ ...current, listings: [next, ...current.listings],
+      values: countEditedListings(current, 1),
       files: current.files.map(file => file.listingIndex === null ? file : { ...file, listingIndex: file.listingIndex + 1 }) })); setSelected(0); setAddedMessage("New product added and opened below.");
   }
   function removeProduct() {
@@ -499,6 +651,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
     setDraft(current => ({
       ...current,
       listings: current.listings.filter((_, index) => index !== selected),
+      values: countEditedListings(current, -1),
       files: current.files.map(file => {
         const index = file.listingIndex;
         if (index === selected) return { ...file, listingIndex: null };
@@ -511,6 +664,12 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
     <button type="button" onClick={removeProduct} disabled={listings.length <= 1} className="mt-3 rounded-lg border border-orange-300/45 px-3 py-2 text-sm font-bold text-orange-100 disabled:opacity-40">Remove listing</button>
     <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => updateAmount("value", Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
+}
+
+function countEditedListings(draft: BusinessDraft, change: number): FormValues {
+  return Number(draft.values.listing_count) === draft.listings.length
+    ? { ...draft.values, listing_count: String(draft.listings.length + change) }
+    : draft.values;
 }
 
 function Details({ partnership, demoCase, values, change, onFillDemo }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; onFillDemo: () => void }) {

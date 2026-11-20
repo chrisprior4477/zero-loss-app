@@ -51,8 +51,9 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     : reversed ? "Maximum must be at least the minimum." : "";
   const issueField = invalidAmount ?? "maxValue";
   const clearUrl = new URL(clearHref, "https://zeroloss.local");
-  const retainedSearch = searchDraft.trim() || searchTerm;
+  const retainedSearch = searchDraft.trim();
   if (retainedSearch) clearUrl.searchParams.set("q", retainedSearch);
+  else clearUrl.searchParams.delete("q");
   const clearFiltersHref = `${clearUrl.pathname}${clearUrl.search}`;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,8 +79,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
-      const draftValue = data.get(key)?.toString().trim() ?? "";
-      const value = key === "q" && filtersOnly ? draftValue || searchTerm : draftValue;
+      const value = data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
     if (voice.busy && !filtersOnly) return;
@@ -141,7 +141,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft, retainedSearch)} onClick={event => {
+              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft,
+                retainedSearch ? searchTerm : "")} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;

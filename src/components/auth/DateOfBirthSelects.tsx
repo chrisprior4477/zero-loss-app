@@ -197,13 +197,15 @@ export function DateOfBirthSelects({
       </div>
       {manualYear && <label className="mt-2 block text-sm" htmlFor={id("dob_year_input")}>
         Enter your birth year
-        <input id={id("dob_year_input")} className={selectClassName} value={yearText} inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required onChange={event => {
+        <input id={id("dob_year_input")} className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
+          aria-invalid={yearText === "0000" || undefined} aria-describedby={yearText === "0000" ? id("dob_year_error") : undefined} onChange={event => {
           const text = event.target.value.replace(/\D/g, "").slice(0, 4);
           const nextYear = text.length === 4 && Number(text) > 0 ? Number(text) : "";
           setYearText(text);
           setYear(nextYear);
           setDay(current => clampDay(current, nextYear, month));
         }} />
+        {yearText === "0000" ? <span id={id("dob_year_error")} role="alert" className="mt-1 block text-xs text-red-300">Enter a valid four-digit birth year.</span> : null}
       </label>}
 
       <input

@@ -1,4 +1,4 @@
-import { activityHref, isWalletReward, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, declinedOfferHref, isWalletReward, type ActivityItem } from "@/lib/account/activity";
 import type { LedgerEntryRow } from "./snapshot";
 
 export function ledgerDescription(entryType: string, productTitle?: string) {
@@ -29,6 +29,8 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
       ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#purchase-option-rail`
       : isWalletReward(item) && item.rewardId
       ? `${activityHref(item)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}`
+      : item.completionOptionStatus === "declined" && item.completionOptionId
+      ? declinedOfferHref(item.completionOptionId, "all", { id: entry.id, restoreView })
       : activityHref(item);
     return [{ id, href, label: item.status === "active" ? "View entry" : item.completionOptionStatus === "declined" ? "Review declined offer" : item.status === "completion" ? "View purchase option" : "View result" }];
   });

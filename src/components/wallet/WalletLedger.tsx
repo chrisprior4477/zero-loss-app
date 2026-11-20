@@ -272,7 +272,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const destination = new URL(anchor.href);
     const transactionId = destination.searchParams.get("transaction");
     const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
-    const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/")) && destination.searchParams.get("walletView") === "1";
+    const entryResult = (destination.pathname.startsWith("/account/entries/") || destination.pathname.startsWith("/account/purchase-options/") || destination.pathname === "/account/declined-offers") && destination.searchParams.get("walletView") === "1";
     if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult || entryResult || destination.pathname.startsWith("/items/"))) rememberLedgerSupportReturn(saved, transactionId);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }

@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 
@@ -12,15 +15,13 @@ const CODE39: Record<string, string> = {
 };
 
 function safeText(value: string | null, fallback: string, maxLength: number) {
-  const normalized = value?.trim();
-  return normalized ? normalized.slice(0, maxLength) : fallback;
+  const normalized = value?.trim().normalize("NFC").replace(/\s+/gu, " ");
+  return normalized ? Array.from(normalized).slice(0, maxLength).join("") : fallback;
 }
 
-function fitText(text: string, font: PDFFont, size: number, maxWidth: number) {
-  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
-  let shortened = text;
-  while (shortened.length > 1 && font.widthOfTextAtSize(`${shortened}...`, size) > maxWidth) shortened = shortened.slice(0, -1);
-  return `${shortened}...`;
+function supportsText(font: PDFFont, text: string) {
+  const characters = new Set(font.getCharacterSet());
+  return Array.from(text).every(character => characters.has(character.codePointAt(0)!));
 }
 
 export async function GET(request: NextRequest) {
@@ -49,13 +50,23 @@ async function printPdf(request: NextRequest, offering: string | null, entrant: 
   if (!product) return Response.redirect(new URL("/browse", request.url), 303);
   const name = safeText(entrant, "LEGAL NAME NEEDED", 80);
   const account = safeText(accountReference, "DEMO ACCOUNT NEEDED", 80);
-  const reference = safeText(entryReference, "ZL-DEMO001", 24).toUpperCase();
+  const rawReference = entryReference?.trim().toUpperCase() ?? "";
+  const reference = /^[A-Z0-9-]{1,24}$/.test(rawReference) ? rawReference : "ZL-DEMO001";
 
   const document = await PDFDocument.create();
   const page = document.addPage([612, 792]);
-  const regular = await document.embedFont(StandardFonts.Helvetica);
+  let regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const mono = await document.embedFont(StandardFonts.CourierBold);
+  const variableText = `${name}${account}${product.title}`;
+  if (!supportsText(regular, variableText)) {
+    document.registerFontkit(fontkit);
+    const fontBytes = await readFile(path.join(process.cwd(), "src/lib/compliance/fonts/NotoSans-Regular.ttf"));
+    regular = await document.embedFont(fontBytes, { subset: true });
+    if (!supportsText(regular, variableText)) {
+      return new Response("Use Open print dialog to print every character in your entry details.", { status: 422 });
+    }
+  }
 
   const label = { x: 171, y: 540, width: 270, height: 180 };
   const navy = rgb(0, 19 / 255, 46 / 255);
@@ -78,13 +89,15 @@ async function printPdf(request: NextRequest, offering: string | null, entrant: 
   page.drawRectangle({ x: label.x + 7, y: label.y + 7, width: label.width - 14, height: label.height - 14, borderColor: rgb(203 / 255, 213 / 255, 225 / 255), borderWidth: 0.6 });
 
   const centered = (text: string, y: number, font: PDFFont, size: number, color = navy) => {
-    const fitted = fitText(text, font, size, label.width - 28);
-    page.drawText(fitted, { x: label.x + (label.width - font.widthOfTextAtSize(fitted, size)) / 2, y, size, font, color });
+    const width = font.widthOfTextAtSize(text, size);
+    const fittedSize = width > label.width - 28 ? size * (label.width - 28) / width : size;
+    page.drawText(text, { x: label.x + (label.width - font.widthOfTextAtSize(text, fittedSize)) / 2, y, size: fittedSize, font, color });
   };
 
   centered("ZERO LOSS AMOE ENTRY INSERT", 699, bold, 7.5, blue);
-  centered(`Entrant: ${name}  |  Account: ${account}`, 680, regular, 7.5, slate);
-  centered(`Offering: ${product.title}`, 668, regular, 7.5, slate);
+  centered(`Entrant: ${name}`, 683, regular, 7.5, slate);
+  centered(`Account: ${account}`, 673, regular, 7.5, slate);
+  centered(`Offering: ${product.title}`, 663, regular, 7.5, slate);
 
   const encoded = `*${reference}*`;
   const units = [...encoded].reduce((total, character) => total + [...(CODE39[character] ?? CODE39["-"])].reduce((sum, width) => sum + (width === "w" ? 2.5 : 1), 0) + 1, 0);

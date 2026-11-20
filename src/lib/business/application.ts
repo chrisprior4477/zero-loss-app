@@ -4,6 +4,7 @@ export type FormValues = Record<string, string | boolean>;
 export type PartnerListing = {
   title: string; brand: string; category: string; value: number; entryPrice: number; capacity: number;
   capacityManuallySet?: boolean;
+  demoArtworkIndex?: number;
   summary: string; highlights: string[]; specifications: [string, string][]; included: string[];
   fulfillment: string; availability: string;
 };
@@ -31,6 +32,7 @@ function validListing(value: unknown): value is PartnerListing {
   return object(value) && ["title","brand","category","summary","fulfillment","availability"].every(k => typeof value[k] === "string")
     && ["value","entryPrice","capacity"].every(k => Number.isFinite(value[k]))
     && (value.capacityManuallySet === undefined || typeof value.capacityManuallySet === "boolean")
+    && (value.demoArtworkIndex === undefined || (Number.isSafeInteger(value.demoArtworkIndex) && Number(value.demoArtworkIndex) >= 0))
     && strings(value.highlights) && strings(value.included) && Array.isArray(value.specifications)
     && value.specifications.every(pair => strings(pair) && pair.length === 2);
 }
