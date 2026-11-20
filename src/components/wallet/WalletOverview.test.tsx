@@ -6,6 +6,16 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { WalletOverview } from "./WalletOverview";
 const empty: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
 afterEach(cleanup);
+test("the main transaction list keeps the originating Orders filter in Support links", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  render(<WalletOverview ordersFilter="fulfilled" wallet={{ ...empty, transactionCount: 1,
+    entries: [{ id, entry_type: "DEPOSIT", amount: 2500, created_at: "2026-11-20T12:00:00Z" }] }} />);
+  const href = screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")!;
+  const params = new URL(href, "https://example.invalid").searchParams;
+  expect(params.get("from")).toBe("wallet");
+  expect(params.get("fromOrders")).toBe("1");
+  expect(params.get("orderFilter")).toBe("fulfilled");
+});
 test("transaction dates and date filters use the selected time zone", () => {
   render(<WalletOverview timeZone="America/Los_Angeles" wallet={{ ...empty, transactionCount: 1, entries: [{ id: "late", entry_type: "DEPOSIT", amount: 100, created_at: "2026-09-15T02:00:00Z" }] }} />);
   expect(screen.getByText(/Sep 14, 2026, 7:00 PM PDT/)).toBeTruthy();

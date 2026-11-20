@@ -79,7 +79,7 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
   const displayedReceipt = (openReceipt && requests?.find(request => request.id === openReceipt
     && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id))) ||
     (openWeek === null && restoredReceipt ? requests?.find(request => request.idempotencyKey === restoredReceipt
-      && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id)) : undefined) || (restoreReceipt ? requestedReceipt : chart?.latest);
+      && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id)) : undefined) || (restoreReceipt ? openWeek === null ? requestedReceipt : undefined : chart?.latest);
   return <aside className={styles.weeklyPanel} aria-labelledby="weekly-deposit-heading">
     <h2 id="weekly-deposit-heading" tabIndex={-1}>Weekly deposits</h2>
     {!chart ? <p role="status">Weekly deposit history is unavailable.</p> : <>
