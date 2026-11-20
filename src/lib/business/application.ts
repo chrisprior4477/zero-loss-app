@@ -74,7 +74,19 @@ export function invalidBusinessCounts(values: FormValues) {
   });
 }
 
-export function missingBusinessFields(values: FormValues, files: BusinessFile[]) {
+export function invalidBusinessListings(listings: PartnerListing[]) {
+  const validPrice = (value: number) => value > 0 && Number.isSafeInteger(Math.round(value * 100)) && Number(value.toFixed(2)) === value;
+  return listings.flatMap((listing, index) => {
+    const fields = [
+      !validPrice(listing.value) ? "positive retail value in dollars and cents" : "",
+      !validPrice(listing.entryPrice) ? "positive entry price in dollars and cents" : "",
+      !Number.isSafeInteger(listing.capacity) || listing.capacity < 1 ? "positive whole-number capacity" : "",
+    ].filter(Boolean);
+    return fields.length ? [{ index, message: `Listing ${index + 1} needs ${fields.join(", ")}` }] : [];
+  });
+}
+
+export function missingBusinessFields(values: FormValues, files: BusinessFile[], listings: PartnerListing[] = []) {
   const required = businessIdentityFields(values);
   if (values.partnership === "products") required.push(["offer_name","Offer name"],["offer_type","Offer type"],["description","Customer-facing description"],["retail_value","Retail value"],["quantity","Quantity or capacity"],["relationship","Relationship"],["fulfillment_owner","Fulfillment responsibility"]);
   if (values.partnership === "fulfillment") required.push(["provider_name","Provider name"],["reward_types","Reward types"],["coverage","Geographic coverage"],["delivery_method","Delivery method"],["delivery_time","Delivery time"],["pricing_terms","Pricing terms"],["technical_contact","Technical contact"]);
@@ -82,6 +94,7 @@ export function missingBusinessFields(values: FormValues, files: BusinessFile[])
   if (values.partnership === "other") required.push(["other_partnership","Partnership explanation"]);
   const missing = required.filter(([key]) => typeof values[key] !== "string" || !String(values[key]).trim()).map(([,label]) => label);
   missing.push(...invalidBusinessCounts(values).map(([, label]) => `${label} must be a positive whole number`));
+  if (values.partnership === "products") missing.push(...invalidBusinessListings(listings).map(listing => listing.message));
   if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push("Valid work email");
   if (values.capacity_ack !== true) missing.push("Fulfillment-capacity acknowledgment");
   if (values.auto_relist === true && values.card_billing !== true) missing.push("Card-on-file billing authorization");

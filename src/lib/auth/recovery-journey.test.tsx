@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { NextRequest } from "next/server";
-const m = vi.hoisted(() => ({ reset: vi.fn(), update: vi.fn(), signOut: vi.fn(), verify: vi.fn(), exchange: vi.fn(), redirect: vi.fn(), getUser: vi.fn(), signIn: vi.fn() }));
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: "https://example.test" }) }));
+const m = vi.hoisted(() => ({ reset: vi.fn(), update: vi.fn(), signOut: vi.fn(), verify: vi.fn(), exchange: vi.fn(), redirect: vi.fn(), getUser: vi.fn(), signIn: vi.fn(), flash: new Map<string, string>() }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: "https://example.test" }),
+  cookies: async () => ({ set: (key: string, value: string) => m.flash.set(key, value), get: (key: string) => ({ value: m.flash.get(key) }) }) }));
 vi.mock("next/navigation", () => ({ redirect: m.redirect }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { resetPasswordForEmail: m.reset, updateUser: m.update, signOut: m.signOut, getUser: m.getUser, signInWithPassword: m.signIn } }) }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: () => ({ auth: { verifyOtp: m.verify, exchangeCodeForSession: m.exchange } }) }));
@@ -16,6 +17,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 const initial = { status: "idle" as const, message: null };
 beforeEach(() => {
   vi.resetAllMocks();
+  m.flash.clear();
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   m.reset.mockResolvedValue({ error: null }); m.update.mockResolvedValue({ error: null }); m.signOut.mockResolvedValue({ error: null });
   m.getUser.mockResolvedValue({ data: { user: { id: "fixture-user", email_confirmed_at: "2026-01-01" } }, error: null });
@@ -27,6 +29,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const destinations = [
   "/account/orders?order=ord_example#order-ord_example",
+  "/account/security#security-controls",
   "/account/entries/ent_11111111111111111111111111111111?quantity=7&review=entry#add-entries-title",
 ];
 test.each(destinations.flatMap(destination => (["token", "code"] as const).map(kind => [destination, kind] as const)))("recovery carries %s through every %s handoff and sign-in", async (destination, kind) => {

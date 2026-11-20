@@ -117,12 +117,6 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       budget: { minimum: Math.min(low.amount, high.amount), maximum: Math.max(low.amount, high.amount), inclusive: true },
     };
   }
-  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above|higher)|or more)\s*$/i.exec(normalized);
-  const minimumValue = minimumPhrase ? extractValues(minimumPhrase[1], products) : null;
-  if (minimumValue?.values.size === 1) {
-    const minimum = [...minimumValue.values][0];
-    if (Number.isFinite(minimum)) return { text: minimumValue.text, budget: { minimum, maximum: null, inclusive: true } };
-  }
   const bound = boundPattern.exec(normalized);
   const firstBound = bound && leadingAmount(normalized.slice(bound.index + bound[0].length).replace(/[.!?]$/, ""));
   if (bound && firstBound) {
@@ -143,6 +137,12 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
         inclusive: firstIsUpper ? inclusiveUpper.test(bound[1]) : second && other ? inclusiveUpper.test(other[1]) : true,
       },
     };
+  }
+  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above|higher)|or more)(?=\s|$)(.*)$/i.exec(normalized);
+  const minimumValue = minimumPhrase ? extractValues(minimumPhrase[1], products) : null;
+  if (minimumValue?.values.size === 1) {
+    const minimum = [...minimumValue.values][0];
+    if (Number.isFinite(minimum)) return { text: `${minimumValue.text} ${minimumPhrase?.[2] ?? ""}`.trim(), budget: { minimum, maximum: null, inclusive: true } };
   }
   const trailing = /^(.*?)(?:(?:\b(?:and|or)|&)\s+(?:under|below|less)|\s+(?:max|maximum))\s*$/i.exec(normalized);
   const maximum = trailing && extractValues(trailing[1], products);

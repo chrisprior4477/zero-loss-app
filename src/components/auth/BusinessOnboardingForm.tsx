@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { createContext, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
 
-import { businessIdentityFields, businessSignupPath, invalidBusinessCounts, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
+import { businessIdentityFields, businessSignupPath, invalidBusinessCounts, invalidBusinessListings, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { downloadMaterial, materialTypes, stageMaterials } from "@/lib/business/materials";
 import { useBusinessApplication } from "./useBusinessApplication";
@@ -179,10 +179,11 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
   const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
-    guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft } = useBusinessApplication(owner, record, restoreListings);
+    guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict } = useBusinessApplication(owner, record, restoreListings);
   const { values, step } = draft;
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
+  const [listingToReview, setListingToReview] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [unsavedDestination, setUnsavedDestination] = useState<string | null>(null);
   const [staging, setStaging] = useState(false);
@@ -192,7 +193,19 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const selected = partnerships.find(option => option.id === partnership) ?? partnerships[0];
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
   const mainProposal = String(values[proposalKey] || "Not provided yet");
-  const missing = missingBusinessFields(values, draft.files);
+  const invalidListings = values.partnership === "products" ? invalidBusinessListings(draft.listings) : [];
+  const missing = missingBusinessFields(values, draft.files, draft.listings);
+  useEffect(() => {
+    if (step !== 2 || listingToReview === null) return;
+    const frame = requestAnimationFrame(() => {
+      const ticket = formRef.current?.querySelector<HTMLButtonElement>(`[data-listing-index="${listingToReview}"]`);
+      ticket?.click();
+      ticket?.focus({ preventScroll: true });
+      ticket?.scrollIntoView?.({ block: "center" });
+      setListingToReview(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [step, listingToReview]);
   useEffect(() => {
     if (!initialized || submitted || recoveredDraft) return;
     function restoreStep() {
@@ -342,12 +355,16 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} aria-label={`Step ${index + 1}: ${name}`} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
       <form ref={formRef} onSubmit={submitApplication} noValidate className="min-w-0">
+        {conflictPending && <div className="mb-4 rounded-xl bg-[#073153] p-4">
+          <p role="status">{draftMessage}</p>
+          <button type="button" className="py-2 text-cyan-200 underline" disabled={saving} onClick={() => void retryConflict()}>Check latest saved draft</button>
+        </div>}
         {recoveredDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4">
           <p>Your account has a newer draft. This tab also has unsaved edits.</p>
           <button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={reviewRecoveredDraft}>Review my unsaved edits</button>
           <button type="button" onClick={discardRecoveredDraft}>Use the saved draft</button>
         </div>}
-        <fieldset disabled={!initialized || finishing || staging || Boolean(recoveredDraft)} className="min-w-0">
+        <fieldset disabled={!initialized || finishing || staging || conflictPending || Boolean(recoveredDraft)} className="min-w-0">
         {guestDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4"><p>There is a draft on this device. Use it for this account?</p><button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={importGuest}>Use this draft</button><button type="button" onClick={dismissGuest}>Start fresh</button></div>}
         {step < 4 && accountPrompt}
         <section className="rounded-2xl border border-cyan-300/25 bg-[#073153] p-5 sm:p-7">
@@ -358,7 +375,13 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
           {step === 4 && <ReviewStep partnership={partnership} demoCase={demoCase} values={values} change={change} selectedTitle={selected.title} mainProposal={mainProposal} missing={missing}/>}
         </section>
         {step === 4 && accountPrompt}
-        {errors.length ? <p role="alert" className="mt-4 rounded-xl border border-red-300/35 bg-red-400/10 p-4 text-sm text-red-100">Please complete: {errors.join(", ")}.</p> : null}
+        {errors.length ? <div className="mt-4 rounded-xl border border-red-300/35 bg-red-400/10 p-4 text-sm text-red-100">
+          <p role="alert">Please complete: {errors.join(", ")}.</p>
+          {invalidListings.map(({ index, message }) => errors.includes(message) ? <button key={index} type="button" className="mr-4 mt-2 underline" onClick={() => {
+            setListingToReview(index);
+            if (step !== 2) setStep(2);
+          }}>Edit listing {index + 1}</button> : null)}
+        </div> : null}
         <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={() => void save(draft)} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{saving ? "Saving to your account…" : draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
         <p className="mt-4 text-xs leading-5 text-white/40">{owner ? "Submitting sends your application to Zero Loss for review." : "Guest drafts and selected files stay on this device until you save them to your account."}</p>
       </fieldset></form>
@@ -665,7 +688,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
     setSelected(Math.min(selected, listings.length - 2));
     setAddedMessage("Listing removed. Its uploads are in your application files.");
   }
-  return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
+  return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} data-listing-index={index} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
     <button type="button" onClick={removeProduct} disabled={listings.length <= 1} className="mt-3 rounded-lg border border-orange-300/45 px-3 py-2 text-sm font-bold text-orange-100 disabled:opacity-40">Remove listing</button>
     <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => updateAmount("value", Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
 }

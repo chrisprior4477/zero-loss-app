@@ -21,6 +21,7 @@ import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, ty
 import { DepositRecovery } from "./DepositRecovery";
 import { DepositReceipt, ContinueAfterDeposit } from "./DepositReceipt";
 import { DemoFundingCard } from "./DemoFundingCard";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { DeleteCardToast } from "./DeleteCardToast";
 import { FundingCardPicker } from "./FundingCardPicker";
 import { WalletRollerPicker } from "./WalletRollerPicker";
@@ -143,6 +144,19 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
+  const confirmationTrigger = useRef<HTMLButtonElement>(null);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const settled = state.status === "succeeded" || state.status === "already_credited";
+  useDialogBack(confirmationOpen && !settled, () => {
+    confirmation.current?.close();
+    discardReview();
+  }, pending, true);
+  const showConfirmation = useCallback(() => {
+    if (!confirmation.current || confirmation.current.open) return;
+    confirmation.current.showModal();
+    setConfirmationOpen(true);
+    policyInput.current?.focus();
+  }, []);
   const [approved, setApproved] = useState(false);
   const [reviewNotice, setReviewNotice] = useState("");
   const reviewStorageKey = `${storageKey}:unsubmitted-review:${returnHref ?? "wallet"}`;
@@ -158,22 +172,20 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   useEffect(() => {
     if (reviewOnMount && !blocked && !openedReview.current && confirmation.current) {
       openedReview.current = true;
-      confirmation.current.showModal();
-      policyInput.current?.focus();
+      showConfirmation();
     }
-  }, [reviewOnMount, blocked]);
+  }, [reviewOnMount, blocked, showConfirmation]);
   function clearConfirmation() {
     setApproved(false);
     setReviewNotice("");
   }
   function openConfirmation() {
-    if (!amountIsValid || (!recoveryOnly && selectedToken === null) || pending || (locked && !recovered) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
+    if (!amountIsValid || (!recoveryOnly && selectedToken === null) || pending || (locked && !recovered) || (cardUnavailable && !recovered) || blocked) return;
     if (!recovered && state.status === "idle") try {
       sessionStorage.setItem(reviewStorageKey, JSON.stringify({ amountCents: Number(amount), custom: Boolean(customAmount), token: selectedToken, saved: cards.some(card => card.token === selectedToken), url: window.location.href }));
     } catch { /* The review still works without tab storage. */ }
     clearConfirmation();
-    confirmation.current?.showModal();
-    policyInput.current?.focus();
+    showConfirmation();
   }
   const beforePaymentError = state.status === "error" && state.beforePayment === true;
   const locked = !ready || pending || (!beforePaymentError && (recovered || state.status !== "idle"));
@@ -197,10 +209,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         return;
       }
       setSelectedToken(token);
-      confirmation.current.showModal();
-      policyInput.current?.focus();
+      showConfirmation();
     } catch { /* The deposit can still be reviewed normally. */ }
-  }, [blocked, cardUnavailable, cards, fundingEditorHash, locked, reviewStorageKey, visibleTokens]);
+  }, [blocked, cardUnavailable, cards, fundingEditorHash, locked, reviewStorageKey, showConfirmation, visibleTokens]);
   useEffect(() => {
     const leaveFunding = () => {
       if (!confirmation.current?.open || pending || window.location.hash === "#add-funds") return;
@@ -214,6 +225,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     };
   }, [pending]);
   function discardReview() {
+    setConfirmationOpen(false);
+    if (!pending) confirmationTrigger.current?.focus({ preventScroll: true });
     try { sessionStorage.removeItem(reviewStorageKey); } catch { /* The dialog still closes. */ }
     clearConfirmation();
   }
@@ -389,9 +402,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       if (trigger) revealWalletSection(trigger.id);
     });
   }} onSaved={card => acceptSavedCard(card)} />;
-  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
+  if (settled) return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form id="funding-payment" action={action} onSubmit={event => {
-    if (!recoveryOnly && (!approved || !selectedToken || !amountIsValid || pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle"))) {
+    if (blocked || (!recoveryOnly && (!approved || !selectedToken || !amountIsValid || pending || (cardUnavailable && !recovered)))) {
       event.preventDefault();
       return;
     }
@@ -440,7 +453,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     </div>
     {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
     {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
-    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button ref={confirmationTrigger} type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || blocked} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={discardReview} onCancel={event => { if (pending) event.preventDefault(); else discardReview(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
       <div className={styles.confirmationContent}>
         <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
@@ -452,10 +465,11 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
       </div>
-      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={() => { discardReview(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={() => { discardReview(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || blocked || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
-    {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked && ready && (
+    {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : null}
+    {blocked && ready && (
       blockingRequests?.length ? blockingRequests.map(request => <div key={request.id} className={styles.blockingDeposit}>
         <div><strong>{formatUsdFromCents(request.amount)} deposit needs attention</strong>
           <DepositReceiptDate request={request} timeZone={timeZone} />
@@ -545,8 +559,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   useEffect(() => {
     const resumeFunding = () => { if (window.location.hash === "#add-funds") setSuccessMessage(""); };
     window.addEventListener("hashchange", resumeFunding);
-    window.addEventListener("popstate", resumeFunding);
-    return () => { window.removeEventListener("hashchange", resumeFunding); window.removeEventListener("popstate", resumeFunding); };
+    return () => window.removeEventListener("hashchange", resumeFunding);
   }, []);
   const recoveryRequest = requests?.find(request => request.idempotencyKey === (recoveredCredit?.key ?? attempt.key));
   const attemptedAt = recoveredCredit?.date ?? attempt.createdAt;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { recoverAuthForm } from "@/components/auth/recover-auth-form";
 import { changeAccountPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
 import styles from "./account-security.module.css";
 
@@ -34,7 +35,7 @@ function ChangePasswordForm({ onCancel, onPending }: {
       <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save new password"}</button>
       <button type="button" onClick={onCancel} disabled={pending}>Cancel</button>
     </div>
-    <Link href="/forgot-password">Forgot your current password? Reset it by email</Link>
+    <Link href={authNavigationHref("/forgot-password", "/account/security#security-controls")}>Forgot your current password? Reset it by email</Link>
   </form>;
 }
 

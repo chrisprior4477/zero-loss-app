@@ -9,8 +9,8 @@ const caseId = "11111111-1111-4111-8111-111111111111";
 const own = "22222222-2222-4222-8222-222222222222";
 function query(data: unknown, error: unknown = null, count: number | null = null) {
   const result = { data, error, count };
-  const chain = { select: vi.fn(), eq: vi.fn(), neq: vi.fn(), order: vi.fn(), limit: vi.fn(), range: vi.fn(), maybeSingle: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve(result).then(resolve) };
-  [chain.select, chain.eq, chain.neq, chain.order, chain.limit, chain.range].forEach(fn => fn.mockReturnValue(chain));
+  const chain = { select: vi.fn(), eq: vi.fn(), neq: vi.fn(), lte: vi.fn(), order: vi.fn(), limit: vi.fn(), range: vi.fn(), maybeSingle: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve(result).then(resolve) };
+  [chain.select, chain.eq, chain.neq, chain.lte, chain.order, chain.limit, chain.range].forEach(fn => fn.mockReturnValue(chain));
   chain.maybeSingle.mockResolvedValue(result);
   return chain;
 }
@@ -27,12 +27,12 @@ afterEach(() => { cleanup(); vi.unstubAllEnvs(); });
 
 test("cases waiting for a customer appear first with their last staff reply and exact conversation link", async () => {
   const latestReply = "2026-11-09T17:00:00Z";
-  const history = query([{ id: own, case_number: "DEMO-104", subject: "Newer case", status: "open" }]);
-  const waiting = query([{
-    id: caseId, case_number: "DEMO-102", subject: "Missing wallet deposit", status: "awaiting_customer",
-    latest_reply: [{ created_at: latestReply }],
-  }], null, 1);
-  mocks.from.mockReturnValueOnce(history).mockReturnValueOnce(waiting);
+  const history = query([
+    { id: own, case_number: "DEMO-104", subject: "Newer case", status: "open", updated_at: "2026-11-10T17:00:00Z" },
+    { id: caseId, case_number: "DEMO-102", subject: "Missing wallet deposit", status: "awaiting_customer", updated_at: latestReply,
+      latest_reply: [{ created_at: latestReply }] },
+  ]);
+  mocks.from.mockReturnValueOnce(history);
   render(await SupportPage({ searchParams: Promise.resolve({}) }));
   const list = screen.getByRole("heading", { name: "Your support cases" }).parentElement!;
   const links = within(list).getAllByRole("link");
@@ -42,20 +42,23 @@ test("cases waiting for a customer appear first with their last staff reply and 
   expect(links[0].textContent).toContain("Last Support reply Nov 9, 2026");
   expect(links[1].textContent).toContain("Newer case");
   expect(within(list).getByRole("heading", { name: "Waiting for you" })).toBeTruthy();
-  expect(waiting.eq.mock.calls).toEqual([
-    ["customer_id", own], ["status", "awaiting_customer"], ["latest_reply.event_name", "support.case.staff_replied"],
+  expect(history.eq.mock.calls).toEqual([
+    ["customer_id", own], ["latest_reply.event_name", "support.case.staff_replied"],
   ]);
-  expect(history.neq).toHaveBeenCalledWith("status", "awaiting_customer");
-  expect(history.range).toHaveBeenCalledWith(0, 49);
+  expect(history.range).toHaveBeenCalledWith(0, 249);
 });
 
 test("later pages keep their place in history after accounting for waiting cases", async () => {
-  const history = query([{ id: caseId, case_number: "DEMO-102", subject: "Missing wallet deposit", status: "open" }]);
-  mocks.from.mockReturnValueOnce(history).mockReturnValueOnce(query(null, null, 3));
+  const history = query([
+    { id: caseId, case_number: "DEMO-102", subject: "Missing wallet deposit", status: "open", updated_at: "2026-11-08T00:00:00Z" },
+    ...Array.from({ length: 50 }, (_, i) => ({ id: `case-${i}`, case_number: `DEMO-${i}`, subject: `Question ${i}`,
+      status: i < 3 ? "awaiting_customer" : "open", updated_at: "2026-11-09T00:00:00Z" })),
+  ]);
+  mocks.from.mockReturnValueOnce(history);
   render(await SupportPage({ searchParams: Promise.resolve({ page: "2" }) }));
   expect(screen.queryByRole("heading", { name: "Waiting for you" })).toBeNull();
   expect(screen.getByRole("link", { name: /Missing wallet deposit.*Open — awaiting review/ })).toBeTruthy();
-  expect(history.range).toHaveBeenCalledWith(47, 97);
+  expect(history.range).toHaveBeenCalledWith(0, 249);
 });
 
 test("sign-in preserves a selected wallet transaction", async () => {
@@ -272,11 +275,11 @@ test("a non-demo or unavailable wallet cannot prefill a demo support transaction
 });
 test("case list always has an explicit owner filter outside the staff inbox", async () => {
   mocks.rpc.mockResolvedValue({ data: true });
-  const cases = query(Array.from({ length: 51 }, (_, i) => ({ id: `case-${i}`, case_number: `sup_${i}`, subject: `Question ${i}`, status: "open" })));
+  const cases = query(Array.from({ length: 51 }, (_, i) => ({ id: `case-${i}`, case_number: `sup_${i}`, subject: `Question ${i}`, status: "open", updated_at: new Date(1794000000000 - i * 1000).toISOString() })));
   mocks.from.mockReturnValueOnce(cases).mockReturnValueOnce(query([], null, 0));
   render(await SupportPage({ searchParams: Promise.resolve({}) }));
   expect(cases.eq).toHaveBeenCalledWith("customer_id", own);
-  expect(cases.range).toHaveBeenCalledWith(0, 50);
+  expect(cases.range).toHaveBeenCalledWith(0, 249);
   expect(screen.getByRole("link", { name: "Older cases →" }).getAttribute("href")).toBe("/support?page=2#case-list");
   expect(screen.queryByText("Question 50")).toBeNull();
   expect(screen.getByRole("link", { name: "My support cases" }).getAttribute("href")).toBe("/support#case-list");

@@ -32,10 +32,11 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries: pendingEntriesResult = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[] | null; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
+  const pendingEntries = pendingEntriesResult ?? [];
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
   const emptyPurchaseOptions = filter === "completion" && items.length === 0;
   const declinedCount = emptyPurchaseOptions ? revivableDeclinedOfferCount(verifiedState.activity) : 0;
@@ -47,6 +48,9 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
     <nav id={openEntriesAnchorId} aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "active" ? openEntriesHref : key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={key === "active"} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" ? "—" : filterActivity(state.activity, key).length}</span></Link>)}
     </nav>
+    {pendingEntriesResult === null ? <p className="mb-5 text-sm text-amber-100" role="status">
+      We couldn’t check pending entries. <a className="underline" href={`/account/entries?filter=${filter}#my-activity-filters`}>Check again</a> before submitting another entry.
+    </p> : null}
     {pendingEntries.length > 0 && state.source !== "unavailable" ? <div className="mb-5 rounded-2xl border border-cyan-300/50 bg-[#062b4d] px-5 py-4 text-white" role="status">
       <p className="font-extrabold">{pendingEntries.length === 1 ? "Entry request awaiting confirmation" : `${pendingEntries.length} entry requests awaiting confirmation`}</p>
       <p className="mt-1 text-sm text-[#b5cce4]">Pending requests appear in your activity after confirmation.</p>

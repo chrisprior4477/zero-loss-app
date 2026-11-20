@@ -109,14 +109,19 @@ test.each(verifiedControls)("%s checks again if a conflicting snapshot arrives d
   expect(read).toHaveBeenCalledTimes(2);
 });
 
-test.each(verifiedControls)("%s follows the next refresh without claiming success if verification is unavailable", async (_kind, Control) => {
+test.each(verifiedControls)("%s keeps the chosen setting and verifies it later without repeating the save", async (_kind, Control) => {
   read.mockResolvedValue(null);
   const view = render(<Control initialEnabled={false} />);
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "Save preference" }));
 
-  expect(await screen.findByText(/couldn’t check your saved preference/)).toBeTruthy();
+  expect(await screen.findByText(/couldn’t verify the saved preference/)).toBeTruthy();
   expect(screen.queryByText("Saved on")).toBeNull();
+  expect(screen.getByRole("checkbox")).toHaveProperty("checked", true);
+  expect(save).toHaveBeenCalledOnce();
+  read.mockResolvedValue(true);
+  fireEvent.click(screen.getByRole("button", { name: "Check saved preference" }));
+  expect(await screen.findByText("Saved on")).toBeTruthy();
   expect(save).toHaveBeenCalledOnce();
   view.rerender(<Control initialEnabled />);
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", true);

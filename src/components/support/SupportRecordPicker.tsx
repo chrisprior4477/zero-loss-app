@@ -46,7 +46,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     focusResults.current = false;
     const recordId = focusRecordId.current;
     if (document.activeElement === document.body || document.activeElement === dialog.current || recordId && document.activeElement === closeButton.current) {
-      const buttons = results.current?.querySelectorAll<HTMLButtonElement>("button");
+      const buttons = results.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
       const matching = Array.from(buttons ?? []).find(button => button.dataset.recordId === recordId);
       (matching ?? buttons?.[0])?.focus();
       if (document.activeElement === document.body || document.activeElement === dialog.current) results.current?.focus();
@@ -113,11 +113,11 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
             <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Try again</button>
           </> : result.records.length ? <ul className={styles.records}>
             {result.records.map(item => <li key={item.id}>
-              <button type="button" className={styles.record} data-record-id={item.id} onClick={() => {
+              <button type="button" className={styles.record} disabled={item.attachable === false} data-record-id={item.id} onClick={() => {
                 attachedPage.current = { id: item.id, kind: item.kind, page };
                 onChange(item);
                 dialog.current?.close();
-              }}><RecordDetails record={item} timeZone={timeZone} /></button>
+              }}><RecordDetails record={item} timeZone={timeZone} />{item.attachable === false ? <span className={styles.recordMeta}>Payment could not be verified. You can send your request without attaching this order.</span> : null}</button>
             </li>)}
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>

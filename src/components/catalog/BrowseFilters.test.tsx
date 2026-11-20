@@ -49,7 +49,7 @@ test("sorting keeps an open custom range until Apply filters", () => {
   expect(onNavigate).toHaveBeenCalledOnce();
 });
 
-test("a filter category suggestion preserves the applied query until the user searches", () => {
+test("a filter category suggestion uses the currently edited query", () => {
   render(<BrowseFilters
     filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: null }}
     retailerGroups={[{ id: "automotive", category: "Automotive", options: [{ label: "AutoZone®", value: "AutoZone®", hasOffer: false }] }]}
@@ -65,7 +65,7 @@ test("a filter category suggestion preserves the applied query until the user se
   expect(within(searchField).getByRole("button", { name: "Go to search results" }).textContent).toBe("Go");
   const results = within(screen.getByRole("region", { name: "Matching retailer categories" }));
   expect(results.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
-    .toBe("/browse?partnerCategory=automotive&q=paper+towels#search-results");
+    .toBe("/browse?partnerCategory=automotive&q=spark+plugs#search-results");
 });
 
 test("Filter and sort suggestions retain Ending Soon and the selected price range", () => {
@@ -81,7 +81,7 @@ test("Filter and sort suggestions retain Ending Soon and the selected price rang
   const suggestion = screen.getByRole("link", { name: /Pharmacy/ });
   const url = new URL(suggestion.getAttribute("href")!, "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
-    category: "ending-soon", partnerCategory: "pharmacy", type: "gift-cards", available: "1",
+    category: "ending-soon", partnerCategory: "pharmacy", type: "gift-cards", available: "1", q: "beauty",
     minValue: "5", maxValue: "25", sort: "fewest-left",
   });
   expect(url.hash).toBe("#search-results");

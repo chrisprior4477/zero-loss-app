@@ -6,12 +6,12 @@ const clearAfterDemoReset = vi.fn();
 vi.mock("@/components/notifications/NotificationProvider", () => ({ useNotifications: () => ({ clearAfterDemoReset }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/lib/account/demo-activity-reset-actions", () => ({
-  previewAllDemoActivityReset: vi.fn(), resetAllDemoActivity: vi.fn(),
+  previewAllDemoActivityReset: vi.fn(), resetAllDemoActivity: vi.fn(), checkOwnDemoActivityReset: vi.fn(),
 }));
-import { previewAllDemoActivityReset, resetAllDemoActivity } from "@/lib/account/demo-activity-reset-actions";
+import { checkOwnDemoActivityReset, previewAllDemoActivityReset, resetAllDemoActivity } from "@/lib/account/demo-activity-reset-actions";
 import { ResetAllDemoActivityButton } from "./ResetAllDemoActivityButton";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.mocked(previewAllDemoActivityReset).mockReset(); vi.mocked(resetAllDemoActivity).mockReset(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.mocked(previewAllDemoActivityReset).mockReset(); vi.mocked(resetAllDemoActivity).mockReset(); vi.mocked(checkOwnDemoActivityReset).mockReset(); });
 
 test("confirmation explains both empty histories and preserves sign-in; cancel makes no change", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -66,8 +66,9 @@ test("a failed preview stays recoverable and never calls reset", async () => {
 });
 
 test("a lost reset response checks the account without resetting again or inventing empty notifications", async () => {
-  vi.mocked(previewAllDemoActivityReset).mockResolvedValueOnce({ status: "ready", entryCount: 47, balanceCents: 13600 })
-    .mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "ready", entryCount: 0, balanceCents: 0 });
+  vi.mocked(previewAllDemoActivityReset).mockResolvedValueOnce({ status: "ready", entryCount: 47, balanceCents: 13600 });
+  vi.mocked(checkOwnDemoActivityReset).mockRejectedValueOnce(new Error("Still offline"))
+    .mockResolvedValueOnce({ status: "checked", receipt: { clearedCount: 47, clearedCents: 13600 }, current: { entryCount: 1, balanceCents: 100 } });
   vi.mocked(resetAllDemoActivity).mockRejectedValue(new Error("Lost response"));
   render(<ResetAllDemoActivityButton />);
   fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
@@ -79,7 +80,9 @@ test("a lost reset response checks the account without resetting again or invent
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still couldn’t check"));
   fireEvent.click(await screen.findByRole("button", { name: "Check demo activity" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(screen.getByRole("status").textContent).toContain("0 entries and $0");
+  expect(screen.getByRole("status").textContent).toContain("This reset cleared 47 demo entries and $136");
+  expect(screen.getByRole("status").textContent).toContain("1 entry and $1");
+  expect(checkOwnDemoActivityReset).toHaveBeenCalledWith(vi.mocked(resetAllDemoActivity).mock.calls[0][2]);
   expect(resetAllDemoActivity).toHaveBeenCalledOnce();
   expect(resetAllDemoActivity).toHaveBeenCalledWith(47, 13600, expect.stringMatching(/^[a-f0-9-]{36}$/), undefined);
   expect(clearAfterDemoReset).not.toHaveBeenCalled();

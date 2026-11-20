@@ -3,10 +3,11 @@ import { afterEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   headers: vi.fn(),
+  setCookie: vi.fn(),
   redirect: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
-vi.mock("next/headers", () => ({ headers: mocks.headers }));
+vi.mock("next/headers", () => ({ headers: mocks.headers, cookies: async () => ({ set: mocks.setCookie }) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 import { changeAccountPasswordAction, requestPasswordResetAction, signOutEverywhereAction, updateRecoveredPasswordAction } from "./actions";
@@ -108,6 +109,7 @@ test("successful recovery redirects to a success view that survives signing out"
   expect(updateUser).toHaveBeenCalledWith({ password: "new-password-123" });
   expect(signOut).toHaveBeenCalledOnce();
   expect(mocks.redirect).toHaveBeenCalledWith("/reset-password?updated=1");
+  expect(mocks.setCookie).toHaveBeenCalledWith("zero-loss-password-reset-complete", "1", expect.objectContaining({ path: "/reset-password" }));
   expect(signOut.mock.invocationCallOrder[0]).toBeLessThan(mocks.redirect.mock.invocationCallOrder[0]);
 });
 

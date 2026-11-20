@@ -39,6 +39,7 @@ type Props = {
   discovery?: { real: boolean; email: boolean; phone: boolean };
   entries: OwnCrewEntry[];
   selectedMemberId: string | null;
+  selectedPicksUnavailable?: boolean;
   selectedPicks: SharedCrewPick[];
   available: boolean;
   initialTab: CrewTab;
@@ -53,7 +54,7 @@ const subscribeToOrigin = () => () => {};
 const getBrowserOrigin = () => window.location.origin;
 const getServerOrigin = () => "";
 
-export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
+export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, selectedPicksUnavailable = false, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const { tab, selectTab } = useCrewTab(initialTab);
@@ -64,7 +65,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(selectedMemberId);
   const [memberPicks, setMemberPicks] = useState<SharedCrewPick[]>(selectedPicks);
-  const [memberPicksError, setMemberPicksError] = useState(false);
+  const [memberPicksError, setMemberPicksError] = useState(selectedPicksUnavailable);
   const [memberPicksLoading, setMemberPicksLoading] = useState(false);
   const origin = useSyncExternalStore(subscribeToOrigin, getBrowserOrigin, getServerOrigin);
   const inviteUrl = ownInviteToken && origin ? `${origin}/account/crew?invite=${ownInviteToken}` : "";
@@ -219,21 +220,21 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       pickRequest.current += 1;
       setMemberPicks(selectedPicks);
       setMemberPicksLoading(false);
-      setMemberPicksError(false);
+      setMemberPicksError(selectedPicksUnavailable);
     } else {
       loadMember(activeMember.memberId, true);
     }
   });
-  const previousPicksRead = useRef({ invitations, selectedPicks, selectedMemberId, available, tab });
+  const previousPicksRead = useRef({ invitations, selectedPicks, selectedMemberId, selectedPicksUnavailable, available, tab });
   useLayoutEffect(() => {
     const previous = previousPicksRead.current;
-    previousPicksRead.current = { invitations, selectedPicks, selectedMemberId, available, tab };
+    previousPicksRead.current = { invitations, selectedPicks, selectedMemberId, selectedPicksUnavailable, available, tab };
     // AccountStateSync refreshes the route when the tab regains focus.
     if (tab === "crew" && (previous.invitations !== invitations || previous.selectedPicks !== selectedPicks
-      || previous.selectedMemberId !== selectedMemberId || previous.available !== available || previous.tab !== tab)) {
+      || previous.selectedMemberId !== selectedMemberId || previous.selectedPicksUnavailable !== selectedPicksUnavailable || previous.available !== available || previous.tab !== tab)) {
       refreshOpenPicks();
     }
-  }, [invitations, selectedPicks, selectedMemberId, available, tab]);
+  }, [invitations, selectedPicks, selectedMemberId, selectedPicksUnavailable, available, tab]);
   const visibleMemberPicks = activeMember ? memberPicks : [];
   const activeKey = samplePerson ? `sample-${samplePerson}` : activeMember?.memberId ?? null;
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];

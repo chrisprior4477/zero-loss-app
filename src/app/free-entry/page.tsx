@@ -11,7 +11,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
-type Props = { searchParams: Promise<{ offering?: string; share?: string | string[]; from?: string | string[]; quantity?: string | string[] }> };
+type Props = { searchParams: Promise<{ offering?: string | string[]; share?: string | string[]; from?: string | string[]; quantity?: string | string[] }> };
 
 function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: boolean }) {
   return <>
@@ -39,6 +39,11 @@ export default async function FreeEntryPage({ searchParams }: Props) {
       <FreeEntryInstructions />
       <Link href="/browse#search-results" className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>
     </div>
+  </div>;
+  if (Array.isArray(offering)) return <div className="mx-auto max-w-3xl p-6 text-white">
+    <h1 className="text-2xl font-black">Choose one prize for free entry</h1>
+    <p className="mt-3">This link includes more than one prize selection.</p>
+    <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse#search-results"}>Back to prize selection</Link>
   </div>;
   const product = await freeEntryProduct(offering);
   if (product === undefined) return <div className="mx-auto max-w-3xl p-6 text-white">

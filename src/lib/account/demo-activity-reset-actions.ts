@@ -50,6 +50,29 @@ export async function previewAllDemoActivityReset(): Promise<Preview> {
   }
 }
 
+export async function checkOwnDemoActivityReset(requestKey: string): Promise<
+  { status: "checked"; receipt: { clearedCount: number; clearedCents: number } | null; current: { entryCount: number; balanceCents: number } | null }
+  | { status: "error"; message: string }
+> {
+  const unavailable = { status: "error", message: "We couldn’t verify this reset yet. Check again before requesting another reset." } as const;
+  if (!/^[A-Za-z0-9_-]{16,108}$/.test(requestKey)) return unavailable;
+  try {
+    const { db, balanceCents } = await authorizedDemoAccount();
+    const [saved, entries] = await Promise.all([
+      db.rpc("get_own_demo_activity_reset_receipt", { p_request_key: requestKey }),
+      db.rpc("get_demo_entry_reset_preview"),
+    ]);
+    if (saved.error) return unavailable;
+    const clearedCount = saved.data?.clearedCount;
+    const clearedCents = Number(saved.data?.clearedCents);
+    if (saved.data !== null && (!Number.isSafeInteger(clearedCount) || clearedCount < 0
+      || !Number.isSafeInteger(clearedCents) || clearedCents < 0)) return unavailable;
+    const entryCount = entries.data?.entryCount;
+    const current = !entries.error && Number.isSafeInteger(entryCount) && entryCount >= 0 ? { entryCount, balanceCents } : null;
+    return { status: "checked", receipt: saved.data === null ? null : { clearedCount, clearedCents }, current };
+  } catch { return unavailable; }
+}
+
 export async function resetAllDemoActivity(expectedEntryCount: number, expectedBalanceCents: number, requestKey: string, revision?: DemoActivityRevision): Promise<Result> {
   if (!Number.isSafeInteger(expectedEntryCount) || expectedEntryCount < 0
     || !Number.isSafeInteger(expectedBalanceCents) || expectedBalanceCents < 0

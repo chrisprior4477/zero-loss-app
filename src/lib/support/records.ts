@@ -7,6 +7,7 @@ export type SupportRecord = {
   amount: number;
   date: string;
   status: string;
+  attachable?: boolean;
 };
 export type SupportRecordPage = { records: SupportRecord[]; more: boolean } | { error: string };
 
@@ -20,6 +21,7 @@ export function parseSupportRecord(value: unknown): SupportRecord | undefined {
     || !(item.kind === "order" ? supportOrderNumber : supportTransactionId).test(item.id)
     || typeof item.title !== "string" || typeof item.detail !== "string"
     || typeof item.amount !== "number" || !Number.isSafeInteger(item.amount)
-    || typeof item.date !== "string" || !Number.isFinite(Date.parse(item.date)) || typeof item.status !== "string") return;
-  return { kind: item.kind, id: item.id, title: item.title, detail: item.detail, amount: item.amount, date: item.date, status: item.status };
+    || typeof item.date !== "string" || !Number.isFinite(Date.parse(item.date)) || typeof item.status !== "string"
+    || (item.attachable !== undefined && typeof item.attachable !== "boolean")) return;
+  return { kind: item.kind, id: item.id, title: item.title, detail: item.detail, amount: item.amount, date: item.date, status: item.status, ...(item.attachable === undefined ? {} : { attachable: item.attachable }) };
 }

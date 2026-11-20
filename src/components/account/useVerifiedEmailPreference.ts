@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useLayoutEffect, useRef } from "react";
+import { startTransition, useActionState, useEffect, useLayoutEffect, useRef } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { readSavedEmailPreference } from "@/lib/account/read-saved-email-preference";
 import { useServerPreference } from "./useServerPreference";
 
 export type EmailSaveResult = { status: "idle" | "succeeded" | "error"; message?: string };
-type Feedback = { status: "idle" | "error"; message: string } | { status: "succeeded"; message: string; submitted: boolean };
+type Feedback = { status: "idle" | "error"; message: string } | { status: "succeeded"; message: string; submitted: boolean }
+  | { status: "unverified"; message: string; submitted: boolean; successMessage: string };
 
 export function useVerifiedEmailPreference<T extends EmailSaveResult>(
   kind: Parameters<typeof readSavedEmailPreference>[0],
@@ -22,11 +23,19 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
     snapshot.current = { revision, value: initialEnabled };
   }, [revision, initialEnabled]);
 
-  const [state, action, pending] = useActionState(async (_previous: Feedback, data: FormData): Promise<Feedback> => {
-    const result = await save(initialState, data);
-    if (result.status !== "succeeded") return { status: result.status, message: result.message ?? "" };
-
-    const submitted = data.get("enabled") === "true";
+  const [state, action, pending] = useActionState(async (previous: Feedback, data: FormData): Promise<Feedback> => {
+    const checking = data.get("checkSavedPreference") === "1";
+    let submitted = data.get("enabled") === "true";
+    let successMessage: string;
+    if (checking) {
+      if (previous.status !== "unverified") return previous;
+      submitted = previous.submitted;
+      successMessage = previous.successMessage;
+    } else {
+      const result = await save(initialState, data);
+      if (result.status !== "succeeded") return { status: result.status, message: result.message ?? "" };
+      successMessage = result.message ?? "";
+    }
     // The response confirms a write happened. A new request checks what is
     // saved now, after the response reached this tab.
     try {
@@ -36,13 +45,12 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
         if (saved === null) break;
         if (snapshot.current !== before && snapshot.current.value !== saved) continue;
         preference.finishSave(submitted, saved);
-        return { status: "succeeded", message: result.message ?? "", submitted };
+        return { status: "succeeded", message: successMessage, submitted };
       }
     } catch {
       // Report an uncertain read after an acknowledged write.
     }
-    preference.finishSave(submitted);
-    return { status: "error", message: "We couldn’t check your saved preference. Refresh to check the current setting." };
+    return { status: "unverified", submitted, successMessage, message: "We couldn’t verify the saved preference. Your choice is still here." };
   }, { status: "idle", message: "" } as Feedback);
 
   const superseded = state.status === "succeeded"
@@ -58,5 +66,11 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
     button.focus({ preventScroll: true });
     revealBelowHeader(button);
   }, [pending, feedback.status]);
-  return { preference, action, pending, feedback, retryButton };
+  function checkSavedPreference() {
+    if (pending || state.status !== "unverified") return;
+    const data = new FormData();
+    data.set("checkSavedPreference", "1");
+    startTransition(() => action(data));
+  }
+  return { preference, action, pending, feedback, retryButton, checkSavedPreference };
 }

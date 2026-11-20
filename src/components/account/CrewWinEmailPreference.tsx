@@ -6,7 +6,7 @@ import { useVerifiedEmailPreference, type EmailSaveResult } from "./useVerifiedE
 import styles from "./showroom.module.css";
 
 export function CrewWinEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const { preference, feedback, action, pending, retryButton } = useVerifiedEmailPreference<EmailSaveResult>("crew", initialEnabled, async (_previous, data) => {
+  const { preference, feedback, action, pending, checkSavedPreference, retryButton } = useVerifiedEmailPreference<EmailSaveResult>("crew", initialEnabled, async (_previous, data) => {
     try {
       const result = await setCrewWinEmailPreference(data.get("enabled") === "true");
       return { status: result.ok ? "succeeded" : "error", message: result.message };
@@ -34,5 +34,6 @@ export function CrewWinEmailPreference({ initialEnabled }: { initialEnabled: boo
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now." : "Off by default. Turning it on never shares your own wins; you choose those separately."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role={feedback.status === "error" ? "alert" : "status"} className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
       : preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
+    {showFeedback && feedback.status === "unverified" ? <button type="button" className="font-bold underline" disabled={pending} onClick={checkSavedPreference}>Check saved preference</button> : null}
   </section>;
 }

@@ -21,7 +21,7 @@ export type DemoFundingActionState =
   | { status: "succeeded"; message: string; card?: DemoCard }
   | { status: "already_credited"; message: string }
   | { status: "pending"; message: string }
-  | { status: "error"; message: string; beforePayment?: boolean };
+  | { status: "error"; message: string; beforePayment?: boolean; stale?: boolean };
 
 async function fundingProvider(expectedWallet?: FormDataEntryValue | null) {
   if (!isPreviewDataEnvironment()) throw new FundingFailure("42501", "Simulated funding is unavailable in this environment.");
@@ -164,7 +164,7 @@ export async function saveDemoPaymentMethod(
       message: `${fixture.issuer} •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
     };
   } catch (error) {
-    result = error instanceof FundingFailure && error.code === "PT409" ? { status: "error", message: error.message } : failure(error);
+    result = error instanceof FundingFailure && error.code === "PT409" ? { status: "error", message: error.message, stale: true } : failure(error);
   }
   updateWalletViews();
   return result;

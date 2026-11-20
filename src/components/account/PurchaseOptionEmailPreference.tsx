@@ -16,7 +16,7 @@ async function savePreference(previous: PurchaseOptionActionState, formData: For
 }
 
 export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const { preference, feedback, action, pending } = useVerifiedEmailPreference("purchase", initialEnabled, savePreference, initialState);
+  const { preference, feedback, action, pending, checkSavedPreference } = useVerifiedEmailPreference("purchase", initialEnabled, savePreference, initialState);
   const enabled = preference.value ?? false;
   const setEnabled = preference.setValue;
   const [showFeedback, setShowFeedback] = useState(false);
@@ -39,5 +39,6 @@ export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabl
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your purchase options remain in My Activity." : "If this is on, we’ll remind you at 7 days and 24 hours before an open option ends. Turning it off does not change the option or its deadline."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
       : preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
+    {showFeedback && feedback.status === "unverified" ? <button type="button" className="font-bold underline" disabled={pending} onClick={checkSavedPreference}>Check saved preference</button> : null}
   </section>;
 }

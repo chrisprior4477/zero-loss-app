@@ -53,7 +53,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
-  const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
+  const selectedCategory = marketplaceCategoryId(query.category ?? "") ?? (query.sort === "ending-soon" ? "ending-soon" : null);
   const endingSoon = selectedCategory === "ending-soon";
   const ticketsLeft = endingSoon ? parseEndingSoonTicketRange(query.ticketsLeft) : null;
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
@@ -165,7 +165,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
     if (key === "minValue" && (invalidMinimum || reversedRange) || key === "maxValue" && (invalidMaximum || reversedRange)) continue;
-    const value = key === "subcategory" ? subcategory : query[key];
+    const value = key === "subcategory" ? subcategory : key === "category" && query.category ? selectedCategory : query[key];
     if (value) searchParamsForView.set(key, value);
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
@@ -315,7 +315,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           </section>
         ) : null}
 
-        {subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{subcategory}</strong>.</p> : null}
+        {subcategory ? <p className="mt-4 text-sm text-white/55">{products.length ? "Showing the closest available matches for " : "No available matches for "}<strong className="text-white">{subcategory}</strong>.</p> : null}
         {subcategory && !products.length && !unavailable ? <BrowseResultsLink href={parentCategoryHref} target="heading" className="mt-2 inline-flex min-h-11 items-center font-bold text-cyan-200 underline">
           Back to {selectedLabel ?? "all Browse results"}
         </BrowseResultsLink> : null}

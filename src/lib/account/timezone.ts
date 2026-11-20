@@ -11,9 +11,11 @@ export function timeZoneAbbreviation(value: string, timeZone: string): string {
 }
 
 export function formatOfferDeadline(value: string, timeZone: string = DEFAULT_TIME_ZONE): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Date unavailable";
   return new Intl.DateTimeFormat("en-US", {
     timeZone: safeTimeZone(timeZone),
     month: "short", day: "numeric", year: "numeric",
     hour: "numeric", minute: "2-digit", timeZoneName: "short",
-  }).format(new Date(value));
+  }).format(date);
 }

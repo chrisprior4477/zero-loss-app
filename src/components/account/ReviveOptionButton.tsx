@@ -70,7 +70,7 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
       {!hasDeadline ? "Deadline unavailable" : expired === null || reading ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
     </button>
     {reviewError ? <span role="alert" className={dialogStyles.message}>{reviewError}</span> : null}
-    {reviewing ? <PurchaseDialog title="Revive this offer?" onClose={closeReview} closeDisabled={pending} closeLabel="Close revive confirmation" className={dialogStyles.dialog}>
+    {reviewing ? <PurchaseDialog handleBrowserBack title="Revive this offer?" onClose={closeReview} closeDisabled={pending} closeLabel="Close revive confirmation" className={dialogStyles.dialog}>
       <p className="font-extrabold">{productTitle}</p>
       <p className="break-all text-sm font-bold">{ticketLabel}</p>
       <p className={dialogStyles.message}>This returns the offer to Purchase Options for free. Its original deadline stays the same.</p>

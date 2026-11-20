@@ -127,7 +127,10 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     data.set("cardRevision", card.revision);
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
-      if (result.status === "error") reportError(result.message);
+      if (result.status === "error") {
+        reportError(result.message);
+        if (result.stale) router.refresh();
+      }
       if (result.status === "succeeded") setMessage(result.message);
       if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
     } catch { reportError("Your preference could not be saved. Please try again."); }

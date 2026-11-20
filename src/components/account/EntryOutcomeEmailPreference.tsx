@@ -18,7 +18,7 @@ async function savePreference(previous: EntryOutcomeEmailState, formData: FormDa
 }
 
 export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry" }: { initialEnabled: boolean | null; placement?: "entry" | "account" | "entry-page" }) {
-  const { preference, feedback, action, pending } = useVerifiedEmailPreference("outcome", initialEnabled, savePreference, initialState);
+  const { preference, feedback, action, pending, checkSavedPreference } = useVerifiedEmailPreference("outcome", initialEnabled, savePreference, initialState);
   const enabled = preference.value ?? false;
   const setEnabled = preference.setValue;
   const [showFeedback, setShowFeedback] = useState(false);
@@ -42,5 +42,6 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "If this is on, we'll email you when an entered prize pool closes and its result is ready. You'll also find the result in Notifications."}</p>
     {showFeedback && !pending && feedback.status !== "idle" && !showError ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
       : !showError && preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
+    {showFeedback && feedback.status === "unverified" ? <button type="button" className="font-bold underline" disabled={pending} onClick={checkSavedPreference}>Check saved preference</button> : null}
   </section>;
 }

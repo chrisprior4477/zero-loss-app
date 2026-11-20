@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FreeEntryPrintSheet } from "@/components/compliance/FreeEntryPrintCard";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
-import { freeEntryHref } from "@/lib/catalog/product-return";
+import { freeEntryHref, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 import { getAccountContext } from "@/lib/account/context";
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Print AMOE Entry Insert" };
 
 type Props = {
   searchParams: Promise<{
-    offering?: string;
+    offering?: string | string[];
     share?: string | string[];
     from?: string | string[];
     quantity?: string | string[];
@@ -24,6 +24,11 @@ type Props = {
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const params = await searchParams;
   if (!params.offering) redirect("/free-entry");
+  if (Array.isArray(params.offering)) return <div className="mx-auto max-w-3xl p-6 text-white">
+    <h1 className="text-2xl font-black">Choose one prize to print</h1>
+    <p className="mt-3">This link includes more than one prize selection.</p>
+    <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(params.from) ?? "/browse#search-results"}>Back to prize selection</Link>
+  </div>;
   const product = await freeEntryProduct(params.offering);
   if (product === undefined) {
     const instructions = freeEntryHref(params.offering ?? "", params.from, parseEntryQuantity(params.quantity), params.share);

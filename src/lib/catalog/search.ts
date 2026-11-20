@@ -12,8 +12,20 @@ export function searchCatalogMatches(
   denomination = searchDenominations(query, products),
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
-  if (query.length > maxCatalogSearchLength) return [];
+  if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const { text, values, budget, exactOnly, merchant } = denomination;
+  if (!values.size && !budget) {
+    const alternatives = query.split(/\s+or\s+/i).map(value => value.trim());
+    if (alternatives.length > 1 && alternatives.every(value => queryWords(value).length)) {
+      const matches = new Map<string, CatalogSearchMatch>();
+      for (const alternative of alternatives) {
+        for (const match of searchCatalogMatches(products, alternative, undefined, { includeLowerGiftCards })) {
+          if (!matches.has(match.product.slug) || match.kind === "product") matches.set(match.product.slug, match);
+        }
+      }
+      return [...matches.values()].sort((first, second) => Number(first.kind === "retailer") - Number(second.kind === "retailer"));
+    }
+  }
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];

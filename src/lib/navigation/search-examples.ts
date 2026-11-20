@@ -12,7 +12,7 @@ export function scrollToCurrentSearch(href: string) {
   if (destination.pathname !== current.pathname || destination.search !== current.search) return false;
   if (destination.hash !== window.location.hash) {
     const method = window.location.hash.startsWith(destination.hash + "#") ? "replaceState" : "pushState";
-    window.history[method](null, "", destination.hash);
+    window.history[method](window.history.state, "", destination.hash);
   }
   document.getElementById(destination.hash.slice(1))?.scrollIntoView?.({ block: "start" });
   return true;

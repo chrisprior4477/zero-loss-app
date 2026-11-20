@@ -40,7 +40,7 @@ test("opens a usable password form and honest explanations for unavailable contr
   expect(screen.getByLabelText("Current password")).toBeTruthy();
   expect(screen.getByLabelText("New password")).toBeTruthy();
   expect(screen.getByLabelText("Confirm new password")).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Reset it by email/ }).getAttribute("href")).toBe("/forgot-password");
+  expect(screen.getByRole("link", { name: /Reset it by email/ }).getAttribute("href")).toBe(`/forgot-password?next=${encodeURIComponent("/account/security#security-controls")}`);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByLabelText("Current password")).toBeNull();
   for (const label of ["Two-step verification", "Passkeys", "Trusted devices", "Active sessions"]) {

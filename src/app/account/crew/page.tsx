@@ -104,7 +104,8 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     entries={entries}
     selectedMemberId={selectedMemberId}
     selectedPicks={(picksResult?.data ?? []) as SharedCrewPick[]}
-    available={available && !picksResult?.error}
+    available={available}
+    selectedPicksUnavailable={Boolean(picksResult?.error)}
     initialTab={parseCrewTab(params.tab)}
     entryReturn={params.entry && /^ent_[a-f0-9]{32}$/i.test(params.entry) ? `/account/entries/${params.entry}${params.filter === "active" ? "?filter=active" : ""}#entry-crew-share` : undefined}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}

@@ -43,13 +43,14 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const checkout = receiptId && receipt?.status === "succeeded" && checkoutItem?.rewardId && receipt.rewardIds.includes(checkoutItem.rewardId)
     ? { receipt: receiptId, rewardIds: receipt.rewardIds } : undefined;
   const availabilityPromise = getOfferingAvailability();
-  let pendingEntries: EntryRequest[] = [];
+  let pendingEntries: EntryRequest[] | null = [];
   if (isPreviewDataEnvironment() && account.activity.source !== "unavailable") {
+    pendingEntries = null;
     try {
       const db = await createClient();
       const { data, error } = await db.rpc("list_preview_entry_requests");
       if (!error && Array.isArray(data)) pendingEntries = data.map(parseEntryRequest).filter(request => request.status === "pending");
-    } catch { /* The account still shows only confirmed, authoritative activity. */ }
+    } catch { /* Confirmed activity remains usable while pending requests are unavailable. */ }
   }
   let outcomeEmailPreference: boolean | null = null;
   if (findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter)?.status === "active") {

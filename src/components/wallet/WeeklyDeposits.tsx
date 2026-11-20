@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -35,7 +36,17 @@ function ReceiptDetails({ request, timeZone, open }: { request: DemoFundingReque
 type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; asOf: string; timeZone?: string; restoreReceipt?: string };
 
 export function WeeklyDeposits(props: ChartProps) {
-  return useMenuViewport() === "desktop" ? <DepositChart {...props} /> : null;
+  const viewport = useMenuViewport();
+  return viewport === "desktop" ? <DepositChart {...props} /> : viewport && props.restoreReceipt ? <MobileReceiptReturn requestKey={props.restoreReceipt} /> : null;
+}
+
+function MobileReceiptReturn({ requestKey }: { requestKey: string }) {
+  const router = useRouter();
+  const href = `/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(requestKey)}#payment-deposits`;
+  useEffect(() => {
+    router.replace(href, { scroll: false });
+  }, [href, router]);
+  return <p id="weekly-deposit-heading"><Link href={href}>Open this receipt in Payment deposits</Link></p>;
 }
 
 function DepositChart({ requests, hiddenIds, asOf, timeZone, restoreReceipt }: ChartProps) {

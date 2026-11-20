@@ -1,11 +1,12 @@
 "use server";
 
+import { getOrderSupportTransactionId } from "@/lib/account/order-support";
 import { getAccountOrders, type AccountOrderStatus } from "@/lib/account/orders";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { getWalletSnapshot } from "@/lib/wallet/balance";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
-import { ledgerProduct } from "@/lib/wallet/history";
+import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { ledgerDescription } from "@/lib/wallet/transaction-links";
 import { parseSupportRecord, type SupportRecordKind, type SupportRecordPage } from "./records";
 
@@ -32,29 +33,27 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number):
           amount: order.amountPaidCents, date: order.createdAt, status: orderStatus[order.status] });
         return record ? [record] : [];
       });
-      return { records, more: orders.length > offset + pageSize };
+      const attachable = await Promise.all(records.map(record => getOrderSupportTransactionId(db, user.id, record.id)));
+      return { records: records.map((record, index) => ({ ...record, attachable: Boolean(attachable[index]) })), more: orders.length > offset + pageSize };
     }
 
     const wallet = await getWalletSnapshot(user.id);
     if (wallet.scope !== "demo") return { records: [], more: false };
     const [history, visibility] = await Promise.all([
-      db.from("ledger_entries").select("id,entry_type,amount,created_at,source_event,related_pool_id")
-        .eq("customer_id", user.id).order("created_at", { ascending: false }).order("id", { ascending: false })
-        .range(offset, offset + pageSize),
+      getCompleteLedgerHistory(user.id, wallet),
       db.rpc("get_demo_wallet_history_visibility"),
     ]);
-    if (history.error || visibility.error) throw new Error("Wallet history unavailable");
+    if (!history || visibility.error) throw new Error("Wallet history unavailable");
     const hidden = new Set(parseDemoWalletHistoryVisibility(visibility.data).ledgerEntryIds);
-    const rows = history.data ?? [];
-    const records = rows.slice(0, pageSize).flatMap(row => {
-      if (hidden.has(row.id)) return [];
+    const rows = history.filter(row => !hidden.has(row.id));
+    const records = rows.slice(offset, offset + pageSize).flatMap(row => {
       const [label, detail] = ledgerDescription(row.entry_type);
-      const product = ledgerProduct(row, new Map(), new Map());
+      const product = row.product;
       const record = parseSupportRecord({ kind, id: row.id, title: product?.title ?? label,
         detail: product ? label : detail, amount: row.amount, date: row.created_at, status: "Posted" });
       return record ? [record] : [];
     });
-    return { records, more: rows.length > pageSize };
+    return { records, more: rows.length > offset + pageSize };
   } catch {
     return { error: "We couldn’t load these records. Try again, or send your request without an attachment." };
   }

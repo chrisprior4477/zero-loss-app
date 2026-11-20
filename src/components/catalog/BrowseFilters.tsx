@@ -142,7 +142,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
               <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory, "", ticketsLeft,
-                retainedSearch ? searchTerm : "")} onClick={event => {
+                retainedSearch)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const drawer = event.currentTarget.closest("details");
                 if (drawer) drawer.open = false;

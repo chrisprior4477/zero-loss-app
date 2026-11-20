@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
-import { previewAllDemoActivityReset, resetAllDemoActivity, type DemoActivityRevision } from "@/lib/account/demo-activity-reset-actions";
+import { checkOwnDemoActivityReset, previewAllDemoActivityReset, resetAllDemoActivity, type DemoActivityRevision } from "@/lib/account/demo-activity-reset-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./reset-all-demo-activity-button.module.css";
 
@@ -64,12 +64,20 @@ export function ResetAllDemoActivityButton() {
   }
 
   function checkActivity() {
+    const key = requestKey.current;
+    if (!key) return;
     startTransition(async () => {
       try {
-        const result = await previewAllDemoActivityReset();
+        const result = await checkOwnDemoActivityReset(key);
         if (result.status === "error") { setNotice(result.message); return; }
         close();
-        setNotice(`Your current demo activity has ${result.entryCount} ${result.entryCount === 1 ? "entry" : "entries"} and ${formatUsdFromCents(result.balanceCents)} in playable funds. No additional reset was requested. Review your account before resetting again.`);
+        const summary = result.receipt
+          ? `This reset cleared ${result.receipt.clearedCount} demo ${result.receipt.clearedCount === 1 ? "entry" : "entries"} and ${formatUsdFromCents(result.receipt.clearedCents)} in playable funds.`
+          : "No saved receipt was found for this reset.";
+        const current = result.current
+          ? ` Your current demo activity has ${result.current.entryCount} ${result.current.entryCount === 1 ? "entry" : "entries"} and ${formatUsdFromCents(result.current.balanceCents)} in playable funds.`
+          : "";
+        setNotice(summary + current);
         router.refresh();
       } catch { setNotice("We still couldn’t check your demo activity. Reconnect and check again; no additional reset was requested."); }
     });

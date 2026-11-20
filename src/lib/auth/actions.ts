@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { passwordResetFlashName, passwordResetFlashPath } from "@/lib/auth/password-reset-flash";
 import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref, entryReturnPath, productReturnFromReferer, signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
 import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
@@ -385,9 +386,10 @@ export async function updateRecoveredPasswordAction(
   }
 
   await supabase.auth.signOut();
-  // Signing out changes cookies and re-renders the server page. Returning a
-  // client-only success state here lets the no-session branch replace it.
-  // Use a separate, refresh-safe success view that doesn't require a session.
+  // A URL alone cannot produce the success message after sign-out.
+  (await cookies()).set(passwordResetFlashName, "1", {
+    path: passwordResetFlashPath, maxAge: 60, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+  });
   const returnTo = signInReturnPath(formData.get("next"));
   redirect(`/reset-password?updated=1${returnTo ? `&next=${encodeURIComponent(returnTo)}` : ""}`);
 }

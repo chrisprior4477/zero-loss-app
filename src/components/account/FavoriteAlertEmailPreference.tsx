@@ -7,7 +7,7 @@ import { useVerifiedEmailPreference, type EmailSaveResult } from "./useVerifiedE
 import styles from "./showroom.module.css";
 
 export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const { preference, feedback, action, pending, retryButton } = useVerifiedEmailPreference<EmailSaveResult>("favorites", initialEnabled, async (_previous, data) => {
+  const { preference, feedback, action, pending, checkSavedPreference, retryButton } = useVerifiedEmailPreference<EmailSaveResult>("favorites", initialEnabled, async (_previous, data) => {
     try {
       const result = await setFavoriteAlertEmailPreference(data.get("enabled") === "true");
       return { status: result.ok ? "succeeded" : "error", message: result.message };
@@ -35,5 +35,6 @@ export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnable
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your saved items are unchanged." : "Turn this off to pause all Favorites alert emails. It does not remove your saved items."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role={feedback.status === "error" ? "alert" : "status"} className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
       : preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
+    {showFeedback && feedback.status === "unverified" ? <button type="button" className="font-bold underline" disabled={pending} onClick={checkSavedPreference}>Check saved preference</button> : null}
   </section>;
 }
