@@ -44,7 +44,7 @@ test("an old authenticated print URL resumes the filled instructions with the sa
   vi.mocked(getAccountContext).mockResolvedValue({ userId: "demo-user", legalFirstName: "Luka", legalLastName: "Łowicki" } as Awaited<ReturnType<typeof getAccountContext>>);
   try {
     await expect(PrintFreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", quantity: "3", from: "/browse?q=Apple" }) }))
-      .rejects.toMatchObject({ digest: expect.stringContaining("/free-entry?offering=airpods-pro&quantity=3&from=%2Fbrowse%3Fq%3DApple#free-entry-intro") });
+      .rejects.toMatchObject({ digest: expect.stringContaining("/free-entry?offering=airpods-pro&quantity=3&from=%2Fbrowse%3Fq%3DApple#print-entry-insert") });
   } finally { vi.mocked(getAccountContext).mockResolvedValue(null); }
 });
 

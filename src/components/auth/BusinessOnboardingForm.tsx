@@ -207,6 +207,15 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const [staging, setStaging] = useState(false);
   const stagingLock = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const submissionHeading = useRef<HTMLHeadingElement>(null);
+  const wasSubmitted = useRef(submitted);
+  useEffect(() => {
+    if (submitted && !wasSubmitted.current && submissionHeading.current) {
+      submissionHeading.current.focus({ preventScroll: true });
+      revealBelowHeader(submissionHeading.current);
+    }
+    wasSubmitted.current = submitted;
+  }, [submitted]);
   const previousStep = useRef(step);
   useEffect(() => {
     const changed = previousStep.current !== step;
@@ -222,6 +231,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
   const mainProposal = String(values[proposalKey] || "Not provided yet");
   const invalidListings = values.partnership === "products" ? invalidBusinessListings(draft.listings) : [];
+  const focusListingTitle = invalidListings.some(listing => listing.index === listingToReview && listing.message.includes("product name"));
   const invalidOfferFields = invalidBusinessOfferFields(values);
   const issues = businessFieldIssues(values, draft.files, draft.listings);
   const missing = issues.map(issue => issue.message);
@@ -246,12 +256,14 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     const frame = requestAnimationFrame(() => {
       const ticket = formRef.current?.querySelector<HTMLButtonElement>(`[data-listing-index="${listingToReview}"]`);
       ticket?.click();
-      ticket?.focus({ preventScroll: true });
-      ticket?.scrollIntoView?.({ block: "center" });
+      const target = focusListingTitle
+        ? formRef.current?.querySelector<HTMLElement>("[data-listing-title]") ?? ticket : ticket;
+      target?.focus({ preventScroll: true });
+      if (target) revealBelowHeader(target);
       setListingToReview(null);
     });
     return () => cancelAnimationFrame(frame);
-  }, [step, listingToReview]);
+  }, [step, listingToReview, focusListingTitle]);
   useEffect(() => {
     if (!initialized || submitted || recoveredDraft) return;
     function restoreStep() {
@@ -354,6 +366,11 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     const detailsMissing = missing.filter(label => label !== "Rights to supply the attached materials");
     if (step === 2 && detailsMissing.length) {
       setErrors(detailsMissing);
+      const invalidListing = invalidListings[0];
+      if (invalidListing && detailsMissing[0] === invalidListing.message) {
+        setListingToReview(invalidListing.index);
+        return;
+      }
       const form = formRef.current;
       const incomplete = Array.from(form?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("[required][name]") ?? [])
         .find(field => !field.value.trim() || !field.validity.valid);
@@ -402,7 +419,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   </div>;
 
   if (submitted) return <div className="rounded-3xl border border-cyan-300/30 bg-[#073153] p-6 text-white">
-    <h1 className="text-3xl font-black">Application submitted for review</h1>
+    <h1 ref={submissionHeading} tabIndex={-1} className="text-3xl font-black">Application submitted for review</h1>
     <p className="my-4">{String(values.business_name)} · {selected.title}</p>
     <p>Your submission is saved to your account. You can return here to view it.</p>
     <SubmissionDetails draft={draft} owner={owner!}/>
@@ -796,7 +813,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   }
   return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} data-listing-index={index} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
     <button type="button" onClick={removeProduct} disabled={listings.length <= 1} className="mt-3 rounded-lg border border-orange-300/45 px-3 py-2 text-sm font-bold text-orange-100 disabled:opacity-40">Remove listing</button>
-    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" min="0.01" step="0.01" value={retailDraft?.listing === listing.id && retailDraft ? retailDraft.text : listing.value} onBlur={() => setRetailDraft(null)} onChange={event => {
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input data-listing-title value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" min="0.01" step="0.01" value={retailDraft?.listing === listing.id && retailDraft ? retailDraft.text : listing.value} onBlur={() => setRetailDraft(null)} onChange={event => {
       const text = event.target.value;
       const value = event.target.valueAsNumber;
       setRetailDraft({ listing: listing.id, text });

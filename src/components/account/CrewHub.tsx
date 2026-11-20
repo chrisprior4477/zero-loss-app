@@ -1,4 +1,5 @@
 "use client";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
@@ -120,7 +121,16 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   }
 
   useEffect(() => {
-    if (finding) document.getElementById("crew-query")?.focus({ preventScroll: true });
+    if (!finding) return;
+    const field = document.getElementById("crew-query");
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    const bounds = field.getBoundingClientRect();
+    const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+    const viewport = window.visualViewport;
+    if (bounds.top < header + 12 || bounds.bottom > (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - 12) {
+      revealBelowHeader(field);
+    }
   }, [finding]);
 
   async function copyInviteLink() {

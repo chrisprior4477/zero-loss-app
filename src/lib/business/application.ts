@@ -84,6 +84,7 @@ export function invalidBusinessListings(listings: PartnerListing[]) {
   const validPrice = (value: number) => value > 0 && Number.isSafeInteger(Math.round(value * 100)) && Number(value.toFixed(2)) === value;
   return listings.flatMap((listing, index) => {
     const fields = [
+      !listing.title.trim() ? "a product name" : "",
       !validPrice(listing.value) ? "positive retail value in dollars and cents" : "",
       !validPrice(listing.entryPrice) ? "positive entry price in dollars and cents" : "",
       !Number.isSafeInteger(listing.capacity) || listing.capacity < 1 ? "positive whole-number capacity" : "",
@@ -97,21 +98,28 @@ export function invalidBusinessOfferFields(values: FormValues): [string, string]
   const website = String(values.website ?? "").trim();
   if (website && !URL.canParse(website)) issues.push(["website", "Valid business website"]);
   else if (website && !["https:", "http:"].includes(new URL(website).protocol)) issues.push(["website", "Valid business website"]);
-  if (values.partnership !== "products") return issues;
+  const docs = String(values.integration_docs ?? "").trim();
+  if (values.partnership === "fulfillment" && docs && !/^https?:$/i.test(URL.parse(docs)?.protocol ?? "")) {
+    issues.push(["integration_docs", "Valid public integration documentation URL"]);
+  }
+  const isCampaign = values.partnership === "campaign";
+  if (values.partnership !== "products" && !isCampaign) return issues;
 
   const amount = "(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.(\\d{1,2}))?";
-  const price = String(values.retail_value ?? "").trim();
+  const priceField = isCampaign ? "campaign_value" : "retail_value";
+  const price = String(values[priceField] ?? "").trim();
   const match = new RegExp(`^\\$?${amount}(?:\\s*[–—-]\\s*\\$?${amount})?(?:\\s+per listing)?$`, "i").exec(price);
   const asCents = (whole: string, fractional = "") => Number(whole.replaceAll(",", "")) * 100 + Number(fractional.padEnd(2, "0"));
   if (price) {
     const min = match ? asCents(match[1], match[2]) : 0;
     const max = match?.[3] ? asCents(match[3], match[4]) : min;
-    if (min <= 0 || max < min || !Number.isSafeInteger(max)) issues.push(["retail_value", "Positive retail value in dollars and cents"]);
+    if (min <= 0 || max < min || !Number.isSafeInteger(max)) issues.push([priceField, "Positive retail value in dollars and cents"]);
   }
-  const quantity = String(values.quantity ?? "").trim();
+  const quantityField = isCampaign ? "campaign_capacity" : "quantity";
+  const quantity = String(values[quantityField] ?? "").trim();
   const capacity = /^(?:up to\s+)?([1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)(?:\s+[\p{L}][\s\S]*)?$/iu.exec(quantity);
   if (quantity && (!capacity || !Number.isSafeInteger(Number(capacity[1].replaceAll(",", ""))))) {
-    issues.push(["quantity", "Positive whole-number quantity or capacity"]);
+    issues.push([quantityField, "Positive whole-number quantity or capacity"]);
   }
   return issues;
 }

@@ -9,15 +9,16 @@ type MenuTicketProps = {
   imageSrc: string;
   artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" | "declined";
   onNavigate?: () => void;
+  replace?: boolean;
   active?: boolean;
   wrapTitle?: boolean;
 };
 
 /** Illustrated navigation ticket shared by the proof and the functional drawer. */
-export function MenuTicket({ title, description, href, imageSrc, artworkTreatment = "zoom", onNavigate, active = false, wrapTitle = false }: MenuTicketProps) {
+export function MenuTicket({ title, description, href, imageSrc, artworkTreatment = "zoom", onNavigate, replace = Boolean(onNavigate), active = false, wrapTitle = false }: MenuTicketProps) {
   return (
     <span className={styles.shadow}>
-      <Link href={href} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.ticket} aria-label={title} aria-current={active ? "page" : undefined}>
+      <Link href={href} replace={replace} onClick={onNavigate} className={styles.ticket} aria-label={title} aria-current={active ? "page" : undefined}>
         <span className={styles.artworkFrame} data-treatment={artworkTreatment}><Image src={imageSrc} alt="" width={108} height={60} unoptimized className={styles.artwork} /></span>
         <span className={styles.perforation} aria-hidden="true" />
         <span className={styles.copy} data-wrap-title={wrapTitle || undefined}>

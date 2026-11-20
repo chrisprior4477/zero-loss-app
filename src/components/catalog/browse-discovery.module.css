@@ -81,7 +81,7 @@
 .search input::-webkit-search-cancel-button { -webkit-appearance: none; }
 .search input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #fff inset; -webkit-text-fill-color: #0a1741; }
 .search .clearSearch { display: grid; width: 32px; min-height: 40px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #536d8b; font-size: 25px; cursor: pointer; }
-.search .go { min-height: 36px; border: 0; border-radius: 10px; background: #087feb; color: #fff; padding: 7px 14px; cursor: pointer; }
+.search .go { min-height: 36px; border: 0; border-radius: 10px; background: #0068c9; color: #fff; padding: 7px 14px; cursor: pointer; }
 .search .go:hover { background: #005fc4; }
 .search .closeSearch { width: 32px; border-left: 1px solid #d5e4ef; color: #153658; font-size: 21px; }
 .resultsSearch { column-gap: 4px; padding-inline: 8px; }

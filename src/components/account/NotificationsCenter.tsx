@@ -518,6 +518,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         </section>
       </div>
       <AccountSettingsLandingScroll target="alert-settings" focusTarget="in-app-alert-heading" allScreens restrictToTargetHash />
+      <AccountSettingsLandingScroll target="email-preferences" focusTarget="outcome-email-heading" allScreens restrictToTargetHash />
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
         <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>

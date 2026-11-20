@@ -87,7 +87,7 @@ export function LoginForm({
     // Every mobile sign-in route should land on the form, including plain
     // /login links that do not carry the explicit focus=email parameter.
     const isMobile = window.matchMedia?.("(max-width: 767px)").matches ?? false;
-    if (!isMobile && !focusOnMount) return;
+    if (!isMobile && !focusOnMount && !destination) return;
     const frame = window.requestAnimationFrame(() => {
       const form = document.getElementById("login-form");
       if (!form) return;
@@ -95,10 +95,10 @@ export function LoginForm({
       const headerHeight = header?.getBoundingClientRect().height ?? 0;
       const formTop = form.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({ top: Math.max(0, formTop - headerHeight - 8), behavior: "auto" });
-      if (focusOnMount) emailRef.current?.focus({ preventScroll: true });
+      if ((focusOnMount || destination) && document.activeElement === document.body) emailRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [focusOnMount]);
+  }, [focusOnMount, destination]);
 
   return (<>
     <form action={formAction} onSubmit={() => {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { checkSupportMessage, saveSupportCase, type SupportActionState } from "@/lib/support/actions";
 import styles from "@/components/help/help-tickets.module.css";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { supportReferencePrefix, type SupportDeposit } from "@/lib/support/references";
 import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft } from "@/lib/support/draft";
@@ -34,6 +35,8 @@ export function SupportForm(props: Props) {
 function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
   const router = useRouter();
   const sending = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const formError = useRef<HTMLParagraphElement>(null);
   const recoveryButton = useRef<HTMLButtonElement>(null);
   const depositKey = deposit?.key;
   const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
@@ -125,15 +128,17 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const fieldError = state.status === "error" && state.field && state.fieldValue === draft[state.field] ? state.field : undefined;
   const showError = state.status === "error" && (!state.field || Boolean(fieldError));
   useEffect(() => {
-    if (!pending && state.status === "error" && uncertain && document.activeElement === document.body) {
-      recoveryButton.current?.focus();
-    }
-  }, [pending, state, uncertain]);
+    if (pending || state.status !== "error" || document.activeElement !== document.body) return;
+    const field = fieldError ? formRef.current?.elements.namedItem(fieldError) : null;
+    const focus = uncertain ? recoveryButton.current : field instanceof HTMLElement ? field : formError.current;
+    focus?.focus({ preventScroll: true });
+    if (focus) revealBelowHeader(focus);
+  }, [pending, state, uncertain, fieldError]);
   useEffect(() => {
     if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}${caseContext}#conversation`); router.refresh(); }
   }, [state, router, caseContext]);
   if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}${caseContext}#conversation`}>View your case →</Link></div>;
-  return <form onSubmit={event => {
+  return <form ref={formRef} onSubmit={event => {
     event.preventDefault();
     if (locked || sending.current || extraCharacters > 0) return;
     const data = new FormData(event.currentTarget);
@@ -164,7 +169,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
-    {state.status === "error" && showError ? <p id="support-error" role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
+    {state.status === "error" && showError ? <p ref={formError} id="support-error" role="alert" tabIndex={-1} className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
       <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {

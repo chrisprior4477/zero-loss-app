@@ -70,7 +70,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
       {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={transactionHelp}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
 
       {/* Use native navigation for these filter links. The route cache can append the results fragment twice. */}
-      <section id="order-status-filters" className={styles.summary} aria-label="Order status filters">
+      <section id="order-status-filters" tabIndex={-1} className={styles.summary} aria-label="Order status filters">
         {([
           { key: "all", label: "All", count: records.length, icon: "all" },
           { key: "processing", label: "In progress", count: processing, icon: "active" },
@@ -81,13 +81,11 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
         </a>)}
       </section>
 
-      {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />}
-      {!showAllLink && !focusRewardId ? <>
-        <AccountSettingsLandingScroll target="order-status-filters" settleAfterNavigation />
-        <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash />
-      </> : null}
+      {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation skipForHash="order-status-filters" /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />}
+      <AccountSettingsLandingScroll target="order-status-filters" focusTarget="order-status-filters" settleAfterNavigation allScreens restrictToTargetHash />
+      {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash /> : null}
       {filter !== "all" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
-        target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens /> : null}
+        target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens skipForHash="order-status-filters" /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
           <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading" tabIndex={-1}>Retailer gift-card fulfillment</h2></div>

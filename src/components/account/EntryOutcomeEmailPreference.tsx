@@ -26,7 +26,7 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
   const showError = showFeedback && !pending && feedback.status === "error";
   useEffect(() => { if (showError && document.activeElement === document.body) errorNotice.current?.focus(); }, [showError]);
   return <section id={placement === "account" ? "email-preferences" : undefined} className={placement === "entry-page" ? entryStyles.emailPreference : styles.outcomeEmail} data-placement={placement} aria-labelledby="outcome-email-heading">
-    <h3 id="outcome-email-heading">{placement === "account" ? "Email preferences" : placement === "entry-page" ? "Outcome updates" : "How would you like updates?"}</h3>
+    <h3 id="outcome-email-heading" tabIndex={-1}>{placement === "account" ? "Email preferences" : placement === "entry-page" ? "Outcome updates" : "How would you like updates?"}</h3>
     <form onSubmit={event => {
       event.preventDefault();
       if (pending || initialEnabled === null) return;

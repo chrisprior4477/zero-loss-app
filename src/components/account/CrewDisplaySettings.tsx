@@ -145,6 +145,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [pending, startTransition] = useTransition();
   const privacyDisabled = !available || pending;
   const groupToReveal = useRef<string | null>(null);
+  const focusAfterGroupRemoval = useRef(false);
   const groupToFocus = useRef<string | null>(null);
   const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}` : null;
   const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
@@ -271,12 +272,24 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     });
   }
 
+  function focusNewGroupName() {
+    const field = document.getElementById("new-crew-group");
+    field?.focus({ preventScroll: true });
+    if (field) revealBelowHeader(field);
+  }
+
+  useEffect(() => {
+    if (pending || !focusAfterGroupRemoval.current) return;
+    focusAfterGroupRemoval.current = false;
+    if (document.activeElement === document.body) focusNewGroupName();
+  }, [pending]);
+
   function addGroup() {
     const name = newGroupName.trim();
-    if (!name) { setGroupMessage("Give your group a name first."); setGroupMessageError(true); return; }
-    if (name.length > 50) { setGroupMessage("Group names can be up to 50 characters."); setGroupMessageError(true); return; }
+    if (!name) { setGroupMessage("Give your group a name first."); setGroupMessageError(true); focusNewGroupName(); return; }
+    if (name.length > 50) { setGroupMessage("Group names can be up to 50 characters."); setGroupMessageError(true); focusNewGroupName(); return; }
     if (groups.some((group) => group.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())) {
-      setGroupMessage("You already have a group with that name."); setGroupMessageError(true); return;
+      setGroupMessage("You already have a group with that name."); setGroupMessageError(true); focusNewGroupName(); return;
     }
     const id = crypto.randomUUID();
     groupToReveal.current = id;
@@ -370,6 +383,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         setRemovingGroupId(null);
         discardGroup(group.id);
         setGroupMessage(`${group.name} removed from your profile.`);
+        focusAfterGroupRemoval.current = true;
         setGroupMessageError(false);
         notifyAccountChanged();
         router.refresh();
@@ -499,8 +513,8 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
               </div> : null}
             </div>;
           })}</div> : <p className={styles.emptyGroup}>No groups yet. Create a name below; it will open here so you can add people.</p>}
-          {groupMessage ? <p role={groupMessageError ? "alert" : "status"} className={styles.groupNotice} data-error={groupMessageError}>{groupMessage}</p> : null}
-          <div className={styles.addGroup}><label htmlFor="new-crew-group">New group name</label><div><input id="new-crew-group" value={newGroupName} maxLength={50} disabled={!available || pending} placeholder="Family, Friends, or your own name" onChange={(event) => setNewGroupName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addGroup(); } }} /><button type="button" onClick={addGroup} disabled={!available || pending}>+ Create group</button></div></div>
+          {groupMessage ? <p id="new-crew-group-status" role={groupMessageError ? "alert" : "status"} className={styles.groupNotice} data-error={groupMessageError}>{groupMessage}</p> : null}
+          <div className={styles.addGroup}><label htmlFor="new-crew-group">New group name</label><div><input id="new-crew-group" aria-invalid={groupMessageError || undefined} aria-describedby={groupMessageError ? "new-crew-group-status" : undefined} value={newGroupName} maxLength={50} disabled={!available || pending} placeholder="Family, Friends, or your own name" onChange={(event) => { setNewGroupName(event.target.value); if (groupMessageError) { setGroupMessageError(false); setGroupMessage(""); } }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addGroup(); } }} /><button type="button" onClick={addGroup} disabled={!available || pending}>+ Create group</button></div></div>
         </div>
       </section> : null}
 

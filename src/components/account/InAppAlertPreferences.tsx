@@ -26,7 +26,9 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
   const changedControl = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     const control = changedControl.current;
-    if (saving || !failedChoice || !control || (document.activeElement !== document.body && document.activeElement !== control)) return;
+    if (saving || !control) return;
+    changedControl.current = null;
+    if (document.activeElement !== document.body && document.activeElement !== control) return;
     control.focus({ preventScroll: true });
     revealBelowHeader(control.closest("label") ?? control);
   }, [saving, failedChoice]);

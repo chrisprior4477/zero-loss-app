@@ -41,7 +41,11 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
 }
 
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
-  const query = await searchParams;
+  const rawQuery = await searchParams;
+  const query = {
+    ...rawQuery,
+    rewardId: typeof rawQuery.rewardId === "string" && checkoutReceiptId.test(rawQuery.rewardId) ? rawQuery.rewardId.toLowerCase() : rawQuery.rewardId,
+  };
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
   const invalidPanel = history && query.panel !== undefined && !["transactions", "deposits", "funding", "methods", "card"].some(panel => panel === query.panel);

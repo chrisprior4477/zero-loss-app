@@ -23,6 +23,18 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const list = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [failedReads, setFailedReads] = useState<string[]>([]);
+  const [retryingRead, setRetryingRead] = useState(false);
+  async function retryRead() {
+    if (!value || !failedReads.length || retryingRead) return;
+    setRetryingRead(true);
+    const retried = failedReads;
+    try {
+      await value.markRead(retried);
+      setFailedReads(current => current.filter(id => !retried.includes(id)));
+    } catch { /* Keep the original failed reads available for another attempt. */ }
+    finally { setRetryingRead(false); }
+  }
   useEffect(() => {
     if (busy || !markAllFailed.current) return;
     markAllFailed.current = false;
@@ -93,8 +105,11 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       if (ids.length) await value.markRead(ids);
       if (!href) closeUpdates();
     } catch {
-      if (!href) markAllFailed.current = true;
-      setError(href ? "Your alert could not be marked as read. It is still available in updates." : "We couldn’t mark all updates as read. Try again.");
+      if (href) setFailedReads(previous => [...new Set([...previous, ...ids])]);
+      else {
+        markAllFailed.current = true;
+        setError("We couldn’t mark all updates as read. Try again.");
+      }
     }
     finally { if (!href) setBusy(false); }
   }
@@ -121,11 +136,17 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => preloadKey.split("\n").forEach(prefetch), value?.open ? 0 : 500);
     return () => window.clearTimeout(timer);
   }, [active, preloadKey, prefetch, value?.open]);
+  const currentBanner = bannerVisible ? messages.find(message => message.category === bannerCategory) ?? messages[0] : undefined;
+  const failedReadFeedback = failedReads.length > 0 ? <>
+    <span role="alert">Your alert could not be marked as read. It is still available in updates.</span>
+    <button type="button" disabled={retryingRead} onClick={() => void retryRead()}>{retryingRead ? "Retrying…" : "Retry marking as read"}</button>
+    <button type="button" aria-label="Dismiss notification message" onClick={() => setFailedReads([])}>×</button>
+  </> : null;
   return <>
     <div className={styles.metrics} data-header-metrics>
       <div className={styles.balances} inert={bannerVisible || previewing ? true : undefined} aria-hidden={bannerVisible || previewing ? true : undefined}>{children}</div>
       {previewing ? <div className={styles.samplePreview} role="img" aria-label="Sample notification banner preview. These examples are not account alerts."><NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={previewMessages} /></div> : null}
-      {active ? <button ref={trigger} type="button" className={styles.trigger} data-banner-hidden={!bannerVisible || undefined} aria-label={`${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onPointerDown={() => { keyboardOpened.current = false; }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") keyboardOpened.current = true; }} onClick={() => { if (bannerVisible && bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
+      {active ? <button ref={trigger} type="button" className={styles.trigger} data-banner-hidden={!bannerVisible || undefined} aria-label={`${currentBanner ? `${currentBanner.label} ${currentBanner.count > 99 ? "99+" : currentBanner.count}. ` : ""}${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onPointerDown={() => { keyboardOpened.current = false; }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") keyboardOpened.current = true; }} onClick={() => { if (bannerVisible && bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
         {bannerVisible ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
@@ -146,6 +167,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
             </button>) : <p className={styles.empty}>No unread {current === "support" ? "support updates" : "shared picks"}. {current === "support" ? <Link href="/support#case-list" replace onClick={() => value?.setOpen(false)}>View my support cases →</Link> : null}</p>}
         </section>
       </div>
+      {failedReadFeedback && value?.open ? <div className={styles.error}>{failedReadFeedback}</div> : null}
       {error ? <p role="alert" data-header-read-error className={styles.error}>{error}</p> : null}
       <div className={styles.footer}>
         {unread.length ? <button ref={markAllTrigger} disabled={busy} type="button" onClick={() => void act(unread.map(n => n.id))}>{busy ? "Saving…" : "Mark all as read"}</button> : null}
@@ -153,7 +175,8 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
         {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); closeUpdates(); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
       </div>
     </dialog>
-    {error && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`} role="alert"><span>{error}</span><button type="button" onClick={() => value?.setOpen(true)}>Open updates</button><button type="button" aria-label="Dismiss notification message" onClick={() => setError("")}>×</button></div> : null}
+    {failedReadFeedback && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`}>{failedReadFeedback}</div> : null}
+    {error && !failedReads.length && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`} role="alert"><span>{error}</span><button type="button" onClick={() => value?.setOpen(true)}>Open updates</button><button type="button" aria-label="Dismiss notification message" onClick={() => setError("")}>×</button></div> : null}
   </>;
 }
 export function ReturnToUpdates() {

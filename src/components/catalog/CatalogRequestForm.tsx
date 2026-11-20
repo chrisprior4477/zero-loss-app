@@ -32,7 +32,10 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const requestedItem = useRef<HTMLInputElement>(null);
   const confirmation = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (window.location.hash === "#requested-item") requestedItem.current?.focus({ preventScroll: true });
+    if (["#requested-item", "#product-request"].includes(window.location.hash)) {
+      requestedItem.current?.focus({ preventScroll: true });
+      requestedItem.current?.scrollIntoView?.({ block: "nearest" });
+    }
   }, []);
   const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
   useLayoutEffect(() => {

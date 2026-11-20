@@ -59,8 +59,8 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
           {purchaseStack ? purchaseToggleLabel : expanded ? "Collapse" : `See all ${count}`}<AccountIcon name={expanded ? "chevron" : "arrow"} className={expanded ? styles.collapseIcon : undefined} />
         </button> : <Link id={`notification-link-${encodeURIComponent(notification.id)}`} href={destination?.(notification) ?? notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}
       </div>
-      {stacked && expanded && !purchaseStack ? <ol id={entriesId} className={styles.entryList} aria-label={`Entries for ${title}`}>
-        {group.notifications.map((item, index) => {
+      {stacked && !purchaseStack ? <ol id={entriesId} hidden={!expanded} className={styles.entryList} aria-label={`Entries for ${title}`}>
+        {expanded && group.notifications.map((item, index) => {
           const number = entryNumbers?.get(item.id) ?? index + 1;
           return <li key={item.id} data-read={read.has(item.id)}>
             <span className={styles.entryNumber} aria-hidden="true">{number}</span>
@@ -70,8 +70,8 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
         })}
       </ol> : null}
     </article>
-    {purchaseStack && expanded ? <ol id={entriesId} className={styles.purchaseTickets} aria-label={`Wallet transactions for ${purchaseTitle}`}>
-      {group.notifications.map(item => <li key={item.id}>
+    {purchaseStack ? <ol id={entriesId} hidden={!expanded} className={styles.purchaseTickets} aria-label={`Wallet transactions for ${purchaseTitle}`}>
+      {expanded && group.notifications.map(item => <li key={item.id}>
         <NotificationStack group={{ key: `notification:${item.id}`, notifications: [item] }} read={read} categoryLabel={categoryLabel} onOpen={onOpen} destination={destination} />
       </li>)}
     </ol> : null}

@@ -43,6 +43,7 @@ test("natural completion accepts a result and a no-result end permits another se
   fireEvent.click(screen.getByRole("button", { name: "Start" }));
   act(() => Speech.instances[0].onend?.());
   expect(onTranscript).not.toHaveBeenCalled();
+  expect(screen.getByRole("status").textContent).toContain("No speech");
   fireEvent.click(screen.getByRole("button", { name: "Start" }));
   act(() => Speech.instances[1].result("Gift card"));
   expect(onTranscript).toHaveBeenCalledExactlyOnceWith("Gift card");

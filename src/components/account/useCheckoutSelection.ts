@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
 import { purchaseChoicePattern, readPurchaseHandoff, savePurchaseHandoff } from "@/lib/wallet/purchase-selection-handoff";
@@ -42,6 +42,15 @@ function restore(raw: string | null, ownerId: string, slug: string, available: s
   };
 }
 
+function subscribeToCheckoutHistory(update: () => void) {
+  window.addEventListener("popstate", update);
+  window.addEventListener("pageshow", update);
+  return () => {
+    window.removeEventListener("popstate", update);
+    window.removeEventListener("pageshow", update);
+  };
+}
+
 export function useCheckoutSelection(ownerId: string, options: ActivityItem[], entryId?: string) {
   const slug = options[0].slug;
   const roster = JSON.stringify(options.map(option => option.completionOptionId));
@@ -50,11 +59,14 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
   const key = `zero-loss-checkout-choice:${ownerId}:${slug}:${entryId ?? "all"}`;
   const [choice, setChoice] = useState<Choice>({ selected: [firstId], decline: true, needsReview: false });
   const [handoffId, setHandoffId] = useState<string>();
-  const inMemory = useRef<{ key: string; raw: string } | null>(null);
+  const inMemory = useRef<{ key: string; location: string; raw: string; handoffId: string; editable?: false } | null>(null);
+  const locationSearch = useSyncExternalStore(subscribeToCheckoutHistory, () => window.location.search, () => "");
 
   useLayoutEffect(() => {
-    let saved = inMemory.current?.key === key ? restore(inMemory.current.raw, ownerId, slug, available) : null;
-    const query = new URLSearchParams(window.location.search);
+    const location = window.location.search;
+    const current = inMemory.current?.key === key && inMemory.current.location === location ? inMemory.current : null;
+    let saved = current ? restore(current.raw, ownerId, slug, available) : null;
+    const query = new URLSearchParams(location);
     if (!saved) try {
       const handoffId = query.get("choice");
       if (handoffId !== null) {
@@ -75,20 +87,28 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     const initial = saved ?? { selected: returning ? [] : [firstId], decline: !returning, needsReview: returning };
     // Restore the selection together before the customer can review it.
     setChoice(initial);
-    setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));
-    inMemory.current = { key, raw: JSON.stringify({ ...initial, available, slug, ownerId }) };
+    const draft = { ...initial, available, slug, ownerId };
+    const editableId = savePurchaseHandoff(draft, current?.editable === false ? undefined : current?.handoffId);
+    setHandoffId(editableId);
+    inMemory.current = { key, location, raw: JSON.stringify(draft), handoffId: editableId };
     try { sessionStorage.setItem(key, inMemory.current.raw); }
     catch { /* The cross-tab snapshot remains independent of tab storage. */ }
-  }, [available, firstId, key, ownerId, slug]);
+  }, [available, firstId, key, ownerId, slug, locationSearch]);
 
   function updateChoice(change: Partial<Choice>) {
     const next = { ...choice, ...change };
     setChoice(next);
-    setHandoffId(savePurchaseHandoff({ ...next, available, slug, ownerId }));
-    inMemory.current = { key, raw: JSON.stringify({ ...next, available, slug, ownerId }) };
+    const draft = { ...next, available, slug, ownerId };
+    const editableId = savePurchaseHandoff(draft, inMemory.current?.editable === false ? undefined : inMemory.current?.handoffId);
+    setHandoffId(editableId);
+    inMemory.current = { key, location: window.location.search, raw: JSON.stringify(draft), handoffId: editableId };
     try { sessionStorage.setItem(key, inMemory.current.raw); }
     catch { /* The selection remains usable in the current page. */ }
   }
+  function freezeHandoff() {
+    if (inMemory.current) inMemory.current.editable = false;
+  }
+
   function clearChoice() {
     inMemory.current = null;
     try {
@@ -98,5 +118,5 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
       sessionStorage.removeItem(`${key}:arrival`);
     } catch { /* Purchase is already recorded. */ }
   }
-  return { ...choice, handoffId, available, updateChoice, clearChoice };
+  return { ...choice, handoffId, available, updateChoice, freezeHandoff, clearChoice };
 }

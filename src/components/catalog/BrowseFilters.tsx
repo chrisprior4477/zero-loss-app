@@ -140,8 +140,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
           <input id={`${id}-search`} type="search" name="q" value={searchDraft} maxLength={maxCatalogSearchLength} aria-invalid={searchTooLong || undefined} aria-describedby={searchTooLong ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none" />
-          {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
-          {searchDraft.trim() && !voice.busy ? (
+          {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.reset(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
+          {searchDraft.trim() && !voice.busy && !searchTooLong ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#0067cb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
           ) : null}
           <VoiceSearchControl listening={voice.listening} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
@@ -186,7 +186,10 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <div className="grid grid-cols-2 gap-2">
           {([ ["all", "Any value"], ["25", "$25 & below"], ["50", "$50 & below"], ["75", "$75 & below"], ["100", "$100 & below"], ["custom", "Custom range"] ] as const).map(([value, label]) => (
             <label key={value} className="cursor-pointer">
-              <input className="peer sr-only" type="radio" name="valueMode" value={value} checked={mode === value} onChange={() => setMode(value)} />
+              <input className="peer sr-only" type="radio" name="valueMode" value={value} checked={mode === value} onChange={() => {
+                setMode(value);
+                if (value !== "custom") setBounds({ minValue: "", maxValue: value === "all" ? "" : value });
+              }} />
               <span className="flex min-h-11 h-full items-center justify-center rounded-xl border border-white/25 px-2 py-2 text-center text-xs font-bold leading-4 text-white/85 transition hover:border-cyan-300 peer-checked:border-cyan-300 peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan-300">{label}</span>
             </label>
           ))}

@@ -72,7 +72,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const session = useBrowseResultsSearch();
   const search = session?.draft ?? localSearch;
   const setSearch = session?.setDraft ?? setLocalSearch;
-  const voice = useVoiceSearch(setSearch);
+  const voice = useVoiceSearch(value => { session?.setEditor(null); setSearch(value); });
+  const showSearchLimit = catalogSearchTooLong(search.trim()) && (!session?.editor || session.editor === "top");
   const pickerVoice = useVoiceSearch(value => { setQuery(value); setPreview(null); });
   const id = useId();
   const categoryLabel = props.subcategory || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
@@ -255,8 +256,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     }
     return `${url.pathname}${url.search}#search-results`;
   }
-  function applySearch(value: string) {
+  function applySearch(value: string, restoreSearch = false) {
     const destination = searchDestination(value);
+    if (restoreSearch) requestBrowseResultsFocus(destination, "top-search");
     if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -267,10 +269,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     applySearch(search);
   }
   function clearSearch() {
-    voice.cancel();
+    voice.reset();
     setSearch("");
     searchInput.current?.focus();
-    if (props.searchTerm) applySearch("");
+    if (props.searchTerm) applySearch("", true);
   }
   function submitPickerSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -362,11 +364,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || undefined} aria-describedby={catalogSearchTooLong(search.trim()) ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
-      {search.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+      {search.trim() && !voice.busy && !catalogSearchTooLong(search.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
-    </form>{catalogSearchTooLong(search.trim()) ? <p id={`${id}-search-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</div>}
+    </form>{showSearchLimit ? <p id={`${id}-search-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</div>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link scroll={false} href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} onNavigate={() => requestBrowseResultsFocus(`${withoutBudget.pathname}${withoutBudget.search}#search-results`)} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
@@ -385,9 +387,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
             <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(query.trim()) || undefined} aria-describedby={catalogSearchTooLong(query.trim()) ? `${id}-picker-limit` : undefined} enterKeyHint="search" autoComplete="off"
               onChange={event => { pickerVoice.reset(); setQuery(event.target.value); setPreview(null); }} placeholder="Search categories, retailers, or prizes" />
             {query ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={() => {
-              pickerVoice.cancel(); setQuery(""); setPreview(null); pickerInput.current?.focus();
+              pickerVoice.reset(); setQuery(""); setPreview(null); pickerInput.current?.focus();
             }}>×</button> : null}
-            {query.trim() && !pickerVoice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+            {query.trim() && !pickerVoice.busy && !catalogSearchTooLong(query.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
             <VoiceSearchControl {...pickerVoice} />
           </form>
           {catalogSearchTooLong(query.trim()) ? <p id={`${id}-picker-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}

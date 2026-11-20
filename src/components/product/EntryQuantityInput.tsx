@@ -31,7 +31,7 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, in
         event.preventDefault();
         if (event.key === "Escape") {
           onInvalidDraft(null);
-          event.currentTarget.blur();
+          event.currentTarget.select();
         }
       } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();

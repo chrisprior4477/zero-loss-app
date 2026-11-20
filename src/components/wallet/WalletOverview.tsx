@@ -123,6 +123,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         </article>
       </section>
 
+      {ordersReturnHref && !selectedTransaction?.requested ? <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash /> : null}
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{ordersReturnHref ? <Link className="font-bold text-[#126bbb] hover:underline" href={ordersReturnHref}>← Back to Orders &amp; Fulfillment</Link> : null}</div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}

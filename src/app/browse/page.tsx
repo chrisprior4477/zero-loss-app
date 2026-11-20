@@ -20,7 +20,7 @@ import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls, type BrowsePreviewPr
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowseResultsLink, BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
-import { browseRetailers, filterBrowseProducts, isBrowseSort, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
+import { browseRetailers, filterBrowseProducts, isBrowseSort, isBrowseProductType, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -79,6 +79,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const requestedFilters = parseBrowseFilterState(query, [...retailers, ...browseRetailers(demoProducts), ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const unknownSort = Boolean(query.sort && !isBrowseSort(query.sort));
+  const invalidTicketRange = query.ticketsLeft !== undefined && !ticketsLeft;
+  const invalidType = query.type !== undefined && !isBrowseProductType(query.type);
+  const invalidAvailable = query.available !== undefined && !["1", "0", "true", "false"].includes(query.available);
   const invalidMinimum = query.minValue !== undefined && requestedFilters.minValue === null;
   const invalidMaximum = query.maxValue !== undefined && requestedFilters.maxValue === null;
   const reversedRange = requestedFilters.minValue !== null && requestedFilters.maxValue !== null
@@ -169,7 +172,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
-    if (key === "sort" && unknownSort) continue;
+    if (key === "sort" && unknownSort || key === "type" && invalidType) continue;
+    if (key === "available") {
+      if (filters.availableOnly) searchParamsForView.set("available", "1");
+      continue;
+    }
     if (key === "minValue" && (invalidMinimum || reversedRange) || key === "maxValue" && (invalidMaximum || reversedRange)) continue;
     const value = key === "subcategory" ? subcategory : key === "category" && query.category ? selectedCategory
       : key === "partnerCategory" ? selectedRetailerGroup?.id : key === "retailer" ? filters.retailer : query[key];
@@ -206,6 +213,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   }
   const returnParams = new URLSearchParams(searchParamsForView);
   if (tailBatch || batch > 1) returnParams.set("batch", tailBatch ? tailBatchValue(tailBatch) : String(batch));
+  const normalizedBatch = returnParams.get("batch");
+  const obsoleteBatch = !unavailable && query.batch !== undefined && query.batch !== (normalizedBatch ?? undefined);
+  const normalizeAvailability = query.available !== undefined && query.available !== (filters.availableOnly ? "1" : undefined);
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
   const nextIndex = tailBatch ? tailEnd : visibleProducts.length;
   const nextProduct = products[nextIndex];
@@ -286,6 +296,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
+          {denomination.conflictingBudget ? <p role="status" className="mb-3 text-sm text-amber-200">These price limits do not overlap. Adjust the minimum or maximum in your search.</p> : null}
+          {invalidTicketRange || invalidType || invalidAvailable ? <p role="status" className="mb-3 text-sm text-amber-200">
+            {invalidTicketRange ? "That tickets-left range is unavailable. " : ""}{invalidType ? "That product type is unavailable. " : ""}{invalidAvailable ? "That availability filter is unavailable. " : ""}Your other filters still apply. <Link href={browseReturnHref + "#search-results"} className="underline">Update this link</Link>
+          </p> : null}
           {unknownSort ? <p role="status" className="mb-3 text-sm text-amber-200">That sort is unavailable. {endingSoon ? "Showing the fewest tickets left first." : "Showing featured results."} <Link href={searchHref + "#search-results"} className="underline">Remove unavailable sort</Link></p> : null}
           {unknownCategory ? <p role="status" className="mb-3 text-sm text-amber-200">That category is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove category filter</Link></p> : null}
           {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
@@ -298,7 +312,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {query.partnerCategory && !selectedRetailerGroup ? <p role="status" className="mb-3 text-sm text-amber-200">That retailer group is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Update this link</Link></p> : null}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={subcategory} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
-          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} />
+          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} obsoleteBatch={obsoleteBatch} normalizedBatch={normalizedBatch} invalidTicketRange={invalidTicketRange} invalidType={invalidType} normalizeAvailability={normalizeAvailability} availableOnly={filters.availableOnly} />
           {showGroceryInspiration || (selectedCategory === "groceries" && typeof query.groceryIdea === "string") ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} showShelf={showGroceryInspiration} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">

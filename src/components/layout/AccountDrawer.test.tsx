@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const { path, push } = vi.hoisted(() => ({ path: { value: "/account", search: "" }, push: vi.fn() }));
 vi.mock("@/lib/account/demo-activity-reset-actions", () => ({
@@ -239,6 +239,7 @@ test("Escape belongs to the nested reset confirmation, then to the account menu"
     fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
     const confirmation = await screen.findByRole("dialog", { name: "Reset all demo activity?" });
     expect(confirmation.hasAttribute("open")).toBe(true);
+    await waitFor(() => expect((within(confirmation).getByRole("button", { name: "Keep my demo activity" }) as HTMLButtonElement).disabled).toBe(false));
     const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
     fireEvent(confirmation, escape);
     // The browser must receive Escape to dispatch the top dialog's cancel event.

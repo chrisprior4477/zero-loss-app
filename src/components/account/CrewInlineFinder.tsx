@@ -95,7 +95,11 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
     } catch { setMessage("No contact was selected. You can type their details instead."); returnFromContacts(queryField.current); }
   }
 
-  return <section className={styles.finder} aria-label="Find someone for your Crew">
+  return <section className={styles.finder} aria-label="Find someone for your Crew" onKeyDown={event => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    event.preventDefault();
+    onClose();
+  }}>
     <div className={styles.finderHeading}><div><span className={styles.eyebrow}>MAKE THE CONNECTION</span><h2>Add someone to your Crew</h2></div><button type="button" className={styles.iconButton} aria-label="Close people search" onClick={onClose}>×</button></div>
     {contactMethods.length ? <label>Contact method
       <select ref={contactChoice} value={contactMethods.includes(query) ? query : ""} onChange={event => {

@@ -41,9 +41,10 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   if (!product) redirect(freeEntryHref(params.offering, params.from, parseEntryQuantity(params.quantity), params.share));
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;
   const instructions = freeEntryHref(product.slug, params.from, quantity, params.offering === product.slug ? params.share : undefined);
-  if (params.name !== undefined || params.account !== undefined || params.reference !== undefined || await getAccountContext()) {
+  if (params.name !== undefined || params.account !== undefined || params.reference !== undefined) {
     redirect(`${instructions}#free-entry-intro`);
   }
+  if (await getAccountContext()) redirect(`${instructions}#print-entry-insert`);
   return <FreeEntryPrintSheet offering={product.slug} title={product.title}
     name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001" blankSample
     back={<Link href={`${instructions}#free-entry-intro`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>} />;

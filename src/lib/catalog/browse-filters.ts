@@ -29,6 +29,9 @@ export function browsePrizeValueLabel({ minValue, maxValue }: Pick<BrowseFilterS
 
 const productTypes: BrowseProductType[] = ["all", "pictured", "gift-cards"];
 const sortOptions: BrowseSort[] = ["featured", "fewest-left", "price-low", "value-high"];
+export function isBrowseProductType(value: unknown): value is BrowseProductType {
+  return productTypes.includes(value as BrowseProductType);
+}
 export function isBrowseSort(value: string) {
   return value === "ending-soon" || sortOptions.some(sort => sort === value);
 }
@@ -48,9 +51,9 @@ export function parseBrowseFilterState(query: Record<string, string | string[] |
   const sort = first(query.sort);
   const retailer = partnerDisplayName(first(query.retailer) ?? "");
   return {
-    type: productTypes.includes(type as BrowseProductType) ? type as BrowseProductType : "all",
+    type: isBrowseProductType(type) ? type : "all",
     retailer: retailers.find(name => retailerKey(name) === retailerKey(retailer)) ?? "",
-    availableOnly: first(query.available) === "1",
+    availableOnly: ["1", "true"].includes(first(query.available) ?? ""),
     sort: sortOptions.includes(sort as BrowseSort) ? sort as BrowseSort
       : sort === "ending-soon" || first(query.category) === "ending-soon" ? "fewest-left" : "featured",
     minValue: parsePrizeValue(first(query.minValue)),

@@ -62,7 +62,7 @@ export default async function LiveAccountSection({
   searchParams?: Promise<{ filter?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[]; alerts?: string | string[]; notice?: string | string[] }>;
 }) {
   const { section } = await params;
-  if (!(section in liveSections)) notFound();
+  if (!Object.hasOwn(liveSections, section)) notFound();
   if (section === "results") redirect("/account/entries?filter=completed");
 
   const query = await searchParams;

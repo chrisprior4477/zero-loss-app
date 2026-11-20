@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from "react";
 
-type BrowseFocusTarget = "heading" | "ticket-range" | "first-prize" | "product-request";
+type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
 
 function takeBrowseFocus() {
@@ -22,6 +22,7 @@ function takeBrowseFocus() {
 function focusBrowseResults(target: BrowseFocusTarget) {
   const destination = target === "ticket-range"
     ? document.querySelector<HTMLElement>('[aria-label="Tickets remaining"] [aria-current="true"]')
+    : target === "top-search" ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]')
     : target === "first-prize" ? document.querySelector<HTMLElement>("article[id^=prize-]")
     : target === "product-request" ? document.getElementById("request-a-product") : null;
   const targetElement = destination ?? document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
@@ -43,7 +44,39 @@ export function requestBrowseResultsFocus(href: string, target: BrowseFocusTarge
 }
 
 /** Settle the requested browse destination below the menu's closing animation. */
-export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string; invalidSearch?: boolean }) {
+type ScrollProps = {
+  searchKey: string;
+  mobileBrowseKey?: string;
+  groceryKey?: string;
+  invalidSearch?: boolean;
+  obsoleteBatch?: boolean;
+  normalizedBatch?: string | null;
+  invalidTicketRange?: boolean;
+  invalidType?: boolean;
+  normalizeAvailability?: boolean;
+  availableOnly?: boolean;
+};
+
+export function SearchResultsAutoScroll({
+  searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false,
+  obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly,
+}: ScrollProps) {
+  useLayoutEffect(() => {
+    if (window.location.pathname !== "/browse" || !(obsoleteBatch || invalidTicketRange || invalidType || normalizeAvailability)) return;
+    const url = new URL(window.location.href);
+    if (obsoleteBatch) {
+      if (normalizedBatch) url.searchParams.set("batch", normalizedBatch);
+      else url.searchParams.delete("batch");
+    }
+    if (invalidTicketRange) url.searchParams.delete("ticketsLeft");
+    if (invalidType) url.searchParams.delete("type");
+    if (normalizeAvailability) {
+      if (availableOnly) url.searchParams.set("available", "1");
+      else url.searchParams.delete("available");
+    }
+    if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url.href);
+  }, [mobileBrowseKey, obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly]);
+
   useLayoutEffect(() => {
     let cancelled = false;
     let first = 0;

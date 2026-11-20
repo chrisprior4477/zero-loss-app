@@ -48,10 +48,10 @@ export function FaqExplorer() {
         } catch { /* The direct answer link works without a recorded search. */ }
       }
       const direct = faqItems.find(item => window.location.hash === `#faq-${item.id}`);
-      const destination = saved?.answer || !direct ? saved : {
+      const destination = saved ?? (direct ? {
         href: window.location.href, query: "", category: "all" as const, expanded: [direct.id], collapsed: [],
         scrollY: 0, answer: direct.id, answerTop: 0, answerLink: direct.id === "request-product" ? direct.action.href : undefined,
-      };
+      } : null);
       if (!destination) return;
       setQuery(destination.query); setCategory(destination.category); setExpanded(destination.expanded);
       setCollapsed(destination.collapsed ?? []);

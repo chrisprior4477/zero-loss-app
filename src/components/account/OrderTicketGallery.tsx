@@ -164,7 +164,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
       <dl className={styles.references}>
-        {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
+        {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value.length > 8 ? <><span aria-hidden="true" title={value}>Ending {value.slice(-8).toUpperCase()}</span><span className="sr-only">{value}</span></> : <span>{value}</span>}<button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone, locale)}</time> : "Unavailable"}</dd></div>
       </dl>
       <dl className={styles.detailsAmounts}>
@@ -456,14 +456,15 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
           return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.card} data-order-ticket data-tone={detail.tone}
             inert={!visible} aria-hidden={!visible || undefined}
             style={{ gridColumn: column + 1, gridRow: Math.floor(position / columns) + 1 }}>
-            <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
-            <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
+            <Link href={href} className={styles.art} tabIndex={-1} aria-label={`View ${order.title} reward ending ${order.rewardId.slice(-8).toUpperCase()}`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
+            <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} tabIndex={-1} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
             <dl className={styles.money} data-repeat-purchase={Boolean(purchaseStamp)}>
               <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
               {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
               {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
             </dl>
-            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <span className="sr-only" id={`order-reference-${order.rewardId}`}>{order.title}, reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${order.rewardId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>

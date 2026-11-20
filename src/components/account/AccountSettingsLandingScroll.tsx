@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false, skipForHash }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean; skipForHash?: string }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -52,7 +52,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
     };
     const reveal = (id = window.location.hash.slice(1)) => {
       if (disposed) return;
-      if (restrictToTargetHash && id !== target && id !== landingAlias) {
+      if (skipForHash && window.location.hash === `#${skipForHash}` || restrictToTargetHash && id !== target && id !== landingAlias) {
         interrupted = true;
         cancel();
         return;
@@ -118,6 +118,6 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
+  }, [target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash, skipForHash]);
   return null;
 }

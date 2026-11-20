@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type RewardRedemptionActionsProps = {
   displayCode: string | null;
@@ -25,6 +25,12 @@ export function RewardRedemptionActions({
 }: RewardRedemptionActionsProps) {
   const [message, setMessage] = useState("");
   const [manualCopy, setManualCopy] = useState(false);
+  const manualField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!manualCopy) return;
+    manualField.current?.focus();
+    manualField.current?.select();
+  }, [manualCopy]);
 
   async function copyCode() {
     if (!displayCode) return;
@@ -57,7 +63,7 @@ export function RewardRedemptionActions({
     {message ? <p role="status" className="mt-3 text-center text-xs font-bold text-[#173d5e]">{message}</p> : null}
     {manualCopy && displayCode ? <input aria-label="Gift card number to copy" readOnly value={displayCode.replaceAll(" ", "")}
       className="mt-2 w-full rounded-md border border-[#1878d5] bg-white p-2 text-sm text-[#061630]"
-      ref={input => { if (input) { input.focus(); input.select(); } }} /> : null}
+      ref={manualField} /> : null}
 
     <section aria-labelledby="mobile-wallet-heading" className="mt-4 border-t border-[#0d5688]/20 pt-4 max-[700px]:mt-3 max-[700px]:pt-3">
       <h3 id="mobile-wallet-heading" className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#31536d]">Save for faster checkout</h3>

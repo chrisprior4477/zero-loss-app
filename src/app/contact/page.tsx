@@ -5,6 +5,7 @@ import { ContactHeading } from "@/components/layout/ContactHeading";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SupportForm } from "@/components/support/SupportForm";
 import { ProductSuggestion } from "@/components/help/ProductSuggestion";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { FaqAnswer } from "@/components/help/FaqAnswer";
 import { HelpShortcuts } from "@/components/help/HelpShortcuts";
 import { faqItems } from "@/lib/help/faq";
@@ -36,6 +37,7 @@ export default async function ContactPage() {
   const quickAnswers = faqItems.filter(item => ["open-reward", "purchase-options", "undo-entry", "password"].includes(item.id));
   const panel = "rounded-2xl border border-cyan-300/30 bg-[#052344] p-5 sm:p-7";
   return <PageContainer>
+    <HelpLandingScroll target="" focusAnchorPrefix="faq-" />
     <header><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-300">Let’s get you to the right place</p><ContactHeading /><p className="mt-4 max-w-2xl leading-7 text-white/70">A question, a missing update, or something that doesn’t look right? Find a quick answer or send us a message right here.</p></header>
     <HelpShortcuts activity={account?.activity} />
     <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_1fr]">

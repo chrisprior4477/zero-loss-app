@@ -76,7 +76,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       details.scrollIntoView?.({ block: "center", behavior: "instant" });
     }
   }, [offerDetailsOpen]);
-  const { selected, decline, available, needsReview, handoffId, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
+  const { selected, decline, available, needsReview, handoffId, updateChoice, freezeHandoff, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
   const [card, setCard] = useState<DemoCardToken | null>(() => cards.find(card => card.isDepositDefault)?.token ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? null);
@@ -154,7 +154,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
   const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
-  const rememberSelectionFor = (href: string) => rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
+  const rememberSelectionFor = (href: string) => {
+    rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
+    freezeHandoff();
+  };
   const rememberSelection = () => rememberSelectionFor(walletHref);
   const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
   useLayoutEffect(() => {
@@ -203,12 +206,23 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       if (!draft || draft.choice !== (query.get("choice") ?? "") || draft.checkout !== checkoutDetails
         || typeof draft.savedAt !== "number" || draft.savedAt > Date.now() || Date.now() - draft.savedAt > 86_400_000
         || typeof draft.extra !== "string" || !/^\d+$/.test(draft.extra)) return;
-      sessionStorage.removeItem(extraDraftKey);
       // This restores an unsubmitted amount. The current shortfall and the user's approval remain separate.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExtra(draft.extra);
     } catch { /* Add funds remains available without a draft. */ }
   }, [checkoutDetails, extraDraftKey]);
+  function keepExtra(next: string, choice: string, savedAt: number) {
+    try {
+      if (!next || !/^\d+$/.test(next)) sessionStorage.removeItem(extraDraftKey);
+      else sessionStorage.setItem(extraDraftKey, JSON.stringify({ choice, checkout: checkoutDetails, extra: next, savedAt }));
+    } catch { /* The amount remains editable in this tab. */ }
+  }
+  function changeExtra(next: string, savedAt: number) {
+    setExtra(next);
+    setAcknowledged(false);
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("resume") === "wallet") keepExtra(next, query.get("choice") ?? "", savedAt);
+  }
   const [approvedDeposit, setApprovedDeposit] = useState<string | null>(null);
   const depositApproved = acknowledged && approvedDeposit === depositDetails;
   if (acknowledged && !depositApproved) {
@@ -236,13 +250,15 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const closeHref = legacyDeclineReturnHref ?? `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const close = useCallback(() => {
     if (inFlight.current) return;
+    try { sessionStorage.removeItem(extraDraftKey); } catch { /* No stored draft to clear. */ }
+    setExtra("");
     setOverlay(null); setDeclineDraft(null); setPurchaseRequest(null); setAcknowledged(false);
     try {
       if (JSON.parse(sessionStorage.getItem(attemptKey) ?? "null")?.review) sessionStorage.removeItem(attemptKey);
     } catch { /* Closing still works. */ }
     // Old saved decline links now open this same ticket, and cancel returns here.
     if (initiallyConfirmDecline) router.replace(closeHref, { scroll: false });
-  }, [initiallyConfirmDecline, router, closeHref, attemptKey]);
+  }, [initiallyConfirmDecline, router, closeHref, attemptKey, extraDraftKey]);
   const expirePurchase = useCallback(() => {
     if (inFlight.current) return;
     close();
@@ -285,6 +301,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       if ((result.status === "succeeded" || result.status === "already_credited") && "balanceCents" in result) {
         saveAttempt(null);
         setBalance(result.balanceCents); setExtra(""); setAcknowledged(false);
+        try { sessionStorage.removeItem(extraDraftKey); } catch { /* The deposit is already confirmed. */ }
         setDepositAttempt(undefined); setRecovery(null);
         setNotice(`${usd(original.amount)} added to your wallet. Confirm the purchase separately.`);
         if (!retry && result.balanceCents >= total) {
@@ -500,13 +517,11 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         <div className={styles.cardChoice}><FundingCardPicker nestedHistory tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); setNotice(""); }} /></div>
         {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
           const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId);
-          if (href) rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
-          if (validDeposit && extra) try {
-            sessionStorage.setItem(extraDraftKey, JSON.stringify({ choice: handoffId ?? "", checkout: checkoutDetails, extra, savedAt: Date.now() }));
-          } catch { /* The card editor is still reachable. */ }
+          if (href) rememberSelectionFor(href);
+          keepExtra(validDeposit ? extra : "", handoffId ?? "", Date.now());
         }}>Add a card in your wallet</Link> : null}
-        <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => { setExtra(value ? String(value) : "");setAcknowledged(false); }}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
-        <div className={styles.extraEquation}><h3>Add a different amount</h3><div><span><small>Needed</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => { setExtra(event.target.value.replace(/^\$/, "")); setAcknowledged(false); }} /></label></div></div>
+        <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => changeExtra(value ? String(value) : "", Date.now())}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
+        <div className={styles.extraEquation}><h3>Add a different amount</h3><div><span><small>Needed</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => changeExtra(event.target.value.replace(/^\$/, ""), Date.now())} /></label></div></div>
         {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{extraCents > 0 ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}
         {notice ? <p role="status" className={styles.small}>{notice}</p> : null}
         <label className={styles.check}><input type="checkbox" checked={depositApproved} disabled={locked || !selectedCard} onChange={event => { setApprovedDeposit(event.target.checked ? depositDetails : null); setAcknowledged(event.target.checked); }} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>

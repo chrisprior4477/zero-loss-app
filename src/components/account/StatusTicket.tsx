@@ -10,6 +10,7 @@ type StatusTicketProps = {
   actionHref?: string;
   actionDisabled?: boolean;
   onNavigate?: () => void;
+  replace?: boolean;
   ariaLabel?: string;
   valueTestId?: string;
   tooltip?: string;
@@ -17,7 +18,7 @@ type StatusTicketProps = {
 };
 
 /** The approved ticket shape, with separate wallet actions when funding is unavailable. */
-export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, ariaLabel, valueTestId, tooltip, size = "default" }: StatusTicketProps) {
+export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, replace = Boolean(onNavigate), ariaLabel, valueTestId, tooltip, size = "default" }: StatusTicketProps) {
   const information = (
     <>
         <span className={styles.iconPanel} aria-hidden="true">
@@ -57,21 +58,21 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
   if (variant === "wallet" && (actionHref || actionDisabled)) {
     return (
       <article className={className} aria-label={label} data-size={size}>
-        <Link href={href} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
+        <Link href={href} replace={replace} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
           {information}
         </Link>
         <span className={styles.perforation} aria-hidden="true" />
         {actionDisabled ? (
           <button type="button" disabled title="Funding is not available" className={`${styles.action} ${styles.disabledAction}`}><span>{action}</span>{arrow}</button>
         ) : (
-          <Link href={actionHref!} replace={Boolean(onNavigate)} onClick={onNavigate} className={styles.action}><span>{action}</span>{arrow}</Link>
+          <Link href={actionHref!} replace={replace} onClick={onNavigate} className={styles.action}><span>{action}</span>{arrow}</Link>
         )}
       </article>
     );
   }
 
   return (
-    <Link className={className} href={href} replace={Boolean(onNavigate)} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${actionLabel}`} data-size={size}>
+    <Link className={className} href={href} replace={replace} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${actionLabel}`} data-size={size}>
       <span className={styles.information}>{information}</span>
       <span className={styles.perforation} aria-hidden="true" />
       <span className={styles.action}>

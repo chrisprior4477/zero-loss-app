@@ -35,16 +35,17 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           const element = document.getElementById(destinationId);
           if (!element) return;
           if (anchors.length > 1 || destinationId !== id) window.history.replaceState(window.history.state, "", `#${destinationId}`);
+          if (prefixed && element instanceof HTMLDetailsElement) element.open = true;
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
           if ((focusReport && id === "report-problem") || (anchor && id === focusAnchor) || prefixed) {
-            (element.querySelector<HTMLElement>("h2[tabindex]") ?? element).focus({ preventScroll: true });
+            (element.querySelector<HTMLElement>("summary, h2[tabindex]") ?? element).focus({ preventScroll: true });
           }
         });
       });
     };
     // Font metrics can rewrap the heading/navigation after hydration. Measure only
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
-    if (focusAnchor && window.location.hash === `#${focusAnchor}`) reveal();
+    if (focusAnchor && window.location.hash === `#${focusAnchor}` || focusAnchorPrefix && window.location.hash.startsWith(`#${focusAnchorPrefix}`)) reveal();
     if (document.fonts) void document.fonts.ready.then(reveal);
     else reveal();
     const navigate = () => { interrupted = false; reveal(); };

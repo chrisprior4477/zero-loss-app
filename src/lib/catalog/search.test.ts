@@ -10,6 +10,26 @@ describe("catalog search", () => {
     expect(withoutAmazon.length).toBeGreaterThan(0);
     expect(withoutAmazon.every(item => item.value < 75 && item.retailer !== "Amazon")).toBe(true);
   });
+  test("keeps comparisons, retailer exclusions, and entry prices separate", () => {
+    const range = searchCatalog(demoProducts, "gift cards >=50 and <=75");
+    expect(range.map(product => product.slug)).toContain("amazon-75-gift-card");
+    expect(range.every(product => product.value >= 50 && product.value <= 75)).toBe(true);
+    expect(searchCatalog(demoProducts, "gift cards over $100 and below $50")).toEqual([]);
+    expect(searchCatalog(demoProducts, "$75 Amazon gift card not $50").map(product => product.slug)).toEqual(["amazon-75-gift-card"]);
+    const excluding = searchCatalog(demoProducts, "$75 gift cards from anybody but Walmart");
+    expect(excluding.map(product => product.slug)).toContain("amazon-75-gift-card");
+    expect(excluding.every(product => product.value === 75 && !product.retailer.startsWith("Walmart"))).toBe(true);
+    expect(searchCatalog(demoProducts, "Nike $1 per entry").map(product => product.slug)).toContain("nike-court-shot-shoes");
+  });
+
+  test.each(["25 dollar Amazon gift card", "Amazon gift card 25 dollars", "Amazon 25 USD gift card"])("extracts the currency words in %s", query => {
+    expect(searchCatalog(demoProducts, query).map(product => product.slug)).toEqual(["amazon-25-gift-card"]);
+  });
+
+  test("accepts thru in an inclusive gift-card price range", () => {
+    expect(searchCatalog(demoProducts, "Walmart gift cards from $25 thru $75").map(product => product.value).sort()).toEqual([25, 50, 75]);
+  });
+
   test("keeps each alternative independent and supports explicit gift-card exclusions", () => {
     const list = searchCatalog(demoProducts, "TV, monitor, or headphones").map(item => item.slug);
     expect(list).toEqual(expect.arrayContaining(["lg-oled-c6-65-tv", "sony-wh-1000xm5-headphones"]));

@@ -47,6 +47,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const instructionScroll = useRef<number | null>(null);
   const latestDraft = useRef<PrintDraft | null>(null);
   const cleanAccountReference = accountReference.trim();
+  const validAccountReference = /^DEMO-[0-9A-Z]{3,12}$/i.test(cleanAccountReference);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${cleanAccountReference}`), [cleanAccountReference, offeringSlug]);
   const flipLabel = addressSide ? "Show artwork side of postcard" : "Show address and entry details";
 
@@ -133,8 +134,8 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   }, [printPreview]);
 
   if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
-    name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={accountReference.trim().slice(0, 80) || "DEMO ACCOUNT NEEDED"}
-    reference={reference} blankSample={!name.trim() || !accountReference.trim()} back={<button type="button" ref={backButton} onClick={closePrintPreview}
+    name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={validAccountReference ? cleanAccountReference : "VALID DEMO ACCOUNT NEEDED"}
+    reference={reference} blankSample={!name.trim() || !validAccountReference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
       className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
 
   return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
@@ -143,6 +144,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
       <label className="text-sm font-bold">Your full legal name<input value={name} maxLength={80} onChange={(event) => updateDraft(event.target.value, accountReference)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
       <div><label className="block text-sm font-bold">Zero Loss account reference<input value={accountReference} maxLength={80} onChange={(event) => updateDraft(name, event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+        {cleanAccountReference && !validAccountReference ? <p role="status" className="mt-2 text-sm text-amber-200">Enter a valid demo account reference, or sign in to fill it automatically.</p> : null}
         {signInHref ? <Link className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300 underline" href={signInHref}>Sign in to fill your account reference</Link> : null}
         {(name !== initialLegalName || accountReference !== initialAccountReference) && <button type="button" className="mt-1 min-h-11 text-sm font-bold text-cyan-300 underline" onClick={() => updateDraft(initialLegalName, initialAccountReference)}>Clear print edits</button>}
       </div>

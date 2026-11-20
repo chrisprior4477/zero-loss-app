@@ -10,13 +10,14 @@ const WINDOW_SPAN = 200;
 const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const windowStart = (amount: number) => Math.max(-1, Math.min(MAX_PRIZE_VALUE - WINDOW_SPAN, amount - WINDOW_SPAN / 2));
 
-function DollarWheel({ label, unsetLabel, initial, onSave, onCancel }: {
-  label: string; unsetLabel: string; initial: number; onSave: (value: string) => void; onCancel: () => void;
+function DollarWheel({ label, unsetLabel, initial, retainedValue, onSave, onCancel }: {
+  label: string; unsetLabel: string; initial: number; retainedValue?: string; onSave: (value: string) => void; onCancel: () => void;
 }) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const wheel = useRef<HTMLDivElement>(null);
   const position = useRef(initial);
+  const touched = useRef(false);
   const [amount, setAmount] = useState(initial);
   const [start, setStart] = useState(() => windowStart(initial));
 
@@ -32,6 +33,7 @@ function DollarWheel({ label, unsetLabel, initial, onSave, onCancel }: {
   }, [start]);
 
   function select(next: number) {
+    touched.current = true;
     const value = Math.max(-1, Math.min(MAX_PRIZE_VALUE, next));
     position.current = value;
     setAmount(value);
@@ -48,7 +50,7 @@ function DollarWheel({ label, unsetLabel, initial, onSave, onCancel }: {
   }
   function saveVisibleAmount(element: HTMLDivElement) {
     const value = visibleAmount(element);
-    onSave(value < 0 ? "" : String(value));
+    onSave(!touched.current && value === initial && retainedValue !== undefined ? retainedValue : value < 0 ? "" : String(value));
   }
 
   return <dialog ref={dialog} aria-labelledby={id} className={styles.dialog}
@@ -116,7 +118,7 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
       <span id={`${id}-value`}>{value && Number.isFinite(amount) ? usable ? formatter.format(amount) : `$${value}` : unsetLabel}</span>
       <span aria-hidden="true">⌄</span>
     </button>
-    {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={value && usable ? amount : -1} onCancel={close}
+    {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={value && usable ? amount : -1} retainedValue={value && !usable && Number.isFinite(amount) ? value : undefined} onCancel={close}
       onSave={next => { onActivate(); onChange(next); close(); }} /> : null}
   </div>;
 }

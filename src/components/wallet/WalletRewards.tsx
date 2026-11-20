@@ -103,8 +103,9 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const missingHistoryCard = Boolean(focusHistoryCard && historyTarget === "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : undefined} settleAfterNavigation allScreens />
+    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
+    {!expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" focusTarget="history-heading" allScreens restrictToTargetHash /> : null}
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
@@ -117,7 +118,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
         <section id="ready-rewards" className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
-          <div className={overview.sectionHeading}><h2 id="ready-heading">Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p>{state.source !== "unavailable" && ready.length > 0 ? <p><strong>{readyToUseCount} ready to use · {toClaimCount} to claim</strong></p> : null}</div>
+          <div className={overview.sectionHeading}><h2 id="ready-heading" tabIndex={-1}>Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p>{state.source !== "unavailable" && ready.length > 0 ? <p><strong>{readyToUseCount} ready to use · {toClaimCount} to claim</strong></p> : null}</div>
           {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
             <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
@@ -156,7 +157,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
         {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
         {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
-        <div className={overview.historyHeading}><div><h2 id="history-heading">{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>Your complete reward activity, from your account records.</p> : null}</div>
+        <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>Your complete reward activity, from your account records.</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
             <WalletRewardLink href="/account/wallet#reward-history" aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
             <WalletRewardLink href="/account/wallet?rewards=ready&rewardHistory=1#reward-history" aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
@@ -234,7 +235,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
             ? { title: "Issuance needs attention", message: "Your gift card could not be issued. Contact support to review this reward." }
             : !item.rewardId && !isPreview
               ? { title: "Not issued yet", message: "No gift card or redeemable barcode has been issued." }
-              : { title: "Reward temporarily unavailable", message: "We couldn’t load your saved gift-card number. Refresh to try again, or contact support if this continues." };
+              : { title: "Reward temporarily unavailable", message: "We couldn’t load your saved gift-card number. Try again, or contact support if this continues." };
   const statusLabel = rewardReady ? (item.rewardClaimedAt ? "Claimed — ready to use" : "Demo ready") : canClaim ? "Ready to claim" : notice.title;
   const claimDeadline = rewardDate(item.rewardClaimExpiresAt, timeZone, locale, true);
   const detailRows = [
@@ -304,7 +305,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
                 <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
-                <div><p>{notice.title}</p><span>{notice.message}</span><Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+                <div><p>{notice.title}</p><span>{notice.message}</span>{available && claimed && claimCheckHref ? <a href={claimCheckHref} className="mr-4 mt-3 inline-block font-bold text-[#075b8c] underline">Try this reward again</a> : null}<Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} checkHref={claimCheckHref} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}

@@ -11,8 +11,8 @@ function consumeHistoryStep(key: string, id: string, href: string) {
 }
 
 /** Give a transient review its own history step without changing its URL. */
-export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false) {
-  const key = nested ? stateKey + "Nested" : stateKey;
+export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false, scope?: string) {
+  const key = scope ? `${stateKey}-${scope}` : nested ? stateKey + "Nested" : stateKey;
   const marker = useRef<{ id: string; href: string } | null>(null);
   const closeOnBack = useEffectEvent(() => {
     const keepOpen = blocked || onClose() === true;

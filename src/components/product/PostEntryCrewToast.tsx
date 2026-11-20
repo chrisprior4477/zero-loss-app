@@ -133,10 +133,10 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
     return () => { cancelled = true; };
   }, [shareSlug, shareGroupId, singleLinkAudience, linkRetry]);
-  useDialogBack(focusOnOpen || step !== "home", () => {
+  useDialogBack(true, () => {
     if (history.current.length) { back(); return true; }
     onClose();
-  }, busy, true);
+  }, busy, true, false, "product-sharing");
   const url = origin && linkReady ? productShareUrl(origin, item.slug, shareToken) : "";
   const text = productShareText(item.title, item);
   const body = url ? `${text}\n${url}` : "";

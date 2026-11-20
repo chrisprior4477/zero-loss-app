@@ -32,6 +32,10 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
         const saved = JSON.parse(raw);
         if (typeof saved.email === "string" && saved.email.length <= 254 && saved.destination === destination && saved.expires >= Date.now()) {
           setEmail(current => current || saved.email);
+          if (emailField.current && document.activeElement === document.body) {
+            emailField.current.focus({ preventScroll: true });
+            revealBelowHeader(emailField.current);
+          }
         }
       } catch { /* The visitor can type their address directly. */ }
     });
