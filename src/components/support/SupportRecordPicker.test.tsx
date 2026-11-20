@@ -40,3 +40,28 @@ test("Back dismisses the attachment picker and preserves the unfinished report",
   await screen.findByRole("dialog", { name: "Choose a record" });
   expect(screen.getByRole("textbox", { name: "Report", hidden: true })).toHaveProperty("value", "An unfinished report");
 });
+
+test("immediate Forward reopens the picker before the native close event arrives", async () => {
+  window.history.replaceState(null, "", "/support#report-problem");
+  vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(function (this: HTMLDialogElement) {
+    this.open = false;
+  });
+  render(<SupportRecordPicker onChange={vi.fn()} timeZone="America/New_York" disabled={false} />);
+  fireEvent.click(screen.getByRole("button", { name: /Attach an order/ }));
+  const dialog = await screen.findByRole("dialog", { name: "Choose a record" });
+  fireEvent.click(screen.getByRole("button", { name: "Wallet transactions" }));
+  const openHistory = window.history.state;
+
+  act(() => {
+    window.history.replaceState(null, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.history.replaceState(openHistory, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    dialog.dispatchEvent(new Event("close"));
+  });
+
+  expect(dialog).toHaveProperty("open", true);
+  expect(screen.getByRole("button", { name: "Wallet transactions" }).getAttribute("aria-pressed")).toBe("true");
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close record picker" }));
+  await screen.findByText("No wallet transactions on this page.");
+});

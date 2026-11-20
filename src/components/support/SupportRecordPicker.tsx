@@ -4,6 +4,7 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import help from "@/components/help/help-tickets.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { loadSupportRecords } from "@/lib/support/record-actions";
@@ -88,6 +89,8 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   useDialogBack(open, () => {
     restoreOnForward.current = true;
     dialog.current?.close();
+    // Native close events can arrive after the next history traversal.
+    flushSync(() => setOpen(false));
   }, false, true, false, headingId, () => {
     if (!restoreOnForward.current) return;
     restoreOnForward.current = false;
@@ -108,7 +111,8 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
         trigger.current?.focus({ preventScroll: true });
       }}>Remove</button> : null}
     </div>
-    <dialog ref={dialog} aria-labelledby={headingId} className={styles.dialog} onClose={() => {
+    <dialog ref={dialog} aria-labelledby={headingId} className={styles.dialog} onClose={event => {
+      if (event.currentTarget.open) return;
       request.current++;
       setOpen(false);
       restoreDialogTrigger(trigger.current, true);
