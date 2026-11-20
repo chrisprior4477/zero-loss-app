@@ -43,7 +43,11 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
         <p className={styles.description}>{current.description}</p>
         <div className={styles.actions}>
           <button type="button" disabled={pending || !changed} onClick={save}>{pending ? "Saving…" : changed ? "Keep this layout" : "Your saved layout"}</button>
-          <button type="button" disabled={pending} onClick={() => { cancel(); clearMessage(); setPreviewChoice(0); }}>{changed ? "Cancel preview" : "Close preview"}</button>
+          <button type="button" disabled={pending} onClick={event => {
+            const section = event.currentTarget.closest("section");
+            cancel(); clearMessage(); setPreviewChoice(0);
+            requestAnimationFrame(() => section?.querySelector<HTMLInputElement>('input[name="menu-layout"]:checked')?.focus({ preventScroll: true }));
+          }}>{changed ? "Cancel preview" : "Close preview"}</button>
         </div>
         {!message ? <p className={styles.status} role="status">{changed ? "You’re trying this style. Keep it when you’re ready." : "You can come back and change this anytime."}</p> : null}
         </> : null}

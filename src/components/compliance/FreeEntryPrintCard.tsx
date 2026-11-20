@@ -144,7 +144,13 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
 
     <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={flipLabel}>{addressSide ? "Show artwork" : "Show address and entry details"}</button></div>
 
-    <div className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] text-left [container-type:inline-size] print:pointer-events-none print:mt-0 print:max-w-none">
+    <div onKeyDown={event => {
+      if (event.key !== "Escape" || !demoNoteVisible || addressSide) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDemoNoteVisible(false);
+      demoNoteTrigger.current?.focus({ preventScroll: true });
+    }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] text-left [container-type:inline-size] print:pointer-events-none print:mt-0 print:max-w-none">
       <div className="amo-postcard-artwork">
         <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
           <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden border border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:shadow-none">
@@ -170,7 +176,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
             </span>
           </span>
         </span>
-        <button ref={postcard} type="button" aria-label={flipLabel} onClick={() => setAddressSide(side => !side)} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
+        <button ref={postcard} type="button" aria-label={addressSide ? "Flip postcard to artwork" : "Flip postcard to the mailing side"} onClick={() => setAddressSide(side => !side)} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
         {!addressSide && <button ref={demoNoteTrigger} type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
         {demoNoteVisible && !addressSide && <span role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
       </div>

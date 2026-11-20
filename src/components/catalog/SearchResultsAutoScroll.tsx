@@ -69,7 +69,8 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
         ? document.getElementById(hashId) : null;
       const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
-      const target = window.location.hash === "#retailer-categories-heading"
+      const target = window.location.hash === "#browse-more-prizes" ? "browse-more-prizes"
+        : window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
         : footerHeading ? footerHeading
         : window.location.hash === "#ending-soon-search-again" && document.getElementById("ending-soon-search-again") ? "ending-soon-search-again"
@@ -82,7 +83,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       cancelled = false;
       let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
-      const focusTarget = footerField ?? invalidSearchInput ?? (missingPrize ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const focusTarget = footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
@@ -103,6 +104,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
     };
     start();
     window.addEventListener("hashchange", start);
+    window.addEventListener("popstate", start);
     const stop = () => { cancelled = true; };
     window.addEventListener("pointerdown", stop, { passive: true });
     window.addEventListener("wheel", stop, { passive: true });
@@ -111,6 +113,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
     return () => {
       cancelled = true; cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       window.removeEventListener("hashchange", start);
+      window.removeEventListener("popstate", start);
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };

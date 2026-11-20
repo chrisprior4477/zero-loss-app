@@ -43,7 +43,7 @@ export function SignOutEverywhereControl() {
   useEffect(() => { if (!pending && state.status === "error") feedback.current?.focus(); }, [pending, state]);
 
   return <details ref={review} className={styles.signOutDisclosure} onToggle={event => setReviewOpen(event.currentTarget.open)}>
-    <summary>Sign out everywhere</summary>
+    <summary aria-disabled={pending || undefined} onClick={event => { if (pending) event.preventDefault(); }}>Sign out everywhere</summary>
     <div className={styles.signOutConfirmation}>
       <p>This signs you out here and revokes sign-in sessions on your other devices. An already-issued access token may remain valid until it expires.</p>
       <form action={action}>

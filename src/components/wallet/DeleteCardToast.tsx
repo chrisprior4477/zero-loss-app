@@ -6,12 +6,14 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./wallet-payments.module.css";
 
-export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }: {
+export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mobileCard }: {
   busy: boolean; message?: string; onUndo: () => void; onDelete: () => void;
   mobileCard?: string;
+  onReview?: () => Promise<boolean>;
 }) {
   const description = useId();
   const notice = useRef<HTMLParagraphElement>(null);
+  const confirm = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (busy || !message) return;
     const error = notice.current;
@@ -42,11 +44,13 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }:
       {!needsReview ? <EntryUndoCountdown seconds={seconds} /> : null}
     </div>
     {message ? <p ref={notice} tabIndex={-1} role="alert">{message}</p> : null}
-    <div className={styles.deleteToastActions}>{needsReview ? <button type="button" disabled={busy} onClick={() => {
+    <div className={styles.deleteToastActions}>{needsReview ? <button type="button" disabled={busy} onClick={async () => {
+      if (onReview && !await onReview()) return;
       setReviewedMessage(message);
       setDeadline(Date.now() + 30_000);
       setSeconds(30);
-    }}>Review deletion again</button> : <button type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else { setReviewedMessage(undefined); onDelete(); } }}>{busy ? "Deleting…" : "Yes, delete"}</button>}<button type="button" disabled={busy} onClick={onUndo}>Undo</button></div>
+      requestAnimationFrame(() => confirm.current?.focus());
+    }}>Review deletion again</button> : <button ref={confirm} type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else { setReviewedMessage(undefined); onDelete(); } }}>{busy ? "Deleting…" : "Yes, delete"}</button>}<button type="button" disabled={busy} onClick={onUndo}>Undo</button></div>
   </>;
   if (mobileCard) return <FundingNoticeDialog label="Delete saved card" description={description}
     closeLabel="Keep saved card" onClose={onUndo} tone="delete" busy={busy} revealTrigger>

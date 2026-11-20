@@ -11,7 +11,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
 import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
-import { containDialogTab } from "./dialog-keyboard";
+import { containDialogTab, restoreDialogTrigger } from "./dialog-keyboard";
 import { useDialogBack } from "./useDialogBack";
 import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
 import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
@@ -414,7 +414,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
     if (anchor) requestAnimationFrame(() => {
       if (detailsOrigin.current !== anchor) return;
       detailsOrigin.current = null;
-      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+      restoreDialogTrigger(anchor.isConnected ? anchor : Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-details]") ?? [])[0], true);
     });
     rememberPage(opened?.id ?? pageAnchor, null);
   }

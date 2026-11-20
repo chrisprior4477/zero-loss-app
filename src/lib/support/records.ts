@@ -10,7 +10,7 @@ export type SupportRecord = {
   attachable?: boolean;
   verifyAgain?: boolean;
 };
-export type SupportRecordPage = { records: SupportRecord[]; more: boolean } | { error: string };
+export type SupportRecordPage = { records: SupportRecord[]; more: boolean; page?: number } | { error: string };
 
 export const supportOrderNumber = /^ord_[\da-f]{1,124}$/i;
 export const supportTransactionId = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;

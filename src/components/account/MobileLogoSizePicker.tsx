@@ -24,7 +24,11 @@ export function MobileLogoSizePicker() {
     </fieldset>
     <div className={styles.actions}>
       <button type="button" className={ticket.quickSave} disabled={choice.pending || !changed} onClick={choice.save}>{choice.pending ? "Saving…" : "Keep this size"}</button>
-      {changed ? <button type="button" className={styles.cancel} disabled={choice.pending} onClick={choice.cancel}>Cancel preview</button> : null}
+      {changed ? <button type="button" className={styles.cancel} disabled={choice.pending} onClick={event => {
+        const section = event.currentTarget.closest("section");
+        choice.cancel();
+        requestAnimationFrame(() => section?.querySelector<HTMLInputElement>('input[name="mobile-logo-size"]:checked')?.focus({ preventScroll: true }));
+      }}>Cancel preview</button> : null}
     </div>
     {choice.message ? <p className={ticket.status} data-error={choice.message.error} role={choice.message.error ? "alert" : "status"}>{choice.message.text}</p> : null}
   </section>;

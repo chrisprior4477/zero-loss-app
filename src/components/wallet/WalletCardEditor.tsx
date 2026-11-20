@@ -28,7 +28,7 @@ export function revealWalletSection(id: string, mobileId = id === "add-funds" ? 
 }
 
 /** Both entry points save through the existing server action; visible card details never leave the browser. */
-export function WalletCardEditor({ token, savedCard, displayName = "", initialArtwork, depositLabel, disabled = false, onSaved, onCancel }: {
+export function WalletCardEditor({ token, savedCard, displayName = "", initialArtwork, depositLabel, disabled = false, onSaved, onCancel, onAddCard }: {
   token: DemoCardToken;
   savedCard?: DemoCard;
   displayName?: string;
@@ -37,6 +37,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   disabled?: boolean;
   onSaved: (card: DemoCard, source?: "camera") => void;
   onCancel: () => void;
+  onAddCard?: () => void;
 }) {
   const router = useRouter();
   const fixture = demoCardFixture(token)!;
@@ -96,7 +97,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     <h3 id="wallet-card-editor-title" tabIndex={-1}>{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
-      <button type="button" className={styles.primary} disabled={disabled || pending} onClick={() => nameInput.current?.focus()}>Add Card</button>
+      {!savedCard || onAddCard ? <button type="button" className={styles.primary} disabled={disabled || pending} onClick={onAddCard ?? (() => nameInput.current?.focus())}>Add Card</button> : null}
       <MobileCardCamera token={savedCard?.token ?? enteredFixture?.token ?? token} savedCard={savedCard} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={card => completeSave(card, "camera")} />
     </div>
     <form noValidate aria-label="Save payment method" onChange={() => { setError(""); setInvalidField(undefined); setShowSaveResult(false); }} onSubmit={event => {
@@ -105,7 +106,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       setError("");
       if (savedCard && enteredFixture && enteredFixture.token !== savedCard.token) {
         setInvalidField("number");
-        setError("This editor updates the selected card. Use Add Card to save a different sample card.");
+        setError(onAddCard ? "This editor updates the selected card. Use Add Card to save a different sample card." : "This editor updates the selected card. Go back to the saved cards to choose a different sample.");
         numberInput.current?.focus();
         return;
       }

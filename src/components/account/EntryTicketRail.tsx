@@ -139,7 +139,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
   }
 
   return <>
-  <section ref={railRef} id="saved-entry-rail" className={styles.rail} aria-label={`Your separate entries for ${title}`}>
+  <section ref={railRef} id="saved-entry-rail" tabIndex={-1} className={styles.rail} aria-label={`Your separate entries for ${title}`}>
     <div className={styles.header}>
       <h2>Your <span className={styles.entryRailCount}>{count}</span> {count === 1 ? "entry" : "separate entries"}</h2>
       {count > 1 ? <p>Scroll the number or tap a ticket to view an entry.</p> : null}

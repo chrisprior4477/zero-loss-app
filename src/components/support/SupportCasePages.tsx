@@ -90,6 +90,6 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
       <span role="status">Page {page + 1}</span>
       {page < last ? <Link href={href(page + 1)} onNavigate={event => { event.preventDefault(); go(page + 1); }}>Older cases →</Link> : null}
     </nav> : null}
-    <a className="mt-3 inline-block font-bold text-cyan-200 underline" href={href(0)}>Load latest cases</a>
+    <a className="mt-3 inline-block font-bold text-[#00568f] underline" href={href(0)}>Load latest cases</a>
   </div>;
 }

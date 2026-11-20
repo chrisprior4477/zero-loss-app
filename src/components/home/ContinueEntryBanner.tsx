@@ -35,5 +35,13 @@ export function ContinueEntryBanner({ products }: { products: ReminderProduct[] 
 
   if (!reminder) return null;
 
-  return <ShoppingReminder {...reminder} onDismiss={() => { clearEntryIntent(); setReminder(null); }} />;
+  return <ShoppingReminder {...reminder} onDismiss={() => {
+    clearEntryIntent();
+    setReminder(null);
+    const heading = document.querySelector<HTMLElement>("main h1");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }} />;
 }

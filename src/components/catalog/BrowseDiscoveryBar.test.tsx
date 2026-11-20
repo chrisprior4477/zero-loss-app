@@ -47,7 +47,7 @@ test("Categories voice search can clear its draft or submit a product search wit
 test("the wide picker expands one category and refines its own results with the current search", () => {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
   render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} searchTerm="Sony"
-    filters={{ ...props.filters, maxValue: 25 }}
+    browseHref="/browse?category=electronics&maxValue=25&q=Sony" filters={{ ...props.filters, maxValue: 25 }}
     previews={{ "everyday-items": [{ slug: "sample-sony", title: "Sony Starter Kit", image: "/catalog/sample.png", remaining: 12 }] }} />);
   fireEvent.click(screen.getByRole("button", { name: "Categories" }));
   const picker = within(screen.getByRole("dialog"));
@@ -56,7 +56,7 @@ test("the wide picker expands one category and refines its own results with the 
   const preview = within(picker.getByRole("region", { name: "Everyday Items product preview" }));
   const opening = preview.getByRole("link", { name: /Sony Starter Kit/ }).getAttribute("href");
   expect(new URL(opening!, "https://example.test").searchParams.get("from"))
-    .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#prize-sample-sony");
+    .toBe("/browse?category=electronics&maxValue=25&q=Sony#category-preview~top~everyday-items~sample-sony");
   expect(preview.getByRole("link", { name: /See all Everyday Items/ }).getAttribute("href"))
     .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#search-results");
   expect(navigation.replace).not.toHaveBeenCalled();

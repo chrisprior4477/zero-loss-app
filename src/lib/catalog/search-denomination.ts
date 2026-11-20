@@ -167,10 +167,11 @@ export function searchDenominations(query: string, products: readonly { retailer
   const exactOnly = !budget && Boolean(exact?.values.size);
   const { text, values } = range
     ? { text: range.text, values: new Set<number>() }
-    : exactOnly && exact ? exact : extractValues(normalized, products);
+    : exactOnly && exact ? exact : extractValues(/\bgift card\b/i.test(normalized) ? exactPhrase : normalized, products);
   const merchantWords = normalizeSearch(text).replace(/\b(?:gift card|for|from|at|a|an|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const merchant = (values.size || budget) && merchantWords
-    ? products.find(product => retailerName(product.retailer) === merchantWords)?.retailer
+    ? products.find(product => retailerName(product.retailer) === merchantWords
+      || (merchantWords === "apple" && retailerName(product.retailer) === "apple gift card"))?.retailer
     : undefined;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   return { text: keywords, values, budget, exactOnly, merchant: merchant ? normalizeSearch(merchant) : null };

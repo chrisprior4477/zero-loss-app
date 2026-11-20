@@ -7,15 +7,16 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { createContext, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
 
 import { businessIdentityFields, businessSignupPath, defaultBusinessListingCapacity, invalidBusinessCounts, invalidBusinessListings, invalidBusinessOfferFields, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
-import { downloadMaterial, materialTypes, stageMaterials } from "@/lib/business/materials";
+import { downloadMaterial, isListingPhoto, materialTypes, stageMaterials } from "@/lib/business/materials";
+import { formatUsdFromCents } from "@/lib/wallet/money";
 import { useBusinessApplication } from "./useBusinessApplication";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-type Editor = { draft: BusinessDraft; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
+type Editor = { draft: BusinessDraft; staging: boolean; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
 const BusinessEditor = createContext<Editor | null>(null);
 function useEditor() {
   const editor = useContext(BusinessEditor);
@@ -183,9 +184,20 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
 
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
-  const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
+  const { draft, setDraft: writeDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
     guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields } = useBusinessApplication(owner, record, restoreListings);
   const { values, step } = draft;
+  const setDraft = useCallback<Dispatch<SetStateAction<BusinessDraft>>>(update => {
+    writeDraft(current => {
+      const next = typeof update === "function" ? update(current) : update;
+      const proposalChanged = current.files !== next.files || current.listings !== next.listings
+        || Object.keys({ ...current.values, ...next.values }).some(key => key !== "submit_authority"
+          && current.values[key] !== next.values[key]);
+      return current.values.submit_authority && next.values.submit_authority && proposalChanged
+        ? { ...next, values: { ...next.values, submit_authority: false } }
+        : next;
+    });
+  }, [writeDraft]);
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
   const [listingToReview, setListingToReview] = useState<number | null>(null);
@@ -252,13 +264,20 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     setDraft(current => ({ ...current, step: next }));
   }
   async function attach(files: FileList | null, index: number | null) {
-    if (!files?.length || stagingLock.current) return;
+    if (!files?.length) return;
+    if (stagingLock.current) { setDraftMessage("Wait for the current files to finish, then add these files again."); return; }
+    const listingId = index === null ? undefined : draft.listings[index]?.id;
+    const originalDemo = draft.values.demo_variant;
     stagingLock.current = true;
     setStaging(true);
     try {
-      const added = await stageMaterials(Array.from(files), index);
-      setDraft(current => ({ ...current, files: [...current.files, ...added] }));
-      setDraftMessage(owner ? "Files selected. Saving privately…" : "Files selected on this device. Sign in to save them privately.");
+      const { staged, rejected } = await stageMaterials(Array.from(files), index);
+      if (staged.length) setDraft(current => {
+        const position = listingId && originalDemo === current.values.demo_variant ? current.listings.findIndex(listing => listing.id === listingId) : -1;
+        return { ...current, files: [...current.files, ...staged.map(file => ({ ...file, listingIndex: position < 0 ? null : position }))] };
+      });
+      const saved = staged.length ? owner ? "Files selected. Saving privately…" : "Files selected on this device. Sign in to save them privately." : "";
+      setDraftMessage([saved, ...rejected].filter(Boolean).join(" "));
     } catch (error) { setDraftMessage(error instanceof Error ? error.message : "Could not attach the files."); }
     finally { stagingLock.current = false; setStaging(false); }
   }
@@ -291,7 +310,9 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   function fillDemoDetails() {
     const demo = demoCase ?? partnership;
     const details = demo === "restaurant" || demo === "tools" ? extraDemoDetails[demo] : demoDetailsByPartnership[demo];
-    setDraft(current => ({ ...current, values: { ...current.values, ...details, demo_variant: demo, capacity_ack: true } }));
+    const replacesDetails = Object.entries(details).some(([key, value]) => Boolean(String(values[key] ?? "").trim()) && values[key] !== initialValues[key] && values[key] !== value);
+    if (replacesDetails && !window.confirm("Replace the proposal details you entered with the fictional example?")) return;
+    setDraft(current => ({ ...current, values: { ...current.values, ...details, demo_variant: demo, capacity_ack: current.values.capacity_ack } }));
     setErrors([]);
   }
   function loadDemoAssets() {
@@ -373,7 +394,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       <button type="button" className="mt-3 text-cyan-200 underline" onClick={discardRecoveredDraft}>Discard unsaved edits in this tab</button>
     </div> : null}
   </div>;
-  return <BusinessEditor.Provider value={{ draft, setDraft, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
+  return <BusinessEditor.Provider value={{ draft, staging, setDraft, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
     <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
     <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -438,23 +459,24 @@ function MaterialDownload({ owner, file }: { owner: string; file: BusinessFile }
 }
 
 function ApplicationFiles({ listingIndex = null }: { listingIndex?: number | null }) {
-  const { draft, setDraft, attach } = useEditor();
+  const { draft, staging, setDraft, attach } = useEditor();
   const photos = listingIndex !== null;
   const files = photos ? draft.files.filter(file => file.listingIndex === listingIndex) : draft.files;
   return <div className="mt-4 rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-4"
     onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void attach(event.dataTransfer.files, listingIndex); }}>
     <label className="block font-bold">{photos ? "Photos for Listing " + (listingIndex + 1) : "Private campaign files"}
-      <input type="file" multiple accept={photos ? "image/jpeg,image/png,image/gif,image/webp" : materialTypes.join(",")} className="mt-2 block w-full text-sm"
+      <input type="file" multiple disabled={staging} accept={photos ? "image/jpeg,image/png,image/gif,image/webp" : materialTypes.join(",")} className="mt-2 block w-full text-sm"
         onChange={event => { void attach(event.target.files, listingIndex); event.target.value = ""; }}/>
     </label>
     <p className="mt-2 text-xs text-white/65">Choose files or drop them here. Up to 50 MB per file.</p>
     {files.map(file => <div key={file.id} className="mt-3 rounded-lg bg-[#073153] p-3 text-sm">
       <strong className="break-words">{file.name}</strong>
-      {draft.listings.length > 0 && <label className="block">Assign to product
+      {draft.listings.length > 0 && (isListingPhoto(file) || file.listingIndex !== null) && <label className="block">Assign to product
         <select className={fieldClass} value={file.listingIndex ?? ""} onChange={event => {
           const index = event.target.value === "" ? null : Number(event.target.value);
+          if (index !== null && !isListingPhoto(file)) return;
           setDraft(current => ({ ...current, files: current.files.map(item => item.id === file.id ? { ...item, listingIndex: index } : item) }));
-        }}><option value="">Campaign materials</option>{draft.listings.map((item,index) => <option key={index} value={index}>Listing {index+1}: {item.title}</option>)}</select>
+        }}><option value="">Campaign materials</option>{draft.listings.map((item,index) => <option key={index} value={index} disabled={!isListingPhoto(file)}>Listing {index+1}: {item.title}</option>)}</select>
       </label>}
       <button type="button" className="mt-2 text-cyan-200 underline" onClick={() => setDraft(current => ({ ...current, files: current.files.filter(item => item.id !== file.id) }))}>Remove from application</button>
     </div>)}
@@ -545,8 +567,8 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
         {picture(index, "h-36 rounded-lg")}
         <div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div>
         <h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{title}</h3>
-        <div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{detailedItems ? "$" + detailedItems[index].value : campaign.value} value</span><strong>Enter for {detailedItems?.[index]?.entryPrice ?? 1}</strong></div>
-        <span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for {detailedItems?.[index]?.entryPrice ?? 1}</span>
+        <div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{detailedItems ? "$" + detailedItems[index].value : campaign.value} value</span><strong>Enter for {formatUsdFromCents(Math.round((detailedItems?.[index]?.entryPrice ?? 1) * 100))}</strong></div>
+        <span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for {formatUsdFromCents(Math.round((detailedItems?.[index]?.entryPrice ?? 1) * 100))}</span>
       </button>)}
     </div>
     <button type="button" onClick={event => { trigger.current = event.currentTarget; edit(0); }} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>
@@ -646,23 +668,42 @@ function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
     };
   }, [openProof]);
   const [editorOpen, setEditorOpen] = useState<"postcard" | "flyer" | null>(null);
+  const editorTrigger = useRef<HTMLButtonElement>(null);
+  const feedbackField = useRef<HTMLTextAreaElement>(null);
+  const [feedback, setFeedback] = useState("");
+  useEffect(() => {
+    if (!editorOpen) return;
+    const trigger = editorTrigger.current;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    feedbackField.current?.focus();
+    return () => {
+      document.body.style.overflow = overflow;
+      restoreDialogTrigger(trigger, true);
+    };
+  }, [editorOpen]);
   const { draft, setDraft } = useEditor();
   const generated = draft.values.proof_generated === true;
   const redos = Number(draft.values.proof_redos ?? 3);
   const feedbackKey = editorOpen === "flyer" ? "flyer_feedback" : "postcard_feedback";
-  const feedback = String(draft.values[feedbackKey] ?? "");
-  const setFeedback = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, [feedbackKey]: value } }));
   const setGenerated = (value: boolean) => setDraft(d => ({ ...d, values: { ...d.values, proof_generated: value } }));
   const requestRedo = () => {
     if (redos < 1) return;
-    setDraft(d => ({ ...d, values: { ...d.values, proof_generated: true, proof_redos: String(redos - 1) } }));
+    setDraft(d => ({ ...d, values: { ...d.values, [feedbackKey]: feedback, proof_generated: true, proof_redos: String(redos - 1) } }));
     setEditorOpen(null);
   };
-  const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={() => setEditorOpen(format)} className="mt-3 block w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-center text-sm font-black text-cyan-100">Don&apos;t like the design? Edit it · {redos} free redo{redos === 1 ? "" : "s"}</button>;
+  const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={event => {
+    editorTrigger.current = event.currentTarget;
+    setFeedback(String(draft.values[format === "flyer" ? "flyer_feedback" : "postcard_feedback"] ?? ""));
+    setEditorOpen(format);
+  }} className="mt-3 block w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-center text-sm font-black text-cyan-100">Don&apos;t like the design? Edit it · {redos} free redo{redos === 1 ? "" : "s"}</button>;
   return <><div className="mt-5 flex justify-center gap-2"><button type="button" onClick={() => setGenerated(false)} className={`rounded-full px-4 py-2 text-xs font-black ${!generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>Original uploaded image</button><button type="button" onClick={() => setGenerated(true)} className={`rounded-full px-4 py-2 text-xs font-black ${generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>AI-created variation</button></div><div className="mt-6 space-y-8"><section><button type="button" onClick={event => { proofTrigger.current = event.currentTarget; setOpenProof("postcard"); }} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge landscape postcard preview"><PostcardProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[520px]"><strong className="block">Landscape table card</strong><span className="mt-1 block text-xs leading-5 text-white/50">A finished sideways 4 × 6 card. Click it to inspect the design.</span>{editorButton("postcard")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=cards&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#00b9ff] px-4 py-3 text-center text-sm font-black text-[#00132e]">Download landscape card PDF</a></div></section><section><button type="button" onClick={event => { proofTrigger.current = event.currentTarget; setOpenProof("flyer"); }} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge full-page flyer preview"><FlyerProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[360px]"><strong className="block">Full-page promotional flyer</strong><span className="mt-1 block text-xs leading-5 text-white/50">Click the finished 8½ × 11 proof to inspect it.</span>{editorButton("flyer")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=flyer&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#ff630f] px-4 py-3 text-center text-sm font-black text-white">Download full-page flyer PDF</a></div></section></div>{openProof && <div role="dialog" onKeyDown={event => {
     if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpenProof(null); }
     else containDialogTab(event);
-  }} aria-modal="true" aria-label={`${openProof} enlarged preview`} className={`${popupStyles.overlay} fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8`}><button ref={proofClose} type="button" onClick={() => setOpenProof(null)} className={`${popupStyles.overlayClose} fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white`} aria-label="Close enlarged preview">×</button><div className={`${popupStyles.surface} m-auto w-full py-12`}>{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
+  }} aria-modal="true" aria-label={`${openProof} enlarged preview`} className={`${popupStyles.overlay} fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8`}><button ref={proofClose} type="button" onClick={() => setOpenProof(null)} className={`${popupStyles.overlayClose} fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white`} aria-label="Close enlarged preview">×</button><div className={`${popupStyles.surface} m-auto w-full py-12`}>{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" onKeyDown={event => {
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setEditorOpen(null); }
+    else containDialogTab(event);
+  }} onClick={event => { if (event.target === event.currentTarget) setEditorOpen(null); }} className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea ref={feedbackField} aria-label="Design feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
 }
 
 function ReviewStep({ partnership, demoCase, values, change, selectedTitle, mainProposal, missing }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void; selectedTitle: string; mainProposal: string; missing: string[] }) {
@@ -683,6 +724,16 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   const [selected, setSelected] = useState(0);
   const [addedMessage, setAddedMessage] = useState("");
   const listing = listings[selected];
+  const [specificationDraft, setSpecificationDraft] = useState<{ listing: number; text: string } | null>(null);
+  const specifications = specificationDraft?.listing === selected ? specificationDraft.text
+    : listing?.specifications.map(([label, value]) => label + ": " + value).join("\n") ?? "";
+  function changeSpecifications(text: string) {
+    setSpecificationDraft({ listing: selected, text });
+    update("specifications", text.split("\n").filter(line => line.trim()).map(line => {
+      const [label, ...rest] = line.split(":");
+      return [label, rest.join(":").trim()];
+    }));
+  }
   function update<K extends keyof PartnerListing>(field: K, value: PartnerListing[K]) { setDraft(current => ({ ...current, listings: current.listings.map((item, index) => index === selected ? { ...item, [field]: value } : item) })); }
   function updateAmount(field: "value" | "capacity", value: number) {
     setDraft(current => ({ ...current, listings: current.listings.map((item, index) => {
@@ -716,7 +767,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   }
   return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} data-listing-index={index} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
     <button type="button" onClick={removeProduct} disabled={listings.length <= 1} className="mt-3 rounded-lg border border-orange-300/45 px-3 py-2 text-sm font-bold text-orange-100 disabled:opacity-40">Remove listing</button>
-    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => updateAmount("value", Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => updateAmount("value", Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={specifications} onBlur={() => setSpecificationDraft(null)} onChange={event => changeSpecifications(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
 }
 
 function countEditedListings(draft: BusinessDraft, change: number): FormValues {

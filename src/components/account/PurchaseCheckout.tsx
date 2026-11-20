@@ -56,7 +56,8 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, legacyDeclineReturnHref }:  {
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, legacyDeclineReturnHref }:  {
+  cardsUnavailable?: boolean;
   returnTransactionHref?: string;
   legacyDeclineReturnHref?: string;
   ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; pendingDeposits?: CheckoutDeposit[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
@@ -482,6 +483,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         {recovery === "deposit" ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
           <h3>Check your deposit before adding more funds</h3>
           {feedback}
+        </section> : cardsUnavailable ? <section className={styles.depositWarning} aria-label="Saved cards unavailable">
+          <h3>We couldn’t load your saved cards</h3>
+          <p>Check your payment methods before adding funds.</p>
+          <Link className={styles.secondary} href="/account/wallet?view=history&panel=methods#payment-methods" onClick={rememberSelection}>Open Payment methods</Link>
         </section> : blockedFunding ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
           <h3>Check your deposit before adding more funds</h3>
           {pending.length > 1 ? <details>

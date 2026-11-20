@@ -84,11 +84,11 @@
   mask-composite: intersect;
 }
 .filters button:hover { background: #e8f5ff; }
-.filters button[aria-pressed="true"] { color: #0062df; background: #bbebff; box-shadow: inset 0 0 0 3px #1483fc; }
+.filters button[aria-pressed="true"] { color: #004aaf; background: #bbebff; box-shadow: inset 0 0 0 3px #1483fc; }
 .filters svg { width: 28px; height: 28px; }
 .filters span { min-width: 0; font-size: 13px; font-weight: 800; line-height: 1.12; }
 .filters strong { display: grid; min-width: 34px; height: 34px; place-items: center; padding-inline: 6px; border-radius: 10px; color: #0a2c60; background: #d7edff; font-size: 15px; font-weight: 850; font-variant-numeric: tabular-nums; }
-.filters button[aria-pressed="true"] strong { color: #0062df; background: #a4ddff; }
+.filters button[aria-pressed="true"] strong { color: #004aaf; background: #a4ddff; }
 .filters button:nth-child(2) svg { color: #0062df; }
 .filters button:nth-child(2) strong, .filters button:nth-child(5) strong { color: #1452a6; background: #d8edff; }
 .filters button:nth-child(4) strong, .filters button:nth-child(6) strong { color: #007135; background: #c9f8d9; }

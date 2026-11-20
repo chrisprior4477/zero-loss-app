@@ -45,10 +45,12 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
       if (!anchor.current || !popup.current) return;
       const rect = anchor.current.getBoundingClientRect();
       const viewport = window.visualViewport;
-      const bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight);
+      const top = viewport?.offsetTop ?? 0;
+      const bottom = top + (viewport?.height ?? window.innerHeight);
       const above = bottom - rect.bottom < WHEEL_HEIGHT + 12 && rect.top > WHEEL_HEIGHT + 12;
+      const desired = above ? rect.top - WHEEL_HEIGHT - 6 : rect.bottom + 4;
       Object.assign(popup.current.style, {
-        top: `${above ? rect.top - WHEEL_HEIGHT - 6 : rect.bottom + 4}px`,
+        top: `${Math.max(top + 4, Math.min(desired, bottom - WHEEL_HEIGHT - 4))}px`,
         left: `${rect.left}px`, width: `${rect.width}px`,
       });
     }

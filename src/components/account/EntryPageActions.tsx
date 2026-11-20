@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
+import { checkSavedPreviewEntry, confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, undoEntryLabel, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { isEntryQuantity } from "@/lib/entries/quantity";
@@ -223,7 +223,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   }
 
   async function submitInlineEntry() {
-    if (!canEnter || !approved || busy || (!uncertain && (insufficientBalance || !quantityAvailable || invalidQuantity !== null))) return;
+    if (busy || (!uncertain && (!canEnter || !approved || insufficientBalance || !quantityAvailable || invalidQuantity !== null))) return;
     const form = uncertain && attemptedForm.current ? attemptedForm.current : new FormData();
     if (!uncertain || !attemptedForm.current) {
       form.set("offeringSlug", slug);
@@ -237,7 +237,10 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
     setActionError("");
     closingRequest.current = remaining !== null && quantity >= remaining;
     try {
-      const response = await createPreviewEntry({ status: "idle" }, form);
+      const response = uncertain
+        ? await checkSavedPreviewEntry(slug, String(form.get("idempotencyKey") ?? ""))
+        : await createPreviewEntry({ status: "idle" }, form);
+      if (uncertain && response.status === "error" && !response.code) setApproved(false);
       setResult(response);
       if (response.status === "error" && response.code === "insufficient_balance") router.refresh();
       if (response.status === "request") {
@@ -353,7 +356,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {reviewing ? <>
               <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
-              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || working || (!uncertain && (insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
+              <button type="button" className={styles.checkoutConfirm} disabled={working || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
             {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApproved(false); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
           </div> : null}

@@ -29,8 +29,10 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, in
     onKeyDown={event => {
       if (event.key === "Enter" || event.key === "Escape") {
         event.preventDefault();
-        if (event.key === "Escape") onInvalidDraft(null);
-        if (event.key === "Escape" || invalidDraft === null) event.currentTarget.blur();
+        if (event.key === "Escape") {
+          onInvalidDraft(null);
+          event.currentTarget.blur();
+        }
       } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();
         onInvalidDraft(null);

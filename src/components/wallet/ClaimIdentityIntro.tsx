@@ -34,6 +34,7 @@ export function ClaimIdentityIntro({ onContinue, onClose, onSkipDemo, busy = fal
       <div className={styles.actions}>
         <button type="button" className={styles.primary} disabled={busy} onClick={onContinue}>Continue to identity check</button>
         <button type="button" className={styles.secondary} disabled={busy} onClick={onSkipDemo ?? onClose}>{busy ? "Opening your demo reward…" : onSkipDemo ? "Skip check & claim demo reward" : "Not now"}</button>
+        {onSkipDemo ? <button type="button" className={styles.secondary} disabled={busy} onClick={onClose}>Not now</button> : null}
       </div>
       {error ? <p role="alert" className={styles.footnote}>{error}</p> : null}
       <p className={styles.footnote}>{onSkipDemo ? "For this MVP, you can skip the sample check and claim your demo reward. This does not complete a real identity check." : "Follow the next steps to claim your reward. You can come back later if you need to."}</p>

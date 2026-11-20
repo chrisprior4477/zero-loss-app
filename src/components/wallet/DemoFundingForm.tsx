@@ -11,7 +11,7 @@ import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
 import Link from "next/link";
 import { unstable_rethrow, useRouter } from "next/navigation";
-import { completeDemoFunding, deleteDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { completeDemoFunding, deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
 import { parseFundingDollars } from "@/lib/payments/funding-amount";
@@ -295,15 +295,40 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       setCardMessage(result.message);
       if (result.status === "succeeded") {
         const remainingVisible = visibleTokens.filter(token => token !== deleteToken);
-        setCards(previous => previous.filter(card => card.token !== deleteToken));
+        const remainingCards = cards.filter(card => card.token !== deleteToken);
+        setCards(remainingCards);
         setVisibleTokens(remainingVisible);
-        setSelectedToken(current => current === deleteToken ? remainingVisible[0] ?? null : current);
+        setSelectedToken(current => current === deleteToken ? preferredDepositCard(remainingCards) ?? remainingVisible[0] ?? null : current);
         setDefaultToken(current => current === deleteToken ? null : current);
         closeDeleteDialog();
+        const position = visibleTokens.indexOf(deleteToken);
+        const next = remainingVisible[Math.min(position, remainingVisible.length - 1)];
+        requestAnimationFrame(() => {
+          const target = (next ? document.getElementById(`sample-payment-${next}`) : null)
+            ?? document.getElementById("funding-saved-cards-title");
+          target?.focus({ preventScroll: true });
+          if (target?.id) revealWalletSection(target.id);
+        });
         router.refresh();
       }
     } catch {
       setCardMessage("Could not confirm the card was removed. Refresh your saved cards before trying again.");
+    } finally { setDeletingCard(false); }
+  }
+  async function refreshDeletion(token: DemoCardToken) {
+    setDeletingCard(true);
+    try {
+      const latest = await readDemoPaymentMethod(token);
+      if (latest.status !== "loaded" || !latest.card?.revision) {
+        setCardMessage("We couldn’t verify this card. Close this review and refresh your saved cards.");
+        return false;
+      }
+      deleteRevision.current = latest.card.revision;
+      setCardMessage("");
+      return true;
+    } catch {
+      setCardMessage("We couldn’t verify this card. Try again when your connection returns.");
+      return false;
     } finally { setDeletingCard(false); }
   }
   async function persistCard(token: DemoCardToken, asDefault: boolean) {
@@ -370,7 +395,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   }
   const cameraSaved = (card: DemoCard) => acceptSavedCard(card, true);
   const cardPanel = <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel} data-collapsed={!manageCards} hidden={mobile && !manageCards}>
-      <div className={styles.demoCardsHeading}><div><h3 tabIndex={-1}>{mobile || allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
+      <div className={styles.demoCardsHeading}><div><h3 id="funding-saved-cards-title" tabIndex={-1}>{mobile || allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
         <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
@@ -378,7 +403,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         const fixture = demoCardFixture(token);
         return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage}
           mobileCard={mobile && fixture ? `${fixture.issuer} •••• ${fixture.lastFour}` : undefined}
-          onUndo={closeDeleteDialog} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
+          onUndo={closeDeleteDialog} onReview={() => refreshDeletion(token)} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
           {allSamplesSaved ? <button type="button" className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => addCard(token)}>Edit</button> : null}
           {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); deleteRevision.current = cards.find(card => card.token === token)?.revision; setDeleteToken(token); }}>Delete Card</button> : null}
@@ -394,7 +419,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {!mobile && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {mobile && <button type="button" className={`${paymentStyles.secondary} ${styles.backToAmount}`} onClick={closeSavedCards}>Back to amount</button>}
     </section>;
-  if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => {
+  if (editingCard) return <WalletCardEditor key={editingCard} token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onAddCard={nextCard && cards.some(card => card.token === editingCard) ? () => addCard() : undefined} onCancel={() => {
     openWalletPanel("#add-funds", null, true);
     requestAnimationFrame(() => {
       const trigger = document.getElementById("funding-add-card-trigger");

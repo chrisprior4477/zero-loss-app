@@ -19,4 +19,8 @@ test("keeps an amount alternative scoped to the transaction type and recognizes 
   expect(search("minus one dollar")).toEqual(["purchase"]);
   expect(search("refunds")).toEqual(["refund", "returned"]);
   expect(search("entry purchases")).toEqual(["purchase"]);
+  expect(search("Amount: $2.00")).toEqual(["two"]);
+  expect(search("Posted amount: -$1.00")).toEqual(["purchase"]);
+  expect(search("($1.00)")).toEqual(["purchase"]);
+  expect(search("Funding")).toEqual(["one", "two", "three"]);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   resendVerificationAction,
   type ResendVerificationState,
@@ -17,17 +17,23 @@ async function resendVerification(previous: ResendFeedback, data: FormData): Pro
   catch { return { ok: false, message: "We couldn’t confirm the verification email request. Check your connection, wait a minute, and try again.", submittedEmail }; }
 }
 
-export function ResendVerificationForm({ email, returnTo = null }: { email: string; returnTo?: string | null }) {
+export function ResendVerificationForm({ email, returnTo = null, emailFieldId }: { email: string; returnTo?: string | null; emailFieldId?: string }) {
   const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
     resendVerification,
     initialState
   );
   const hasEmail = email.trim().length > 0;
+  const [invalidEmail, setInvalidEmail] = useState<string | null>(null);
   const message = state.submittedEmail === email.trim() ? state.message : null;
 
   return (
-    <form action={formAction} className="mt-3">
+    <form action={formAction} className="mt-3" onSubmit={event => {
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setInvalidEmail(null); return; }
+      event.preventDefault();
+      setInvalidEmail(email);
+      if (emailFieldId) document.getElementById(emailFieldId)?.focus();
+    }}>
       {safeReturnTo ? <input type="hidden" name="returnTo" value={safeReturnTo} /> : null}
       <input type="hidden" name="verification_email" value={email} />
       <button
@@ -37,6 +43,7 @@ export function ResendVerificationForm({ email, returnTo = null }: { email: stri
       >
         {pending ? "Sending…" : "Resend verification email"}
       </button>
+      {invalidEmail === email ? <p role="alert" className="mt-2 text-sm text-red-100">Enter a valid email address before requesting another email.</p> : null}
       {!hasEmail && !message ? (
         <p className="mt-2 text-center text-xs leading-5 text-white/40">
           Enter your account email above first.

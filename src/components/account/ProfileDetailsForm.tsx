@@ -73,10 +73,16 @@ function daysInMonth(year: string, month: string) {
   return new Date(Number(year), Number(month), 0).getDate();
 }
 
-function ProfileDateOfBirth({ defaultValue, onClear, locale }: { defaultValue: string | null; onClear: () => void; locale: string }) {
+type BirthParts = ReturnType<typeof splitDate>;
+
+function readBirthParts(data: FormData): BirthParts {
+  return { year: String(data.get("birth_year") ?? ""), month: String(data.get("birth_month") ?? ""), day: String(data.get("birth_day") ?? "") };
+}
+
+function ProfileDateOfBirth({ defaultValue, defaultParts, onClear, locale }: { defaultValue: string | null; defaultParts?: BirthParts; onClear: () => void; locale: string }) {
   const t = accountLanguage(locale);
   const monthFormat = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" });
-  const initial = useMemo(() => splitDate(defaultValue), [defaultValue]);
+  const initial = useMemo(() => defaultParts ?? splitDate(defaultValue), [defaultParts, defaultValue]);
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
   const [day, setDay] = useState(initial.day);
@@ -93,9 +99,9 @@ function ProfileDateOfBirth({ defaultValue, onClear, locale }: { defaultValue: s
   return <fieldset className={styles.dateField}>
     <legend>{t("Date of birth", "Fecha de nacimiento")}</legend>
     <div className={styles.dateSelects}>
-      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1} disabled={Number(year) === maximumYear && index > today.getUTCMonth()}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select name="birth_month" aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1} disabled={Number(year) === maximumYear && index > today.getUTCMonth()}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
       <label><span className="sr-only">{t("Birth day", "Día de nacimiento")}</span><select name="birth_day" aria-label={t("Birth day", "Día de nacimiento")} value={validDay} required onChange={event => setDay(event.target.value)}><option value="">{t("Day", "Día")}</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value} disabled={!dayAllowed(value)}>{value}</option>)}</select></label>
-      <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => setYear(event.target.value)}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select name="birth_year" aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => setYear(event.target.value)}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       <button type="button" className={styles.clearButton} aria-label={t("Clear date of birth", "Borrar fecha de nacimiento")} onClick={clear}>×</button>
     </div>
     {year && month && validDay && !dateValue ? <small role="alert">{t("Choose a date of birth that meets the age requirement.", "Elige una fecha de nacimiento que cumpla el requisito de edad.")}</small> : null}
@@ -115,6 +121,7 @@ async function saveProfile(previous: SaveProfileDetailsResult, formData: FormDat
 export function ProfileDetailsForm({ details, ticket = false, ownerId }: { details: ProfileDetails; ticket?: boolean; ownerId?: string }) {
   const draftKey = ownerId ? `zero-loss:profile-draft:${ownerId}` : null;
   const [recoveredDate, setRecoveredDate] = useState<string | null>();
+  const [recoveredBirthParts, setRecoveredBirthParts] = useState<BirthParts>();
   const [hasRecovered, setHasRecovered] = useState(false);
   const didRestore = useRef(false);
   const [locale, setLocale] = useState(() => accountLocale(details.preferredLocale));
@@ -147,7 +154,8 @@ export function ProfileDetailsForm({ details, ticket = false, ownerId }: { detai
     function isDirty() {
       if (!form.current) return false;
       const data = new FormData(form.current);
-      return profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim());
+      return profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim())
+        || JSON.stringify(readBirthParts(data)) !== JSON.stringify(splitDate(baseline.fields.date_of_birth));
     }
     function confirmUnload(event: BeforeUnloadEvent) {
       if (!isDirty()) return;
@@ -201,7 +209,10 @@ export function ProfileDetailsForm({ details, ticket = false, ownerId }: { detai
         ? [{ key, value, saved: baseline.saved[key] }] : [];
     });
     try {
-      if (changes.length) sessionStorage.setItem(draftKey, JSON.stringify({ until: Date.now() + 900_000, changes, addressExpected }));
+      const parts = readBirthParts(data);
+      const birth = JSON.stringify(parts) !== JSON.stringify(splitDate(baseline.fields.date_of_birth))
+        ? { ...parts, saved: baseline.saved.date_of_birth } : undefined;
+      if (changes.length || birth) sessionStorage.setItem(draftKey, JSON.stringify({ until: Date.now() + 900_000, changes, addressExpected, birth }));
       else sessionStorage.removeItem(draftKey);
     } catch { /* Tab storage is optional. */ }
   }
@@ -216,6 +227,14 @@ export function ProfileDetailsForm({ details, ticket = false, ownerId }: { detai
         return;
       }
       const saved: Partial<ProfileSavedFields> = {};
+      const birth = draft.birth;
+      if (birth && (birth.saved === null || typeof birth.saved === "string")
+        && [birth.month, birth.day, birth.year].every(part => typeof part === "string" && /^[0-9]{0,4}$/.test(part))) {
+        // Restore the partial date from this browser tab after hydration.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setRecoveredBirthParts({ month: birth.month, day: birth.day, year: birth.year });
+        saved.date_of_birth = birth.saved;
+      }
       for (const key of profileAddressFields) {
         const expected = draft.addressExpected?.[key];
         if (expected === null || typeof expected === "string") saved[key] = expected;
@@ -223,8 +242,6 @@ export function ProfileDetailsForm({ details, ticket = false, ownerId }: { detai
       for (const { key, value, saved: expected } of draft.changes) {
         if (!profileFields.includes(key) || typeof value !== "string" || !(expected === null || typeof expected === "string")) continue;
         saved[key as ProfileField] = expected;
-        // Hydrate browser-only draft values after the initial server render.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (key === "date_of_birth") { setRecoveredDate(value); continue; }
         if (key === "timezone") { setSelectedZone(value); continue; }
         const field = element.elements.namedItem(key);
@@ -300,7 +317,7 @@ export function ProfileDetailsForm({ details, ticket = false, ownerId }: { detai
         <Field label={t("Display name", "Nombre visible")} name="display_name" defaultValue={details.displayName} autoComplete="nickname" className={styles.fullField} required />
         <Field label={t("Legal first name", "Nombre legal")} name="legal_first_name" defaultValue={details.legalFirstName} autoComplete="given-name" required />
         <Field label={t("Legal last name", "Apellido legal")} name="legal_last_name" defaultValue={details.legalLastName} autoComplete="family-name" required />
-        <div className={styles.fullField}><ProfileDateOfBirth key={recoveredDate !== undefined ? "recovered" : "initial"} locale={locale} defaultValue={recoveredDate ?? details.dateOfBirth} onClear={() => { setShowFeedback(false); const element = form.current; if (element) queueMicrotask(() => rememberDraft(element)); }} /></div>
+        <div className={styles.fullField}><ProfileDateOfBirth key={recoveredDate !== undefined || recoveredBirthParts ? "recovered" : "initial"} locale={locale} defaultValue={recoveredDate ?? details.dateOfBirth} defaultParts={recoveredBirthParts} onClear={() => { setShowFeedback(false); const element = form.current; if (element) queueMicrotask(() => rememberDraft(element)); }} /></div>
       </div>
       <p className={styles.identityNote}><AccountIcon name="security" /> {t("Legal identity changes are saved only to your signed-in profile and are never exposed through direct database writes.", "Los cambios de identidad legal se guardan solo en tu perfil.")}</p>
     </section>

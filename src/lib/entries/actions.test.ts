@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), provision: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), from: vi.fn(), revalidate: vi.fn(), provision: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc, from: mocks.from }) }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "./actions";
+import { acknowledgeExtraEntryExplainer, checkSavedPreviewEntry, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "./actions";
 
 function entryForm(quantity = "3") {
   const value = new FormData();
@@ -122,6 +122,19 @@ const pendingReceipt = { requestId: "41414141-4141-4141-8141-414141414141", slug
 test("pending submission has no premature result or redirect", async () => {
   mocks.rpc.mockResolvedValue({ data: pendingReceipt });
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({ status: "request", request: { status: "pending", href: null, quantity: 3 } });
+});
+
+test("checking the exact owner’s pending submission only uses the read path", async () => {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: { id: pendingReceipt.requestId, status: "validating" } });
+  const filters = { eq: vi.fn().mockReturnThis(), maybeSingle };
+  mocks.from.mockReturnValue({ select: vi.fn().mockReturnValue(filters) });
+  mocks.rpc.mockResolvedValue({ data: [pendingReceipt] });
+
+  expect(await checkSavedPreviewEntry(pendingReceipt.slug, "entry_quantity_request_001")).toMatchObject({
+    status: "request", request: { requestId: pendingReceipt.requestId, status: "pending", duplicate: true },
+  });
+  expect(filters.eq.mock.calls).toEqual([["customer_id", "own-user"], ["offering_slug", pendingReceipt.slug], ["idempotency_key", "entry_quantity_request_001"]]);
+  expect(mocks.rpc.mock.calls).toEqual([["list_preview_entry_requests"]]);
 });
 
 test("a recovered earlier request never claims that more entries were charged", async () => {

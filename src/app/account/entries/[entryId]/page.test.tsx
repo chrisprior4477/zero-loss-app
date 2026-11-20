@@ -58,8 +58,6 @@ test("a saved entry recovers only its prize's owner-scoped pending hold on reloa
 });
 
 test("entry browser reveals pictured entry details and keeps the saved ID copy action", async () => {
-  const scrollIntoView = vi.fn();
-  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
@@ -67,11 +65,9 @@ test("entry browser reveals pictured entry details and keeps the saved ID copy a
   const shortcut = within(hero).getByRole("button", { name: "See my 5 entries" });
   expect(shortcut.textContent).toBe("See my5entries");
   fireEvent.click(shortcut);
-  fireEvent.click(shortcut);
-  expect(scrollIntoView).toHaveBeenCalledTimes(2);
-  expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "start", behavior: "auto" });
   expect(screen.getByRole("link", { name: "Go to My Activity" })).toBeTruthy();
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
+  expect(document.activeElement).toBe(rail);
   expect(within(rail).getByRole("heading", { name: "Your 5 separate entries" })).toBeTruthy();
   expect(rail.querySelector("[class*='entryRailCount']")?.textContent).toBe("5");
   expect(within(rail).queryByRole("button", { name: "Hide 5 entries" })).toBeNull();

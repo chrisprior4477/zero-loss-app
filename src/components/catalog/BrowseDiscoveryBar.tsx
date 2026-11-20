@@ -151,7 +151,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     function restorePreview() {
       const destination = comparableBrowseHref(props.browseHref);
       const state = window.history.state;
-      const saved = state?.[previewHistoryKey];
+      const explicit = /^#category-preview~(top|bottom)~([a-z0-9-]*)~([a-z0-9-]+)$/.exec(window.location.hash);
+      const saved = explicit
+        ? { destination, position: explicit[1], category: explicit[2], slug: explicit[3] }
+        : state?.[previewHistoryKey];
       const fromPrize = saved?.destination === destination && (saved.position === "top" || saved.position === "bottom")
         && typeof saved.slug === "string" && typeof saved.category === "string" && Object.hasOwn(props.previews ?? {}, saved.category);
       const resume = fromPrize ? saved as Pick<PreviewResume, "category" | "position"> : pendingPreview;
@@ -160,7 +163,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         previewFocus.current = saved.slug;
         const nextState = { ...state };
         delete nextState[previewHistoryKey];
-        window.history.replaceState(nextState, "");
+        window.history.replaceState(nextState, "", explicit ? "#search-results" : undefined);
       } else pendingPreview = null;
       opener.current = (resume.position === "top" ? topCategories : bottomCategories).current;
       setPreview(resume.category);
@@ -297,7 +300,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>
       <div className={styles.previewHeader}><h3>{category.label}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
-        const destination = productHrefWithBrowseReturn(product.slug, href.replace("#search-results", `#prize-${product.slug}`));
+        const back = `${props.browseHref.split("#")[0]}#category-preview~${openPanel?.position ?? "top"}~${category.id}~${product.slug}`;
+        const destination = productHrefWithBrowseReturn(product.slug, back);
         return <Link key={product.slug} data-preview-prize={product.slug} className={styles.previewProduct} prefetch={false} href={destination}
           onNavigate={() => {
             window.history.replaceState({ ...window.history.state, [previewHistoryKey]: {

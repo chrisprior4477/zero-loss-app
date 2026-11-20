@@ -224,7 +224,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], unavai
           onClick={() => setOpenCategory(null)}
           className={
             isMerchandising
-              ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white aria-[current=page]:underline aria-[current=page]:underline-offset-4 shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
+              ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-[#331501] aria-[current=page]:underline aria-[current=page]:underline-offset-4 shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
               : "inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-white/90 aria-[current=page]:bg-white/15 aria-[current=page]:underline aria-[current=page]:underline-offset-4 transition-colors hover:bg-white/8 hover:text-white sm:text-[15px] lg:text-[16px]"
           }
         >

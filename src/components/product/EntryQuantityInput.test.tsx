@@ -11,7 +11,7 @@ function Selector({ maximum = 150, disabled = false }: { maximum?: number; disab
   return <EntryQuantityInput value={quantity} maximum={maximum} label="Quantity" disabled={disabled} onChange={setQuantity} invalidDraft={draft} onInvalidDraft={setDraft} />;
 }
 
-test("typing replaces the selected number and Enter finishes editing without submitting", () => {
+test("typing replaces the number and Enter keeps focus without submitting", () => {
   const submit = vi.fn(event => event.preventDefault());
   render(<form onSubmit={submit}><Selector /></form>);
   const input = screen.getByRole("spinbutton", { name: "Quantity" }) as HTMLInputElement;
@@ -23,7 +23,7 @@ test("typing replaces the selected number and Enter finishes editing without sub
   expect(input.value).toBe("101");
   expect(input.getAttribute("aria-valuenow")).toBe("101");
   fireEvent.keyDown(input, { key: "Enter" });
-  expect(document.activeElement).not.toBe(input);
+  expect(document.activeElement).toBe(input);
   expect(submit).not.toHaveBeenCalled();
 });
 

@@ -4,8 +4,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 
-export function BrowseResultsLink({ href, className, target, children }: { href: string; className?: string; target?: Parameters<typeof requestBrowseResultsFocus>[1]; children: ReactNode }) {
-  return <Link href={href} prefetch={false} scroll={false} className={className} onNavigate={() => { if (target) requestBrowseResultsFocus(href, target); }}>{children}</Link>;
+export function BrowseResultsLink({ href, className, target, returnAnchor, children }: { href: string; className?: string; target?: Parameters<typeof requestBrowseResultsFocus>[1]; returnAnchor?: string; children: ReactNode }) {
+  return <Link id={returnAnchor} href={href} prefetch={false} scroll={false} className={className} onNavigate={() => {
+    if (returnAnchor) window.history.replaceState(window.history.state, "", "#" + returnAnchor);
+    if (target) requestBrowseResultsFocus(href, target);
+  }}>{children}</Link>;
 }
 
 export function EndingSoonRangeLink({ href, selected, className, children }: { href: string; selected: boolean; className: string; children: ReactNode }) {

@@ -5,12 +5,13 @@ import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 
 const createPreviewEntry = vi.hoisted(() => vi.fn());
+const checkSavedPreviewEntry = vi.hoisted(() => vi.fn());
 const confirmPendingEntryRequest = vi.hoisted(() => vi.fn());
 const resolvePendingEntryRequest = vi.hoisted(() => vi.fn());
 const refresh = vi.hoisted(() => vi.fn());
 const replace = vi.hoisted(() => vi.fn());
 const sharePrizeWithCrew = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest }));
+vi.mock("@/lib/entries/actions", () => ({ checkSavedPreviewEntry, createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest }));
 vi.mock("@/lib/crew/actions", () => ({ sharePrizeWithCrew }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh, replace }) }));
 vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: () => <div data-testid="outcome-email-preference" /> }));
@@ -180,8 +181,8 @@ test("Undo releases the existing hold and requires a fresh review and approval",
 });
 
 test("an unknown outcome can recover the original request after its hold reduces the balance", async () => {
-  createPreviewEntry.mockRejectedValueOnce(new Error("Connection lost"))
-    .mockResolvedValueOnce({ status: "request", request: pendingReceipt() });
+  createPreviewEntry.mockRejectedValueOnce(new Error("Connection lost"));
+  checkSavedPreviewEntry.mockResolvedValueOnce({ status: "request", request: { ...pendingReceipt(), duplicate: true } });
   const view = render(<EntryPageActions {...props} remaining={100} initialQuantity={24} resumeReview />);
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm 24 entries for $24" }));
@@ -190,7 +191,8 @@ test("an unknown outcome can recover the original request after its hold reduces
   expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
   await screen.findByRole("button", { name: "Undo all 24 entries" });
-  expect(createPreviewEntry.mock.calls[1][1]).toBe(createPreviewEntry.mock.calls[0][1]);
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey);
+  expect(createPreviewEntry).toHaveBeenCalledOnce();
 });
 
 test.each([11, 101])("Entry Details reviews and submits %i entries without a customer cap", async quantity => {
@@ -244,7 +246,8 @@ test.each([0, null, -1, NaN, 1.5, Infinity, 2_147_483_648])("unavailable or inva
   expect(screen.queryByRole("button", { name: "Add one extra entry" })).toBeNull();
 });
 
-test("a larger uncertain submission retries the saved quantity and key without creating a new purchase", async () => {
+test("checking for a missing large submission preserves the key and requires approval before retrying", async () => {
+  checkSavedPreviewEntry.mockResolvedValueOnce({ status: "error", message: "No saved submission was found." });
   createPreviewEntry.mockRejectedValueOnce(new Error("Interrupted"))
     .mockResolvedValueOnce({ status: "succeeded", message: "Entries confirmed.", href: "/account/entries", outcome: "active" });
   render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
@@ -255,9 +258,18 @@ test("a larger uncertain submission retries the saved quantity and key without c
   await waitFor(() => expect(screen.getByRole("button", { name: "Check saved submission" })).toBeTruthy());
   expect(screen.getByRole("button", { name: "Add one extra entry" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
+  await screen.findByText("No saved submission was found.");
+  expect(createPreviewEntry).toHaveBeenCalledOnce();
+  const approval = screen.getByRole("checkbox", { name: /approve this demo entry transaction/i });
+  expect(approval).toHaveProperty("checked", false);
+  fireEvent.click(approval);
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 101 entries for $101" }));
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledTimes(2));
-  expect(createPreviewEntry.mock.calls[1][1]).toBe(createPreviewEntry.mock.calls[0][1]);
-  expect((createPreviewEntry.mock.calls[1][1] as FormData).get("quantity")).toBe("101");
+  const first = createPreviewEntry.mock.calls[0][1] as FormData;
+  const retry = createPreviewEntry.mock.calls[1][1] as FormData;
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, first.get("idempotencyKey"));
+  expect(retry.get("idempotencyKey")).toBe(first.get("idempotencyKey"));
+  expect(retry.get("quantity")).toBe("101");
 });
 
 test("additional entries are reviewed and confirmed on the same page", async () => {

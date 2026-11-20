@@ -153,6 +153,27 @@ export async function acknowledgeEntryReceipt(requestId: string): Promise<{ erro
   }
 }
 
+export async function checkSavedPreviewEntry(slug: string, key: string): Promise<PreviewEntryActionState> {
+  const unavailable: PreviewEntryActionState = { status: "error", code: "outcome_unknown", message: "We couldn’t check this saved submission. Try again when your connection returns." };
+  if (!isPreviewDataEnvironment() || !slugPattern.test(slug) || !keyPattern.test(key)) return unavailable;
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user?.email_confirmed_at) return unavailable;
+    const { data, error } = await db.from("entry_requests").select("id,status")
+      .eq("customer_id", user.id).eq("offering_slug", slug).eq("idempotency_key", key).maybeSingle();
+    if (error) return unavailable;
+    if (!data) return { status: "error", message: "No saved submission was found. Review and approve the entry again to retry the same request." };
+    const reservations = await db.rpc("list_preview_entry_requests");
+    if (reservations.error || !Array.isArray(reservations.data)) return unavailable;
+    const request = reservations.data.map(parseEntryRequest).find((item: EntryRequest | null) => item?.requestId === data.id);
+    if (request) return { status: "request", request: { ...request, duplicate: true }, message: "Found your saved entry submission." };
+    if (data.status === "accepted") return { status: "succeeded", outcome: "active", href: "/account/entries", message: "This submission is already saved. Open My Activity to see the outcome." };
+    if (data.status === "cancelled" || data.status === "rejected") return { status: "error", message: "The saved submission was not entered. Return to My Activity before starting another entry." };
+    return unavailable;
+  } catch { return unavailable; }
+}
+
 export async function listPendingEntryRequests(): Promise<{ requests: EntryRequest[]; error?: string }> {
   if (!isPreviewDataEnvironment()) return { requests: [] };
   try {

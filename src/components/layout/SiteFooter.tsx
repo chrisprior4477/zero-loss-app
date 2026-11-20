@@ -55,7 +55,7 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
       </div>
 
       <div className="border-t border-white/8">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-1 px-4 py-2 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:py-3 lg:px-[clamp(3rem,6vw,7rem)]">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-1 px-4 py-2 text-[10px] text-white/60 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:py-3 lg:px-[clamp(3rem,6vw,7rem)]">
           <p>© {year} ZeroLoss. All rights reserved.</p>
           <p>Shopping should never feel like losing.</p>
         </div>

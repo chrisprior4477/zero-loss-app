@@ -16,18 +16,20 @@ const orderStatus: Record<AccountOrderStatus, string> = {
   exception: "Action needed", cancelled: "Cancelled", corrected: "Order corrected",
 };
 
-export async function loadSupportRecords(kind: SupportRecordKind, page: number): Promise<SupportRecordPage> {
+export async function loadSupportRecords(kind: SupportRecordKind, page: number, selectedId?: string): Promise<SupportRecordPage> {
   if (!isPreviewDataEnvironment() || (kind !== "order" && kind !== "transaction")
     || !Number.isSafeInteger(page) || page < 0 || page >= Math.floor(Number.MAX_SAFE_INTEGER / pageSize)) {
     return { error: "These records are unavailable." };
   }
-  const offset = page * pageSize;
   try {
     const db = await createClient();
     const { data: { user }, error } = await db.auth.getUser();
     if (error || !user) return { error: "Sign in again to choose a record." };
     if (kind === "order") {
       const { orders } = await getAccountOrders(db);
+      const index = selectedId ? orders.findIndex(order => order.orderNumber === selectedId) : -1;
+      if (index >= 0) page = Math.floor(index / pageSize);
+      const offset = page * pageSize;
       const records = orders.slice(offset, offset + pageSize).flatMap(order => {
         const record = parseSupportRecord({ kind, id: order.orderNumber, title: order.title, detail: order.retailer,
           amount: order.amountPaidCents, date: order.createdAt, status: orderStatus[order.status] });
@@ -36,7 +38,7 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number):
       const checks = await Promise.all(records.map(record => checkOrderSupportTransaction(db, user.id, record.id)));
       return { records: records.map((record, index) => ({
         ...record, attachable: checks[index].status === "found", verifyAgain: checks[index].status === "unavailable",
-      })), more: orders.length > offset + pageSize };
+      })), more: orders.length > offset + pageSize, page };
     }
 
     const wallet = await getWalletSnapshot(user.id);
@@ -48,6 +50,9 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number):
     if (!history || visibility.error) throw new Error("Wallet history unavailable");
     const hidden = new Set(parseDemoWalletHistoryVisibility(visibility.data).ledgerEntryIds);
     const rows = history.filter(row => !hidden.has(row.id));
+    const index = selectedId ? rows.findIndex(row => row.id === selectedId) : -1;
+    if (index >= 0) page = Math.floor(index / pageSize);
+    const offset = page * pageSize;
     const records = rows.slice(offset, offset + pageSize).flatMap(row => {
       const [label, detail] = ledgerDescription(row.entry_type);
       const product = row.product;
@@ -55,7 +60,7 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number):
         detail: product ? label : detail, amount: row.amount, date: row.created_at, status: "Posted" });
       return record ? [record] : [];
     });
-    return { records, more: rows.length > offset + pageSize };
+    return { records, more: rows.length > offset + pageSize, page };
   } catch {
     return { error: "We couldn’t load these records. Try again, or send your request without an attachment." };
   }

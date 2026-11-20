@@ -52,6 +52,7 @@ export function InstallAppPrompt() {
   const [explicitRequest, setExplicitRequest] = useState(false);
   const [alreadyInstalled, setAlreadyInstalled] = useState(false);
   const nativePromptPending = useRef(false);
+  const installedThisVisit = useRef(false);
   const closeButton = useRef<HTMLButtonElement>(null);
   const [installing, setInstalling] = useState(false);
 
@@ -88,7 +89,7 @@ export function InstallAppPrompt() {
     const initialize = window.setTimeout(() => {
       setDismissed(dismissedThisVisit.current || recentlyDismissed());
       setManualPlatform(manualInstallPlatform());
-      setAlreadyInstalled(isStandalone());
+      setAlreadyInstalled(installedThisVisit.current || isStandalone());
     }, 0);
 
     const noteInteraction = () => setInteracted(true);
@@ -98,6 +99,8 @@ export function InstallAppPrompt() {
       setCanPrompt(true);
     };
     const noteInstalled = () => {
+      installedThisVisit.current = true;
+      setAlreadyInstalled(true);
       deferredPrompt.current = null;
       setCanPrompt(false);
       setDismissed(true);
@@ -110,7 +113,7 @@ export function InstallAppPrompt() {
       setDismissed(false);
       setManualPlatform(manualInstallPlatform());
 
-      if (isStandalone()) {
+      if (installedThisVisit.current || isStandalone()) {
         setAlreadyInstalled(true);
         setShowInstructions(true);
         return;

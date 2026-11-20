@@ -24,7 +24,9 @@ function amountMatch(token: string) {
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[]): T[] {
   const trimmed = rawQuery.trim();
   if (!trimmed) return entries;
-  const query = trimmed.replace(/[.!?,]+$/, "") || trimmed;
+  const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
+    .replace(/\b(?:posted\s+)?amount\s*:\s*(?=[+−($\d-])/gi, "")
+    .replace(/\(\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1");
   if (amountOnly.test(query)) {
     const matches = amountMatch(query);
     return entries.filter(entry => matches(entry.amount));
@@ -55,6 +57,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const normalizedText = normalizeSearch(text);
   const entryPurchasesOnly = /\bposted entries\b/.test(normalizedText);
   const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase")
+    .replace(/\bfunding\b/g, "deposit")
     .replace(/\b(refund|purchase|deposit)s\b/g, "$1").replace(/\bentries\b/g, "entry").split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);
   const mayBeGiftCardTitle = !matchingAnyAmount && !explicitSign && amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);

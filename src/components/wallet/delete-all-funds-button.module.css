@@ -13,7 +13,7 @@
   border: 1px solid #e75700;
   border-radius: 7px;
   background: #ff6508;
-  color: #fff;
+  color: #331501;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -71,7 +71,7 @@
 .actions button { min-height: 44px; padding: 9px 15px; border-radius: 8px; font-weight: 800; cursor: pointer; }
 .actions button:disabled { opacity: .65; cursor: not-allowed; }
 .cancel { border: 1px solid #8bb7d8; background: transparent; color: #fff; }
-.confirm { border: 1px solid #ff6508; background: #ff6508; color: #fff; }
+.confirm { border: 1px solid #ff6508; background: #ff6508; color: #331501; }
 
 @media (max-width: 430px) {
   .control { justify-content: flex-start; }

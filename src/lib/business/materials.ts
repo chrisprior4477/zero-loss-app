@@ -24,26 +24,36 @@ async function stagedFile(id: string, action: "read" | "write" | "remove", file?
 }
 
 export async function stageMaterials(files: File[], listingIndex: number | null) {
-  for (const file of files) {
+  const rejected: string[] = [];
+  const accepted = files.filter(file => {
+    const name = file.name.slice(0, 80) || "Unnamed file";
     if (!file.name || file.name.length > businessFileNameLimit) {
-      throw new Error(`Rename ${file.name.slice(0, 36) || "the selected file"}… to ${businessFileNameLimit} characters or fewer, then attach it again.`);
+      rejected.push(`Rename “${name}” to ${businessFileNameLimit} characters or fewer, then attach it again.`);
+      return false;
     }
     if (!file.size || file.size > 50 * 1024 * 1024 || !materialTypes.includes(file.type) || (listingIndex !== null && !file.type.startsWith("image/"))) {
-      throw new Error("Choose a supported, nonempty file up to 50 MB. Listing photos must be JPEG, PNG, WebP or GIF.");
+      rejected.push(`“${name}” was skipped. Choose a supported, nonempty file up to 50 MB. Listing photos must be JPEG, PNG, WebP or GIF.`);
+      return false;
     }
-  }
+    return true;
+  });
   const staged: BusinessFile[] = [];
   try {
-    for (const file of files) {
+    for (const file of accepted) {
       const id = crypto.randomUUID();
       await stagedFile(id, "write", file);
-      staged.push({ id, name: file.name, listingIndex });
+      staged.push({ id, name: file.name, listingIndex, mediaType: file.type });
     }
   } catch {
     await releaseMaterials(staged);
     throw new Error("This browser could not keep the selected files. Free some device space and try again.");
   }
-  return staged;
+  return { staged, rejected };
+}
+
+export function isListingPhoto(file: BusinessFile) {
+  return file.mediaType ? ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.mediaType)
+    : /\.(?:jpe?g|png|webp|gif)$/i.test(file.name);
 }
 
 export async function uploadMaterials(owner: string, files: BusinessFile[], uploaded: Set<string>) {

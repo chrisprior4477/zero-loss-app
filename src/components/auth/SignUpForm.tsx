@@ -364,12 +364,12 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[#00132e] disabled:opacity-60"
       >
         {pending ? "Creating account…" : "Create account"}
       </button>
     </form>
-    <ResendVerificationForm email={email} returnTo={safeReturnTo} />
+    <ResendVerificationForm email={email} returnTo={safeReturnTo} emailFieldId={id("email")} />
     </>
   );
 }

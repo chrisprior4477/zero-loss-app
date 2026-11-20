@@ -4,6 +4,7 @@ import Link from "next/link";
 import { startTransition, useState } from "react";
 import { setFavoriteAlertEmailPreference } from "@/lib/favorites/alert-actions";
 import { useVerifiedEmailPreference, type EmailSaveResult } from "./useVerifiedEmailPreference";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./showroom.module.css";
 
 export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
@@ -26,7 +27,8 @@ export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnable
   }
 
   return <section id="favorite-alert-preference" className={styles.outcomeEmail} data-placement="account" aria-labelledby="favorite-alert-heading">
-    <h3 id="favorite-alert-heading">Favorites watchlist emails</h3>
+    <AccountSettingsLandingScroll target="favorite-alert-preference" focusTarget="favorite-alert-heading" restrictToTargetHash allScreens />
+    <h3 id="favorite-alert-heading" tabIndex={-1}>Favorites watchlist emails</h3>
     <p>Choose which of <Link href="/account/favorites" className="font-bold underline">Your Favorites</Link> to watch. Each watched item can send one email when its pool reaches 90% full.</p>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <label><input type="checkbox" checked={enabled} disabled={initialEnabled === null || pending} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} /> Allow emails for items I watch</label>

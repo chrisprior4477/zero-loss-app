@@ -4,7 +4,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
-import { deleteDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DeleteCardToast } from "./DeleteCardToast";
 import { DemoCardArtwork } from "./DemoCardArtwork";
@@ -153,12 +154,33 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       const result = await (deleteRevision.current ? deleteDemoPaymentMethod(token, deleteRevision.current) : deleteDemoPaymentMethod(token));
       if (result.status !== "succeeded") { setDeleteMessage(result.message); return; }
       setMessage(result.message);
-      setCards(current => current.filter(card => card.token !== token));
+      const index = cards.findIndex(card => card.token === token);
+      const remaining = cards.filter(card => card.token !== token);
+      setCards(remaining);
       if (expanded === token) selectPreview();
       setDeleting(null);
+      const next = remaining[Math.min(index, remaining.length - 1)];
+      requestAnimationFrame(() => restoreDialogTrigger(
+        document.getElementById(next ? "edit-saved-card-" + next.token : "payment-methods-title"), true));
       router.refresh();
     } catch { setDeleteMessage("Could not confirm the card was removed. Refresh before trying again."); }
     finally { setBusy(false); }
+  }
+  async function refreshDeletion(token: DemoCardToken) {
+    setBusy(true);
+    try {
+      const latest = await readDemoPaymentMethod(token);
+      if (latest.status !== "loaded" || !latest.card?.revision) {
+        setDeleteMessage("We couldn’t verify this card. Close this review and refresh your saved cards.");
+        return false;
+      }
+      deleteRevision.current = latest.card.revision;
+      setDeleteMessage("");
+      return true;
+    } catch {
+      setDeleteMessage("We couldn’t verify this card. Try again when your connection returns.");
+      return false;
+    } finally { setBusy(false); }
   }
   function acceptSavedCard(card: DemoCard) {
     setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
@@ -167,7 +189,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
-    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={() => {
+    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
       openWalletPanel("#payment-methods", window.history.state, true);
       requestAnimationFrame(() => document.getElementById(target)?.focus());
@@ -175,7 +197,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (source === "camera" || !isEdit || card.token !== editorToken) showMethods();
       acceptSavedCard(card);
     }} /> : <>
-      <h2 tabIndex={-1}>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
+      <h2 id="payment-methods-title" tabIndex={-1}>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {missingCard ? <p ref={missingCardNotice} tabIndex={-1} role="status">This saved card is no longer available. Choose a card from your payment methods.</p> : null}
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
@@ -192,7 +214,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
           if (mobile) revealWalletSection(next ? `saved-art-${next}` : `saved-card-preview-${card.token}`);
         }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => { deleteRevision.current = card.revision; setDeleteMessage(""); setDeleting(card.token); }}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
-        {deleting === card.token ? <DeleteCardToast key={card.token} mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
+        {deleting === card.token ? <DeleteCardToast key={card.token} mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>
       {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
       <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>

@@ -20,18 +20,27 @@ export function searchCatalogMatches(
   }
   const retailerExclusion = /\s*,?\s+(?:excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?\s*$/i.exec(query);
   if (retailerExclusion) {
-    const excluded = normalizeSearch(retailerExclusion[1]);
-    if (excluded && products.some(product => normalizeSearch(product.retailer) === excluded)) {
-      return searchCatalogMatches(products.filter(product => normalizeSearch(product.retailer) !== excluded), query.slice(0, retailerExclusion.index), undefined, { includeLowerGiftCards });
+    const retailers = new Set(products.map(product => normalizeSearch(product.retailer)));
+    const whole = normalizeSearch(retailerExclusion[1]);
+    const names = retailers.has(whole) ? [whole] : retailerExclusion[1].split(/\s*,\s*|\s+(?:or|and)\s+/i)
+      .map(name => normalizeSearch(name.replace(/^(?:or|and)\s+/i, ""))).filter(Boolean);
+    if (names.length && names.every(name => retailers.has(name) || (name === "apple" && retailers.has("apple gift card")))) {
+      const excluded = new Set(names.map(name => name === "apple" && !retailers.has(name) ? "apple gift card" : name));
+      return searchCatalogMatches(products.filter(product => !excluded.has(normalizeSearch(product.retailer))), query.slice(0, retailerExclusion.index), undefined, { includeLowerGiftCards });
     }
   }
-  if (!values.size && /\s+or\s+/i.test(query)) {
-    const alternatives = query.split(/\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+/i).map(value => ({ query: value.trim(), denomination: searchDenominations(value.trim(), products) }));
+  if (/\s+or\s+/i.test(query)) {
+    const sharedGiftCardType = /\bgift\s*cards?[.!?]?\s*$/i.test(query);
+    const alternatives = query.split(/\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+/i).map(value => {
+      const clause = sharedGiftCardType && !/\bgift\s*cards?\b/i.test(value) ? value.trim() + " gift card" : value.trim();
+      return { query: clause, denomination: searchDenominations(clause, products) };
+    });
     if (alternatives.length > 1 && alternatives.every(value => queryWords(value.denomination.text).length > 0)
+      && (!values.size || alternatives.every(value => value.denomination.values.size && queryWords(value.denomination.text).some(word => word !== "gift" && word !== "card")))
       && (!budget || alternatives.some(value => value.denomination.budget))) {
       const matches = new Map<string, CatalogSearchMatch>();
       for (const alternative of alternatives) {
-        for (const match of searchCatalogMatches(products, alternative.query, alternative.denomination, { includeLowerGiftCards })) {
+        for (const match of searchCatalogMatches(products, alternative.query, alternative.denomination, { includeLowerGiftCards: !values.size && includeLowerGiftCards })) {
           if (!matches.has(match.product.slug) || match.kind === "product") matches.set(match.product.slug, match);
         }
       }
@@ -42,6 +51,7 @@ export function searchCatalogMatches(
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
+  const television = tokens.includes("tv") || tokens.includes("television");
   const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
@@ -74,7 +84,8 @@ export function searchCatalogMatches(
   return documents.map(({ product, title, merchant, category, document, expanded }) => {
     const direct = tokens.every(token => matchWord(token, document) > 0);
     if (!direct && !tokens.every(token => matchWord(token, expanded) > 0)) return null;
-    const kind = direct ? "product" as const : "retailer" as const;
+    if (television && !giftCards && !/\b(?:tv|television)\b/.test(normalizeSearch(product.title)) && !isGiftCardListing(product)) return null;
+    const kind = direct && (!television || giftCards || !isGiftCardListing(product)) ? "product" as const : "retailer" as const;
     let score = direct ? 1000 : 0;
     for (const token of tokens) score += matchWord(token, title) * 20 + matchWord(token, merchant) * 15
       + matchWord(token, category) * 8 + matchWord(token, direct ? document : expanded);

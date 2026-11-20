@@ -1,6 +1,7 @@
 "use client";
 
 import { useDialogBack } from "@/components/account/useDialogBack";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import help from "@/components/help/help-tickets.module.css";
@@ -53,14 +54,18 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     }
   }, [result]);
 
-  async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false) {
+  async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false, selectedId?: string) {
     const id = ++request.current;
     focusResults.current = focusAfterLoad;
     setKind(nextKind);
     setPage(nextPage);
     setResult(null);
-    const response = await loadSupportRecords(nextKind, nextPage).catch(() => ({ error: "We couldn’t load these records. Try again." }));
-    if (id === request.current) setResult(response);
+    const lookup = selectedId ? loadSupportRecords(nextKind, nextPage, selectedId) : loadSupportRecords(nextKind, nextPage);
+    const response = await lookup.catch(() => ({ error: "We couldn’t load these records. Try again." }));
+    if (id === request.current) {
+      if ("records" in response && response.page !== undefined) setPage(response.page);
+      setResult(response);
+    }
   }
 
   function openPicker() {
@@ -71,7 +76,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     const previous = attachedPage.current;
     const same = record && previous?.id === record.id && previous.kind === record.kind;
     focusRecordId.current = record?.id ?? null;
-    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record));
+    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record), same ? undefined : record?.id);
   }
 
   return <div className={styles.attachment}>
@@ -91,7 +96,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     <dialog ref={dialog} aria-labelledby={headingId} className={styles.dialog} onClose={() => {
       request.current++;
       setOpen(false);
-      trigger.current?.focus({ preventScroll: true });
+      restoreDialogTrigger(trigger.current, true);
     }} onClick={event => {
       if (event.target === event.currentTarget) dialog.current?.close();
     }}>

@@ -171,6 +171,17 @@ export async function saveDemoPaymentMethod(
   return result;
 }
 
+export async function readDemoPaymentMethod(paymentMethod: string) {
+  const fixture = demoCardFixture(paymentMethod);
+  if (!fixture) return { status: "unavailable" as const };
+  try {
+    const cards = await (await fundingProvider(null, true)).getPaymentMethods();
+    return { status: "loaded" as const, card: cards.find(card => card.token === fixture.token) ?? null };
+  } catch {
+    return { status: "unavailable" as const };
+  }
+}
+
 export async function deleteDemoPaymentMethod(paymentMethod: string, revision?: string): Promise<{ status: "succeeded" | "error"; message: string }> {
   const fixture = demoCardFixture(paymentMethod);
   if (!fixture) return { status: "error", message: "Only supplied preview test cards can be removed." };

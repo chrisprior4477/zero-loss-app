@@ -347,7 +347,7 @@ export function DemoParticipationPanel({
         <div className={compactStyles.price}><strong>${entryPrice.toFixed(2)}</strong><span>per entry</span></div>
         <div className={compactStyles.progress}>
           {availabilityConfirmed ? <>
-            <div className={compactStyles.progressLabels}><strong style={{ color: availability.color }}>{remaining ? `${remaining.toLocaleString()} left` : "No entries left"}</strong><span>{availability.label}</span></div>
+            <div className={compactStyles.progressLabels}><strong style={{ color: availability.percentFilled >= 90 ? "#ff7a8d" : availability.color }}>{remaining ? `${remaining.toLocaleString()} left` : "No entries left"}</strong><span>{availability.label}</span></div>
             <PoolProgress ticketsSold={sold} ticketCapacity={capacity} showRemainingLabel={false} />
             <small>{sold.toLocaleString()} entries · Proposed model: one selected when the pool fills.</small>
           </> : <small>Availability unverified</small>}

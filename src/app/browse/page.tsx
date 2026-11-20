@@ -54,6 +54,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
   const selectedCategory = marketplaceCategoryId(query.category ?? "") ?? (query.sort === "ending-soon" ? "ending-soon" : null);
+  const unknownCategory = Boolean(query.category && !marketplaceCategoryId(query.category));
   const endingSoon = selectedCategory === "ending-soon";
   const ticketsLeft = endingSoon ? parseEndingSoonTicketRange(query.ticketsLeft) : null;
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
@@ -148,8 +149,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const tailEnd = products.length - (tailBatch - 1) * batchSize;
   const tailStart = Math.max(0, tailEnd - batchSize);
   const tailBatchValue = (index: number) => index === 1 ? "last" : `last-${index}`;
-  const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
-    ? Math.min(requestedBatch, lastBatch) : 1;
+  const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1 && requestedBatch <= lastBatch ? requestedBatch : 1;
   const visibleProducts = tailBatch ? products.slice(tailStart, tailEnd) : products.slice(0, batch * batchSize);
   const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
   const showBatchSearch = endingSoon || products.length > 0 || Boolean(searchTerm);
@@ -280,6 +280,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
+          {unknownCategory ? <p role="status" className="mb-3 text-sm text-amber-200">That category is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove category filter</Link></p> : null}
           {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             That retailer is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove retailer filter</Link>
           </p> : null}
@@ -360,12 +361,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <div className="relative aspect-[1.28/1] overflow-hidden rounded-xl bg-[#f1f4f7]">
                       <Image src={product.gallery[0].src} alt="" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-2 transition-transform group-hover:scale-105" />
                     </div>
-                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#087feb] sm:text-xs">{product.retailer}</p>
+                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#005fae] sm:text-xs">{product.retailer}</p>
                     <h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
                     {relatedRetailers.has(product.slug) || (deviceTopic && isGiftCardListing(product)) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
                     {open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
-                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
+                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.percentFilled >= 90 ? "#b51c37" : status.percentFilled >= 75 ? "#a43b08" : status.percentFilled >= 50 ? "#005fae" : "#06753b" }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
                     </div> : <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-bold text-slate-600">No open entries</p>}
               </>;
               return (
@@ -455,8 +456,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
                 href={previousBatchHref}>Previous {tailBatch ? Math.min(batchSize, tailStart) : batchSize}</Link>}
             </div>
-          ) : nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
-            href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</Link>}
+          ) : nextProduct && <BrowseResultsLink returnAnchor="browse-more-prizes" className={browseStyles.morePrizes}
+            href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</BrowseResultsLink>}
         </section>}
         </BrowseDiscoveryBar>
         </div>
