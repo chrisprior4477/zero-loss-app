@@ -6,7 +6,7 @@ import { isCatalogRequestKey } from "./request-draft";
 export type CatalogRequestState =
   | { status: "idle" }
   | { status: "succeeded"; message: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; uncertain?: boolean };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,16 +44,16 @@ export async function submitCatalogRequest(
     });
     if (error) {
       const message = error.code === "P0001" ? error.message : null;
-      return { status: "error", message: message ?? "We could not save that request. Please try again." };
+      return message ? { status: "error", message } : { status: "error", uncertain: true, message: "We couldn’t confirm this request. Check the original submission." };
     }
     if (receipt !== requestKey.toLowerCase()) {
-      return { status: "error", message: "We could not confirm your request. Your details are still here. Please try again." };
+      return { status: "error", uncertain: true, message: "We couldn’t confirm this request. Check the original submission." };
     }
     return {
       status: "succeeded",
       message: "Thanks—we saved your request. What customers ask for helps shape what we add next.",
     };
   } catch {
-    return { status: "error", message: "We could not save that request. Please try again." };
+    return { status: "error", uncertain: true, message: "We couldn’t confirm this request. Check the original submission." };
   }
 }

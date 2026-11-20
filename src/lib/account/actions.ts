@@ -6,7 +6,7 @@ import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 import { addressTimeZone, countryTimeZones } from "./address-timezone";
 import { missingAddressFields } from "./address-requirements";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
-import { hasProfileAddressChange, profilePatch, readProfileBaseline, type ProfileSavedFields } from "./profile-edit";
+import { hasProfileAddressChange, profileFieldLimits, profilePatch, readProfileBaseline, type ProfileField, type ProfileSavedFields } from "./profile-edit";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -21,15 +21,15 @@ export type SavePhotoVisibilityResult = { ok: true } | { ok: false; message: str
 export type SaveProfileDetailsResult =
   | { status: "idle" }
   | { status: "succeeded"; message: string; appliedFields?: Partial<ProfileSavedFields> }
-  | { status: "error"; message: string; conflict?: boolean };
+  | { status: "error"; message: string; conflict?: boolean; sessionExpired?: boolean };
 
 const supportedLocales = new Set(["en-US", "en-GB", "es-US"]);
 
-function textField(formData: FormData, name: string, maxLength: number) {
+function textField(formData: FormData, name: ProfileField) {
   const value = formData.get(name);
   if (typeof value !== "string") throw new Error("Profile form is incomplete.");
   const trimmed = value.trim();
-  if (trimmed.length > maxLength) throw new Error("One or more profile fields are too long.");
+  if (trimmed.length > profileFieldLimits[name]) throw new Error(`Shorten the ${name.replaceAll("_", " ")} to ${profileFieldLimits[name]} characters or fewer.`);
   return trimmed;
 }
 
@@ -40,19 +40,19 @@ export async function saveProfileDetails(
   let updates: ProfileSavedFields;
   let selection: ReturnType<typeof profilePatch>;
   try {
-    const displayName = textField(formData, "display_name", 100);
-    const legalFirstName = textField(formData, "legal_first_name", 100);
-    const legalLastName = textField(formData, "legal_last_name", 100);
-    const dateOfBirth = textField(formData, "date_of_birth", 10);
-    const phoneNumber = textField(formData, "phone_number", 32);
-    const addressLine1 = textField(formData, "address_line_1", 200);
-    const addressLine2 = textField(formData, "address_line_2", 200);
-    const city = textField(formData, "city", 100);
-    const region = textField(formData, "region", 100);
-    const postalCode = textField(formData, "postal_code", 24);
-    const countryInput = textField(formData, "country", 100);
-    const preferredLocale = textField(formData, "preferred_locale", 20);
-    const timezone = typeof formData.get("timezone") === "string" ? textField(formData, "timezone", 64) : "";
+    const displayName = textField(formData, "display_name");
+    const legalFirstName = textField(formData, "legal_first_name");
+    const legalLastName = textField(formData, "legal_last_name");
+    const dateOfBirth = textField(formData, "date_of_birth");
+    const phoneNumber = textField(formData, "phone_number");
+    const addressLine1 = textField(formData, "address_line_1");
+    const addressLine2 = textField(formData, "address_line_2");
+    const city = textField(formData, "city");
+    const region = textField(formData, "region");
+    const postalCode = textField(formData, "postal_code");
+    const countryInput = textField(formData, "country");
+    const preferredLocale = textField(formData, "preferred_locale");
+    const timezone = typeof formData.get("timezone") === "string" ? textField(formData, "timezone") : "";
     if (displayName.length < 2) throw new Error("Enter the name you want displayed on your account.");
     if (!legalFirstName || !legalLastName) throw new Error("Enter your legal first and last name.");
     if (!isAtLeastAge(dateOfBirth)) {
@@ -96,7 +96,7 @@ export async function saveProfileDetails(
 
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) return { status: "error", message: "Your session expired. Sign in again before saving your profile." };
+  if (userError || !user || (formData.has("profile_owner") && formData.get("profile_owner") !== user.id)) return { status: "error", sessionExpired: true, message: "Sign in to the original account before saving these profile edits." };
   if (!Object.keys(selection.patch).length) return { status: "succeeded", message: "Your profile is already up to date.", appliedFields: {} };
   const { error } = await supabase.rpc("update_customer_profile_preferences", { p_updates: { ...selection.patch, _expected: selection.expected } });
   if (error?.code === "40001") return { status: "error", conflict: true, message: "Your profile changed in another tab. Your draft is still here. Open the latest Profile and review your changes there." };

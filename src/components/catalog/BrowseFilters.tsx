@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
+import { catalogSearchLimitMessage, catalogSearchTooLong, maxCatalogSearchLength } from "@/lib/catalog/search-text";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { marketplaceCategories, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
@@ -37,6 +38,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const session = useBrowseResultsSearch();
   const [localDraft, setLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
   const searchDraft = localDraft;
+  const searchTooLong = catalogSearchTooLong(searchDraft.trim());
   const voice = useVoiceSearch(setLocalDraft);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const directoryMatches = showSearchSuggestions ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
@@ -66,6 +68,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
+    if (searchTooLong) { form.querySelector<HTMLInputElement>('input[name="q"]')?.focus(); return; }
     const data = new FormData(form);
     const params = new URLSearchParams();
     const valueMode = data.get("valueMode")?.toString() ?? "all";
@@ -136,13 +139,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
-          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none" />
+          <input id={`${id}-search`} type="search" name="q" value={searchDraft} maxLength={maxCatalogSearchLength} aria-invalid={searchTooLong || undefined} aria-describedby={searchTooLong ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none" />
           {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
           {searchDraft.trim() && !voice.busy ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
           ) : null}
           <VoiceSearchControl listening={voice.listening} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
         </div>
+        {searchTooLong ? <p id={`${id}-search-limit`} role="status" className="mt-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}
         {directoryMatches.length ? (
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>

@@ -101,8 +101,10 @@ test("the count shortcut opens entry one while a direct entry return opens its o
 });
 
 test("an entry outside the signed-in account cannot open through the rail", async () => {
-  await expect(EntryPage({ params: Promise.resolve({ entryId: `ent_${"f".repeat(32)}` }) })).rejects.toThrow("NEXT_NOT_FOUND");
-  expect(mocks.notFound).toHaveBeenCalledOnce();
+  render(await EntryPage({ params: Promise.resolve({ entryId: `ent_${"f".repeat(32)}` }), searchParams: Promise.resolve({ filter: "active" }) }));
+  expect(screen.getByRole("heading", { name: "This saved entry is unavailable" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Go to My Activity" }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
+  expect(screen.queryByRole("article", { name: /Entry \d+ of/ })).toBeNull();
 });
 
 test("a bookmarked entry opens its own numbered ticket without extra query parameters", async () => {

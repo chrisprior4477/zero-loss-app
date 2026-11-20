@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { activityFilters, declinedOfferHref, filterActivity, openEntriesAnchorId, openEntriesHref, revivableDeclinedOfferCount, type AccountActivity, type ActivityFilter } from "@/lib/account/activity";
+import { activityFilters, declinedOfferHref, filterActivity, isPurchasedReward, openEntriesAnchorId, openEntriesHref, revivableDeclinedOfferCount, type AccountActivity, type ActivityFilter } from "@/lib/account/activity";
+import { PendingPurchaseReceipts } from "./PendingPurchaseReceipts";
 import { MyZeroLossGallery } from "./MyZeroLossGallery";
 import { ActivitySelection } from "./ActivitySelection";
 import { AccountIcon } from "./AccountIcon";
@@ -60,6 +61,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
         </Link>
       </li>)}</ul>
     </div> : null}
+    {ownerId && filter === "completed" ? <PendingPurchaseReceipts ownerId={ownerId} purchases={items.filter(item => isPurchasedReward(item) && item.completionOptionId).map(item => ({ slug: item.slug, title: item.title, optionId: item.completionOptionId! }))} /> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
     {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.rewardId ?? item.slug).join(",")} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} checkout={checkout} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>

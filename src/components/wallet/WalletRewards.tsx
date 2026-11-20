@@ -69,8 +69,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, timeZone = "America/New_York", cardEndings = {}, locale }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, expiredSelection, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -102,7 +102,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const historyTarget = focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {landingTarget ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} settleAfterNavigation allScreens />
+    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} settleAfterNavigation allScreens />
       : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
     <div className={overview.shell}>
       <header className={overview.heading}>
@@ -151,7 +151,9 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           </div>
         </aside>
       </div> : null}
+      {expiredSelection ? <AccountSettingsLandingScroll target="reward-history" initialTarget="reward-history" focusTarget="expired-selection-message" allScreens settleAfterNavigation /> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
+        {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading">{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>Your complete reward activity, from your account records.</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
             <WalletRewardLink href="/account/wallet#reward-history" aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>

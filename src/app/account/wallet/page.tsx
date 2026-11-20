@@ -256,6 +256,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: id });
     return error ? null : data;
   });
-  const rewards = <WalletRewards cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
+  const expiredSelection = rewardView === "expired" && typeof query.expiredEntry === "string" && !expired
+    ? account.activity.source === "unavailable" ? "unavailable" : "missing" : undefined;
+  const rewards = <WalletRewards expiredSelection={expiredSelection} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={`/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }

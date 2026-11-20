@@ -22,7 +22,12 @@ type Crop = { x: number; y: number; zoom: number };
 type PhotoVisibility = Record<PhotoVisibilitySurface, boolean>;
 const defaultVisibility: PhotoVisibility = { menu: true, crew: true };
 const defaultCrop: Crop = { x: 0, y: 0, zoom: 1 };
-const clampOffset = (offset: number) => Math.max(-90, Math.min(90, offset));
+function fitCrop(crop: Crop, width: number, height: number): Crop {
+  const size = Math.min(width, height);
+  const x = size ? (width / size * crop.zoom - 1) * CROP_SIZE / 2 : 0;
+  const y = size ? (height / size * crop.zoom - 1) * CROP_SIZE / 2 : 0;
+  return { zoom: crop.zoom, x: Math.max(-x, Math.min(x, crop.x)), y: Math.max(-y, Math.min(y, crop.y)) };
+}
 const photoTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 function readCrop(): Crop {
@@ -70,8 +75,9 @@ async function renderCroppedPhoto(photo: string, crop: Crop): Promise<Blob> {
   const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight) * crop.zoom;
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const x = (size - width) / 2 + crop.x * size / CROP_SIZE;
-  const y = (size - height) / 2 + crop.y * size / CROP_SIZE;
+  const fitted = fitCrop(crop, image.naturalWidth, image.naturalHeight);
+  const x = (size - width) / 2 + fitted.x * size / CROP_SIZE;
+  const y = (size - height) / 2 + fitted.y * size / CROP_SIZE;
   context.drawImage(image, x, y, width, height);
 
   return new Promise((resolve, reject) => {
@@ -118,7 +124,12 @@ export function ProfilePhotoCard({
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
   const [draftCrop, setDraftCrop] = useState<Crop>(defaultCrop);
   const [editing, setEditing] = useState(false);
+  const [dimensions, setDimensions] = useState<{ source: string; width: number; height: number }>();
+  const savingRef = useRef(false);
+  const measured = dimensions?.source === draftPhoto && dimensions.width > 0 && dimensions.height > 0 ? dimensions : undefined;
+  const fittedCrop = fitCrop(draftCrop, measured?.width ?? 0, measured?.height ?? 0);
   const closeEditor = useCallback(() => {
+    if (savingRef.current) return;
     draftVersion.current += 1;
     setEditing(false);
   }, []);
@@ -287,7 +298,7 @@ export function ProfilePhotoCard({
 
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || savingRef.current) return;
     event.target.value = "";
     const version = ++draftVersion.current;
     function showInvalidPhoto() {
@@ -316,40 +327,42 @@ export function ProfilePhotoCard({
   }
 
   function beginDrag(event: PointerEvent<HTMLDivElement>) {
+    if (savingRef.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
       x: event.clientX,
       y: event.clientY,
-      cropX: draftCrop.x,
-      cropY: draftCrop.y,
+      cropX: fittedCrop.x,
+      cropY: fittedCrop.y,
       scale: CROP_SIZE / Math.max(1, event.currentTarget.clientWidth),
     };
   }
 
   function movePhoto(event: PointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag || savingRef.current) return;
     draftVersion.current += 1;
-    const x = clampOffset(drag.cropX + (event.clientX - drag.x) * drag.scale);
-    const y = clampOffset(drag.cropY + (event.clientY - drag.y) * drag.scale);
-    setDraftCrop((current) => ({
-      ...current, x, y,
-    }));
+    const x = drag.cropX + (event.clientX - drag.x) * drag.scale;
+    const y = drag.cropY + (event.clientY - drag.y) * drag.scale;
+    setDraftCrop(current => fitCrop({ ...current, x, y }, measured?.width ?? 0, measured?.height ?? 0));
   }
 
   async function savePhoto() {
-    if (!draftPhoto || saving) return;
+    if (!draftPhoto || savingRef.current) return;
+    savingRef.current = true;
+    dragRef.current = null;
     const version = draftVersion.current;
     setSaving(true);
     setError(null);
     try {
       await persistPhoto(draftPhoto, draftCrop, devicePhotoDraft);
-      if (version === draftVersion.current) closeEditor();
+      if (version === draftVersion.current) setEditing(false);
     } catch (caught) {
       if (version === draftVersion.current) setError(caught instanceof Error
         ? caught.message
         : "We could not sync your photo. Please check your connection and try again.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -434,17 +447,27 @@ export function ProfilePhotoCard({
               onKeyDown={event => {
                 const offsets = { ArrowLeft: [-4, 0], ArrowRight: [4, 0], ArrowUp: [0, -4], ArrowDown: [0, 4] };
                 const offset = offsets[event.key as keyof typeof offsets];
-                if (!offset) return;
+                if (!offset || savingRef.current) return;
                 event.preventDefault();
                 draftVersion.current += 1;
-                setDraftCrop(current => ({ ...current, x: clampOffset(current.x + offset[0]), y: clampOffset(current.y + offset[1]) }));
+                setDraftCrop(current => fitCrop({ ...current, x: fittedCrop.x + offset[0], y: fittedCrop.y + offset[1] }, measured?.width ?? 0, measured?.height ?? 0));
               }}
               onPointerDown={beginDrag}
               onPointerMove={movePhoto}
               onPointerUp={() => { dragRef.current = null; }}
               onPointerCancel={() => { dragRef.current = null; }}
             >
-              <AvatarImage photo={draftPhoto} crop={draftCrop} />
+              <Image key={draftPhoto} src={draftPhoto} alt="" fill unoptimized draggable={false} className="pointer-events-none select-none"
+                onLoad={event => {
+                  const image = event.currentTarget;
+                  setDimensions({ source: draftPhoto, width: image.naturalWidth, height: image.naturalHeight });
+                }}
+                style={measured ? {
+                  width: `${100 * measured.width / Math.min(measured.width, measured.height) * fittedCrop.zoom}%`,
+                  height: `${100 * measured.height / Math.min(measured.width, measured.height) * fittedCrop.zoom}%`,
+                  maxWidth: "none", left: `${50 + fittedCrop.x / CROP_SIZE * 100}%`, top: `${50 + fittedCrop.y / CROP_SIZE * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                } : { objectFit: "cover" }} />
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,.35)]" />
             </div>
             <div className={photoStyles.controls}>
@@ -459,10 +482,11 @@ export function ProfilePhotoCard({
                 max="3"
                 step="0.05"
                 value={draftCrop.zoom}
+                disabled={saving}
                 onChange={(event) => {
                   draftVersion.current += 1;
                   const zoom = Number(event.target.value);
-                  setDraftCrop(current => ({ ...current, zoom }));
+                  setDraftCrop(current => fitCrop({ ...current, zoom }, measured?.width ?? 0, measured?.height ?? 0));
                 }}
                 className="mt-2 block min-h-6 w-full accent-cyan-300"
               />
@@ -470,14 +494,14 @@ export function ProfilePhotoCard({
             </div>
             <div className={photoStyles.actions}>
               <div className="grid grid-cols-2 gap-3">
-                <button type="button" onClick={closeEditor} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
+                <button type="button" disabled={saving} onClick={closeEditor} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
                   Cancel
                 </button>
                 <button ref={savePhotoTrigger} type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
                   {saving ? "Saving…" : "Save photo"}
                 </button>
               </div>
-              <button type="button" onClick={() => inputRef.current?.click()} className="mt-2 min-h-11 w-full text-sm font-bold text-cyan-300 hover:text-cyan-100">
+              <button type="button" disabled={saving} onClick={() => inputRef.current?.click()} className="mt-2 min-h-11 w-full text-sm font-bold text-cyan-300 hover:text-cyan-100">
                 Choose a different photo
               </button>
             </div>

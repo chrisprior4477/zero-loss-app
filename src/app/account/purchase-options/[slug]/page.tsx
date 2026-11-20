@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { activityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
+import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
 import { getAccountContext } from "@/lib/account/context";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -88,7 +88,17 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   if (selectedEntryId !== undefined && !options.some(option => option.entryId === selectedEntryId)) {
     if (typeof selectedEntryId !== "string" || !selectedEntryId) notFound();
     const ticket = findActivityItem(activity, slug, selectedEntryId);
-    if (!ticket) notFound();
+    if (!ticket) return <section className={styles.page} aria-labelledby="selected-offer-missing">
+      <div className={styles.shell}>
+        <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
+        <h1 id="selected-offer-missing" tabIndex={-1}>This purchase option is unavailable</h1>
+        <p>The selected option could not be opened for your account.</p>
+        <div className={styles.topActions}>
+          {options.length ? <Link href={prizePath} className={styles.shopping}>View this prize’s available options</Link> : null}
+          <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.return}>Return to Purchase Options</Link>
+        </div>
+      </div>
+    </section>;
     if (isPurchasedReward(ticket)) {
       redirect(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : "/account/entries?filter=completed");
     }
@@ -96,7 +106,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   }
   if (options.length === 0) {
     if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect("/account/declined-offers");
-    if (activity.some(ticket => ticket.slug === slug && isPurchasedReward(ticket))) redirect("/account/entries?filter=completed");
+    const completed = activity.find(ticket => ticket.slug === slug && isPurchasedReward(ticket));
+    if (completed) redirect(completedActivityHref(completed.entryId));
     const expired = activity.filter(ticket => ticket.slug === slug && ticket.completionOptionStatus === "expired");
     const lastExpired = expired.sort((a, b) => (b.completionExpiresAt ?? "").localeCompare(a.completionExpiresAt ?? ""))[0];
     if (lastExpired) redirect(activityHref(lastExpired));

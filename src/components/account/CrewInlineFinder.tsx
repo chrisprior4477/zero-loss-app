@@ -11,6 +11,8 @@ import styles from "./crew-connected.module.css";
 export function CrewInlineFinder({ available, onSample, onClose }: { available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [contactMethods, setContactMethods] = useState<string[]>([]);
+  const contactChoice = useRef<HTMLSelectElement>(null);
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
   const [samples, setSamples] = useState<(typeof sampleCrewPeople)[number][]>([]);
   const [target, setTarget] = useState<{ value: string; kind: "email" | "phone" } | null>(null);
@@ -79,14 +81,30 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
       const [contact] = await picker.select(["name", "email", "tel"], { multiple: false });
       if (!contact) { returnFromContacts(queryField.current); return; }
       request.current += 1; setPeople([]); setSamples([]); setTarget(null);
-      setQuery(contact.email?.[0] || contact.tel?.[0] || contact.name?.[0] || "");
-      setMessage("Contact selected. Press Find, then Add to Crew. Your address book was not uploaded.");
-      returnFromContacts(findButton.current);
+      const methods = [...new Set([...(contact.email ?? []), ...(contact.tel ?? [])].map(value => value.trim()).filter(Boolean))];
+      setContactMethods(methods.length > 1 ? methods : []);
+      if (methods.length > 1) {
+        setQuery("");
+        setMessage("Choose an email address or phone number for this contact.");
+        requestAnimationFrame(() => returnFromContacts(contactChoice.current));
+      } else {
+        setQuery(methods[0] || contact.name?.[0] || "");
+        setMessage("Contact selected. Press Find, then Add to Crew. Your address book was not uploaded.");
+        returnFromContacts(findButton.current);
+      }
     } catch { setMessage("No contact was selected. You can type their details instead."); returnFromContacts(queryField.current); }
   }
 
   return <section className={styles.finder} aria-label="Find someone for your Crew">
     <div className={styles.finderHeading}><div><span className={styles.eyebrow}>MAKE THE CONNECTION</span><h2>Add someone to your Crew</h2></div><button type="button" className={styles.iconButton} aria-label="Close people search" onClick={onClose}>×</button></div>
+    {contactMethods.length ? <label>Contact method
+      <select ref={contactChoice} value={contactMethods.includes(query) ? query : ""} onChange={event => {
+        setQuery(event.target.value); setInvalid(false); setTarget(null); setMessage("Press Find, then Add to Crew.");
+      }}>
+        <option value="">Choose an email or phone</option>
+        {contactMethods.map(method => <option key={method} value={method}>{method}</option>)}
+      </select>
+    </label> : null}
     <form onSubmit={find}>
       <label htmlFor="crew-query">Name, email, or phone</label>
       <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>

@@ -52,13 +52,14 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
       </DepositReceipt> : request?.reconciliation === "discrepancy" ? <DepositReceipt amount={request.amount} date={date} tone="review"
         status="This deposit needs review. Contact Support before adding more funds.">
         <Link href={supportHref} className={paymentStyles.secondary}>Contact Support</Link>
-      </DepositReceipt> : request && wallet?.walletAccountId && fundingEnabled ? <DepositRecovery key={request.id} requestKey={requestKey} walletId={wallet.walletAccountId} amount={request.amount}
+      </DepositReceipt> : request && wallet?.walletAccountId ? <DepositRecovery readOnly={!fundingEnabled} key={request.id} requestKey={requestKey} walletId={wallet.walletAccountId} amount={request.amount}
         date={date} initialStatus={request.reconciliation === "reconciled" ? undefined : request.reconciliation} embedded fromCheckout={fromCheckout} supportHref={supportHref}
         onCredit={(amount, balance) => { setVerified({ amount, balance, previousWallet: wallet }); router.refresh(); }} /> : <DepositReceipt amount={request?.amount} date={date} tone="checking"
         status={requests === null || !wallet ? "We couldn’t load this deposit’s status. Check your connection and try again."
           : !request ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
             : "This deposit is not confirmed yet. Check its status before adding more funds."}>
         <button type="button" className={paymentStyles.primary} disabled={checking} onClick={() => startChecking(() => router.refresh())}>{checking ? "Checking…" : "Check this deposit"}</button>
+        <Link href={supportHref} className={paymentStyles.secondary}>Contact Support about this deposit</Link>
       </DepositReceipt>}
       {fromDeposits && <Link href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(requestKey)}#payment-deposits`} className={paymentStyles.secondary}>Back to Payment deposits</Link>}
     </div>

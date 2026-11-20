@@ -5,6 +5,11 @@ export const profileFields = [
 export type ProfileField = typeof profileFields[number];
 export type ProfileSavedFields = Record<ProfileField, string | null>;
 export type ProfileEditBaseline = { fields: Record<ProfileField, string>; saved: ProfileSavedFields };
+export const profileFieldLimits: Record<ProfileField, number> = {
+  display_name: 100, legal_first_name: 100, legal_last_name: 100, date_of_birth: 10, phone_number: 32,
+  address_line_1: 200, address_line_2: 200, city: 100, region: 100, postal_code: 24, country: 100,
+  preferred_locale: 20, timezone: 64,
+};
 export const profileAddressFields: readonly ProfileField[] = ["address_line_1", "address_line_2", "city", "region", "postal_code", "country", "timezone"];
 
 export function profileEditBaseline(fields: ProfileSavedFields, saved = fields): ProfileEditBaseline {

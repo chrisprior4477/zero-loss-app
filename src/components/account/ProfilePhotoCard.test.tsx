@@ -5,7 +5,8 @@ import type { CSSProperties } from "react";
 
 const { savePhoto, saveVisibility } = vi.hoisted(() => ({ savePhoto: vi.fn(), saveVisibility: vi.fn() }));
 vi.mock("@/lib/account/actions", () => ({ saveProfilePhoto: savePhoto, saveProfilePhotoVisibility: saveVisibility }));
-vi.mock("next/image", () => ({ default: ({ src, style }: { src: string; style?: CSSProperties }) => <span data-photo-source={src} style={style} /> }));
+// eslint-disable-next-line @next/next/no-img-element -- simulate the crop image load in jsdom.
+vi.mock("next/image", () => ({ default: ({ src, style, onLoad }: { src: string; style?: CSSProperties; onLoad?: React.ReactEventHandler<HTMLImageElement> }) => <img data-photo-source={src} alt="" style={style} onLoad={onLoad} /> }));
 afterEach(() => {
   cleanup();
   savePhoto.mockClear();
@@ -17,6 +18,12 @@ afterEach(() => {
   document.documentElement.style.overflow = "";
 });
 
+function loadCrop(preview: HTMLElement, width = 1000, height = 500) {
+  const image = preview.querySelector<HTMLImageElement>("[data-photo-source]")!;
+  Object.defineProperties(image, { naturalWidth: { configurable: true, value: width }, naturalHeight: { configurable: true, value: height } });
+  fireEvent.load(image);
+  return image;
+}
 function dragPhoto(preview: HTMLElement, dx: number, dy: number) {
   Object.defineProperty(preview, "setPointerCapture", { configurable: true, value: vi.fn() });
   fireEvent(preview, new MouseEvent("pointerdown", { bubbles: true, clientX: 10, clientY: 10 }));
@@ -29,16 +36,16 @@ test.each([128, 224, 256])("dragging scales correctly in a %ipx crop preview", (
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const preview = screen.getByLabelText("Photo crop preview");
   Object.defineProperty(preview, "clientWidth", { configurable: true, value: width });
+  const image = loadCrop(preview);
   dragPhoto(preview, width / 4, width / 8);
-  const image = preview.querySelector<HTMLElement>("[data-photo-source]")!;
-  expect(image.style.transform).toBe("translate(25%, 12.5%) scale(1)");
+  expect([image.style.left, image.style.top]).toEqual(["75%", "50%"]);
   // Rotation changes only the rendered size, never the selected crop or zoom.
   fireEvent.change(screen.getByRole("slider"), { target: { value: "1.5" } });
   Object.defineProperty(preview, "clientWidth", { configurable: true, value: 256 });
   fireEvent.resize(window);
-  expect(image.style.transform).toBe("translate(25%, 12.5%) scale(1.5)");
+  expect([image.style.left, image.style.top, image.style.height]).toEqual(["75%", "50%", "150%"]);
   dragPhoto(preview, 16, 0);
-  expect(image.style.transform).toBe("translate(31.25%, 12.5%) scale(1.5)");
+  expect([image.style.left, image.style.top]).toEqual(["81.25%", "50%"]);
   expect(savePhoto).not.toHaveBeenCalled();
 });
 
@@ -63,8 +70,9 @@ test("saving after a small-screen drag exports the crop shown in the preview", a
   fireEvent.click(trigger);
   const preview = screen.getByLabelText("Photo crop preview");
   Object.defineProperty(preview, "clientWidth", { value: 128 });
-  dragPhoto(preview, 32, 16);
+  loadCrop(preview);
   fireEvent.change(screen.getByRole("slider"), { target: { value: "1.5" } });
+  dragPhoto(preview, 32, 16);
   fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(drawImage.mock.calls[0].slice(1)).toEqual([-384, -64, 1536, 768]);
@@ -216,15 +224,16 @@ test("a refreshed account updates the saved photo and both settings while leavin
   fireEvent.click(trigger);
   const preview = screen.getByLabelText("Photo crop preview");
   Object.defineProperty(preview, "clientWidth", { value: 256 });
-  dragPhoto(preview, 64, 32);
+  loadCrop(preview);
   fireEvent.change(screen.getByRole("slider"), { target: { value: "2" } });
+  dragPhoto(preview, 64, 32);
 
   rerender(card("/updated.webp", false));
   expect(trigger.querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe("/updated.webp");
   for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).toHaveProperty("checked", false);
   const draft = preview.querySelector<HTMLElement>("[data-photo-source]")!;
   expect(draft.dataset.photoSource).toBe("/original.webp");
-  expect(draft.style.transform).toBe("translate(25%, 12.5%) scale(2)");
+  expect([draft.style.left, draft.style.top, draft.style.height]).toEqual(["75%", "62.5%", "200%"]);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(trigger);
   expect(screen.getByLabelText("Photo crop preview").querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe("/updated.webp");

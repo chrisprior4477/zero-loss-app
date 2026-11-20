@@ -27,6 +27,8 @@ export const queryWords = (value: string) => [...new Set(searchWords(value
 export const maxCatalogSearchLength = 512;
 export const maxCatalogSearchTerms = 32;
 
+export const catalogSearchLimitMessage = `Shorten your search to ${maxCatalogSearchLength} characters and ${maxCatalogSearchTerms} words or fewer.`;
+
 export function catalogSearchTooLong(query: string) {
   return query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms;
 }

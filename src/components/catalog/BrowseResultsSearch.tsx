@@ -4,6 +4,7 @@ import { createContext, useContext, useId, useRef, useState, type ReactNode } fr
 import { useRouter } from "next/navigation";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { catalogSearchTooLong, catalogSearchLimitMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 
@@ -26,6 +27,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results") {
     const term = value.trim();
+    if (catalogSearchTooLong(term)) return;
     voice.cancel();
     setDraft(term);
     const url = new URL(browseHref, "https://zeroloss.local");
@@ -46,6 +48,8 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
   if (!session) throw new Error("Browse results search requires a search session");
   const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
   const editing = editor === position;
+  const tooLong = catalogSearchTooLong(draft.trim());
+  const limitId = `${id}-limit`;
   const label = retailerScope ? `Search ${retailerScope}${endingSoon ? " in Ending Soon" : ""}`
     : endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
   const inputId = position === "bottom" ? endingSoon ? "ending-soon-search-input" : "browse-search-input" : id;
@@ -64,15 +68,15 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
       field.current?.blur();
     }
   }
-  return <form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
-    onSubmit={event => { event.preventDefault(); if (voice.busy || !draft.trim()) return; field.current?.blur(); setEditor(null); search(draft); }}
+  return <><form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
+    onSubmit={event => { event.preventDefault(); if (voice.busy || !draft.trim()) return; if (tooLong) { field.current?.focus(); return; } field.current?.blur(); setEditor(null); search(draft); }}
     onKeyDown={event => {
       if (event.key !== "Escape" || (!editing && event.target !== field.current)) return;
       event.preventDefault();
       close(true);
     }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
-    <input id={inputId} ref={field} type="search" name="q" value={draft} placeholder={label}
+    <input id={inputId} ref={field} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || undefined} aria-describedby={tooLong ? limitId : undefined} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined); }}>×</button> : null}
@@ -84,5 +88,5 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
         voice.toggle();
       }} />
     {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={event => close(event.detail === 0)}>×</button> : null}
-  </form>;
+  </form>{tooLong ? <p id={limitId} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</>;
 }

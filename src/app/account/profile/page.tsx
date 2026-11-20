@@ -52,7 +52,7 @@ export default async function ProfilePage() {
     <MenuLayoutPicker previewSearchResults={previewSearchResults} previewAccount={{ count: account.activity.activeCount, balance: account.balanceLabel, avatarUrl: account.avatarUrl, showPhoto: account.showPhotoInMenu }} />
     <MobileLogoSizePicker />
     <PreferenceSnapshot><NotificationBannerPicker initialPopupStyle={account.notificationPopupStyle} initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} /></PreferenceSnapshot>
-    <ProfileDetailsForm ticket details={{
+    <ProfileDetailsForm ticket ownerId={account.userId} details={{
         savedFields: account.profileSavedFields,
         displayName: account.displayName,
         legalFirstName: account.legalFirstName,

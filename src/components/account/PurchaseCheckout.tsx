@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { purchaseReceiptHref, type ActivityItem } from "@/lib/account/activity";
+import { checkoutAttemptKey } from "@/lib/account/checkout-attempt";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
 import { checkDemoDeposit } from "@/lib/payments/actions";
@@ -100,7 +101,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     if (recovery === "purchase" && !overlay) receiptHeading.current?.focus({ preventScroll: true });
   }, [recovery, overlay]);
   const inFlight = useRef(false);
-  const attemptKey = `zero-loss-checkout-attempt:${ownerId}:${item.slug}`;
+  const attemptKey = useMemo(() => checkoutAttemptKey(ownerId, item.slug), [ownerId, item.slug]);
   function rememberReceiptUrl(requestId: string) {
     const url = new URL(window.location.href);
     url.searchParams.set("receipt", requestId);

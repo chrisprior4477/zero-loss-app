@@ -17,8 +17,8 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, supportHref, onCredit, onReview, onBack }: {
-  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean; supportHref?: string;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, readOnly = false, supportHref, onCredit, onReview, onBack }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean; readOnly?: boolean; supportHref?: string;
   onCredit: (amount: number, balance: number) => void; onReview?: () => void; onBack?: () => void;
 }) {
   const sectionId = onBack ? "funding-deposit-recovery" : "add-funds";
@@ -29,7 +29,7 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   const [response, action, pending] = useActionState(async (previous: RecoveryResult | null, form: FormData): Promise<RecoveryResult> => {
     let finishFailed = false;
     try {
-      if (form.get("intent") === "finish" && previous?.initialStatus === initialStatus && previous && "sessionId" in previous.check) {
+      if (!readOnly && form.get("intent") === "finish" && previous?.initialStatus === initialStatus && previous && "sessionId" in previous.check) {
         const data = new FormData();
         data.set("sessionId", previous.check.sessionId);
         try {
@@ -64,15 +64,17 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
     status={pending ? "Checking this deposit…" : status === "credited" ? "Deposit credited to your wallet."
       : finishFailed ? "We couldn’t finish this deposit. Check this same request again before adding more funds."
         : status === "missing" && !onReview ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
-        : status ? checkoutWarning ?? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
+        : readOnly && (status === "not_processed" || status === "credit_pending") ? "This deposit is still pending. Contact Support for help with this request."
+          : status ? checkoutWarning ?? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
     tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
     <form action={action} className={styles.actions}>
       {pending ? <button className={styles.primary} disabled>Checking…</button>
         : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={supportHref ?? depositSupportHref(requestKey)}>Contact Support</a>
         : status === "missing" && onReview ? <button ref={actionButton} type="button" className={styles.secondary} onClick={onReview}>Review same deposit</button>
-        : result && "sessionId" in result && !finishFailed ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
+        : !readOnly && result && "sessionId" in result && !finishFailed ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
         : <button ref={actionButton} className={styles.primary} name="intent" value="check">Check this deposit</button>}
     </form>
+    {readOnly && status !== "credited" && status !== "discrepancy" ? <a className={styles.secondary} href={supportHref ?? depositSupportHref(requestKey)}>Contact Support about this deposit</a> : null}
     {onBack && <button type="button" className={styles.secondary} onClick={onBack} disabled={pending}>Back to Add funds</button>}
   </DepositReceipt>;
   if (embedded) return card;

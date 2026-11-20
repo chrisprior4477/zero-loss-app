@@ -18,7 +18,7 @@ import { CrewWinEmailPreference } from "./CrewWinEmailPreference";
 import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import { NotificationStack } from "./NotificationStack";
 import { groupNotifications } from "@/lib/account/notification-groups";
-import { notificationDestination, notificationFilter, notificationReturnKey, readNotificationReturn, validNotice, type NotificationReturn } from "@/lib/account/notification-return";
+import { notificationDestination, notificationFilter, notificationHref, notificationReturnKey, readNotificationReturn, validNotice, type NotificationReturn } from "@/lib/account/notification-return";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
@@ -67,7 +67,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const readAvailable = live ? live.readAvailable : serverReadAvailable;
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
   const [focusedNotice, setFocusedNotice] = useState(initialNotice);
-  const focusedReturn = useRef(false);
+  const focusedReturn = useRef<string | undefined>(undefined);
+  const noticeFallback = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
   const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);
@@ -134,8 +135,18 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const restoreRange = batches.restoreRange;
   const noticeIndex = focusedNotice ? groups.findIndex(group => group.notifications.some(item => item.id === focusedNotice)) : -1;
 
+  const movedNotice = focusedNotice && noticeIndex < 0 ? enabledNotifications.find(notice => notice.id === focusedNotice) : undefined;
+  const incompleteFeed = !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable;
   useEffect(() => {
-    if (!focusedNotice || noticeIndex < 0 || focusedReturn.current) return;
+    if (!focusedNotice || focusedReturn.current === focusedNotice) return;
+    if (noticeIndex < 0) {
+      const frame = requestAnimationFrame(() => {
+        if (!noticeFallback.current) return;
+        revealBelowHeader(noticeFallback.current);
+        noticeFallback.current.focus({ preventScroll: true });
+      });
+      return () => cancelAnimationFrame(frame);
+    }
     if (noticeIndex >= batches.end) {
       restoreRange(0, Math.ceil((noticeIndex + 1) / groupsPerPage) * groupsPerPage);
       return;
@@ -143,7 +154,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     const frame = requestAnimationFrame(() => {
       const link = document.getElementById(`notification-link-${encodeURIComponent(focusedNotice)}`);
       if (!link) return;
-      focusedReturn.current = true;
+      focusedReturn.current = focusedNotice;
       const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
       window.scrollTo({ top: Math.max(0, window.scrollY + link.getBoundingClientRect().top - header - 18), behavior: "instant" });
       link.focus({ preventScroll: true });
@@ -434,6 +445,9 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
       </header>
 
       {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {focusedNotice && noticeIndex < 0 ? <div ref={noticeFallback} tabIndex={-1} role="status" className={styles.sourceWarning}>
+        {movedNotice ? <>This update is outside the selected filter. <Link href={notificationHref(movedNotice.category, movedNotice.id)}>Open this update in {filters.find(([key]) => key === movedNotice.category)?.[1]}</Link></> : incompleteFeed ? "We couldn’t verify this update right now. Try refreshing this page." : "This update is no longer available. Your current updates are below."}
+      </div> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage && readMessageLocation === "top" ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
       {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}

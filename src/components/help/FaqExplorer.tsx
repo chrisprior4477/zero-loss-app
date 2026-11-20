@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { faqCategories, filterFaqs, type FaqCategory } from "@/lib/help/faq";
+import { faqCategories, faqItems, faqSearchWords, filterFaqs, type FaqCategory } from "@/lib/help/faq";
 import { FaqAnswer } from "./FaqAnswer";
 import styles from "./help-tickets.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -17,9 +17,10 @@ export function FaqExplorer() {
   const [expanded, setExpanded] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const panel = useRef<HTMLElement>(null);
-  const searching = /[\p{L}\p{N}]/u.test(query);
-  const invalidSearch = Boolean(query.trim()) && !searching;
-  const items = invalidSearch ? [] : filterFaqs(query, category);
+  const searching = faqSearchWords(query).length > 0;
+  const fillerOnly = /[a-z0-9]/i.test(query) && !searching;
+  const invalidSearch = Boolean(query.trim()) && !searching && !fillerOnly;
+  const items = invalidSearch ? [] : filterFaqs(searching ? query : "", category);
   const otherTopicMatches = items.length === 0 && searching && category !== "all" && filterFaqs(query, "all").length > 0;
   function updateBookmark(changes: Partial<FaqReturn>) {
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: {
@@ -46,11 +47,11 @@ export function FaqExplorer() {
           if (saved) window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
         } catch { /* The direct answer link works without a recorded search. */ }
       }
-      const destination = saved ??
-        (window.location.hash === productRequestAnchor ? {
-          href: window.location.href, query: "", category: "all" as const, expanded: ["request-product"], collapsed: [],
-          scrollY: 0, answer: "request-product", answerTop: 0, answerLink: "/contact/product-request?origin=faq#requested-item",
-        } : null);
+      const direct = faqItems.find(item => window.location.hash === `#faq-${item.id}`);
+      const destination = saved?.answer || !direct ? saved : {
+        href: window.location.href, query: "", category: "all" as const, expanded: [direct.id], collapsed: [],
+        scrollY: 0, answer: direct.id, answerTop: 0, answerLink: direct.id === "request-product" ? direct.action.href : undefined,
+      };
       if (!destination) return;
       setQuery(destination.query); setCategory(destination.category); setExpanded(destination.expanded);
       setCollapsed(destination.collapsed ?? []);
@@ -65,8 +66,10 @@ export function FaqExplorer() {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, destination.answerTop) : destination.scrollY;
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-          if (!focused && destination.answerLink) {
-            const link = Array.from(answer?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === destination.answerLink);
+          if (!focused && answer) {
+            const link = destination.answerLink
+              ? Array.from(answer.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === destination.answerLink)
+              : answer.querySelector("summary");
             if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
           }
         }); });
@@ -104,7 +107,7 @@ export function FaqExplorer() {
       <p className={`mt-2 text-xs leading-5 ${styles.muted}`}>Answers update as you type. No search button or extra page.</p>
     </div>
     <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => changeCategory(key)} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
-    <p role="status" className="mb-4 text-sm text-white/65">{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
+    <p role="status" className="mb-4 text-sm text-white/65">{fillerOnly ? "Enter a topic word, such as password or gift card. " : ""}{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
     <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={item} expanded={searching ? !collapsed.includes(item.id) : expanded.includes(item.id)} onToggle={open => {
       if (searching && open === collapsed.includes(item.id)) {
         const next = open ? collapsed.filter(id => id !== item.id) : [...collapsed, item.id];

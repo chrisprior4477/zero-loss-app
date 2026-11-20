@@ -23,15 +23,16 @@ export type DemoFundingActionState =
   | { status: "pending"; message: string }
   | { status: "error"; message: string; beforePayment?: boolean; stale?: boolean };
 
-async function fundingProvider(expectedWallet?: FormDataEntryValue | null) {
+async function fundingProvider(expectedWallet?: FormDataEntryValue | null, readOnly = false) {
   if (!isPreviewDataEnvironment()) throw new FundingFailure("42501", "Simulated funding is unavailable in this environment.");
   const db = await createClient();
   const { data: { user }, error } = await db.auth.getUser();
   if (error || !user?.email_confirmed_at) throw new FundingFailure("42501", "Sign in with your confirmed test account.");
-  await ensurePreviewCustomer(db, user);
+  if (!readOnly) await ensurePreviewCustomer(db, user);
   const { data, error: walletError } = await db.rpc("get_wallet_snapshot");
   const wallet = walletError ? null : parseWalletSnapshot(data);
-  if (!demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)) || (expectedWallet != null && expectedWallet !== wallet?.walletAccountId)) {
+  const allowed = readOnly ? wallet?.scope === "demo" && Boolean(wallet.walletAccountId) : demoFundingAllowed(wallet, Boolean(user.email_confirmed_at));
+  if (!allowed || (expectedWallet != null && expectedWallet !== wallet?.walletAccountId)) {
     throw new FundingFailure("42501", "Demo funding is not enabled for this account.");
   }
   return new DemoPaymentProvider(db);
@@ -57,7 +58,7 @@ export async function checkDemoDeposit(key: string, amount: number, walletId: st
   try {
     assertIdempotencyKey(key);
     assertFundingAmount(amount);
-    const provider = await fundingProvider(walletId);
+    const provider = await fundingProvider(walletId, true);
     const request = await provider.getRequest(key);
     if (!request) return { status: "missing" };
     if (request.amount !== amount || request.reconciliation === "discrepancy") return { status: "discrepancy" };

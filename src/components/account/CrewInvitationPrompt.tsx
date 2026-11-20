@@ -36,11 +36,12 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   function close() {
     if (pending.current) return;
     setOpen(false);
-    if (request && (request.status === "accepted" || result?.ok)) {
+    if (request?.status !== "pending" || result?.ok) {
       const url = new URL(window.location.href);
-      if (url.searchParams.get("request") === request.id) {
+      const requestId = url.searchParams.get("request");
+      if (requestId && (!request || requestId === request.id)) {
         url.searchParams.delete("request");
-        if (url.hash === `#crew-request-${request.id}`) url.hash = "";
+        if (url.hash === `#crew-request-${requestId}`) url.hash = "";
         window.history.replaceState(window.history.state, "", url);
       }
     }

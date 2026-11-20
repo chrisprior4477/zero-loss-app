@@ -30,7 +30,9 @@ test.each([{ remaining: [] }, { remaining: [open] }])("a paid ticket opens its o
 
 test("an unrecognized ticket never selects another open offer", async () => {
   getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [open] } });
-  await expect(visit(paid.entryId)).rejects.toThrow("NOT_FOUND");
+  render(await visit(paid.entryId));
+  expect(screen.getByRole("heading", { name: "This purchase option is unavailable" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /available options/ }).getAttribute("href")).toBe(`/account/purchase-options/${slug}`);
 });
 
 test("the original paid-ticket selector survives sign-in", async () => {

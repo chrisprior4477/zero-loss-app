@@ -7,9 +7,8 @@ import { catalogRequestDraftKey } from "@/lib/catalog/request-draft";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-test.each(["validation", "connection"])("%s failure preserves the full request draft for correction and retry", async kind => {
-  if (kind === "validation") submit.mockResolvedValueOnce({ status: "error", message: "Check the product name" });
-  else submit.mockRejectedValueOnce(new Error("Connection lost"));
+test("a validation error preserves the full request draft for correction and retry", async () => {
+  submit.mockResolvedValueOnce({ status: "error", message: "Check the product name" });
   submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
   render(<CatalogRequestForm initialProduct="Kayak" />);
   fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "  " } });
@@ -79,8 +78,11 @@ test("a connection error survives remount, while confirmed success removes the r
   await screen.findByRole("alert"); view.unmount();
   const returned = render(<CatalogRequestForm initialProduct="Kayaks" ownerId="customer-a" />);
   expect(screen.getByLabelText(/Anything else/)).toHaveProperty("value", "Lightweight with room for fishing gear");
-  fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
-  await screen.findByRole("status");
+  expect(screen.getByLabelText(/What would you like/)).toHaveProperty("readOnly", true);
+  fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Different request" } });
+  fireEvent.submit(screen.getByRole("button", { name: "Check original request" }).closest("form")!);
+  await screen.findByText("Saved request");
+  expect((submit.mock.calls[1][1] as FormData).get("requestedItem")).toBe("Tandem fishing kayak");
   expect(sessionStorage.getItem(catalogRequestDraftKey("customer-a", "Kayaks"))).toBeNull();
   const originalKey = (submit.mock.calls[0][1] as FormData).get("requestKey");
   expect(originalKey).toEqual(expect.any(String));

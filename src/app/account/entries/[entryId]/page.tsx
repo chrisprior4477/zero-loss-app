@@ -53,7 +53,14 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   }
   // A saved URL remains usable after this customer's entry receives an outcome.
   const item = account.activity.activity.find(entry => entry.entryId === entryId);
-  if (!item) notFound();
+  if (!item) return <div className={styles.page}><div className={styles.shell}>
+    <AccountSettingsLandingScroll target="entry-unavailable-title" initialTarget="entry-unavailable-title" focusTarget="entry-unavailable-title" allScreens />
+    <section className={styles.playTicket} aria-labelledby="entry-unavailable-title">
+      <h1 id="entry-unavailable-title" tabIndex={-1}>This saved entry is unavailable</h1>
+      <p>Open My Activity to see the entries available for this account.</p>
+      <Link href={query?.filter === "active" ? "/account/entries?filter=active#my-activity-filters" : "/account/entries#my-activity-filters"} className={styles.returnButton}>Go to My Activity</Link>
+    </section>
+  </div></div>;
   const entryContext = entryReviewContext(query);
   if (item.status !== "active") {
     if (item.rewardId && (entryContext.transaction || entryContext.notice)) {

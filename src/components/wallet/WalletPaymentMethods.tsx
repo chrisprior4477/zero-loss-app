@@ -21,6 +21,8 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [cards, setCards] = useState(savedCards);
   const [panelHash, setPanelHash] = useState("");
   const [message, setMessage] = useState("");
+  const [missingCard, setMissingCard] = useState(false);
+  const missingCardNotice = useRef<HTMLParagraphElement>(null);
   const [defaultError, setDefaultError] = useState<{ token: DemoCardToken; message: string } | null>(null);
   const defaultErrorId = useId();
   const failedControl = useRef<HTMLInputElement | null>(null);
@@ -78,6 +80,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         window.history.replaceState(null, "", hash);
       }
       lastSyncedHref = window.location.href;
+      if (hash.startsWith(savedCardEditPrefix)) setMissingCard(false);
       setPanelHash(hash);
       if (hash === "#payment-methods") revealMethods();
       else if (hash === "#wallet-add-card" || hash.startsWith(savedCardEditPrefix)) revealWalletSection("wallet-card-editor", "wallet-card-editor", true);
@@ -108,11 +111,18 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     if (!panelOpen) return;
     if (editorToken) { revealWalletSection("wallet-card-editor", "wallet-card-editor", true); return; }
     if ((isEdit || isAdd) && !unavailable) {
-      window.history.replaceState(null, "", "#payment-methods");
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
+      // Handle a card that disappeared while this browser URL was selected.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (isEdit) setMissingCard(true);
+      openWalletPanel("#payment-methods", window.history.state, true);
     }
     revealMethods();
   }, [panelOpen, editorToken, isEdit, isAdd, unavailable]);
+  useEffect(() => {
+    if (missingCard && panelHash === "#payment-methods") {
+      requestAnimationFrame(() => missingCardNotice.current?.focus({ preventScroll: true }));
+    }
+  }, [missingCard, panelHash]);
   useEffect(() => {
     if (busy || !defaultError) return;
     if (document.activeElement === document.body) failedControl.current?.focus();
@@ -159,13 +169,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
     {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
-      showMethods();
+      openWalletPanel("#payment-methods", window.history.state, true);
       requestAnimationFrame(() => document.getElementById(target)?.focus());
     }} onSaved={(card, source) => {
       if (source === "camera" || !isEdit || card.token !== editorToken) showMethods();
       acceptSavedCard(card);
     }} /> : <>
       <h2 tabIndex={-1}>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
+      {missingCard ? <p ref={missingCardNotice} tabIndex={-1} role="status">This saved card is no longer available. Choose a card from your payment methods.</p> : null}
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
       {!availableToken && enabled && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}

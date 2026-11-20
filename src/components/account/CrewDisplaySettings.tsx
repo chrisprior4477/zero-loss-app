@@ -123,7 +123,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const privacyDisabled = !available || pending;
   const groupToReveal = useRef<string | null>(null);
   const groupToFocus = useRef<string | null>(null);
-  const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}:${embedded ? "crew" : "settings"}` : null;
+  const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}` : null;
   const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const persistedGroupIds = new Set(baseline.groups.map(group => group.id));
   const latestGroups = new Map(server.groups.map(group => [group.id, group]));
@@ -163,7 +163,10 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   useEffect(() => {
     if (!groupDraftKey || loadedDraftKey === groupDraftKey) return;
     try {
-      const draft = JSON.parse(sessionStorage.getItem(groupDraftKey) ?? "null");
+      const oldKey = `${groupDraftKey}:${embedded ? "crew" : "settings"}`;
+      const legacy = sessionStorage.getItem(oldKey);
+      const draft = JSON.parse(sessionStorage.getItem(groupDraftKey) ?? legacy ?? "null");
+      if (legacy) sessionStorage.removeItem(oldKey);
       // Browser storage is only available after hydration.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (typeof draft?.newGroupName === "string" && draft.newGroupName.length <= 50) setNewGroupName(draft.newGroupName);
@@ -193,7 +196,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       }
     } catch { /* The saved groups can still be edited. */ }
     setLoadedDraftKey(groupDraftKey);
-  }, [groupDraftKey, initialGroups, loadedDraftKey]);
+  }, [embedded, groupDraftKey, initialGroups, loadedDraftKey]);
 
   useEffect(() => {
     if (!groupDraftKey || loadedDraftKey !== groupDraftKey) return;

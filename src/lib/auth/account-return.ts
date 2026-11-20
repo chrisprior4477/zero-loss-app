@@ -25,7 +25,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy", "add"), entry: matches(/^ent_[a-f0-9]{32}$/i), filter: oneOf("active"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {}, hash: /^#account-settings-sections$/ },
   "/account/notifications": { query: { filter: oneOf("action", "account", "activity", "orders", "crew"), notice: validNotice }, hash: /^#(?:notifications-intro|notification-tickets-filters|alert-settings|favorite-alert-preference)$/ },
-  "/account/security": { query: {}, hash: /^#(?:security-controls|sign-out-everywhere)$/ },
+  "/account/security": { query: {}, hash: /^#(?:security-controls|sign-out-everywhere|account-settings-sections)$/ },
   "/account/profile": { query: {}, hash: /^#(?:personal-details-heading|contact-details-heading|mailing-address-heading|profile-preferences-heading|personalize-menu(?:-heading)?|account-settings-sections|profile-intro|personalize-logo)$/ },
   "/account/payment-methods": { query: {} },
   "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), focusReward: matches(uuid), support: oneOf("report"), details: oneOf("1"), from: oneOf("notifications"), alerts: alertFilter, notice: validNotice }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },

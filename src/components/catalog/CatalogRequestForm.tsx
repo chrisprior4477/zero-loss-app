@@ -8,7 +8,7 @@ const initialState: CatalogRequestState = { status: "idle" };
 
 async function saveRequest(previous: CatalogRequestState, formData: FormData): Promise<CatalogRequestState> {
   try { return await submitCatalogRequest(previous, formData); }
-  catch { return { status: "error", message: "We could not confirm your request. Your details are still here. Please try again." }; }
+  catch { return { status: "error", uncertain: true, message: "We couldn’t confirm this request. Check the original submission." }; }
 }
 
 type Props = { initialProduct?: string; ownerId?: string; scope?: string };
@@ -23,6 +23,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
   const [draft, setDraft] = useState(initialDraft);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [awaitingCheck, setAwaitingCheck] = useState(false);
   const restored = useRef(false);
   const sending = useRef(false);
   const submitButton = useRef<HTMLButtonElement>(null);
@@ -40,9 +41,11 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       // Restore after hydration without reading browser storage on the server.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(saved);
+      setAwaitingCheck(Boolean(saved.requestKey));
     }
   }, [draftKey]);
   function changeDraft(change: Partial<CatalogRequestDraft>) {
+    if (awaitingCheck || sending.current) return;
     const next = { ...draft, ...change };
     if (next.requestedItem.trim() !== draft.requestedItem.trim() || next.notes.trim() !== draft.notes.trim()
       || next.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) delete next.requestKey;
@@ -53,6 +56,12 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData) => {
     try {
       const result = await saveRequest(previous, data);
+      setAwaitingCheck(result.status === "error" && result.uncertain === true);
+      if (result.status === "error" && !result.uncertain) {
+        setDraft(current => ({ ...current, requestKey: undefined }));
+        const saved = readCatalogRequestDraft(draftKey);
+        if (saved?.requestKey === data.get("requestKey")) writeCatalogRequestDraft(draftKey, { ...saved, requestKey: undefined });
+      }
       if (result.status === "succeeded" && readCatalogRequestDraft(draftKey)?.requestKey === data.get("requestKey")) {
         writeCatalogRequestDraft(draftKey, null);
       }
@@ -68,11 +77,15 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
     if (showFeedback && state.status === "error" && document.activeElement === document.body) submitButton.current?.focus();
   }, [pending, showFeedback, state]);
 
-  if (state.status === "succeeded") {
+  if (state.status === "succeeded" && showFeedback) {
     return (
       <div role="status" className="rounded-2xl border border-[#31e800]/50 bg-[#31e800]/10 p-6">
         <p className="text-xs font-black uppercase tracking-[0.15em] text-[#62ff3b]">Request received</p>
         <p className="mt-2 text-lg font-bold text-white">{state.message}</p>
+        <button type="button" className="mt-2 min-h-11 font-bold text-cyan-200 underline" onClick={() => {
+          setDraft(initialDraft()); setShowFeedback(false);
+          requestAnimationFrame(() => requestedItem.current?.focus());
+        }}>Make another product request</button>
       </div>
     );
   }
@@ -90,6 +103,11 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       setDraft(submitted);
       writeCatalogRequestDraft(draftKey, submitted);
       formData.set("requestKey", requestKey);
+      if (awaitingCheck) {
+        formData.set("requestedItem", draft.requestedItem);
+        formData.set("email", draft.email);
+        formData.set("notes", draft.notes);
+      }
       setShowFeedback(true);
       startTransition(() => formAction(formData));
     }} className="space-y-5 [&_:invalid]:scroll-mt-[calc(var(--site-header-height,140px)+16px)]">
@@ -111,6 +129,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
           aria-describedby={originalQuery ? "requested-item-limit" : undefined}
           value={draft.requestedItem}
           onChange={event => changeDraft({ requestedItem: event.target.value })}
+          readOnly={awaitingCheck}
           disabled={pending}
           placeholder="Example: Kayaks, concert tickets, or running shoes"
           className="mt-2 min-h-12 w-full scroll-mt-44 rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
@@ -128,6 +147,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
           autoComplete="email"
           value={draft.email}
           onChange={event => changeDraft({ email: event.target.value })}
+          readOnly={awaitingCheck}
           disabled={pending}
           placeholder="you@example.com"
           className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
@@ -142,16 +162,18 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
           rows={4}
           value={draft.notes}
           onChange={event => changeDraft({ notes: event.target.value })}
+          readOnly={awaitingCheck}
           disabled={pending}
           placeholder="A favorite brand, retailer, size, price range, or anything else that would help."
           className="mt-2 w-full resize-y rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
       </div>
+      {awaitingCheck ? <p role="status">This submission still needs confirmation. Checking uses the original details and can finish the request if it hasn’t been saved yet.</p> : null}
       {showFeedback && state.status === "error" ? <p role="alert" className="rounded-xl border border-orange-400/45 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100">{state.message}</p> : null}
       <button ref={submitButton} type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] transition hover:bg-[#62ff3b] disabled:cursor-wait disabled:opacity-60 sm:w-auto">
-        {pending ? "Sending request…" : "Send product request →"}
+        {pending ? awaitingCheck ? "Checking request…" : "Sending request…" : awaitingCheck ? "Check original request" : "Send product request →"}
       </button>
-      {dirty ? <button type="button" disabled={pending} className="block min-h-11 text-sm font-bold text-cyan-200 underline disabled:opacity-50" onClick={() => {
+      {dirty && !awaitingCheck ? <button type="button" disabled={pending} className="block min-h-11 text-sm font-bold text-cyan-200 underline disabled:opacity-50" onClick={() => {
         setDraft(initialDraft()); setShowFeedback(false); writeCatalogRequestDraft(draftKey, null);
         requestedItem.current?.focus();
       }}>Clear draft</button> : null}

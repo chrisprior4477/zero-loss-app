@@ -13,7 +13,19 @@ const details: ProfileDetails = {
   preferredLocale: "en-US", timezone: "America/New_York",
 };
 
-afterEach(() => { cleanup(); vi.mocked(saveProfileDetails).mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(saveProfileDetails).mockReset(); });
+
+test("only the original account can recover its unsaved edits after navigation", async () => {
+  const initial = render(<ProfileDetailsForm details={details} ownerId="profile-a" />);
+  await act(async () => { fireEvent.input(screen.getByLabelText("Display name"), { target: { value: "Unsent alias" } }); });
+  initial.unmount();
+  const other = render(<ProfileDetailsForm details={{ ...details, displayName: "Other account" }} ownerId="profile-b" />);
+  expect(screen.getByLabelText("Display name")).toHaveProperty("value", "Other account");
+  other.unmount();
+  render(<ProfileDetailsForm details={details} ownerId="profile-a" />);
+  expect(screen.getByLabelText("Display name")).toHaveProperty("value", "Unsent alias");
+  expect(screen.getByText("Your unsaved profile edits were restored.")).toBeTruthy();
+});
 
 test("clearing the birth date dismisses saved feedback without saving the new blank draft", async () => {
   vi.mocked(saveProfileDetails).mockResolvedValue({ status: "succeeded", message: "Your profile information has been updated." });

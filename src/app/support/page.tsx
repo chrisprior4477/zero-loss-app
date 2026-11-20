@@ -169,8 +169,16 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
     (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
   if (validCase) {
-    const result = await db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle();
-    if (result.error || !result.data) return <PageContainer>{heading}{navigation}<p role="alert">This case is unavailable for your account. Return to My support cases to try again.</p></PageContainer>;
+    const lookup = await Promise.resolve(db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle())
+      .then(result => ({ result }), () => ({ result: null }));
+    if (!lookup.result || lookup.result.error) return <PageContainer>{heading}{navigation}
+      <section id="conversation" className={`${card} ${styles.anchor}`} aria-label="Support conversation unavailable">
+        <p role="alert">We couldn’t load this support conversation right now.</p>
+        <a className={`${button} mt-3`} href={next}>Retry this conversation</a>
+      </section>
+    </PageContainer>;
+    const result = lookup.result;
+    if (!result.data) return <PageContainer>{heading}{navigation}<p role="alert">This case is unavailable for your account. Return to My support cases to try again.</p></PageContainer>;
     const supportCase = result.data;
     const messagePage = pageIndex(query.messages);
     const messageAnchor = supportMessageAnchor(query.messageAnchor);

@@ -2,13 +2,14 @@
 
 import { accountLanguage, accountLocale } from "@/lib/account/locale";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useLayoutEffect, useId, useMemo, useRef, useState } from "react";
 import { AccountIcon } from "./AccountIcon";
 import { saveProfileDetails, type SaveProfileDetailsResult } from "@/lib/account/actions";
+import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
 import { addressRequirements, completeMailingAddress } from "@/lib/account/address-requirements";
-import { profileAddressFields, profileEditBaseline, profileFields, type ProfileSavedFields } from "@/lib/account/profile-edit";
+import { profileAddressFields, profileEditBaseline, profileFields, profileFieldLimits, type ProfileField, type ProfileSavedFields } from "@/lib/account/profile-edit";
 import styles from "./profile-editor.module.css";
 
 export type ProfileDetails = {
@@ -43,18 +44,22 @@ function timeZoneLabel(zone: string) {
 }
 
 function Field({ label, name, defaultValue, autoComplete, type = "text", placeholder, className, required = false, hint }: {
-  label: string; name: string; defaultValue?: string | null; autoComplete?: string; type?: string; placeholder?: string; className?: string; required?: boolean; hint?: string;
+  label: string; name: ProfileField; defaultValue?: string | null; autoComplete?: string; type?: string; placeholder?: string; className?: string; required?: boolean; hint?: string;
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   return <div className={`${styles.field} ${className ?? ""}`}>
     <label htmlFor={id}>{label}</label>
     <div className={styles.inputWrap}>
-      <input ref={input} id={id} type={type} name={name} defaultValue={defaultValue ?? ""} autoComplete={autoComplete} placeholder={placeholder} required={required} />
+      <input ref={input} id={id} type={type} name={name} maxLength={profileFieldLimits[name]} defaultValue={defaultValue ?? ""} autoComplete={autoComplete} placeholder={placeholder} required={required} />
       <button type="button" className={styles.clearButton} aria-label={`Clear ${label.toLowerCase()}`} onClick={() => { if (input.current) { input.current.value = ""; input.current.dispatchEvent(new Event("input", { bubbles: true })); input.current.focus(); } }}>×</button>
     </div>
     {hint ? <small>{hint}</small> : null}
   </div>;
+}
+
+function addressFromForm(data: FormData) {
+  return { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
 }
 
 function splitDate(value: string | null) {
@@ -75,22 +80,25 @@ function ProfileDateOfBirth({ defaultValue, onClear, locale }: { defaultValue: s
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
   const [day, setDay] = useState(initial.day);
-  const maximumYear = new Date().getFullYear() - 18;
+  const today = new Date();
+  const maximumYear = today.getUTCFullYear() - MIN_ACCOUNT_AGE_YEARS;
   const years = Array.from({ length: 103 }, (_, index) => String(maximumYear - index));
   if (initial.year && !years.includes(initial.year)) years.push(initial.year);
   const maximumDay = daysInMonth(year, month);
   const validDay = Number(day) <= maximumDay ? day : "";
-  const dateValue = year && month && validDay ? `${year}-${month.padStart(2, "0")}-${validDay.padStart(2, "0")}` : "";
+  const dayAllowed = (value: number) => !year || !month || isAtLeastAge(`${year}-${month.padStart(2, "0")}-${String(value).padStart(2, "0")}`);
+  const dateValue = year && month && validDay && dayAllowed(Number(validDay)) ? `${year}-${month.padStart(2, "0")}-${validDay.padStart(2, "0")}` : "";
   const clear = () => { setYear(""); setMonth(""); setDay(""); onClear(); };
 
   return <fieldset className={styles.dateField}>
     <legend>{t("Date of birth", "Fecha de nacimiento")}</legend>
     <div className={styles.dateSelects}>
-      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
-      <label><span className="sr-only">{t("Birth day", "Día de nacimiento")}</span><select aria-label={t("Birth day", "Día de nacimiento")} value={validDay} required onChange={event => setDay(event.target.value)}><option value="">{t("Day", "Día")}</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1} disabled={Number(year) === maximumYear && index > today.getUTCMonth()}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth day", "Día de nacimiento")}</span><select name="birth_day" aria-label={t("Birth day", "Día de nacimiento")} value={validDay} required onChange={event => setDay(event.target.value)}><option value="">{t("Day", "Día")}</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value} disabled={!dayAllowed(value)}>{value}</option>)}</select></label>
       <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => setYear(event.target.value)}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       <button type="button" className={styles.clearButton} aria-label={t("Clear date of birth", "Borrar fecha de nacimiento")} onClick={clear}>×</button>
     </div>
+    {year && month && validDay && !dateValue ? <small role="alert">{t("Choose a date of birth that meets the age requirement.", "Elige una fecha de nacimiento que cumpla el requisito de edad.")}</small> : null}
     <input type="hidden" name="date_of_birth" value={dateValue} />
     <small>{t("On a phone, these open your device’s native scrolling selectors.", "En un teléfono, estos campos abren los selectores del dispositivo.")}</small>
   </fieldset>;
@@ -104,7 +112,11 @@ async function saveProfile(previous: SaveProfileDetailsResult, formData: FormDat
   }
 }
 
-export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
+export function ProfileDetailsForm({ details, ticket = false, ownerId }: { details: ProfileDetails; ticket?: boolean; ownerId?: string }) {
+  const draftKey = ownerId ? `zero-loss:profile-draft:${ownerId}` : null;
+  const [recoveredDate, setRecoveredDate] = useState<string | null>();
+  const [hasRecovered, setHasRecovered] = useState(false);
+  const didRestore = useRef(false);
   const [locale, setLocale] = useState(() => accountLocale(details.preferredLocale));
   const t = accountLanguage(locale);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -117,6 +129,10 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const [state, action, pending] = useActionState(async (previous: SaveProfileDetailsResult, data: FormData) => {
     const result = await saveProfile(previous, data);
     if (result.status === "succeeded" && result.appliedFields) {
+      setHasRecovered(false);
+      if (draftKey && !addressLookupFailed) {
+        try { sessionStorage.removeItem(draftKey); } catch { /* Tab storage is optional. */ }
+      }
       if (result.appliedFields.preferred_locale) setLocale(accountLocale(result.appliedFields.preferred_locale));
       setBaseline(previous => ({
         fields: Object.fromEntries(profileFields.map(key => [key, data.has(key) ? String(data.get(key) ?? "") : previous.fields[key]])) as typeof previous.fields,
@@ -128,17 +144,40 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const saveFeedback = useRef<HTMLParagraphElement>(null);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
+    function isDirty() {
+      if (!form.current) return false;
+      const data = new FormData(form.current);
+      return profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim());
+    }
+    function confirmUnload(event: BeforeUnloadEvent) {
+      if (!isDirty()) return;
+      event.preventDefault();
+      event.returnValue = true;
+    }
     function confirmSectionChange(event: MouseEvent) {
       if (!form.current || event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
       if (!link || (link.target && link.target !== "_self") || link.origin !== window.location.origin || link.pathname === window.location.pathname) return;
-      const data = new FormData(form.current);
-      const dirty = profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim());
-      if (dirty && !window.confirm("You have unsaved profile changes. Leave this section and discard them?")) event.preventDefault();
+      if (!isDirty()) return;
+      if (!window.confirm("You have unsaved profile changes. Leave this section and discard them?")) event.preventDefault();
+      else if (draftKey) {
+        try { sessionStorage.removeItem(draftKey); } catch { /* Tab storage is optional. */ }
+      }
     }
     document.addEventListener("click", confirmSectionChange, true);
-    return () => document.removeEventListener("click", confirmSectionChange, true);
-  }, [baseline]);
+    function confirmTraversal(event: Event) {
+      if ((event as Event & { navigationType?: string }).navigationType !== "traverse" || !event.cancelable || !isDirty()) return;
+      if (!window.confirm("Leave Profile? Your unsaved edits will be kept for a short time in this tab.")) event.preventDefault();
+    }
+    const navigation = (window as Window & { navigation?: EventTarget }).navigation;
+    navigation?.addEventListener("navigate", confirmTraversal);
+    window.addEventListener("beforeunload", confirmUnload);
+    return () => {
+      document.removeEventListener("click", confirmSectionChange, true);
+      window.removeEventListener("beforeunload", confirmUnload);
+      navigation?.removeEventListener("navigate", confirmTraversal);
+    };
+  }, [baseline, draftKey]);
   useEffect(() => {
     if (showFeedback && !pending && state.status === "error" && document.activeElement === document.body) {
       saveFeedback.current?.focus();
@@ -151,6 +190,53 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const [selectedZone, setSelectedZone] = useState(details.timezone ?? "");
   const [lookup, setLookup] = useState<{ key: string; zone: string | null; options: string[]; failed?: boolean } | null>(null);
   const [lookupAttempt, setLookupAttempt] = useState(0);
+  function rememberDraft(element: HTMLFormElement) {
+    if (!draftKey || !element.isConnected) return;
+    const data = new FormData(element);
+    const addressExpected = profileAddressFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim())
+      ? Object.fromEntries(profileAddressFields.map(key => [key, baseline.saved[key]])) : undefined;
+    const changes = profileFields.flatMap(key => {
+      const value = data.get(key);
+      return typeof value === "string" && value.trim() !== baseline.fields[key].trim()
+        ? [{ key, value, saved: baseline.saved[key] }] : [];
+    });
+    try {
+      if (changes.length) sessionStorage.setItem(draftKey, JSON.stringify({ until: Date.now() + 900_000, changes, addressExpected }));
+      else sessionStorage.removeItem(draftKey);
+    } catch { /* Tab storage is optional. */ }
+  }
+  useLayoutEffect(() => {
+    const element = form.current;
+    if (!draftKey || !element || didRestore.current) return;
+    didRestore.current = true;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(draftKey) ?? "null");
+      if (!draft || !Number.isFinite(draft.until) || draft.until <= Date.now() || !Array.isArray(draft.changes)) {
+        sessionStorage.removeItem(draftKey);
+        return;
+      }
+      const saved: Partial<ProfileSavedFields> = {};
+      for (const key of profileAddressFields) {
+        const expected = draft.addressExpected?.[key];
+        if (expected === null || typeof expected === "string") saved[key] = expected;
+      }
+      for (const { key, value, saved: expected } of draft.changes) {
+        if (!profileFields.includes(key) || typeof value !== "string" || !(expected === null || typeof expected === "string")) continue;
+        saved[key as ProfileField] = expected;
+        // Hydrate browser-only draft values after the initial server render.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (key === "date_of_birth") { setRecoveredDate(value); continue; }
+        if (key === "timezone") { setSelectedZone(value); continue; }
+        const field = element.elements.namedItem(key);
+        if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) field.value = value;
+      }
+      const data = new FormData(element);
+      setAddress(addressFromForm(data));
+      setAddressLine2(String(data.get("address_line_2") ?? ""));
+      setBaseline(current => ({ ...current, saved: { ...current.saved, ...saved } }));
+      setHasRecovered(true);
+    } catch { /* An unreadable draft never blocks Profile. */ }
+  }, [draftKey]);
   const completeAddress = completeMailingAddress(address);
   const addressChanged = [
     [address.country, baseline.fields.country], [address.region, baseline.fields.region],
@@ -188,17 +274,24 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     if (addressLookupFailed) {
       for (const field of profileAddressFields) data.set(field, baseline.fields[field]);
     }
+    if (!data.get("date_of_birth")) {
+      event.currentTarget.querySelector<HTMLSelectElement>('[name="birth_day"]')?.focus();
+      return;
+    }
     if (data.get("timezone") === "") data.delete("timezone");
     setShowFeedback(true);
     startTransition(() => action(data));
   }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label={t("Edit profile", "Editar perfil")} onChange={() => setShowFeedback(false)} onInput={event => {
     setShowFeedback(false);
     const data = new FormData(event.currentTarget);
-    const next = { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
+    const element = event.currentTarget;
+    queueMicrotask(() => rememberDraft(element));
+    const next = addressFromForm(data);
     if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode) setSelectedZone("");
     setAddressLine2(String(data.get("address_line_2") ?? ""));
     setAddress(next);
   }}>
+    {ownerId ? <input type="hidden" name="profile_owner" value={ownerId} /> : null}
     <input type="hidden" name="profile_baseline" value={JSON.stringify(baseline)} />
     <fieldset className={styles.editableFields} disabled={pending} aria-label={t("Profile details", "Datos del perfil")} aria-busy={pending}>
     <section className={styles.formSection} aria-labelledby="personal-details-heading">
@@ -207,7 +300,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
         <Field label={t("Display name", "Nombre visible")} name="display_name" defaultValue={details.displayName} autoComplete="nickname" className={styles.fullField} required />
         <Field label={t("Legal first name", "Nombre legal")} name="legal_first_name" defaultValue={details.legalFirstName} autoComplete="given-name" required />
         <Field label={t("Legal last name", "Apellido legal")} name="legal_last_name" defaultValue={details.legalLastName} autoComplete="family-name" required />
-        <div className={styles.fullField}><ProfileDateOfBirth locale={locale} defaultValue={details.dateOfBirth} onClear={() => setShowFeedback(false)} /></div>
+        <div className={styles.fullField}><ProfileDateOfBirth key={recoveredDate !== undefined ? "recovered" : "initial"} locale={locale} defaultValue={recoveredDate ?? details.dateOfBirth} onClear={() => { setShowFeedback(false); const element = form.current; if (element) queueMicrotask(() => rememberDraft(element)); }} /></div>
       </div>
       <p className={styles.identityNote}><AccountIcon name="security" /> {t("Legal identity changes are saved only to your signed-in profile and are never exposed through direct database writes.", "Los cambios de identidad legal se guardan solo en tu perfil.")}</p>
     </section>
@@ -266,6 +359,8 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
 
     </fieldset>
     {showFeedback && !pending && state.status !== "idle" ? <p ref={saveFeedback} tabIndex={state.status === "error" ? -1 : undefined} role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
+    {hasRecovered && !showFeedback ? <p role="status">Your unsaved profile edits were restored.</p> : null}
+    {showFeedback && state.status === "error" && state.sessionExpired ? <Link href="/login?next=%2Faccount%2Fprofile%23personal-details-heading" target="_blank" rel="noopener">Sign in again in a new tab, then return here to save</Link> : null}
     {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
       {addressLookupFailed ? <p role="status">{t("You can save your other changes now. Your address edits stay here until the lookup succeeds.", "Puedes guardar los demás cambios ahora. Los cambios de dirección quedan pendientes hasta que se verifiquen.")}</p> : null}

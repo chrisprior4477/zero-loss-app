@@ -9,7 +9,7 @@ import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { browsePrizeValueLabel, parseBrowseFilterState } from "@/lib/catalog/browse-filters";
-import { searchTextMatches } from "@/lib/catalog/search-text";
+import { catalogSearchLimitMessage, catalogSearchTooLong, maxCatalogSearchLength, searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
@@ -259,6 +259,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (voice.busy) return;
+    if (catalogSearchTooLong(search.trim())) { searchInput.current?.focus(); return; }
     voice.cancel();
     applySearch(search);
   }
@@ -271,6 +272,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function submitPickerSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!query.trim() || pickerVoice.busy) return;
+    if (catalogSearchTooLong(query.trim())) { pickerInput.current?.focus(); return; }
     navigateFromPanel(searchDestination(query, true));
   }
 
@@ -348,7 +350,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   return <BrowseControlsContext.Provider value={controls("bottom")}>
   <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
-    {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}
+    {props.searchField ?? <div><form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}
       onKeyDown={event => {
         if (event.key !== "Escape") return;
         event.preventDefault();
@@ -356,11 +358,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.reset(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || undefined} aria-describedby={catalogSearchTooLong(search.trim()) ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() && !voice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
-    </form>}
+    </form>{catalogSearchTooLong(search.trim()) ? <p id={`${id}-search-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</div>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link scroll={false} href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} onNavigate={() => requestBrowseResultsFocus(`${withoutBudget.pathname}${withoutBudget.search}#search-results`)} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
@@ -376,7 +378,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
           <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => setMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => setMode("retailers")}>Retailers</button></div>
           <form role="search" aria-label="Find a category or retailer" className={`${styles.search} ${styles.pickerSearch}`} onSubmit={submitPickerSearch}>
             <label className={styles.srOnly} htmlFor={`${id}-picker`}>Find a category or retailer</label>
-            <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} enterKeyHint="search" autoComplete="off"
+            <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(query.trim()) || undefined} aria-describedby={catalogSearchTooLong(query.trim()) ? `${id}-picker-limit` : undefined} enterKeyHint="search" autoComplete="off"
               onChange={event => { pickerVoice.reset(); setQuery(event.target.value); setPreview(null); }} placeholder="Search categories, retailers, or prizes" />
             {query ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={() => {
               pickerVoice.cancel(); setQuery(""); setPreview(null); pickerInput.current?.focus();
@@ -384,6 +386,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
             {query.trim() && !pickerVoice.busy ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
             <VoiceSearchControl {...pickerVoice} />
           </form>
+          {catalogSearchTooLong(query.trim()) ? <p id={`${id}-picker-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}
           <div ref={categoryList} className={wideCategories && mode === "categories" ? styles.wideChoices : styles.wheel}
             role="region" aria-label={mode === "categories" ? wideCategories ? "Prize categories" : "Scrollable categories" : "Scrollable retailers"} tabIndex={0}>
             {mode === "categories" ? <>

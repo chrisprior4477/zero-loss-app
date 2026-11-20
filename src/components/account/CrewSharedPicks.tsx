@@ -11,7 +11,13 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import styles from "./crew-shared-picks.module.css";
 
 type Props = { ownerId?: string; entries: OwnCrewEntry[]; groups: CrewVisibilityGroup[]; defaultRule: CrewVisibilityRule; rules: Record<string, CrewVisibilityRule>; available: boolean; onPrivacy: () => void };
-type Operation = { id: string; selection: SharingSelection; label: string };
+type Operation = { id: string; selection: SharingSelection; label: string; startedAt?: number };
+type UndoReceipt = { id: string; until: number; label: string; message: string };
+const undoLifetime = 86_400_000;
+function startOperation(operation: Operation) {
+  return { ...operation, startedAt: operation.startedAt ?? Date.now() };
+}
+function hasUndoTime(receipt: UndoReceipt) { return receipt.until > Date.now(); }
 const ages = [[15, "15 days"], [30, "30 days"], [60, "60 days"], [90, "90 days"], [180, "6 months"], [0, "All time"]] as const;
 function TrashIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -33,7 +39,8 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   const [expandedByScope, setExpandedByScope] = useState<Record<string, string | null>>({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
-  const [undoId, setUndoId] = useState<string | null>(null);
+  const [undoReceipts, setUndoReceipts] = useState<UndoReceipt[]>([]);
+  const [undoExpired, setUndoExpired] = useState(false);
   const [retry, setRetry] = useState<Operation | null>(null);
   const expanded = expandedByScope[scope] ?? null;
   const storageKey = ownerId ? `zero-loss-crew-picks:${ownerId}` : null;
@@ -53,18 +60,35 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
       if (typeof audience === "string") setSelectedScope(audience);
       if (typeof shared === "boolean") setSharedOnly(shared);
       if (stacks && typeof stacks === "object" && !Array.isArray(stacks)) setExpandedByScope(stacks);
+      const receipts = JSON.parse(sessionStorage.getItem(`${storageKey}:undo`) ?? "[]");
+      const active = Array.isArray(receipts) ? receipts.filter((receipt: UndoReceipt) => receipt.id && receipt.until > Date.now()) : [];
       const saved = JSON.parse(sessionStorage.getItem(`${storageKey}:operation`) ?? "null");
       if (saved?.operation?.id && saved.operation.selection?.scope) {
         if (saved.undoId === saved.operation.id && Date.now() < saved.undoUntil) {
-          setUndoId(saved.undoId);
-          setMessage(saved.message);
+          if (!active.some((receipt: UndoReceipt) => receipt.id === saved.undoId)) active.push({ id: saved.undoId, until: saved.undoUntil, label: saved.operation.label, message: saved.message });
+          sessionStorage.setItem(`${storageKey}:undo`, JSON.stringify(active));
+          sessionStorage.removeItem(`${storageKey}:operation`);
         } else if (!saved.undoId) {
           setRetry(saved.operation);
           setMessage("Check the cleanup request before starting another.");
         }
       }
+      setUndoReceipts(active);
     } catch { /* The default Crew view remains usable. */ }
   }, [storageKey]);
+  useEffect(() => {
+    if (!undoReceipts.length) return;
+    const next = Math.min(...undoReceipts.map(receipt => receipt.until));
+    const timer = window.setTimeout(() => {
+      const active = undoReceipts.filter(receipt => receipt.until > Date.now());
+      setUndoReceipts(active);
+      setUndoExpired(true);
+      if (storageKey) {
+        try { sessionStorage.setItem(`${storageKey}:undo`, JSON.stringify(active)); } catch { /* Storage is optional. */ }
+      }
+    }, Math.max(0, next - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [undoReceipts, storageKey]);
   const [entryLimit, setEntryLimit] = useState(5);
   const [picker, setPicker] = useState(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
@@ -83,7 +107,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     }
     return [...map.entries()];
   }, [entries]);
-  const shown = buckets.map(([key, all]) => ({ key, all, rows: all.filter(e => isShared(e) || !sharedOnly && !e.shared) })).filter(b => b.rows.length);
+  const shown = buckets.map(([key, all]) => ({ key, all, rows: all.filter(e => isShared(e) || !sharedOnly && (!e.shared || Boolean(group) && (rules[e.id] ?? defaultRule).audience === "groups")) })).filter(b => b.rows.length);
   const cleanupScope = cleanupAudience?.scope ?? scope;
   const cleanupLabel = cleanupAudience?.label ?? label;
   const cleanupAvailable = cleanupScope === "crew" || groups.some(g => g.id === cleanupScope);
@@ -110,17 +134,24 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     setExpandedByScope(stacks); writePreference("expanded", stacks); setEntryLimit(5);
   }
   function feedback(result: SharingResult) { setMessage(result.message); setError(!result.ok); }
-  function stop(operation: Operation) {
+  function stop(request: Operation) {
     if (inFlight.current || !available) return;
-    inFlight.current = true; setMessage(""); setRetry(null); setUndoId(null);
+    inFlight.current = true; setMessage(""); setRetry(null); setUndoExpired(false);
+    const operation = startOperation(request);
     writePreference("operation", { operation });
     startTransition(async () => {
       try {
         const result = await cleanupCrewShares(operation.id, operation.selection);
         feedback({ ...result, message: result.ok && result.count ? `${result.message} Audience: ${operation.label}.` : result.message });
         if (result.ok) {
-          setUndoId(result.undoId ?? null);
-          writePreference("operation", result.undoId ? { operation, undoId: result.undoId, undoUntil: Date.now() + 86_400_000, message: `${result.message} Audience: ${operation.label}.` } : null);
+          const until = (operation.startedAt ?? Date.now()) + undoLifetime;
+          if (result.undoId && until > Date.now()) {
+            const receipts = [...undoReceipts.filter(receipt => receipt.id !== result.undoId && receipt.until > Date.now()),
+              { id: result.undoId, until, label: operation.label, message: result.message }];
+            setUndoReceipts(receipts);
+            writePreference("undo", receipts);
+          } else if (result.undoId) setUndoExpired(true);
+          writePreference("operation", null);
           setCleanup(null); router.refresh();
         }
         else if (result.audienceUnavailable) { writePreference("operation", null); setCleanup(null); router.refresh(); }
@@ -130,11 +161,20 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     });
   }
   function stopSelection(selection: SharingSelection, audienceLabel = label) { stop({ id: crypto.randomUUID(), selection, label: audienceLabel }); }
-  function restore() {
-    if (!undoId || inFlight.current) return;
+  function restore(receipt: UndoReceipt) {
+    if (inFlight.current || !hasUndoTime(receipt)) return;
     inFlight.current = true;
     startTransition(async () => {
-      try { const result = await undoCrewShareCleanup(undoId); feedback(result); if (result.ok) { setUndoId(null); writePreference("operation", null); router.refresh(); } }
+      try {
+        const result = await undoCrewShareCleanup(receipt.id);
+        feedback(result);
+        if (result.ok) {
+          const remaining = undoReceipts.filter(item => item.id !== receipt.id && item.until > Date.now());
+          setUndoReceipts(remaining);
+          writePreference("undo", remaining);
+          router.refresh();
+        }
+      }
       catch { setError(true); setMessage("Couldn’t confirm Undo. Try again."); }
       finally { inFlight.current = false; }
     });
@@ -150,7 +190,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   }
   const disabled = pending || !available || !scopeAvailable || retry !== null;
   const status = message ? <div className={error ? styles.error : styles.notice} role={error ? "alert" : "status"}>
-    <p>{message}</p><div>{undoId ? <button type="button" disabled={pending} onClick={restore}>Undo</button> : null}
+    <p>{message}</p><div>
       {retry ? <button type="button" disabled={pending} onClick={() => stop(retry)}>Retry cleanup</button> : null}</div>
   </div> : null;
   return <section className={styles.root} id="sharing" aria-labelledby="my-shared-picks-heading">
@@ -174,6 +214,10 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
       <button type="button" disabled={disabled} onClick={() => { setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
     </div>
     {status}
+    {undoReceipts.map(receipt => <div key={receipt.id} className={styles.notice}>
+      <p>{receipt.message} Audience: {receipt.label}.</p><button type="button" disabled={pending} onClick={() => restore(receipt)}>{undoReceipts.length === 1 ? "Undo" : `Undo cleanup for ${receipt.label}`}</button>
+    </div>)}
+    {undoExpired ? <p role="status">The Undo period ended for a cleanup.</p> : null}
     <div ref={list} className={styles.list}>
       {shown.slice(0, visible).map(({ key, all, rows }) => {
         const item = all[0], sharedCount = all.filter(isShared).length, open = expanded === key;
@@ -194,7 +238,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
                 const sharedAt = entrySharedAtInScope(entry, scope);
                 return <div key={entry.id} className={styles.entry}>
                 <div><strong>Entry {all.findIndex(e => e.id === entry.id) + 1}</strong><button type="button" disabled={disabled} onClick={() => isShared(entry) ? stopSelection({ scope, entryId: entry.id }) : share(entry.id)}>{isShared(entry) ? "Stop sharing" : "Share here"}</button></div>
-                <p>{isShared(entry) ? `Shared ${sharedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(sharedAt)) : "previously"} · ${label}` : "Private · choose Share here to share with this audience"}</p>
+                <p>{isShared(entry) ? `Shared ${sharedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(sharedAt)) : "previously"} · ${label}`  : entry.shared ? "Shared with another group · choose Share here to add this group" : "Private · choose Share here to share with this audience"}</p>
               </div>; })}
               {rows.length > entryLimit ? <button type="button" onClick={() => setEntryLimit(n => n + 5)}>Show more entries · {rows.length - entryLimit} remaining</button> : null}
               {entryLimit > 5 ? <button type="button" onClick={() => setEntryLimit(5)}>Close to first five entries</button> : null}
