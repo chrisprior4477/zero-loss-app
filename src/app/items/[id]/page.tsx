@@ -26,7 +26,7 @@ import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/reques
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; reviewShare?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -69,11 +69,16 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     </div>;
   }
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
-  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
+  const unavailableShare = query.share !== undefined && !sharedContext;
+  const shareToken = unavailableShare ? undefined : query.share;
+  const shareReview = query.reviewShare === "options" || query.reviewShare === "membership" ? query.reviewShare : undefined;
+  const sharedControls = unavailableShare ? (
+    <p role="status" className="mb-3 rounded-lg bg-[#103757] px-4 py-3 text-sm text-white">This shared link couldn’t be opened. You can still view the prize below.</p>
+  ) : sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} reviewOnReturn={shareReview} /> : null;
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (
-    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={query.share} browseReturnHref={query.from === undefined && !transactionReturn ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} shareToken={shareToken} browseReturnHref={query.from === undefined && !transactionReturn ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
@@ -109,7 +114,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
               <p>Each entry’s dollar applies only to its own purchase option. You can pay that option’s remaining amount from your Playable Wallet. Separate entries and options cannot be combined. An expired or declined option is not a general-purpose credit.</p>
     <p>{isGiftCardOffering ? "This gift card is not Playable Balance or withdrawable cash." : `Zero Loss does not ship the ${product.title} directly.`} Find an issued card in <Link href="/account/wallet" className="font-bold text-cyan-300 underline">Gift Cards &amp; Rewards</Link> and use it online or in store where accepted, subject to {product.retailer}&apos;s terms.</p>
-    {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={transactionReturn ?? query.from} share={query.share} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
+    {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={transactionReturn ?? query.from} share={shareToken} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 
@@ -129,7 +134,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <GiftCardFulfillmentNotice compact productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
       {participationPanel}
       <div className={entryStyles.more}>
-        {!hiddenPool ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={transactionReturn ?? query.from} share={query.share}>Prefer to enter without a purchase?</FreeEntryLink> : null}
+        {!hiddenPool ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={transactionReturn ?? query.from} share={shareToken}>Prefer to enter without a purchase?</FreeEntryLink> : null}
       </div>
     </section>
     </ProductEntrySelection>

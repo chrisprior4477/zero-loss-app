@@ -15,7 +15,7 @@ export function ContinueEntryBanner({ products }: { products: ReminderProduct[] 
       const intent = readEntryIntent();
       const entryProduct = intent && products.find(product => product.slug === intent.slug);
       if (intent?.resumeAfter && entryProduct) {
-        setReminder({ product: entryProduct, quantity: intent.quantity, href: productEntryHref(intent.slug, intent.quantity, intent.browseReturn) });
+        setReminder({ product: entryProduct, quantity: intent.quantity, href: productEntryHref(intent.slug, intent.quantity, intent.browseReturn, intent.share) });
         return;
       }
       // Browsing or adjusting quantity alone must never interrupt the homepage.

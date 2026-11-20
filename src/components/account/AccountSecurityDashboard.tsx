@@ -59,6 +59,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
 
   return <div className={styles.page} data-settings-scroll-scope>
     <AccountSettingsLandingScroll target="account-settings-intro" />
+    <AccountSettingsLandingScroll target="sign-out-everywhere" focusTarget="signout-heading" allScreens restrictToTargetHash />
     <div className={styles.shell}>
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
 
@@ -118,7 +119,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
           </section>
           <section className={styles.signOutTicket} id="sign-out-everywhere" aria-labelledby="signout-heading">
             <span className={styles.signOutIcon}><AccountIcon name="signout" /></span>
-            <div><h2 id="signout-heading">Sign out everywhere</h2><p>Revoke sign-in sessions on this and other devices.</p></div>
+            <div><h2 id="signout-heading" tabIndex={-1}>Sign out everywhere</h2><p>Revoke sign-in sessions on this and other devices.</p></div>
             <SignOutEverywhereControl />
           </section>
         </aside>

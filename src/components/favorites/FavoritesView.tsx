@@ -165,9 +165,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       if (window.location.pathname !== "/account/favorites") return;
       const query = new URLSearchParams(window.location.search);
       const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
-      const nextView = query.get("view") === "declined" ? "declined" : "available";
-      const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
       const shareId = nextTab === "shared" ? query.get("share") : null;
+      const nextView = shareId && shareId === initialShareId ? initialSharedView : query.get("view") === "declined" ? "declined" : "available";
+      const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
       const slug = query.get("item");
       const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug ? { slug } : null;
@@ -188,7 +188,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     const onPopState = (event: PopStateEvent) => restoreHistory(event.state, true);
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [initialShareId, initialSharedView]);
   useLayoutEffect(() => {
     if (!selectedSlug) return;
     const frame = requestAnimationFrame(() => {

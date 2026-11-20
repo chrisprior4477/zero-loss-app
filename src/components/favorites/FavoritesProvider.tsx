@@ -1,5 +1,6 @@
 "use client";
 
+import { isEntryQuantity } from "@/lib/entries/quantity";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
@@ -132,9 +133,11 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     if (!slugPattern.test(slug) || inFlight.current.has(slug)) return;
     const favoriteLogin = () => {
       const { pathname, search } = window.location;
+      const draft = window.history.state?.freeEntryDraft;
+      const selection = draft?.slug === slug && isEntryQuantity(draft.quantity) ? { slug, quantity: draft.quantity } : null;
       const returnTo = pathname === "/browse" ? signInReturnPath(`${pathname}${search}#prize-${slug}`)
-        : currentProductEntryHref(pathname, search, null);
-      return authNavigationHref("/login", returnTo ?? accountRoutes.favorites);
+        : currentProductEntryHref(pathname, search, selection);
+      return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`);
     };
     if (!isSignedIn) {
       rememberFavorite({ slug, save: true });

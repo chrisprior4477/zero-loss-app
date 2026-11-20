@@ -8,7 +8,7 @@ const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const storageKey = "zero-loss-entry-intent-v1";
 const maxAgeMs = 24 * 60 * 60 * 1000;
 
-export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string; resumeAfter?: "funding" | "sign-in" };
+export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string; share?: string; resumeAfter?: "funding" | "sign-in" };
 
 export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown, share?: unknown): string {
   if (!productSlugPattern.test(slug)) return "/browse";
@@ -24,7 +24,7 @@ export function productEntryHref(slug: string, quantity = 1, browseReturn?: unkn
 /** The funding and sign-in return may carry only a validated marketplace address. */
 export function productEntryReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
-  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[^#]+)?#enter-entry$/.test(value)) return null;
+  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[^#]+)?#(?:enter-entry|entry-action)$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   const keys = [...params.keys()];
   if (keys.some(key => key !== "quantity" && key !== "from" && key !== "share") || new Set(keys).size !== keys.length) return null;
@@ -42,7 +42,7 @@ export function fundedProductEntryHref(href: string): string {
 }
 
 /** Keep a shopper on the same prize when they sign out from its page. */
-export function currentProductEntryHref(pathname: string, search: string, intent: EntryIntent | null): string | null {
+export function currentProductEntryHref(pathname: string, search: string, intent: Pick<EntryIntent, "slug" | "quantity"> | null): string | null {
   const match = /^\/items\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);
   if (!match) return null;
   const slug = match[1];
@@ -58,12 +58,13 @@ function validIntent(value: unknown): value is EntryIntent {
     && typeof intent.title === "string" && intent.title.length > 0 && intent.title.length <= 160 && !/[\u0000-\u001f]/.test(intent.title)
     && isEntryQuantity(intent.quantity)
     && (intent.browseReturn === undefined || productBrowseReturnPath(intent.browseReturn) !== null)
+    && (intent.share === undefined || typeof intent.share === "string" && shareUuid.test(intent.share))
     && (intent.resumeAfter === undefined || intent.resumeAfter === "funding" || intent.resumeAfter === "sign-in")
     && typeof intent.savedAt === "number" && Number.isFinite(intent.savedAt) && intent.savedAt <= Date.now() && Date.now() - intent.savedAt < maxAgeMs;
 }
 
 /** Only a transient navigation hint; server entry and wallet records remain authoritative. */
-export function saveEntryIntent(slug: string, title: string, quantity: number, browseReturn?: string, resumeAfter?: EntryIntent["resumeAfter"]): void {
+export function saveEntryIntent(slug: string, title: string, quantity: number, browseReturn?: string, resumeAfter?: EntryIntent["resumeAfter"], share?: unknown): void {
   if (typeof window === "undefined") return;
   const intent: EntryIntent = { slug, title, quantity, savedAt: Date.now() };
   const previous = readEntryIntent();
@@ -71,6 +72,7 @@ export function saveEntryIntent(slug: string, title: string, quantity: number, b
   if (reason) intent.resumeAfter = reason;
   const browse = productBrowseReturnPath(browseReturn);
   if (browse) intent.browseReturn = browse;
+  if (typeof share === "string" && shareUuid.test(share)) intent.share = share;
   if (!validIntent(intent)) return;
   try {
     window.sessionStorage.setItem(storageKey, JSON.stringify(intent));

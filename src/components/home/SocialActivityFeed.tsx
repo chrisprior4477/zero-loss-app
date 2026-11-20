@@ -90,15 +90,17 @@ export function SocialActivityFeed() {
     const viewport = trackViewportRef.current;
     if (!viewport) return;
     dragRef.current = { active: true, moved: false, wasPaused: paused, startX: event.clientX, scrollLeft: viewport.scrollLeft };
-    viewport.setPointerCapture(event.pointerId);
   };
 
   const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const viewport = trackViewportRef.current;
     if (!viewport || !dragRef.current.active) return;
     const distance = event.clientX - dragRef.current.startX;
-    if (Math.abs(distance) > 5) dragRef.current.moved = true;
-    viewport.scrollLeft = dragRef.current.scrollLeft - distance;
+    if (!dragRef.current.moved && Math.abs(distance) > 5) {
+      dragRef.current.moved = true;
+      viewport.setPointerCapture(event.pointerId);
+    }
+    if (dragRef.current.moved) viewport.scrollLeft = dragRef.current.scrollLeft - distance;
   };
 
   const finishDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -138,19 +140,21 @@ export function SocialActivityFeed() {
 
         <div
           ref={trackViewportRef}
-          className="zl-noscroll min-w-0 flex-1 cursor-grab touch-pan-x overflow-x-auto overscroll-x-contain active:cursor-grabbing"
+          className="zl-noscroll min-w-0 flex-1 cursor-grab overflow-x-auto overscroll-x-contain active:cursor-grabbing"
           aria-label={`${platform} posts`}
           onPointerDown={startDrag}
           onPointerMove={moveDrag}
           onPointerUp={finishDrag}
+          onDragStart={event => { if (dragRef.current.active) event.preventDefault(); }}
           onPointerCancel={() => { dragRef.current.active = false; }}
           onClickCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            if (dragRef.current.moved) {
+            if (dragRef.current.moved && event.detail > 0) {
               dragRef.current.moved = false;
+              event.preventDefault();
+              event.stopPropagation();
               return;
             }
+            if (event.target instanceof Element && event.target.closest("a[href]")) return;
             if (dragRef.current.wasPaused) setPaused(false);
           }}
         >

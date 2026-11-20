@@ -272,7 +272,7 @@ test("item sharing sends one request with the exact audience of every selected g
   expect(await screen.findByRole("heading", { name: "Shared with 2 groups" })).toBeTruthy();
 });
 
-test("copy uses the plain prize link while the newly selected audience link is loading", async () => {
+test("copy waits for the newly selected audience link", async () => {
   const groupToken = "55555555-5555-4555-8555-555555555555";
   const crewToken = "66666666-6666-4666-8666-666666666666";
   let finishLink!: (token: string) => void;
@@ -292,10 +292,29 @@ test("copy uses the plain prize link while the newly selected audience link is l
   await waitFor(() => expect(screen.getByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("disabled", false));
   fireEvent.click(screen.getByRole("button", { name: "← Back" }));
   fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
-  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}`));
+  expect(screen.getByRole("button", { name: "Copy link" })).toHaveProperty("disabled", true);
+  expect(writeText).toHaveBeenCalledTimes(1);
   await act(async () => finishLink(crewToken));
   fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}?share=${crewToken}`));
+});
+
+test("browser Back leaves the share open at the previous step", () => {
+  window.history.replaceState(null, "", "/items/test-prize");
+  const close = vi.fn();
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={close} focusOnOpen />);
+  fireEvent.click(screen.getByRole("button", { name: "Email" }));
+  expect(screen.getByRole("heading", { name: "Email this item" })).toBeTruthy();
+
+  const back = () => act(() => {
+    window.history.replaceState(null, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  back();
+  expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
+  expect(close).not.toHaveBeenCalled();
+  back();
+  expect(close).toHaveBeenCalledOnce();
 });
 
 test("larger audiences send the entire selection through one delivery operation", async () => {

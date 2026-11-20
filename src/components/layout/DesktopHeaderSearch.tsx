@@ -123,20 +123,21 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         <button type="submit" aria-label="Go to search results" className="ml-2 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">
           Go
         </button>
-      ) : <button
+      ) : null}
+      <button
         type="button"
         onClick={toggleVoiceSearch}
         aria-label={voice.listening ? "Stop voice search" : "Start voice search"}
         aria-pressed={voice.listening}
         title="Search with your voice"
-        className={`relative ml-3 grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors ${
+        className={`relative ml-1 grid h-8 w-8 sm:ml-3 shrink-0 place-items-center rounded-full transition-colors ${
           voice.listening
             ? "bg-[var(--live)] text-[#00132e]"
             : "text-[#087feb] hover:bg-[#087feb]/10"
         }`}
       >
         <HeaderMicrophoneIcon />
-      </button>}
+      </button>
       {onDismiss ? <button type="button" aria-label="Close search" onClick={() => { voice.cancel(); onDismiss(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#00132e] hover:bg-slate-200">×</button> : null}
       {suggestions && active !== false ? <div id={`${inputId}-suggestions`} role="group" aria-label="Try a search" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-cyan-300 bg-[#052749] p-2 text-white shadow-xl">
         <p className="px-2 py-1 text-xs font-bold text-cyan-200">Try a search</p>

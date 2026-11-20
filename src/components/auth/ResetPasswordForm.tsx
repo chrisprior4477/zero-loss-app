@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { recoverAuthForm } from "./recover-auth-form";
 import { updateRecoveredPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
@@ -16,11 +16,22 @@ const resetPassword = recoverAuthForm<PasswordRecoveryState>(updateRecoveredPass
 
 export function ResetPasswordForm({ returnTo }: { returnTo?: string | null }) {
   const [state, action, pending] = useActionState(resetPassword, initialState);
+  const [mismatch, setMismatch] = useState(false);
+  const confirmation = useRef<HTMLInputElement>(null);
   const destination = signInReturnPath(returnTo);
   const signInHref = `${authNavigationHref("/login", destination)}${destination ? "&" : "?"}focus=email#login-form`;
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form action={action} className="space-y-5" onSubmit={event => {
+      const data = new FormData(event.currentTarget);
+      if (pending) {
+        event.preventDefault();
+      } else if (data.get("password") !== data.get("confirm_password")) {
+        event.preventDefault();
+        setMismatch(true);
+        confirmation.current?.focus();
+      }
+    }} onChange={() => setMismatch(false)}>
       {destination ? <input type="hidden" name="next" value={destination} /> : null}
       <div>
         <label htmlFor="new-password" className="block text-sm font-bold text-white/85">New password</label>
@@ -28,8 +39,9 @@ export function ResetPasswordForm({ returnTo }: { returnTo?: string | null }) {
       </div>
       <div>
         <label htmlFor="confirm-new-password" className="block text-sm font-bold text-white/85">Confirm new password</label>
-        <input id="confirm-new-password" name="confirm_password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10" />
+        <input ref={confirmation} aria-invalid={mismatch || undefined} aria-describedby={mismatch ? "password-mismatch" : undefined} id="confirm-new-password" name="confirm_password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10" />
       </div>
+      {mismatch ? <p id="password-mismatch" role="alert" className="text-sm text-red-100">The two passwords don’t match.</p> : null}
       <p className="text-xs text-white/55">Use at least {MIN_PASSWORD_LENGTH} characters.</p>
       {state.message ? <p role="alert" className="rounded-xl border border-red-300/30 bg-red-400/10 p-4 text-sm text-red-100">{state.message}</p> : null}
       <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending ? "Updating…" : "Save new password"}</button>

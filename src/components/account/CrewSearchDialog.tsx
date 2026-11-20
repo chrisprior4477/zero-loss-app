@@ -34,11 +34,25 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
   const [contactTarget, setContactTarget] = useState<{ value: string; method: "email" | "phone" } | null>(null);
 
+  function changeSearch(value: string) {
+    setName(value);
+    setResults([]);
+    setSampleResults([]);
+    setContactTarget(null);
+    setSearched(false);
+    setMessage("");
+  }
+
   async function search(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending || disabled) return;
+    setResults([]);
+    setSampleResults([]);
+    setContactTarget(null);
+    setSearched(false);
+    setMessage("");
     if (compact) {
       const query = name.trim();
-      setResults([]); setSampleResults([]); setContactTarget(null);
       if (query.includes("@") || /^[+\d\s().-]+$/.test(query)) {
         const method = query.includes("@") ? "email" : "phone";
         const valid = method === "email" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query) : query.replace(/\D/g, "").length >= 10 && query.replace(/\D/g, "").length <= 15;
@@ -84,10 +98,11 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
     try {
       const [contact] = await picker.select(["name", "email", "tel"], { multiple: false });
       if (!contact) return;
-      if (contact.name?.[0]) setName(contact.name[0]);
-      if (contact.email?.[0]) setEmail(contact.email[0]);
-      if (contact.tel?.[0]) setPhone(contact.tel[0]);
-      if (compact) { setName(contact.email?.[0] || contact.tel?.[0] || contact.name?.[0] || ""); setContactTarget(null); }
+      const nextEmail = contact.email?.[0] ?? "";
+      const nextPhone = contact.tel?.[0] ?? "";
+      setEmail(nextEmail);
+      setPhone(nextPhone);
+      changeSearch((compact ? nextEmail || nextPhone : "") || contact.name?.[0] || "");
       setMessage("Contact selected. Review the details, then choose whether to add them to Crew. Your address book was not uploaded.");
     } catch {
       setMessage("No contact was selected. You can enter an email or verified phone number manually.");
@@ -101,7 +116,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
       <div className={styles.fields}>
         <form onSubmit={search} className={styles.field}>
           <label htmlFor="crew-search-name">{compact ? "Name, email address, or phone number" : "Search by name"}</label>
-          <div className={styles.row}><input id="crew-search-name" type="search" value={name} onChange={(event) => { setName(event.target.value); setContactTarget(null); }} minLength={3} maxLength={compact ? 254 : 60} placeholder={compact ? "Name, email, or phone with country code" : "Name (3+ letters)"} autoComplete="off" disabled={disabled || pending} required />
+          <div className={styles.row}><input id="crew-search-name" type="search" value={name} onChange={event => changeSearch(event.target.value)} minLength={3} maxLength={compact ? 254 : 60} placeholder={compact ? "Name, email, or phone with country code" : "Name (3+ letters)"} autoComplete="off" disabled={disabled || pending} required />
           <button type="submit" disabled={pending || disabled} aria-label={compact ? "Find person" : "Search Crew by name"}><SearchIcon /><span>{compact ? "Find" : "Search"}</span></button></div>
           <small>Only members who opted in appear in name search.</small>
         </form>
@@ -119,9 +134,9 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
         </form></> : null}
       </div>
 
-      <button type="button" onClick={() => void chooseContact()} disabled={disabled} className={styles.contactButton}>Choose from phone contacts</button>
+      <button type="button" onClick={() => void chooseContact()} disabled={disabled || pending} className={styles.contactButton}>Choose from phone contacts</button>
       <p className={styles.contactNote}>On supported phones, you choose which contact to share. Nothing is sent until you press Add to Crew.</p>
-      {compact && (email || phone) ? <div className={styles.contactChoices}>{email ? <button type="button" onClick={() => { setName(email); setContactTarget(null); }}>Use contact’s email</button> : null}{phone ? <button type="button" onClick={() => { setName(phone); setContactTarget(null); }}>Use contact’s phone</button> : null}</div> : null}
+      {compact && (email || phone) ? <div className={styles.contactChoices}>{email ? <button type="button" disabled={disabled || pending} onClick={() => changeSearch(email)}>Use contact’s email</button> : null}{phone ? <button type="button" disabled={disabled || pending} onClick={() => changeSearch(phone)}>Use contact’s phone</button> : null}</div> : null}
 
       <div className={styles.results} aria-live="polite">
         <p role="status">{message}</p>
@@ -129,7 +144,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
         {searched && results.length ? <div className={styles.resultList}>{results.map((person) => <div key={person.memberId} className={styles.result}>
           <span className={styles.avatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="48px" unoptimized className={styles.avatarImage} /> : person.name.slice(0, 1).toUpperCase()}</span>
           <div><strong>{person.name}</strong><small>Discoverable Zero Loss member</small></div>
-          <button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void sendRequest(() => inviteToCrewById(person.memberId), person.memberId)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
+          <button type="button" disabled={pending || disabled || requestedIds.includes(person.memberId)} onClick={() => void sendRequest(() => inviteToCrewById(person.memberId), person.memberId)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
         </div>)}</div> : null}
         {searched && sampleResults.length ? <div className={styles.resultList}><strong className={styles.sampleHeading}>Sample profiles—not real invitations</strong>{sampleResults.map((person) => <div key={person.name} className={styles.result}>
           <span className={styles.avatar}><Image src={person.photo} alt="" fill sizes="48px" className={styles.avatarImage} /></span>

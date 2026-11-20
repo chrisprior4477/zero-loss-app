@@ -41,7 +41,7 @@ test("Categories voice search can clear its draft or submit a product search wit
   expect(navigation.replace).not.toHaveBeenCalled();
   fireEvent.change(field, { target: { value: "Sony" } });
   fireEvent.click(picker.getByRole("button", { name: "Go to search results" }));
-  expect(navigation.replace).toHaveBeenCalledWith("/browse?category=everyday-items&maxValue=25&q=Sony#search-results", { scroll: false });
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=25&q=Sony#search-results", { scroll: false });
 });
 
 test("the wide picker expands one category and refines its own results with the current search", () => {

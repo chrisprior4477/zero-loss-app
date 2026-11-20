@@ -238,12 +238,18 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (desktop && props.previews) setPreview(current => current === value ? null : value);
     else navigateFromPanel(prizeCategoryHref(value));
   }
-  function searchDestination(value: string) {
+  function searchDestination(value: string, allCategories = false) {
     const url = new URL(props.browseHref, "https://zeroloss.local");
     const term = value.trim();
     if (term) url.searchParams.set("q", term);
     else url.searchParams.delete("q");
     url.searchParams.delete("batch");
+    if (allCategories) {
+      for (const key of ["category", "subcategory", "retailer", "partnerCategory", "groceryIdea", "ticketsLeft"]) {
+        url.searchParams.delete(key);
+      }
+      if (url.searchParams.get("sort") === "ending-soon") url.searchParams.delete("sort");
+    }
     return `${url.pathname}${url.search}#search-results`;
   }
   function applySearch(value: string) {
@@ -265,7 +271,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function submitPickerSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!query.trim() || pickerVoice.busy) return;
-    navigateFromPanel(searchDestination(query));
+    navigateFromPanel(searchDestination(query, true));
   }
 
   const categoryChoices: PrizeCategoryChoice[] = [

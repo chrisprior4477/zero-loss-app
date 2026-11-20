@@ -83,8 +83,7 @@ export function DemoParticipationPanel({
     try { return await createPreviewEntry(previous, payload); }
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
-  const [selectedQuantity, setQuantity] = useEntrySelection(Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
-  const [invalidQuantity, setInvalidQuantity] = useState<string | null>(null);
+  const [selectedQuantity, setQuantity, invalidQuantity, setInvalidQuantity] = useEntrySelection(Math.max(1, initialQuantity));
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
@@ -101,7 +100,7 @@ export function DemoParticipationPanel({
   const quantity = canAdjustQuantity ? Math.min(selectedQuantity, Math.max(1, remaining)) : selectedQuantity;
   const quantityReduced = quantity < selectedQuantity;
   const [typedLimit, setTypedLimit] = useState<number | null>(null);
-  const [adjustedQuantity, setAdjustedQuantity] = useState<number | null>(null);
+  const [adjustedQuantity, setAdjustedQuantity] = useState<{ requested: number; available: number } | null>(null);
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const explanationVisit = useRef(0);
   const requestedQuantity = useRef<number | null>(null);
@@ -129,9 +128,9 @@ export function DemoParticipationPanel({
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref, shareToken))}`;
   const fundingForEntry = canAdjustQuantity && remaining > 0 && invalidQuantity === null;
   const addFundsHref = fundingForEntry ? fundingHref(productSlug, undefined, quantity, browseReturnHref, undefined, shareToken) : fundingHref();
-  const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter);
-  const rememberFundingEntry = useCallback(() => saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, "funding"),
-    [productSlug, productTitle, quantity, browseReturnHref]);
+  const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter, shareToken);
+  const rememberFundingEntry = useCallback(() => saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, "funding", shareToken),
+    [productSlug, productTitle, quantity, browseReturnHref, shareToken]);
   useEntryWalletFunding(isSignedIn && fundingForEntry ? addFundsHref : null, rememberFundingEntry);
 
   useLayoutEffect(() => {
@@ -140,12 +139,12 @@ export function DemoParticipationPanel({
     // and the free-entry links cannot jump back when capacity increases.
     setQuantity(quantity);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAdjustedQuantity(quantity);
+    setAdjustedQuantity({ requested: selectedQuantity, available: quantity });
     setSelectedTicketsToast(null);
     setBalanceNoticeOpen(false);
     setDismissedBalanceError(state);
-    if (readEntryIntent()?.slug === productSlug) saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref);
-  }, [quantityReduced, quantity, state, setQuantity, productSlug, productTitle, browseReturnHref]);
+    if (readEntryIntent()?.slug === productSlug) saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, undefined, shareToken);
+  }, [quantityReduced, quantity, selectedQuantity, state, setQuantity, productSlug, productTitle, browseReturnHref, shareToken]);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, requestedQuantity.current ?? quantity + 1);
@@ -369,7 +368,6 @@ export function DemoParticipationPanel({
         <p className="mt-1 text-xs leading-4 text-white/60">Under the proposed model, when all available entries for an offer are filled, one entry is selected.</p>
       </div> : null}</>}
 
-      {availabilityConfirmed && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">Only {maxQuantity} {maxQuantity === 1 ? "entry remains" : "entries remain"}, so your saved selection was adjusted.</p> : null}
 
       <div className="relative mt-3">
         {selectedTicketsToast !== null && !quantityReduced ? <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-[calc(100%+8px)] right-0 z-20 w-full max-w-80 rounded-xl border border-[#67ff42]/60 bg-[#083a43] px-4 py-3 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,.4),0_0_18px_rgba(81,255,59,.22)]">
@@ -386,7 +384,7 @@ export function DemoParticipationPanel({
         </fieldset>
       </div>
       {canAdjustQuantity && typedLimit === quantity && typedLimit === maxQuantity ? <p role="status" className="mt-2 text-sm text-cyan-200">Only {typedLimit} {typedLimit === 1 ? "entry is" : "entries are"} available in this pool. Your quantity was adjusted.</p> : null}
-      {canAdjustQuantity && remaining > 0 && (quantityReduced || adjustedQuantity === quantity) ? <p role="status" className="mt-2 text-sm text-cyan-200">Availability changed. Your selection is now {quantity} {quantity === 1 ? "entry" : "entries"}.</p> : null}
+      {canAdjustQuantity && remaining > 0 && (quantityReduced || adjustedQuantity?.available === quantity) ? <p role="status" className="mt-2 text-sm text-cyan-200">Availability changed. Your selection is now {quantity} {quantity === 1 ? "entry" : "entries"}. You requested {quantityReduced ? selectedQuantity : adjustedQuantity?.requested} entries.</p> : null}
       {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options {compact && resetButton ? <span className={compactStyles.termsEnding}>never combine. {resetButton}</span> : <>never combine.{isPreviewExperience ? "" : " Terms apply."}</>}</p>}
       {!compact ? resetButton : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}

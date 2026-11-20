@@ -5,37 +5,40 @@ import { createContext, useContext, useLayoutEffect, useState, type ReactNode } 
 import { freeEntryHref } from "@/lib/catalog/product-return";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 
-type Selection = [number, (quantity: number) => void];
-const EntrySelection = createContext<Selection | null>(null);
+type Selection = [quantity: number, setQuantity: (quantity: number) => void, invalidDraft: string | null, setInvalidDraft: (draft: string | null) => void];
+const EntrySelection = createContext<{ selection: Selection; maximum: number } | null>(null);
 
 export function ProductEntrySelection({ slug, initialQuantity, remaining, children }: {
   slug: string; initialQuantity: number; remaining: number; children: ReactNode;
 }) {
   const maximum = Math.max(1, remaining);
-  const [quantity, setQuantity] = useState(Math.min(initialQuantity, maximum));
+  const [quantity, setQuantity] = useState(initialQuantity);
+  const [invalidDraft, setInvalidDraft] = useState<string | null>(null);
   useLayoutEffect(() => {
     // Browser Back restores this specific visit, even when the page is remounted.
     const { freeEntryDraft } = window.history.state ?? {};
     if (freeEntryDraft?.slug !== slug || !isEntryQuantity(freeEntryDraft.quantity)) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuantity(Math.min(freeEntryDraft.quantity, maximum));
-  }, [slug, maximum]);
-  return <EntrySelection.Provider value={[quantity, next => {
+    setQuantity(freeEntryDraft.quantity);
+  }, [slug]);
+  return <EntrySelection.Provider value={{ maximum, selection: [quantity, next => {
     setQuantity(next);
     try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next } }, ""); }
     catch { /* The visible selection still updates. */ }
-  }]}>{children}</EntrySelection.Provider>;
+  }, invalidDraft, setInvalidDraft] }}>{children}</EntrySelection.Provider>;
 }
 
 export function useEntrySelection(initialQuantity: number): Selection {
   const shared = useContext(EntrySelection);
   const standalone = useState(initialQuantity);
-  return shared ?? standalone;
+  const [invalidDraft, setInvalidDraft] = useState<string | null>(null);
+  return shared?.selection ?? [...standalone, invalidDraft, setInvalidDraft];
 }
 
 export function FreeEntryLink({ slug, from, share, className, children }: {
   slug: string; from?: string | string[]; share?: unknown; className: string; children: ReactNode;
 }) {
-  const selection = useContext(EntrySelection);
-  return <Link href={freeEntryHref(slug, from, selection?.[0], share)} className={className}>{children}</Link>;
+  const context = useContext(EntrySelection);
+  const quantity = context && context.selection[2] === null ? Math.min(context.selection[0], context.maximum) : undefined;
+  return <Link href={freeEntryHref(slug, from, quantity, share)} className={className}>{children}</Link>;
 }

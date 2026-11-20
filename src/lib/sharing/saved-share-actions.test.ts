@@ -6,8 +6,8 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { recordReceivedProduct, setReceivedProductState } from "./saved-share-actions";
 const id = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.clearAllMocks(); mocks.auth.mockResolvedValue({ data: { user: { id: "server-user" } }, error: null }); mocks.rpc.mockResolvedValue({ data: id, error: null }); mocks.reads.mockResolvedValue({ ok: true }); });
-test("email save uses the received-share RPC and returns the shared section", async () => {
-  expect(await recordReceivedProduct("nike-court-shot-shoes", id, true)).toMatchObject({ ok: true, href: "/account/favorites?tab=shared" });
+test("email save uses the received-share RPC and returns the exact shared item", async () => {
+  expect(await recordReceivedProduct("nike-court-shot-shoes", id, true)).toMatchObject({ ok: true, href: `/account/favorites?tab=shared&share=${id}` });
   expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("record_saved_product_share", { p_slug: "nike-court-shot-shoes", p_token: id, p_save: true });
 });
 test("older unattributed links save a received item without inventing a sender", async () => {

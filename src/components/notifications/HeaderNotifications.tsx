@@ -75,7 +75,13 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     if (!href) setBusy(true);
     setError("");
     // Navigation must not wait for the read receipt or a second page render.
-    if (href) { value.setOpen(false); router.push(notificationDestination(href, current)); }
+    if (href) {
+      const hadDialogStep = value.open;
+      value.setOpen(false);
+      const destination = notificationDestination(href, current);
+      if (hadDialogStep) router.replace(destination);
+      else router.push(destination);
+    }
     try {
       if (ids.length) await value.markRead(ids);
       if (!href) closeUpdates();
@@ -134,7 +140,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
             </button>) : <p className={styles.empty}>Nothing here yet. View all to see your activity.</p>) : items.length ? items.map(n => <button type="button" key={n.id} disabled={busy} onClick={() => void act([n.id], n.href)} className={styles.entry} data-color={categoryInfo.color}>
               {n.image ? <Image src={n.image} alt="" width={44} height={44} unoptimized /> : <span className={styles.itemIcon} aria-hidden="true">{current === "support" ? "?" : "↗"}</span>}
               <span><strong>{n.title}</strong><b>{n.action} →</b></span>
-            </button>) : <p className={styles.empty}>No unread {current === "support" ? "support updates" : "shared picks"}. {current === "support" ? <Link href="/support#case-list" onClick={() => value?.setOpen(false)}>View my support cases →</Link> : null}</p>}
+            </button>) : <p className={styles.empty}>No unread {current === "support" ? "support updates" : "shared picks"}. {current === "support" ? <Link href="/support#case-list" replace onClick={() => value?.setOpen(false)}>View my support cases →</Link> : null}</p>}
         </section>
       </div>
       {error ? <p role="alert" data-header-read-error className={styles.error}>{error}</p> : null}

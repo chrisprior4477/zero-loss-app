@@ -33,6 +33,8 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const results = useRef<HTMLDivElement>(null);
   const focusResults = useRef(false);
   const request = useRef(0);
+  const attachedPage = useRef<{ id: string; kind: SupportRecordKind; page: number } | null>(null);
+  const focusRecordId = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
@@ -42,8 +44,11 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   useLayoutEffect(() => {
     if (!result || !focusResults.current) return;
     focusResults.current = false;
-    if (document.activeElement === document.body || document.activeElement === dialog.current) {
-      results.current?.querySelector("button")?.focus();
+    const recordId = focusRecordId.current;
+    if (document.activeElement === document.body || document.activeElement === dialog.current || recordId && document.activeElement === closeButton.current) {
+      const buttons = results.current?.querySelectorAll<HTMLButtonElement>("button");
+      const matching = Array.from(buttons ?? []).find(button => button.dataset.recordId === recordId);
+      (matching ?? buttons?.[0])?.focus();
       if (document.activeElement === document.body || document.activeElement === dialog.current) results.current?.focus();
     }
   }, [result]);
@@ -63,7 +68,10 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     dialog.current.showModal();
     setOpen(true);
     closeButton.current?.focus({ preventScroll: true });
-    void load(record?.kind ?? "order", 0);
+    const previous = attachedPage.current;
+    const same = record && previous?.id === record.id && previous.kind === record.kind;
+    focusRecordId.current = record?.id ?? null;
+    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record));
   }
 
   return <div className={styles.attachment}>
@@ -96,13 +104,17 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
           <button type="button" className={styles.control} aria-pressed={kind === "order"} onClick={() => { if (kind !== "order") void load("order", 0); }}>Orders</button>
           <button type="button" className={styles.control} aria-pressed={kind === "transaction"} onClick={() => { if (kind !== "transaction") void load("transaction", 0); }}>Wallet transactions</button>
         </div>
+        {record?.kind === kind && result && "records" in result && !result.records.some(item => item.id === record.id) ? <div className={styles.attached}>
+          <small>Current attachment</small><RecordDetails record={record} timeZone={timeZone} />
+        </div> : null}
         <div ref={results} tabIndex={-1} role="group" aria-label="Matching records" className={styles.history} aria-busy={!result}>
           {!result ? <p role="status">Loading records…</p> : "error" in result ? <>
             <p role="alert">{result.error}</p>
             <button type="button" className={styles.control} onClick={() => void load(kind, page, true)}>Try again</button>
           </> : result.records.length ? <ul className={styles.records}>
             {result.records.map(item => <li key={item.id}>
-              <button type="button" className={styles.record} onClick={() => {
+              <button type="button" className={styles.record} data-record-id={item.id} onClick={() => {
+                attachedPage.current = { id: item.id, kind: item.kind, page };
                 onChange(item);
                 dialog.current?.close();
               }}><RecordDetails record={item} timeZone={timeZone} /></button>

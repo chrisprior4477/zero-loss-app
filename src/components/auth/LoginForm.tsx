@@ -37,9 +37,11 @@ function subscribeToHash(onChange: () => void) {
 function useLoginDestination(returnTo: string | null) {
   // An account redirect can inherit the original fragment in the browser.
   const inheritedHash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
-  return inheritedHash && returnTo && /^\/(?:account\/(?:profile|notifications|security)|support)(?:\?[^#]*)?$/.test(returnTo)
-    ? accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo
-    : returnTo;
+  if (!inheritedHash || !returnTo || returnTo.includes("#")) return returnTo;
+  if (returnTo === "/account/wallet?view=history" && inheritedHash === "#payment-deposits") {
+    return accountReturnPath(`${returnTo}&panel=deposits${inheritedHash}`) ?? returnTo;
+  }
+  return accountReturnPath(`${returnTo}${inheritedHash}`) ?? returnTo;
 }
 
 export function AuthDestinationLink({ returnTo, page, className, children }: {

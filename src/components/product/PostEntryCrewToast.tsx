@@ -41,7 +41,6 @@ type CrewDelivery = { ok: boolean; message: string; groupCount?: number };
 const recentDeliveries = new Map<string, Promise<CrewDelivery>>();
 
 export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false }: Props) {
-  useDialogBack(focusOnOpen, onClose, false, true);
   const initialItem = product ?? { slug: request!.slug, title: request!.title };
   const [item, setItem] = useState<ProductShareItem>(initialItem);
   const [step, setStep] = useState<Step>("home");
@@ -100,18 +99,32 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const deliveryItem = item.win?.rewardId ?? request?.requestId ?? shareSlug;
   const singleLinkAudience = selectedGroupIds.length < 2;
   const shareGroupId = selectedGroupIds.length === 1 ? selectedGroupIds[0] : null;
-  const shareToken = singleLinkAudience && preparedLink?.slug === shareSlug && preparedLink.groupId === shareGroupId ? preparedLink.token : null;
+  const [linkRetry, setLinkRetry] = useState(0);
+  const [failedLink, setFailedLink] = useState<{ slug: string; groupId: string | null; attempt: number } | null>(null);
+  const matchingLink = singleLinkAudience && preparedLink?.slug === shareSlug && preparedLink.groupId === shareGroupId ? preparedLink : null;
+  const shareToken = matchingLink?.token ?? null;
+  const publicLinkAllowed = singleLinkAudience && !shareGroupId && !preparedLink?.token;
+  const linkReady = publicLinkAllowed || Boolean(matchingLink && (!shareGroupId || shareToken));
+  const linkFailed = singleLinkAudience && failedLink?.slug === shareSlug && failedLink.groupId === shareGroupId && failedLink.attempt === linkRetry;
   useEffect(() => {
     if (!singleLinkAudience) return;
     let cancelled = false;
-    void prepareProductShareLink(shareSlug, shareGroupId).catch(() => null).then(token => {
-      if (!cancelled) setPreparedLink({ slug: shareSlug, groupId: shareGroupId, token });
+    void prepareProductShareLink(shareSlug, shareGroupId).then(token => {
+      if (cancelled) return;
+      if (shareGroupId && !token) setFailedLink({ slug: shareSlug, groupId: shareGroupId, attempt: linkRetry });
+      else setPreparedLink({ slug: shareSlug, groupId: shareGroupId, token });
+    }).catch(() => {
+      if (!cancelled) setFailedLink({ slug: shareSlug, groupId: shareGroupId, attempt: linkRetry });
     });
     return () => { cancelled = true; };
-  }, [shareSlug, shareGroupId, singleLinkAudience]);
-  const url = origin ? productShareUrl(origin, item.slug, shareToken) : `/items/${item.slug}`;
+  }, [shareSlug, shareGroupId, singleLinkAudience, linkRetry]);
+  useDialogBack(focusOnOpen || step !== "home", () => {
+    if (history.current.length) { back(); return true; }
+    onClose();
+  }, busy, true);
+  const url = origin && linkReady ? productShareUrl(origin, item.slug, shareToken) : "";
   const text = productShareText(item.title, item);
-  const body = `${text}\n${url}`;
+  const body = url ? `${text}\n${url}` : "";
   const members = options?.members ?? [];
   const selectedGroups = options?.groups.filter(group => selectedGroupIds.includes(group.id)) ?? [];
   const deliverableGroups = selectedGroups.filter(group => group.memberIds.length > 0);
@@ -226,6 +239,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   async function nativeShare() {
     if (busyRef.current) return;
     if (!navigator.share) { go("send"); return; }
+    if (!linkReady) return;
     // Invoke directly from the tap: a preceding server read would lose activation.
     busyRef.current = true; setBusy(true); feedback("");
     try {
@@ -240,6 +254,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }
 
   async function copyLink() {
+    if (!linkReady) return;
     try {
       await navigator.clipboard.writeText(productShareUrl(window.location.origin, item.slug, shareToken));
       if (alive.current) feedback("Link copied. Paste it into your conversation.");
@@ -582,12 +597,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     <button type="button" onClick={() => go("messages")}><ShareIcon name="message" />Text</button>
     <button type="button" onClick={() => go("email")}><ShareIcon name="mail" />Email</button>
   </div>;
-  const pictureLink = <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pictureLink}>
+  const pictureLink = url ? <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pictureLink}>
     <Image src={`/items/${item.slug}/opengraph-image`} alt={`${item.title} sharing picture`} width={1200} height={630} unoptimized />
     <strong>{item.title}</strong><span>Zero Loss · View this item →</span>
-  </a>;
+  </a> : null;
   let externalHref: string | null = null;
-  if (origin && (step === "messages" || step === "email")) {
+  if (linkReady && origin && (step === "messages" || step === "email")) {
     try { externalHref = step === "email" ? emailHref(email, item.title, body) : messageHref(phone, body, isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)); }
     catch { /* Validate when the user chooses to open their app. */ }
   }
@@ -602,7 +617,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     document.getElementById(`${id}-recipient`)?.focus();
   }
   const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} role="link" tabIndex={0} onKeyDown={activateDraftLink} target="_blank" rel="noopener noreferrer" onClick={event => {
-    if (!externalHref) { event.preventDefault(); invalidEmail(); }
+    if (!externalHref) { event.preventDefault(); if (linkReady) invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
   const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew", contactEdit: "Save this contact" };
@@ -624,7 +639,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {!["group", "find", "copy", "contacts", "contactGroup", "contactEdit"].includes(step) ? itemSummary : null}
 
       {step === "home" ? <div className={styles.actions}>
-        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
+        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
         <button type="button" className={styles.back} disabled={busy} onClick={() => void openFinder()}>Find &amp; add someone</button>
@@ -632,7 +647,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {shortcuts}
       </div> : null}
 
-      {step === "send" ? <div className={styles.actions}>{shortcuts}<button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button><p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
+      {step === "send" ? <div className={styles.actions}>{shortcuts}<button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button><p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
 
       {step === "crew" ? <div className={styles.actions}>
         <button type="button" className={styles.primary} onClick={() => void loadAudiences()} disabled={busy}><ShareIcon name="crew" />Share with my Crew</button>
@@ -646,7 +661,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <form className={styles.phoneRow} onSubmit={event => { event.preventDefault(); smsLink.current?.click(); }}>
             <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setRecipientError(false); setPickedContact(null); }} placeholder="Phone number" disabled={busy} aria-invalid={recipientError || undefined} aria-describedby={recipientError ? `${id}-phone-error` : undefined} />
             <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} role="link" tabIndex={0} aria-label="Send text" onKeyDown={activateDraftLink} onClick={event => {
-              if (!externalHref) { event.preventDefault(); setRecipientError(true); }
+              if (!externalHref) { event.preventDefault(); if (linkReady) setRecipientError(true); }
               else feedback("Review and send in your texting app. If it doesn’t open, use Copy link.");
             }}><span>Send<br />Text</span></a>
             <button type="button" className={styles.crewButton} aria-label={requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : <span>Add to<br />Crew</span>}</button>
@@ -656,7 +671,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </div>
         <p className={styles.messagePreview}>{text}</p>
         <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
-        <button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
+        <button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
         <p className={styles.note}>Review and send in your texting app.</p>
       </> : null}
 
@@ -684,7 +699,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
             {webmailLink("gmail", "Gmail", true)}
             {webmailLink("outlook", "Outlook", true)}
             <a className={styles.emailTile} aria-label="Use my default email app" href={externalHref ?? undefined} role="link" tabIndex={0} onKeyDown={activateDraftLink} onClick={event => {
-              if (!externalHref) { event.preventDefault(); invalidEmail(); }
+              if (!externalHref) { event.preventDefault(); if (linkReady) invalidEmail(); }
               else feedback("Review and send in your email app. If it doesn’t open, choose Gmail or Outlook, or copy the message below.");
             }}><ShareIcon name="mail" /><span>Email app</span></a>
           </div>
@@ -705,7 +720,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           {webmailLink("outlook-work", "Outlook for work or school")}
           <details className={styles.more}><summary>Copy the message instead</summary><textarea aria-label="Message with item link" readOnly value={body} onFocus={event => event.target.select()} /></details>
         </details>
-        <p className={styles.ready}>✓ Subject, message + link ready</p>
+        {linkReady ? <p className={styles.ready}>✓ Subject, message + link ready</p> : null}
         <p className={styles.note}>You review and send. Nothing sends automatically.</p>
       </> : null}
 
@@ -788,6 +803,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       </> : null}
 
       {pickedContact && ["messages", "find"].includes(step) ? <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void openContactGroups()}>Save {pickedContact.name} to a group</button> : null}
+      {!linkReady && ["home", "send", "messages", "email", "copy"].includes(step) ? <p role="status" className={styles.feedback}>
+        {!singleLinkAudience ? "Choose one group to create a link, or share directly with the selected groups." : linkFailed ? <>
+          We couldn’t prepare the shared link. <button type="button" onClick={() => setLinkRetry(attempt => attempt + 1)}>Retry link</button>
+        </> : "Preparing your shared link…"}
+      </p> : null}
       {message && !shared && step !== "find" ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
       {requested.length > 0 && ["messages", "contacts"].includes(step) ? <Link className={styles.seeCrew} href="/account/crew#crew-intro" onClick={onClose}>See your Crew →</Link> : null}
       <button type="button" className={styles.later} onClick={onClose}>{shared ? "Done" : "Not now"}</button>

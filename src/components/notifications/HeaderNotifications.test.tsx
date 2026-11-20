@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { HeaderNotifications } from "./HeaderNotifications";
 import type { AccountNotification } from "@/lib/account/notifications";
 import Link from "next/link";
-const mock = vi.hoisted(() => ({ push: vi.fn(), prefetch: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true, preview: false, unread: [] as AccountNotification[], notifications: [] as AccountNotification[] }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push, prefetch: mock.prefetch }), useSearchParams: () => new URLSearchParams() }));
+const mock = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true, preview: false, unread: [] as AccountNotification[], notifications: [] as AccountNotification[] }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push, replace: mock.replace, prefetch: mock.prefetch }), useSearchParams: () => new URLSearchParams() }));
 vi.mock("./NotificationProvider", () => ({ useNotifications: () => ({ style: "capsule", preferencesPreviewActive: mock.preview, enabled: mock.enabled, open: true, setOpen: mock.setOpen, markRead: mock.markRead, unread: mock.unread, notifications: mock.notifications }) }));
 const make = (id: string, tone: AccountNotification["tone"], extra: Partial<AccountNotification> = {}): AccountNotification => ({ id, tone, category:"activity", title:id, body:"", meta:"", href:`/account/entries/${id}`, action:"View", ...extra });
 beforeEach(() => {
@@ -23,12 +23,12 @@ test("unread important updates keep balance links inert throughout the animation
 test("shared items open individually with a return path after their read status is saved", async () => {
   render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared with You");
   fireEvent.click(screen.getByRole("button", { name: /Chris shared/ }));
-  await waitFor(() => expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("&fromUpdates=1")));
+  await waitFor(() => expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("&fromUpdates=1")));
   expect(mock.markRead).toHaveBeenCalledWith(["shared-1"]);
 });
 test("a failed read save never blocks navigation and shows recovery feedback", async () => {
   mock.markRead.mockRejectedValue(new Error("Could not save")); render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared with You");
-  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your alert could not be marked as read. It is still available in updates."); expect(mock.push).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your alert could not be marked as read. It is still available in updates."); expect(mock.replace).toHaveBeenCalled();
 });
 test("turning header notifications off restores balance links", () => {
   mock.enabled = false; render(<HeaderNotifications>{metrics}</HeaderNotifications>);
@@ -51,7 +51,7 @@ test.each([
   mock.unread = [make("one",tone,{itemTitle:"One product"}),make("two",tone,{itemTitle:"Another product"}),make("support-1","account")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   fireEvent.click(screen.getByRole("button",{name:new RegExp(`One product.*${button}`)}));
-  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith(`/account/entries?filter=${filter}&fromUpdates=1#my-activity-filters`));
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&fromUpdates=1#my-activity-filters`));
   expect(mock.markRead).toHaveBeenCalledWith(["one","two"]);
 });
 test("open products consolidate into ticket totals and a click clears the open-entry batch", async () => {
@@ -60,7 +60,7 @@ test("open products consolidate into ticket totals and a click clears the open-e
   render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("See open entries");
   expect(screen.getAllByText("Lowe's Card")).toHaveLength(1); expect(screen.getByLabelText("2 tickets")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:/Lowe's Card/}));
-  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=one")));
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=one")));
   expect(mock.markRead).toHaveBeenCalledWith(["active-2"]);
 });
 test("open entries alone never intercept the normal ticket link", () => {
@@ -72,12 +72,12 @@ test("support goes to the exact conversation and uses purple", async () => {
   mock.unread=[make("support-1","account",{title:"Reply to your case",href:"/support?case=one#conversation"})]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Support");
   const item=screen.getByRole("button",{name:/Reply to your case/}); expect(item.getAttribute("data-color")).toBe("purple"); fireEvent.click(item);
-  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith("/support?case=one&fromUpdates=1&updateCategory=support#conversation"));
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith("/support?case=one&fromUpdates=1&updateCategory=support#conversation"));
 });
 
 test("Saved items opens Favorites without consuming any alerts",()=>{
  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Saved items");
- expect(mock.push).toHaveBeenCalledWith('/account/favorites?fromUpdates=1');
+ expect(mock.replace).toHaveBeenCalledWith('/account/favorites?fromUpdates=1');
  expect(mock.markRead).not.toHaveBeenCalled();
 });
 test("empty accounts get noninteractive samples only while customizing",()=>{

@@ -64,6 +64,8 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
         }
       }
       const hashId = window.location.hash.slice(1);
+      const missingPrize = /^prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(hashId) && !document.getElementById(hashId);
+      if (missingPrize) window.history.replaceState(window.history.state, "", "#search-results");
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
         ? document.getElementById(hashId) : null;
       const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
@@ -80,7 +82,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       cancelled = false;
       let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
-      const focusTarget = footerField ?? invalidSearchInput ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const focusTarget = footerField ?? invalidSearchInput ?? (missingPrize ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {

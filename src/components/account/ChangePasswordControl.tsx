@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { recoverAuthForm } from "@/components/auth/recover-auth-form";
 import { changeAccountPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
@@ -14,11 +14,14 @@ const changePassword = recoverAuthForm<PasswordRecoveryState>(changeAccountPassw
   message: "We couldn’t confirm the password change. Try signing in with your new password before changing it again.",
 }));
 
-function ChangePasswordForm({ onCancel, state, action, pending }: {
-  onCancel: () => void; state: PasswordRecoveryState; action: (data: FormData) => void; pending: boolean;
+function ChangePasswordForm({ onCancel, onPending }: {
+  onCancel: () => void; onPending: (pending: boolean) => void;
 }) {
+  const [state, action, pending] = useActionState(changePassword, initialState);
+  useEffect(() => { onPending(pending); }, [onPending, pending]);
+
   if (state.status === "updated") {
-    return <p role="status" className={styles.passwordSuccess}>{state.message}</p>;
+    return <p id="change-account-password-form" role="status" className={styles.passwordSuccess}>{state.message}</p>;
   }
 
   return <form id="change-account-password-form" action={action} className={styles.passwordForm}>
@@ -37,7 +40,7 @@ function ChangePasswordForm({ onCancel, state, action, pending }: {
 
 export function ChangePasswordControl() {
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState(changePassword, initialState);
+  const [pending, setPending] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
 
   return <div className={styles.passwordControl}>
@@ -55,6 +58,6 @@ export function ChangePasswordControl() {
       <span className={styles.rowText}><strong>Password</strong><small>Change your password</small></span>
       <span className={styles.passwordArrow} aria-hidden="true">{open ? "⌃" : "›"}</span>
     </button>
-    {open ? <ChangePasswordForm state={state} action={action} pending={pending} onCancel={() => { setOpen(false); trigger.current?.focus(); }} /> : null}
+    {open ? <ChangePasswordForm onPending={setPending} onCancel={() => { setOpen(false); trigger.current?.focus(); }} /> : null}
   </div>;
 }

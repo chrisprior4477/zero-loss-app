@@ -8,7 +8,7 @@ import { saveProfileDetails, type SaveProfileDetailsResult } from "@/lib/account
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
 import { addressRequirements, completeMailingAddress } from "@/lib/account/address-requirements";
-import { profileEditBaseline, profileFields, type ProfileSavedFields } from "@/lib/account/profile-edit";
+import { profileAddressFields, profileEditBaseline, profileFields, type ProfileSavedFields } from "@/lib/account/profile-edit";
 import styles from "./profile-editor.module.css";
 
 export type ProfileDetails = {
@@ -132,7 +132,6 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
       if (!form.current || event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
       if (!link || (link.target && link.target !== "_self") || link.origin !== window.location.origin || link.pathname === window.location.pathname) return;
-      if (!link.closest("#account-settings-sections") && !(form.current.contains(link) && link.pathname === "/account/security")) return;
       const data = new FormData(form.current);
       const dirty = profileFields.some(key => data.has(key) && String(data.get(key) ?? "").trim() !== baseline.fields[key].trim());
       if (dirty && !window.confirm("You have unsaved profile changes. Leave this section and discard them?")) event.preventDefault();
@@ -178,6 +177,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     retryLookup.current = false;
     if (document.activeElement === document.body) lookupFeedback.current?.focus();
   }, [currentLookup]);
+  const addressLookupFailed = addressChanged && completeAddress && currentLookup?.failed === true;
   const fallbackZones = currentLookup && !currentLookup.zone ? currentLookup.options : [];
   // Dispatch the action ourselves so React's automatic form reset cannot discard
   // the draft when the server returns a validation error. Native validation stays.
@@ -185,6 +185,9 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     event.preventDefault();
     if (pending) return;
     const data = new FormData(event.currentTarget);
+    if (addressLookupFailed) {
+      for (const field of profileAddressFields) data.set(field, baseline.fields[field]);
+    }
     if (data.get("timezone") === "") data.delete("timezone");
     setShowFeedback(true);
     startTransition(() => action(data));
@@ -265,7 +268,8 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     {showFeedback && !pending && state.status !== "idle" ? <p ref={saveFeedback} tabIndex={state.status === "error" ? -1 : undefined} role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
     {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
-      <button type="submit" disabled={pending || (addressChanged && completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? t("Saving profile…", "Guardando perfil…") : t("Save profile", "Guardar perfil")}<AccountIcon name="arrow" /></button>
+      {addressLookupFailed ? <p role="status">{t("You can save your other changes now. Your address edits stay here until the lookup succeeds.", "Puedes guardar los demás cambios ahora. Los cambios de dirección quedan pendientes hasta que se verifiquen.")}</p> : null}
+      <button type="submit" disabled={pending || (addressChanged && completeAddress && !currentLookup)}>{pending ? t("Saving profile…", "Guardando perfil…") : addressLookupFailed ? t("Save other changes", "Guardar otros cambios") : t("Save profile", "Guardar perfil")}<AccountIcon name="arrow" /></button>
       <Link href="/account/security">{t("Back to Account & Security", "Volver a Cuenta y seguridad")}</Link>
     </div>
   </form>;

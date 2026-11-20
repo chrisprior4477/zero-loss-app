@@ -15,7 +15,7 @@ export async function recordReceivedProduct(slug: string, token: string | null, 
   const { data, error } = await db.rpc("record_saved_product_share", { p_slug: slug, p_token: token, p_save: save });
   if (error || typeof data !== "string" || !shareUuid.test(data)) return failure;
   revalidatePath("/account/favorites");
-  return { ok: true as const, id: data, href: savedShareHref(), message: "Saved in Shared with You." };
+  return { ok: true as const, id: data, href: savedShareHref(data), message: "Saved in Shared with You." };
 }
 
 export async function readReceivedProductState(id: string) {

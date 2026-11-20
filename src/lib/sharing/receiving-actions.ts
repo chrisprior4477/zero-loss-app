@@ -6,10 +6,12 @@ const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 export async function prepareProductShareLink(slug: string, groupId: string | null = null): Promise<string | null> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || (groupId !== null && !uuid.test(groupId))) return null;
   const db = await createClient();
-  const { data: { user } } = await db.auth.getUser();
-  if (!user) return null;
+  const { data: { user }, error: authError } = await db.auth.getUser();
+  if (!user && !groupId && (!authError || authError.name === "AuthSessionMissingError")) return null;
+  if (!user || authError) throw new Error("Unable to verify the sharing session.");
   const { data, error } = await db.rpc("create_product_share_link", { p_slug: slug, p_group_id: groupId });
-  return !error && typeof data === "string" && uuid.test(data) ? data : null;
+  if (error || typeof data !== "string" || !uuid.test(data)) throw new Error("Unable to prepare the shared link.");
+  return data;
 }
 export async function updateSharedProductReceiving(token: string, receiving: boolean, shareBack: boolean | null = null, onlyIfNew = false) {
   if (!uuid.test(token) || typeof receiving !== "boolean" || (shareBack !== null && typeof shareBack !== "boolean") || typeof onlyIfNew !== "boolean") return { ok: false, message: "That shared link is unavailable.", context: null };

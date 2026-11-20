@@ -40,12 +40,12 @@ describe("header search submit cue", () => {
     fireEvent.submit(input.closest("form")!);
     expect(navigate).toHaveBeenCalledWith("/browse?q=PlayStation#search-results");
   });
-  test("changes the microphone to a visible Go button when a query is entered", () => {
+  test("keeps the microphone available alongside Go when a query is entered", () => {
     render(<DesktopHeaderSearchFallback />);
     expect(screen.getByRole("button", { name: "Start voice search" })).toBeTruthy();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "paper towels" } });
     expect(screen.getByRole("button", { name: "Go to search results" }).textContent).toBe("Go");
-    expect(screen.queryByRole("button", { name: "Start voice search" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Start voice search" })).toBeTruthy();
   });
 });
 

@@ -150,14 +150,23 @@ test("does not restore a saved zone outside the current country's choices", asyn
   expect(picker.checkValidity()).toBe(false);
 });
 
-test("keeps Save disabled and offers a retry if the lookup fails", async () => {
+test("lets other profile fields save while a failed address lookup keeps that draft pending", async () => {
   vi.mocked(lookupAddressTimeZone).mockRejectedValueOnce(new Error("offline"));
   vi.mocked(lookupAddressTimeZone).mockResolvedValueOnce({ zone: "Europe/London", options: ["Europe/London"] });
   render(<ProfileDetailsForm details={{ ...details, country: "United Kingdom", region: "England", postalCode: "SW1A 1AA" }} />);
   const retry = await screen.findByRole("button", { name: "Try again" }, { timeout: 3000 });
   expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false);
   fireEvent.input(screen.getByLabelText("Street address"), { target: { value: "126 Market Street" } });
-  expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(true);
+  const otherChanges = screen.getByRole("button", { name: "Save other changes" });
+  expect(otherChanges).toHaveProperty("disabled", false);
+  vi.mocked(saveProfileDetails).mockResolvedValue({ status: "succeeded", message: "Updated", appliedFields: { preferred_locale: "en-GB" } });
+  fireEvent.change(screen.getByLabelText("Language"), { target: { value: "en-GB" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  await screen.findByText("Updated");
+  const data = vi.mocked(saveProfileDetails).mock.calls.at(-1)?.[1];
+  expect(data?.get("preferred_locale")).toBe("en-GB");
+  expect(data?.get("address_line_1")).toBe(details.addressLine1);
+  expect(screen.getByLabelText("Street address")).toHaveProperty("value", "126 Market Street");
   fireEvent.click(retry);
   await waitFor(() => expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false));
 });

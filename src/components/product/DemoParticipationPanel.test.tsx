@@ -43,7 +43,7 @@ test("browser Back restores the draft for this prize within current availability
       <DemoParticipationPanel {...props} sold={15} isSignedIn />
     </ProductEntrySelection>);
     expect(screen.getByRole("spinbutton", { name: "Number of entries" })).toHaveProperty("value", "5");
-    expect(window.history.state).toEqual({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 7 } });
+    expect(window.history.state).toEqual({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 5 } });
     expect(actionMocks.enter).not.toHaveBeenCalled();
   } finally {
     window.history.replaceState(null, "");
@@ -66,7 +66,7 @@ test("live availability caps the current selection, closes stale funding guidanc
   expect(input).toHaveProperty("value", "2");
   expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
   expect(screen.queryByText(/not enough funds/i)).toBeNull();
-  expect(screen.getByText("Availability changed. Your selection is now 2 entries.")).toBeTruthy();
+  expect(screen.getByText("Availability changed. Your selection is now 2 entries. You requested 7 entries.")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toContain("quantity=2");
   expect(screen.getByRole("link", { name: "Free-entry instructions" }).getAttribute("href")).toContain("quantity=2");
   expect(readEntryIntent()?.quantity).toBe(2);
@@ -292,7 +292,7 @@ test("selected quantity resumes after sign-in and add funds", () => {
 test("saved count is lowered if fewer tickets remain on return", () => {
   render(<DemoParticipationPanel {...props} sold={18} capacity={20} initialQuantity={5} isSignedIn />);
   expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("2");
-  expect(screen.getByRole("status").textContent).toContain("saved selection was adjusted");
+  expect(screen.getByRole("status").textContent).toContain("You requested 5 entries.");
 });
 
 test("signed-out selected quantity survives login", () => {

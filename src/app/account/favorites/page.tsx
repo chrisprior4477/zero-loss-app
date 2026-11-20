@@ -20,11 +20,14 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
     db.rpc("get_favorite_alert_email_enabled"),
     db.rpc("get_saved_product_shares"),
   ]);
+  const savedShares = shares.error ? null : parseSavedProductShares(shares.data);
+  const selectedShare = params.tab === "shared" ? savedShares?.find(share => share.id === params.share) : null;
+  const sharedView = selectedShare ? (selectedShare.declinedAt ? "declined" : "available") : params.view === "declined" ? "declined" : "available";
   return <FavoritesView key={`${params.tab ?? "favorites"}:${params.share ?? ""}:${params.item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
-    initialSharedView={params.view === "declined" ? "declined" : "available"}
+    initialSharedView={sharedView}
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}
     initialTab={params.tab === "shared" ? "shared" : "favorites"} initialShareId={params.share} initialItem={params.item}
-    initialShares={shares.error ? null : parseSavedProductShares(shares.data)}
+    initialShares={savedShares}
     initialAlerts={alerts.error ? null : Object.fromEntries((alerts.data ?? []).map(row => [row.product_slug, row.email_almost_full_enabled === true]))}
     emailEnabled={preference.error ? null : preference.data === true} />;
 }

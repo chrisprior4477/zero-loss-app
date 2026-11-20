@@ -5,7 +5,7 @@ export const profileFields = [
 export type ProfileField = typeof profileFields[number];
 export type ProfileSavedFields = Record<ProfileField, string | null>;
 export type ProfileEditBaseline = { fields: Record<ProfileField, string>; saved: ProfileSavedFields };
-const addressFields: readonly ProfileField[] = ["address_line_1", "address_line_2", "city", "region", "postal_code", "country", "timezone"];
+export const profileAddressFields: readonly ProfileField[] = ["address_line_1", "address_line_2", "city", "region", "postal_code", "country", "timezone"];
 
 export function profileEditBaseline(fields: ProfileSavedFields, saved = fields): ProfileEditBaseline {
   return { fields: Object.fromEntries(profileFields.map(key => [key, fields[key] ?? ""])) as ProfileEditBaseline["fields"], saved: { ...saved } };
@@ -22,7 +22,7 @@ export function readProfileBaseline(value: FormDataEntryValue | null): ProfileEd
 }
 
 export function hasProfileAddressChange(form: FormData, baseline: ProfileEditBaseline) {
-  return addressFields.some(key => form.has(key) && String(form.get(key) ?? "").trim() !== baseline.fields[key].trim());
+  return profileAddressFields.some(key => form.has(key) && String(form.get(key) ?? "").trim() !== baseline.fields[key].trim());
 }
 
 export function profilePatch(updates: ProfileSavedFields, form: FormData, baseline: ProfileEditBaseline) {
@@ -32,8 +32,8 @@ export function profilePatch(updates: ProfileSavedFields, form: FormData, baseli
     return String(form.get(key) ?? "").trim() !== baseline.fields[key].trim();
   });
   // An address and its derived zone are one validated unit, never a mix of two drafts.
-  if (changed.some(key => addressFields.includes(key))) {
-    for (const key of addressFields) if (!changed.includes(key)) changed.push(key);
+  if (changed.some(key => profileAddressFields.includes(key))) {
+    for (const key of profileAddressFields) if (!changed.includes(key)) changed.push(key);
   }
   const patch = Object.fromEntries(changed.map(key => [key, updates[key]])) as Partial<ProfileSavedFields>;
   const expected = Object.fromEntries(changed.map(key => [key, baseline.saved[key]]));

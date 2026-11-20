@@ -17,7 +17,14 @@ test("weeks descend by local Monday across a clock change, using matched posting
 });
 
 test("a missing posting timestamp cannot become a zero or a guessed week", () => {
-  expect(getDepositWeeks([{ ...receipt("legacy", "", 100), postedAt: null }], "2026-11-08T12:00:00Z")).toBeNull();
+  const legacy = { ...receipt("legacy", "", 100), postedAt: null };
+  const asOf = "2026-11-08T12:00:00Z";
+  expect(getDepositWeeks([legacy], asOf)).toBeNull();
+  const dated = receipt("dated", "2026-11-06T12:00:00Z", 2000);
+  const partial = getDepositWeeks([legacy, dated], asOf)!;
+  expect(partial.partial).toBe(true);
+  expect(partial.weeks[0].receipts).toEqual([dated]);
+  expect(partial.weeks[0].cents).toBe(BigInt(2000));
 });
 
 test("lifetime funding totals can exceed a single safe integer; historical cents remain exact", () => {

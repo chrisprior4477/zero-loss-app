@@ -66,7 +66,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, notificationReturnHref }: { notificationReturnHref?: string; depositList?: boolean; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref }: { notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
@@ -346,6 +346,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       </div>
       <span className={styles.posted}>Posted</span>
       <div className={styles.transactionActions}>
+        {selected && weeklyDeposit && deposit?.requestKey === weeklyDeposit ? <>
+          <Link className="max-lg:hidden" href={`/account/wallet?view=history&weeklyDeposit=${encodeURIComponent(weeklyDeposit)}#weekly-deposit-heading`}>← Back to Weekly deposits</Link>
+          <Link className="lg:hidden" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(weeklyDeposit)}#payment-deposits`}>← Back to Payment deposits</Link>
+        </> : null}
         {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
         {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
         {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
