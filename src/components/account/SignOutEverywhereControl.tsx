@@ -30,7 +30,7 @@ export function SignOutEverywhereControl() {
   const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const review = useRef<HTMLDetailsElement>(null);
-  useDialogBack(phone && reviewOpen, () => {
+  function closeReview() {
     if (!review.current) return;
     review.current.open = false;
     requestAnimationFrame(() => {
@@ -38,11 +38,17 @@ export function SignOutEverywhereControl() {
       if (element && !element.open) restoreDialogTrigger(element.querySelector("summary"));
     });
     setReviewOpen(false);
-  }, pending, true);
+  }
+  useDialogBack(phone && reviewOpen, closeReview, pending, true);
   const feedback = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (!pending && state.status === "error") feedback.current?.focus(); }, [pending, state]);
 
-  return <details ref={review} className={styles.signOutDisclosure} onToggle={event => setReviewOpen(event.currentTarget.open)}>
+  return <details ref={review} className={styles.signOutDisclosure} onToggle={event => setReviewOpen(event.currentTarget.open)} onKeyDown={event => {
+    if (event.key !== "Escape" || pending || !review.current?.open) return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeReview();
+  }}>
     <summary aria-disabled={pending || undefined} onClick={event => { if (pending) event.preventDefault(); }}>Sign out everywhere</summary>
     <div className={styles.signOutConfirmation}>
       <p>This signs you out here and revokes sign-in sessions on your other devices. An already-issued access token may remain valid until it expires.</p>

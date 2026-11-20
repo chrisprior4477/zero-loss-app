@@ -1,7 +1,11 @@
 export type CrewTab = "crew" | "requests" | "picks" | "groups" | "privacy" | "add";
 
+export function isCrewTab(value: unknown): value is CrewTab {
+  return value === "crew" || value === "requests" || value === "picks" || value === "groups" || value === "privacy" || value === "add";
+}
+
 export function parseCrewTab(value: string | null | undefined): CrewTab {
-  return value === "requests" || value === "picks" || value === "groups" || value === "privacy" || value === "add" ? value : "crew";
+  return isCrewTab(value) ? value : "crew";
 }
 
 export function crewTabHref(currentHref: string, tab: CrewTab): string {

@@ -41,6 +41,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const [purchasePending, startPurchase] = useTransition();
   const purchaseInFlight = useRef(false);
   const reviewRef = useRef<HTMLDivElement>(null);
+  const reviewTrigger = useRef<HTMLElement | null>(null);
   const purchaseErrorRef = useRef<HTMLDivElement>(null);
   const selectedOptions = options.filter(option => option.entryId && selected.has(option.entryId));
   const totalCents = selectedOptions.reduce((total, option) => total + option.remainingCents, 0);
@@ -68,10 +69,19 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
 
   function reviewPurchases() {
     if (!canPurchase || purchaseLocked || !selectedOptions.length) return;
+    reviewTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPurchaseResult(null);
     setPurchaseRequest({ slug: item.slug, purchaseIds: selectedOptions.map(option => option.completionOptionId!),
       declineIds: declineRest ? options.filter(option => !selected.has(option.entryId!)).map(option => option.completionOptionId!) : [],
       totalCents, requestId: crypto.randomUUID(), confirmed: true });
+  }
+
+  function cancelPurchaseReview() {
+    setPurchaseRequest(null);
+    setPurchaseResult(null);
+    requestAnimationFrame(() => {
+      if (reviewTrigger.current?.isConnected) reviewTrigger.current.focus({ preventScroll: true });
+    });
   }
 
   function confirmPurchases() {
@@ -198,14 +208,14 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <p>{canPurchase ? "Choose a quantity or tap the exact tickets you want to purchase." : "Tap any numbered ticket to see its own purchase details. You can open more than one."}</p>
     </div>
     {bulkPhase === "idle" && !showSummary ? <div className={styles.railQuantity}>{quantityPicker}</div> : null}
-    {purchaseRequest ? <div ref={reviewRef} tabIndex={-1} className={styles.purchaseConfirmation} role="group" aria-label="Confirm selected purchases" onKeyDown={event => { if (event.key === "Escape" && !purchaseLocked) { setPurchaseRequest(null); setPurchaseResult(null); } }}>
+    {purchaseRequest ? <div ref={reviewRef} tabIndex={-1} className={styles.purchaseConfirmation} role="group" aria-label="Confirm selected purchases" onKeyDown={event => { if (event.key === "Escape" && !event.defaultPrevented && !purchaseLocked) { event.preventDefault(); cancelPurchaseReview(); } }}>
       <h3>Confirm your purchases</h3>
       <p>{purchaseRequest.purchaseIds.length} separate retailer gift {purchaseRequest.purchaseIds.length === 1 ? "card" : "cards"} for {title}.</p>
       <p><strong>{formatUsdFromCents(purchaseRequest.totalCents)} from your playable wallet.</strong> Each entry’s credit applies only to its own option.</p>
       <p>{purchaseRequest.declineIds.length ? `The other ${purchaseRequest.declineIds.length} offers will be declined only after all selected purchases succeed.` : "Your other offers stay available until their original deadlines."}</p>
       <p>Sample — not redeemable. No real payment or product shipment.</p>
       <button type="button" className={styles.makePurchases} disabled={purchaseLocked} onClick={confirmPurchases}>{purchasePending ? "Saving your purchases…" : `Confirm ${formatUsdFromCents(purchaseRequest.totalCents)} purchase${purchaseRequest.purchaseIds.length === 1 ? "" : "s"}`}</button>
-      <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={() => { setPurchaseRequest(null); setPurchaseResult(null); }}>Cancel</button>
+      <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={cancelPurchaseReview}>Cancel</button>
       {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert">{purchaseResult.recovery === "balance" ? <InsufficientFundsNotice href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>{purchaseResult.message}</InsufficientFundsNotice> : <><p>{purchaseResult.message}</p>{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></>}</div> : null}
     </div> : null}
     {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label={declineCount === 1 ? "Confirm declining this offer" : "Confirm declining all offers"}><strong>{declineCount === 1 ? `Decline this offer for ${title}?` : `Decline all ${declineCount} offers for ${title}?`}</strong><p>{declineCount === 1 ? "It will leave your active purchase options." : "They will leave your active purchase options."} Your original entries and wallet history will not be refunded or removed.</p>

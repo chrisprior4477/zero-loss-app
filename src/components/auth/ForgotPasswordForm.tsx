@@ -75,7 +75,14 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
       {feedback.message ? <p role={feedback.status === "error" ? "alert" : "status"} className={`rounded-xl border p-4 text-sm leading-6 ${feedback.status === "error" ? "border-red-300/30 bg-red-400/10 text-red-100" : "border-[#31e800]/35 bg-[#31e800]/10 text-white"}`}>{feedback.message}</p> : null}
       <button ref={submitButton} type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending && currentRequest ? "Sending…" : feedback.status === "sent" ? "Resend reset email" : "Send reset email"}</button>
       <p className="text-xs leading-5 text-white/55">You can request another link if it doesn&apos;t arrive. Please wait a minute between requests.</p>
-      <Link href={signInHref} className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
+      <Link href={signInHref} onNavigate={() => {
+        try {
+          sessionStorage.removeItem("zero-loss-login-email");
+          if (emailField.current?.validity.valid && email.trim().length <= 254) {
+            sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email: email.trim(), destination, expires: Date.now() + 300_000 }));
+          }
+        } catch { /* The sign-in form also accepts manual entry. */ }
+      }} className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
     </form>
   );
 }

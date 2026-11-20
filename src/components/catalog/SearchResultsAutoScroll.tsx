@@ -51,6 +51,7 @@ type ScrollProps = {
   groceryKey?: string;
   invalidSearch?: boolean;
   obsoleteBatch?: boolean;
+  focusObsoleteBatch?: boolean;
   normalizedBatch?: string | null;
   invalidTicketRange?: boolean;
   invalidType?: boolean;
@@ -65,7 +66,7 @@ type ScrollProps = {
 
 export function SearchResultsAutoScroll({
   searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false,
-  obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly,
+  obsoleteBatch, focusObsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly,
   invalidSubcategory, invalidGroceryIdea, duplicateSelectors, oldTailPrizes, batchSize = 24,
 }: ScrollProps) {
   const router = useRouter();
@@ -133,12 +134,12 @@ export function SearchResultsAutoScroll({
         : window.location.hash.startsWith("#prize-") && document.getElementById(window.location.hash.slice(1)) ? window.location.hash.slice(1)
         : window.location.hash === "#more-groceries" ? "more-groceries"
           : groceryKey && (!window.location.hash || window.location.hash.startsWith("#search-results") || window.location.hash === "#grocery-inspiration") ? "grocery-inspiration"
-            : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
+            : searchKey || mobileBrowse || focusObsoleteBatch || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
       let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
-      const focusTarget = footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const focusTarget = footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
@@ -172,6 +173,6 @@ export function SearchResultsAutoScroll({
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch, oldTailPrizes]);
+  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch, focusObsoleteBatch, oldTailPrizes]);
   return null;
 }

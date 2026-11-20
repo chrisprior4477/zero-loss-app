@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { PrintSheetButton } from "./PrintSheetButton";
 
 const CODE39: Record<string, string> = {
@@ -36,6 +37,10 @@ type PrintDraft = { offering: string; owner: string; name: string; account: stri
 export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "", signInHref }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const accountErrorId = useId();
+  const [printEditsCleared, setPrintEditsCleared] = useState(false);
+  const directReturn = useRef(false);
   const postcard = useRef<HTMLButtonElement>(null);
   const [addressSide, setAddressSide] = useState(true);
   const demoNoteTrigger = useRef<HTMLButtonElement>(null);
@@ -48,6 +53,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const latestDraft = useRef<PrintDraft | null>(null);
   const cleanAccountReference = accountReference.trim().toUpperCase();
   const validAccountReference = /^DEMO-[0-9A-Z]{3,12}$/i.test(cleanAccountReference);
+  const invalidAccountReference = Boolean(cleanAccountReference) && !validAccountReference;
   const reference = useMemo(() => shortReference(`${offeringSlug}-${cleanAccountReference}`), [cleanAccountReference, offeringSlug]);
   const flipLabel = addressSide ? "Show artwork side of postcard" : "Show address and entry details";
 
@@ -85,6 +91,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   }, [offeringSlug, initialLegalName, initialAccountReference]);
 
   function updateDraft(nextName: string, nextAccount: string) {
+    setPrintEditsCleared(false);
     setName(nextName);
     setAccountReference(nextAccount);
     latestDraft.current = {
@@ -117,7 +124,8 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       setPrintPreview(false);
       return;
     }
-    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    directReturn.current = true;
+    window.history.replaceState(window.history.state, "", "#free-entry-intro");
     setPrintPreview(false);
   }
 
@@ -126,6 +134,12 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     if (printPreview) {
       window.scrollTo({ top: 0, behavior: "instant" });
       backButton.current?.focus({ preventScroll: true });
+    } else if (directReturn.current) {
+      directReturn.current = false;
+      instructionScroll.current = null;
+      const heading = document.getElementById("free-entry-intro");
+      heading?.focus({ preventScroll: true });
+      if (heading) revealBelowHeader(heading);
     } else {
       window.scrollTo({ top: instructionScroll.current, behavior: "instant" });
       printTrigger.current?.focus({ preventScroll: true });
@@ -142,11 +156,17 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     <div className="mx-auto max-w-4xl">
     {intro}
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
-      <label className="text-sm font-bold">Your full legal name<input value={name} maxLength={80} onChange={(event) => updateDraft(event.target.value, accountReference)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
-      <div><label className="block text-sm font-bold">Zero Loss account reference<input value={accountReference} maxLength={80} onChange={(event) => updateDraft(name, event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
-        {cleanAccountReference && !validAccountReference ? <p role="status" className="mt-2 text-sm text-amber-200">Enter a valid demo account reference, or sign in to fill it automatically.</p> : null}
+      <label className="text-sm font-bold">Your full legal name<input ref={nameInput} value={name} maxLength={80} onChange={(event) => updateDraft(event.target.value, accountReference)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+      <div><label className="block text-sm font-bold">Zero Loss account reference<input value={accountReference} aria-invalid={invalidAccountReference || undefined} aria-describedby={invalidAccountReference ? accountErrorId : undefined} maxLength={80} onChange={(event) => updateDraft(name, event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+        {invalidAccountReference ? <p id={accountErrorId} role="status" className="mt-2 text-sm text-amber-200">Enter a valid demo account reference, or sign in to fill it automatically.</p> : null}
         {signInHref ? <Link className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300 underline" href={signInHref}>Sign in to fill your account reference</Link> : null}
-        {(name !== initialLegalName || accountReference !== initialAccountReference) && <button type="button" className="mt-1 min-h-11 text-sm font-bold text-cyan-300 underline" onClick={() => updateDraft(initialLegalName, initialAccountReference)}>Clear print edits</button>}
+        {(name !== initialLegalName || accountReference !== initialAccountReference) && <button type="button" className="mt-1 min-h-11 text-sm font-bold text-cyan-300 underline" onClick={() => {
+          updateDraft(initialLegalName, initialAccountReference);
+          setPrintEditsCleared(true);
+          nameInput.current?.focus({ preventScroll: true });
+          if (nameInput.current) revealBelowHeader(nameInput.current);
+        }}>Clear print edits</button>}
+        {printEditsCleared ? <p role="status" className="mt-2 text-sm">Print edits cleared.</p> : null}
       </div>
     </div>
 

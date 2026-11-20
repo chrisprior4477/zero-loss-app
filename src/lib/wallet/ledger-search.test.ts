@@ -3,6 +3,30 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("keeps posted amounts, card denominations and transaction alternatives independent", () => {
+  const created_at = "2026-11-05T20:00:00Z";
+  const product = { title: "$75 Amazon Gift Card", slug: "amazon-75-gift-card", retailer: "Amazon", image: "/gift-card.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "refund", entry_type: "REFUND", amount: 2500, created_at, product },
+    { id: "adjustment", entry_type: "CORRECTION", amount: 2500, created_at },
+    { id: "small", entry_type: "REFUND", amount: 50, created_at },
+    { id: "cents", entry_type: "REFUND", amount: 175, created_at },
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -2800, created_at, product },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product },
+  ];
+  const search = (query: string) => searchLedger(entries, query, entry => ledgerDescription(entry.entry_type, entry.product?.title)).map(entry => entry.id);
+  expect(search(".50")).toEqual(["small"]);
+  expect(search("50 cents")).toEqual(["small"]);
+  expect(search("deposit or refund $25")).toEqual(["deposit", "refund"]);
+  expect(search("deposit or adjustments")).toEqual(["deposit", "adjustment"]);
+  expect(search("refunds from Amazon")).toEqual(["refund"]);
+  expect(search("one dollar seventy-five cents")).toEqual(["cents"]);
+  expect(search("$75 Amazon gift card -$28")).toEqual(["purchase"]);
+  expect(search("$50 Amazon gift card -$28")).toEqual([]);
+  expect(search("purchase option")).toEqual(["purchase"]);
+});
+
 test("keeps an amount alternative scoped to the transaction type and recognizes signed speech", () => {
   const created_at = "2026-11-05T20:00:00Z";
   const entries: LedgerEntryRow[] = [

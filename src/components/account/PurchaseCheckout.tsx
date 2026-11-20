@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { purchaseReceiptHref, type ActivityItem } from "@/lib/account/activity";
 import { checkoutAttemptKey } from "@/lib/account/checkout-attempt";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
@@ -30,6 +30,7 @@ import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext }
 import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
+import { useDialogBack } from "./useDialogBack";
 import { AccountIcon } from "./AccountIcon";
 
 function Product({ item }: { item: ActivityItem }) {
@@ -67,6 +68,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const item = options[0];
   const singleOffer = options.length === 1;
   const offerDetailsId = useId();
+  const forwardReview = useRef<string | null>(null);
+  const [refreshingReview, refreshReview] = useTransition();
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
   const offerDetailsBody = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -284,6 +287,21 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     saveAttempt({ review: true });
     setOverlay("purchase");
   }
+  useDialogBack(overlay !== null && overlay !== "decline", () => {
+    forwardReview.current = overlay === "purchase" ? checkoutDetails : null;
+    close();
+  }, busy || checkingReceipt, true, false, offerDetailsId, () => {
+    if (!forwardReview.current || overlay || locked) return;
+    const details = forwardReview.current;
+    forwardReview.current = null;
+    if (details !== checkoutDetails) {
+      setNotice("Your purchase details changed. Review them again before confirming.");
+      return;
+    }
+    review();
+    refreshReview(() => router.refresh());
+  });
+
   async function addFunds(retry?: CheckoutDepositAttempt) {
     if (inFlight.current || !fundingAvailable || (retry ? !depositMissing || !cards.some(saved => saved.token === retry.token) : locked || fundingBlocked || !card || !selectedCard || !depositApproved)) return;
     if (!retry && !validDeposit) { setError("Only whole-dollar amounts are accepted. Enter extra dollars such as 50, without a decimal point."); return; }
@@ -493,7 +511,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack
-      selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact handleBrowserBack closeDisabled={busy || checkingReceipt} centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
+      selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact closeDisabled={busy || checkingReceipt} centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         {recovery === "deposit" ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
@@ -527,7 +545,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         {!fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
         </>}
         {recovery !== "deposit" && feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !depositApproved || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}{reviewChanged && !busy ? <><p role="alert" className={styles.error}>Your offers changed. Review your purchase again before confirming.</p><button type="button" className={styles.primary} onClick={close}>Back to purchase options</button></> : <ConfirmPurchase total={purchaseRequest?.totalCents ?? total} balance={balance} quantity={purchaseRequest?.purchaseIds.length ?? chosen.length} summary={reviewedCheckout?.summary ?? selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />}{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}{refreshingReview ? <p role="status">Checking your purchase options…</p> : reviewChanged && !busy ? <><p role="alert" className={styles.error}>Your offers changed. Review your purchase again before confirming.</p><button type="button" className={styles.primary} onClick={close}>Back to purchase options</button></> : <ConfirmPurchase total={purchaseRequest?.totalCents ?? total} balance={balance} quantity={purchaseRequest?.purchaseIds.length ?? chosen.length} summary={reviewedCheckout?.summary ?? selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />}{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
           onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>
           {draft => <div className={styles.optionDetails}>{options.map((option, index) =>

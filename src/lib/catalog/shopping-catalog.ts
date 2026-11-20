@@ -22,7 +22,7 @@ export const getShoppingCatalog = cache(async () => {
 
 export async function freeEntryProduct(offering?: string | null) {
   const { hidden, account, unavailable } = await getShoppingCatalog();
-  const requested = offering ? getDemoProduct(offering) : undefined;
+  const requested = offering ? getDemoProduct(offering.toLowerCase()) : undefined;
   if (offering && !requested) return null;
   if (unavailable && (!requested || !resolvedCatalogSlugs(account?.activity).includes(requested.slug))) return undefined;
   if (requested) return hidden.has(requested.slug) ? null : requested;

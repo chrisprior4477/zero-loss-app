@@ -12,10 +12,11 @@ export function ledgerDescription(entryType: string, productTitle?: string) {
 
 /** Only link records present in the signed-in customer's authorized activity. */
 export function transactionLinks(entry: LedgerEntryRow, activity: readonly ActivityItem[], restoreView = false, ordersFilter?: FulfillmentFilter) {
+  const origin = `&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}`;
   if (entry.entry_type === "PURCHASE_DEBIT" && entry.rewardId) {
     const reward = activity.find(item => item.rewardId === entry.rewardId && isWalletReward(item));
     if (!reward) return [];
-    return [{ id: entry.rewardId, label: "Open gift card", href: `${activityHref(reward)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}` }];
+    return [{ id: entry.rewardId, label: "Open gift card", href: `${activityHref(reward)}${origin}` }];
   }
   const reservation = entry.entry_type === "ENTRY_HOLD" || entry.entry_type === "ENTRY_HOLD_RELEASE";
   const byId = new Map(activity.filter(item => item.entryId).map(item => [item.entryId!, item]));
@@ -26,13 +27,13 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
     if (!item || (reservation && isWalletReward(item))) return [];
     const expired = item.completionOptionStatus === "expired" && !isWalletReward(item);
     const href = expired
-      ? `/account/wallet?rewards=expired&expiredEntry=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}#reward-history`
+      ? `/account/wallet?rewards=expired&expiredEntry=${encodeURIComponent(id)}${origin}#reward-history`
       : item.status === "active"
-      ? `${activityHref(item)}?entries=open&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#saved-entry-rail`
+      ? `${activityHref(item)}?entries=open${origin}#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
       ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#purchase-option-rail`
       : isWalletReward(item) && item.rewardId
-      ? `${activityHref(item)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}`
+      ? `${activityHref(item)}${origin}`
       : item.completionOptionStatus === "declined" && item.completionOptionId
       ? declinedOfferHref(item.completionOptionId, "all", { id: entry.id, restoreView })
       : activityHref(item);

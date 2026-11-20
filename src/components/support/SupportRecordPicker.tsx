@@ -36,12 +36,12 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const request = useRef(0);
   const attachedPage = useRef<{ id: string; kind: SupportRecordKind; page: number } | null>(null);
   const focusRecordId = useRef<string | null>(null);
+  const restoreOnForward = useRef(false);
   const selectedLookup = useRef<string | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<SupportRecordKind>("order");
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<SupportRecordPage | null>(null);
-  useDialogBack(open, () => { dialog.current?.close(); }, false, true);
 
   useLayoutEffect(() => {
     if (!result || !focusResults.current) return;
@@ -71,15 +71,28 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     }
   }
 
-  function openPicker() {
+  function openPicker(restoreView = false) {
     if (!dialog.current || dialog.current.open) return;
     dialog.current.showModal();
     setOpen(true);
     closeButton.current?.focus({ preventScroll: true });
+    if (restoreView) {
+      void load(kind, page, Boolean(record && record.kind === kind), record?.kind === kind ? record.id : undefined);
+      return;
+    }
     const previous = attachedPage.current;
     const same = record && previous?.id === record.id && previous.kind === record.kind;
     void load(record?.kind ?? kind, record ? same ? previous.page : 0 : page, Boolean(record), record?.id);
   }
+
+  useDialogBack(open, () => {
+    restoreOnForward.current = true;
+    dialog.current?.close();
+  }, false, true, false, headingId, () => {
+    if (!restoreOnForward.current) return;
+    restoreOnForward.current = false;
+    openPicker(true);
+  });
 
   return <div className={styles.attachment}>
     {record ? <div className={styles.attached} aria-live="polite">
@@ -87,7 +100,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
       <RecordDetails record={record} timeZone={timeZone} />
     </div> : null}
     <div className={styles.controls}>
-      <button type="button" ref={trigger} className={styles.control} disabled={disabled} aria-haspopup="dialog" aria-expanded={open} onClick={openPicker}>
+      <button type="button" ref={trigger} className={styles.control} disabled={disabled} aria-haspopup="dialog" aria-expanded={open} onClick={() => openPicker()}>
         {record ? "Change" : "Attach an order or transaction (optional)"}
       </button>
       {record ? <button type="button" className={styles.control} disabled={disabled} onClick={() => {

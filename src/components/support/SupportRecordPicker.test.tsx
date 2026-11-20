@@ -24,7 +24,8 @@ test("Back dismisses the attachment picker and preserves the unfinished report",
   fireEvent.click(trigger);
   await screen.findByRole("dialog", { name: "Choose a record" });
   await screen.findByText("No orders on this page.");
-  expect(window.history.state?.zeroLossDialog).toBeTruthy();
+  const openHistory = window.history.state;
+  expect(Object.keys(openHistory).some(key => key.startsWith("zeroLossDialog-"))).toBe(true);
   act(() => {
     window.history.replaceState(null, "");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -32,4 +33,10 @@ test("Back dismisses the attachment picker and preserves the unfinished report",
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(screen.getByRole("textbox", { name: "Report" })).toHaveProperty("value", "An unfinished report");
   expect(document.activeElement).toBe(trigger);
+  act(() => {
+    window.history.replaceState(openHistory, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await screen.findByRole("dialog", { name: "Choose a record" });
+  expect(screen.getByRole("textbox", { name: "Report", hidden: true })).toHaveProperty("value", "An unfinished report");
 });

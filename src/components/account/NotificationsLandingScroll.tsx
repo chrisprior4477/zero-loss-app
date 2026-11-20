@@ -29,6 +29,17 @@ export function NotificationsLandingScroll({ userId }: { userId?: string }) {
         secondFrame = window.requestAnimationFrame(() => {
           if (disposed || interrupted) return;
           const headerBottom = measure();
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("filter") && !url.searchParams.has("notice")
+            && (!url.hash || url.hash === "#notification-tickets-filters")) {
+            if (userId && readNotificationReturn(window.history.state, userId, url.href)) return;
+            const filter = document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]');
+            const filters = filter?.closest("nav");
+            if (!filter || !filters) return;
+            window.scrollTo({ top: Math.max(0, window.scrollY + filters.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
+            if (document.activeElement === document.body) filter.focus({ preventScroll: true });
+            return;
+          }
           // Do not override Alert settings or another explicit destination.
           if ((userId && readNotificationReturn(window.history.state, userId, window.location.href))
             || !heading || !window.matchMedia?.("(max-width: 767px)").matches

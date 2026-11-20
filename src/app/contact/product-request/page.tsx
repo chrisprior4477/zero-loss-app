@@ -19,13 +19,15 @@ export default async function ProductRequestPage({
 }) {
   const [query, account] = await Promise.all([searchParams, getAccountContext()]);
   const originalQuery = (Array.isArray(query.product) ? query.product[0] : query.product)?.trim().slice(0, maxCatalogSearchLength) ?? "";
-  const browseReturn = productBrowseReturnPath(query.from);
+  const returnPath = productBrowseReturnPath(query.from);
+  const browseReturn = returnPath?.startsWith("/browse") || returnPath?.startsWith("/rewards/") ? returnPath : null;
   const fromFaq = query.origin === "faq";
   const scope = new URL(browseReturn?.startsWith("/browse") ? browseReturn : "/browse", "https://zeroloss.local").searchParams;
   for (const key of ["q", "batch"]) scope.delete(key);
   scope.sort();
-  const backHref = browseReturn?.startsWith("/browse")
-    ? browseReturn.includes("#") ? browseReturn : `${browseReturn}#search-results`
+  if (fromFaq) scope.set("origin", "faq");
+  const backHref = browseReturn
+    ? browseReturn.startsWith("/browse") && !browseReturn.includes("#") ? `${browseReturn}#search-results` : browseReturn
     : originalQuery ? `/browse?${new URLSearchParams({ q: originalQuery })}` : "/browse";
 
   return (
@@ -33,7 +35,8 @@ export default async function ProductRequestPage({
       <HelpLandingScroll target="product-request" landingAlias="product-request-heading" visitKey={backHref} />
       <div id="product-request" className="mx-auto max-w-3xl scroll-mt-[calc(var(--site-header-height,100px)+12px)]">
         {fromFaq ? <Link href="/faq#faq-request-product" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to FAQ</Link> :
-          <BrowseResultsLink href={backHref} target="product-request" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to search</BrowseResultsLink>}
+          backHref.startsWith("/browse") ? <BrowseResultsLink href={backHref} target="product-request" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to search</BrowseResultsLink>
+            : <Link href={backHref} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to retailer rewards</Link>}
         <section className="mt-6 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-6 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-9">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Help shape the catalog</p>
           <h1 id="product-request-heading" className="mt-3 scroll-mt-[calc(var(--site-header-height,100px)+12px)] text-3xl font-black tracking-[-0.04em] sm:text-5xl">What would you love to see on Zero Loss?</h1>

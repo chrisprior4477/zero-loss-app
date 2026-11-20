@@ -29,10 +29,9 @@ export function useSelectedEntryTicket() {
   return useContext(EntryTicketSelection);
 }
 
-export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, returnFilter, walletTransaction, restoreWalletView, alerts, notice }:  {
+export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, returnFilter, walletOrigin, alerts, notice }:  {
   returnFilter?: "active";
-  walletTransaction?: string;
-  restoreWalletView?: boolean;
+  walletOrigin?: Record<string, string>;
   alerts?: string;
   notice?: string;
   ownerId: string;
@@ -116,12 +115,16 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
     remember(tickets[next].entryId);
   }
 
+  const latestCopy = useRef(0);
   async function copyEntryId(entryId: string) {
+    const attempt = ++latestCopy.current;
     try {
       await navigator.clipboard.writeText(entryId);
+      if (attempt !== latestCopy.current) return;
       setCopiedEntryId(entryId);
       setCopyErrorEntryId(null);
     } catch {
+      if (attempt !== latestCopy.current) return;
       setCopiedEntryId(null);
       setCopyErrorEntryId(entryId);
     }
@@ -196,7 +199,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
           <input className="mt-1 block w-full min-w-0 rounded border border-[#89b8ce] bg-white px-2 py-1 text-sm" aria-label="Full entry number" value={ticket.entryId} readOnly
             ref={element => { if (element) { element.focus(); element.select(); } }} />
         </label> : null}
-        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}${walletTransaction ? `&transaction=${encodeURIComponent(walletTransaction)}${restoreWalletView ? "&walletView=1" : ""}` : ""}${notice ? `&alerts=${encodeURIComponent(alerts ?? "all")}&notice=${encodeURIComponent(notice)}` : ""}#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
+        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}${walletOrigin ? `&${new URLSearchParams(walletOrigin)}` : ""}${notice ? `&alerts=${encodeURIComponent(alerts ?? "all")}&notice=${encodeURIComponent(notice)}` : ""}#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
       </div>
     </article>
     {count > 1 ? <>

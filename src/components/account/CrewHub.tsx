@@ -60,7 +60,7 @@ const getServerOrigin = () => "";
 export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, selectedPicksUnavailable = false, bookmarkedMember, bookmarkedPick, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
-  const { tab, selectTab } = useCrewTab(initialTab);
+  const { tab, selectTab, invalidTab } = useCrewTab(initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
   const [sharing, setSharing] = useState<{ recipientId?: string } | null>(null);
   const shareOpener = useRef<HTMLButtonElement>(null);
@@ -264,7 +264,9 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </div> : null}
     {tab === "picks" && <AccountSettingsLandingScroll target="sharing" focusTarget="my-shared-picks-heading" restrictToTargetHash allScreens settleAfterNavigation />}
     {tab === "privacy" && <AccountSettingsLandingScroll target="crew-privacy" initialTarget="crew-privacy" focusTarget="discover-title" allScreens settleAfterNavigation />}
-    <CrewLandingScroll ownerId={currentUserId} enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
+    <CrewLandingScroll ownerId={currentUserId} groups={initialTab === "groups" && tab === "groups"}
+      enabled={initialTab === "groups" && tab === "groups" || initialTab === "crew" && tab === "crew" && !selectedMemberId && !incomingInviteToken} />
+    {invalidTab ? <p role="status">That Crew section is unavailable. Showing Your Crew.</p> : null}
     <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
         <button type="button" aria-expanded={finding} onClick={event => finding ? closeCrewSearch() : openCrewSearch(event, false)}>Add people</button>
@@ -283,11 +285,11 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       <nav className={connectedStyles.navigation} aria-label="Your Crew sections">
         <div className={connectedStyles.mainButtons}>
-          <button type="button" aria-pressed={tab === "crew"} onClick={() => selectTab("crew")}>Your Crew</button>
-          <button type="button" aria-pressed={tab === "groups"} onClick={() => selectTab("groups")}>Groups</button>
+          <button type="button" data-crew-tab="crew" aria-pressed={tab === "crew"} onClick={() => selectTab("crew")}>Your Crew</button>
+          <button type="button" data-crew-tab="groups" aria-pressed={tab === "groups"} onClick={() => selectTab("groups")}>Groups</button>
           <Link href="/account/favorites?tab=shared">Shared with You</Link>
         </div>
-        <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
+        <button type="button" className={connectedStyles.sharingButton} data-crew-tab="picks" aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
         {missingBookmarkedMember ? <p role="status">This Crew member is unavailable. <Link href="/account/crew#crew-intro" className="underline">Back to your Crew list</Link></p> : null}

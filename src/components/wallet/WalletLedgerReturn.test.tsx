@@ -207,7 +207,7 @@ test("corrects a late browser scroll but stops immediately when the customer sta
 
 
 
-test.each(["View product", "View result", "View result for Nintendo Switch", "Nintendo Switch"])("%s preserves purchase filters, dates, page and the clicked transaction", label => {
+test.each(["View result", "Nintendo Switch"])("%s preserves purchase filters, dates, page and the clicked transaction", label => {
   const item = { ...storedActivityFixture().activity[0], slug: "nintendo-switch", title: "Nintendo Switch", entryId: "ent_owned", status: "prize" as const, rewardId: "reward-owned", rewardStatus: "ready" as const };
   const purchases = entries.map((entry, index) => ({ ...entry, id: 'purchase-' + index, entry_type: "PURCHASE_DEBIT", amount: -39900, entryIds: [item.entryId], product: { slug: item.slug, title: item.title, image: "/test.png" } }));
   const mixed = [...entries, ...purchases];

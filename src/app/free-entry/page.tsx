@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
+import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
 import { freeEntryHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
@@ -37,31 +38,37 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
       <Link href="/legal" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Legal Center</Link>
+      <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens />
       <FreeEntryInstructions />
       <Link href="/browse#search-results" className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>
     </div>
   </div>;
-  if (Array.isArray(offering)) return <div className="mx-auto max-w-3xl p-6 text-white">
+  if (Array.isArray(offering)) {
+    const choices = await Promise.all([...new Set(offering.map(slug => slug.toLowerCase()))].slice(0, 12).map(freeEntryProduct));
+    return <div className="mx-auto max-w-3xl p-6 text-white">
     <h1 className="text-2xl font-black">Choose one prize for free entry</h1>
     <p className="mt-3">This link includes more than one prize selection.</p>
+    {choices.some(Boolean) ? <ul className="mt-4 space-y-2">{choices.map(choice => choice && <li key={choice.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(choice.slug, from, parseEntryQuantity(rawQuantity))}>{choice.title}</Link></li>)}</ul> : null}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse#search-results"}>Back to prize selection</Link>
-  </div>;
-  const product = await freeEntryProduct(offering);
+    </div>;
+  }
+  const known = getDemoProduct(offering.toLowerCase());
+  const product = known ? await freeEntryProduct(known.slug) : null;
   if (product === undefined) return <div className="mx-auto max-w-3xl p-6 text-white">
     <h1 className="text-2xl font-black">Availability temporarily unavailable</h1>
     <p className="mt-3">We couldn’t check this prize. Try again to open its free-entry instructions.</p>
-    <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={freeEntryHref(offering ?? "", from, parseEntryQuantity(rawQuantity), share)}>Try again</Link>
+    <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={freeEntryHref(known?.slug ?? offering.toLowerCase(), from, parseEntryQuantity(rawQuantity), share)}>Try again</Link>
   </div>;
   const browseReturn = productBrowseReturnPath(from);
   const returnLabel = productBrowseReturnLabel(browseReturn ?? "/browse");
   if (!product) return <div className="mx-auto max-w-3xl p-6 text-white">
     <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens settleAfterNavigation />
     <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Free-entry instructions unavailable</h1>
-    <p className="mt-3">This prize is no longer available for entry.</p>
+    <p className="mt-3">{known ? "This prize is no longer available for entry." : "We couldn’t find this prize in the catalog."}</p>
     <Link className="mt-4 inline-block text-cyan-300 underline" href={browseReturn ?? "/browse"}>Back to {returnLabel === "marketplace" ? "Browse" : returnLabel}</Link>
   </div>;
-  const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
-  const sharedToken = offering === product.slug && typeof share === "string" && shareUuid.test(share) ? share : undefined;
+  const quantity = parseEntryQuantity(rawQuantity);
+  const sharedToken = typeof share === "string" && shareUuid.test(share) ? share : undefined;
   if (rawQuantity !== undefined && quantity === null) return <div className="mx-auto max-w-3xl p-6 text-white">
     <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Check your free-entry quantity</h1>
     <HelpLandingScroll target="free-entry-intro" focusAnchor="free-entry-intro" />

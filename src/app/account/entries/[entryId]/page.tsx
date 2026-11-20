@@ -24,14 +24,14 @@ import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import styles from "@/components/account/entry-page.module.css";
-import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
+import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/ledger-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { entryReviewContext } from "@/lib/wallet/funding-navigation";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string; alerts?: string; notice?: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
@@ -64,7 +64,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const entryContext = entryReviewContext(query);
   if (item.status !== "active") {
     if (item.rewardId && (entryContext.transaction || entryContext.notice)) {
-      const reward = new URLSearchParams({ reward: item.slug, rewardId: item.rewardId, ...entryContext });
+      const reward = new URLSearchParams({ reward: item.slug, rewardId: item.rewardId, ...entryContext, ...transactionOriginParams(query ?? {}) });
       redirect(`/account/wallet?${reward}#reward-pass`);
     }
     redirect(activityHref(item));
@@ -115,8 +115,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnFilter = query?.filter === "active" ? "active" : undefined;
-  const walletTransaction = entryContext.transaction;
-  const walletHref = walletTransaction && walletSupportReturnHref(walletTransaction, query?.walletView === "1");
+  const walletHref = transactionOriginHref(query ?? {});
   const alertsHref = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}${returnFilter ? "&filter=active" : ""}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
@@ -152,7 +151,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         </div>
       </section>
       <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
-      <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletTransaction={walletTransaction} restoreWalletView={query?.walletView === "1"} alerts={notificationFilter(query?.alerts)} notice={validNotice(query?.notice) ? query.notice : undefined} />
+      <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletOrigin={transactionOriginParams(query ?? {}) ?? undefined} alerts={notificationFilter(query?.alerts)} notice={validNotice(query?.notice) ? query.notice : undefined} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

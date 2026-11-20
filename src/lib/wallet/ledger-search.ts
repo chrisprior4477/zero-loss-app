@@ -2,7 +2,8 @@ import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { normalizeSearch } from "@/lib/catalog/search-text";
 import type { LedgerEntryRow } from "./snapshot";
 
-const dollars = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
+const dollars = String.raw`(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?|\.\d{1,2})`;
+const typeAliases = new Map([["refund", "REFUND"], ["deposit", "DEPOSIT"], ["funding", "DEPOSIT"], ["adjustment", "CORRECTION"], ["correction", "CORRECTION"]]);
 const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:dollars?|USD))?$`, "i");
 const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?:\s+(?:dollars?|USD)\b)?(?=\s|$)`, "gi");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
@@ -30,12 +31,20 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(new RegExp(String.raw`(^|\s|[()+−-])(${dollars})\s*\$(?=\s|$|\))`, "g"), "$1$$$2")
     .replace(/\(\s*[+−-]?\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1")
     .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "");
-  const typeAliases = new Map([["refund", "REFUND"], ["deposit", "DEPOSIT"], ["funding", "DEPOSIT"]]);
-  const typeOptions = query.toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
-  if (typeOptions.length > 1 && typeOptions.every(Boolean)) {
-    return entries.filter(entry => typeOptions.includes(entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "REFUND" : entry.entry_type));
+  const typeAlternative = /^([a-z]+(?:\s+or\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
+  const typeOptions = typeAlternative?.[1].toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
+  if (typeOptions?.every(Boolean) && typeAlternative) {
+    const matched = entries.filter(entry => typeOptions.includes(entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "REFUND" : entry.entry_type));
+    const remaining = typeAlternative[2].trim();
+    return searchLedger(matched, remaining ? (explicitPostedAmount ? "amount: " : "") + remaining : "", describe);
   }
-  const spokenCents = /(\b(?:dollars?|bucks?))\s+and\s+(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?\b/i.exec(query);
+  const centsOnly = /^(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?$/i.exec(query);
+  if (centsOnly) {
+    const { values } = searchDenominations(centsOnly[1] + " dollars", []);
+    const [cents] = values;
+    if (values.size === 1 && cents < 100) return entries.filter(entry => Math.abs(entry.amount) === cents);
+  }
+  const spokenCents = /(\b(?:dollars?|bucks?))\s+(?:and\s+)?(\d{1,2}|[a-z]+(?:[- ][a-z]+)?)\s+cents?\b/i.exec(query);
   if (spokenCents) {
     const fractionValue = searchDenominations(spokenCents[2] + " dollars", []);
     const [fraction] = fractionValue.values;
@@ -63,30 +72,38 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
 
   const labeled = labeledAlternatives.exec(query);
   const matchingAnyAmount = labeled?.[1].split(/\s+or\s+/i).map(value => amountMatch(value.trim()));
-  const amounts: ReturnType<typeof amountMatch>[] = [];
+  const amountTokens: string[] = [];
   let text = (labeled ? query.replace(labeled[0], " ") : query).replace(amountInText, (_, token: string) => {
-    amounts.push(amountMatch(token.trim()));
+    amountTokens.push(token.trim());
     return " ";
   });
   const explicitSign = /\b(minus|negative|plus|positive)\s+(?=(?:[a-z -]+|\d+(?:\.\d+)?)\s+(?:dollars?|bucks?)\b)/i.exec(text);
-  if (amounts.length === 0 && !matchingAnyAmount && /\b(?:dollars?|bucks?|USD)\b/i.test(query)) {
+  if (amountTokens.length === 0 && !matchingAnyAmount && /\b(?:dollars?|bucks?|USD)\b/i.test(query)) {
     const spoken = searchDenominations(explicitSign ? text.replace(explicitSign[0], "") : text, []);
     if (!spoken.budget && spoken.values.size) {
       text = spoken.text;
       const sign = explicitSign ? /^(?:minus|negative)$/i.test(explicitSign[1]) ? "-" : "+" : "";
-      for (const value of spoken.values) amounts.push(amountMatch(sign + value));
+      for (const value of spoken.values) amountTokens.push(sign + value);
     }
   }
-  const normalizedText = normalizeSearch(text);
+  const wordsOnly = normalizeSearch(text);
+  const purchaseOptionsOnly = /\bpurchase options?\b/.test(wordsOnly);
+  const normalizedText = wordsOnly
+    .replace(/\b(refunds?|deposits?|adjustments?|corrections?) from\b/g, "$1")
+    .replace(/\bpurchase options?\b/g, "gift card purchase");
+  const giftCardCharge = !explicitPostedAmount && /\bgift card\b/.test(normalizedText) && amountTokens.length === 2
+    && amountTokens.filter(token => /^[+−-]/.test(token)).length === 1;
+  const denomination = giftCardCharge ? amountTokens.find(token => !/^[+−-]/.test(token)) : undefined;
+  const amounts = amountTokens.filter(token => token !== denomination).map(amountMatch);
   const entryPurchasesOnly = /\bposted entries\b/.test(normalizedText);
   const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase")
     .replace(/\bfunding\b/g, "deposit")
-    .replace(/\b(refund|purchase|deposit)s\b/g, "$1").replace(/\bentries\b/g, "entry").split(" ").filter(Boolean);
+    .replace(/\b(refund|purchase|deposit|adjustment|correction)s\b/g, "$1").replace(/\bcorrection\b/g, "adjustment").replace(/\bentries\b/g, "entry").split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);
-  const mayBeGiftCardTitle = !matchingAnyAmount && !explicitSign && !explicitPostedAmount && amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);
+  const mayBeGiftCardTitle = !denomination && !matchingAnyAmount && !explicitSign && !explicitPostedAmount && amounts.length === 1 && terms.length > 0 && !/(?:^|\s)[+−-]\s*\$?\s*\d/.test(query);
   if (!terms.length && !amounts.length && !matchingAnyAmount) return [];
   return entries.filter(entry => {
-    if (entryPurchasesOnly && entry.entry_type !== "ENTRY_DEBIT") return false;
+    if (entryPurchasesOnly && entry.entry_type !== "ENTRY_DEBIT" || purchaseOptionsOnly && entry.entry_type !== "PURCHASE_DEBIT") return false;
     if (matchingAnyAmount && !matchingAnyAmount.some(matches => matches(entry.amount))) return false;
     if (mayBeGiftCardTitle && entry.product) {
       const title = normalizeSearch(entry.product.title);
@@ -94,6 +111,10 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       const keywords = new Set(`${title} ${normalizeSearch(entry.product.retailer ?? "")}`.split(" "));
       if (title === normalizedQuery || (/\bgift card\b/.test(title) && value
         && amounts[0](amountCents(value)) && terms.every(term => keywords.has(term)))) return true;
+    }
+    if (denomination) {
+      const value = entry.product && faceValue.exec(entry.product.title)?.[1];
+      if (!value || !/\bgift card\b/.test(normalizeSearch(entry.product!.title)) || amountCents(value) !== amountCents(denomination)) return false;
     }
     if (!amounts.every(matches => matches(entry.amount))) return false;
     const transactionType = entry.entry_type === "DEPOSIT" ? "deposit"

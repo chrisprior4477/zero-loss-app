@@ -15,11 +15,11 @@ export function searchCatalogMatches(
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const { text, values, budget, exactOnly, merchant, conflictingBudget, entryPrice, excludedValues } = denomination;
   if (conflictingBudget) return [];
-  const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:any\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
-  const retailerExclusion = /(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?$/i.exec(query);
+  const retailerExclusion = /(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
     const suffix = retailerExclusion[1];
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
@@ -106,11 +106,11 @@ export function searchCatalogMatches(
     .map(({ product, kind }) => ({ product, kind }));
 }
 
-function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
-  const hasOr = /\s+or\s+(?!equal\s+to\b)/i.test(query);
+export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
+  const hasOr = /\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher)\b)/i.test(query);
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
-  if (!hasOr && (!giftCards || !/\s+and\s+/i.test(query))) return null;
-  const clauses = query.split(hasOr ? /\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+(?!equal\s+to\b)/i : /\s+and\s+/i);
+  if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
+  const clauses = query.split(hasOr ? /\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher)\b)/i : /\s+(?:and|&)\s+/i);
   const parts = clauses.map(clause => {
     const parsed = searchDenominations(clause.trim(), products);
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(parsed.text, products) };
@@ -118,19 +118,23 @@ function catalogAlternatives(query: string, products: readonly DemoProduct[], de
   if (hasOr && parts.every(part => part.budget) && parts[0].text && parts.slice(1).every(part => !part.text)) {
     return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant }));
   }
-  if (!hasOr && !parts.every(part => part.merchant && part.values.size === 1)) return null;
+  if (!hasOr && !parts.every(part => part.merchant)) return null;
   if (denomination.budget && !parts.some(part => part.budget)) return null;
   const merchants = new Set(parts.flatMap(part => part.merchant ? [part.merchant] : []));
   const priced = parts.filter(part => part.values.size);
   const sharedMerchant = merchants.size === 1 ? [...merchants][0] : null;
   const sharedValues = priced.length === 1 ? priced[0].values : null;
+  const trailing = parts.at(-1);
+  const sharedBudget = trailing?.budget && parts.slice(0, -1).every(part => !part.budget && !part.values.size)
+    ? trailing.budget : null;
   if (giftCards && merchants.size && parts.every(part => part.merchant || (sharedMerchant && part.values.size && queryWords(part.text).every(word => word === "gift" || word === "card")))) {
     const scoped = parts.map(part => ({ ...part, text: "gift card", merchant: part.merchant ?? sharedMerchant,
-      values: part.values.size ? part.values : sharedValues ?? part.values, exactOnly: Boolean(denomination.values.size) }));
+      budget: part.budget ?? sharedBudget, values: part.values.size ? part.values : sharedValues ?? part.values, exactOnly: Boolean(denomination.values.size) }));
     if (!denomination.values.size || scoped.every(part => part.values.size)) return scoped;
   }
   if (parts.every(part => queryWords(part.text).length > 0)
     && (!denomination.values.size || parts.every(part => part.values.size && queryWords(part.text).some(word => word !== "gift" && word !== "card")))) return parts;
+  if (hasOr && parts.some(part => part.values.size || part.budget) && parts.every(part => queryWords(part.text).length)) return parts;
   return null;
 }
 

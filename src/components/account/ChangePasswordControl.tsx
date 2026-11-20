@@ -70,7 +70,7 @@ export function ChangePasswordControl() {
       ref={trigger}
       className={styles.passwordToggle}
       aria-expanded={open}
-      aria-controls="change-account-password-form"
+      aria-controls={open ? "change-account-password-form" : undefined}
       aria-label={open ? "Close password form" : "Change password"}
       disabled={pending}
       onClick={() => setOpen((wasOpen) => !wasOpen)}

@@ -5,6 +5,7 @@ import { ResendVerificationForm } from "./ResendVerificationForm";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { recoverAuthForm } from "./recover-auth-form";
 import {
   signInAction,
@@ -41,6 +42,9 @@ function useLoginDestination(returnTo: string | null) {
       && ["#alert-settings", "#favorite-alert-preference"].includes(inheritedHash)) {
     return accountReturnPath(returnTo.split("#")[0] + inheritedHash) ?? returnTo;
   }
+  if (returnTo?.startsWith("/account/crew?") && returnTo.endsWith("#crew-groups") && /^#crew-group-[0-9a-f-]{36}$/i.test(inheritedHash)) {
+    return accountReturnPath(returnTo.split("#")[0] + inheritedHash) ?? returnTo;
+  }
   if (!inheritedHash || !returnTo || returnTo.includes("#")) return returnTo;
   if (returnTo === "/account/wallet?view=history" && inheritedHash === "#payment-deposits") {
     return accountReturnPath(`${returnTo}&panel=deposits${inheritedHash}`) ?? returnTo;
@@ -70,10 +74,23 @@ export function LoginForm({
   const message = state.message ?? initialError;
   const notice = state.message ? null : initialNotice;
   const [email, setEmail] = useState("");
+  const [invalidField, setInvalidField] = useState<"email" | "password" | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const restoreErrorFocus = useRef(false);
   const destination = useLoginDestination(returnTo);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem("zero-loss-login-email") ?? "null");
+        sessionStorage.removeItem("zero-loss-login-email");
+        if (saved?.destination === destination && saved.expires >= Date.now() && typeof saved.email === "string" && saved.email.length <= 254) {
+          setEmail(current => current || saved.email);
+        }
+      } catch { /* The visitor can enter their email directly. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [destination]);
   useEffect(() => {
     if (pending || !state.message || !restoreErrorFocus.current) return;
     restoreErrorFocus.current = false;
@@ -101,7 +118,19 @@ export function LoginForm({
   }, [focusOnMount, destination]);
 
   return (<>
-    <form action={formAction} onSubmit={() => {
+    <form action={formAction} onSubmit={event => {
+      const address = emailRef.current;
+      const password = passwordRef.current;
+      const invalid = !address?.validity.valid ? "email" : !password?.value ? "password" : null;
+      if (invalid) {
+        event.preventDefault();
+        setInvalidField(invalid);
+        const field = invalid === "email" ? address : password;
+        field?.focus({ preventScroll: true });
+        if (field) revealBelowHeader(field);
+        return;
+      }
+      setInvalidField(null);
       restoreErrorFocus.current = true;
       setEmail(emailRef.current?.value ?? email);
     }} className="space-y-5" noValidate>
@@ -120,7 +149,9 @@ export function LoginForm({
           type="email"
           autoComplete="email"
           value={email}
-          onChange={event => setEmail(event.target.value)}
+          aria-invalid={invalidField === "email" || undefined}
+          aria-describedby={invalidField === "email" ? "login-field-error" : undefined}
+          onChange={event => { setEmail(event.target.value); if (invalidField === "email") setInvalidField(null); }}
           autoFocus={focusOnMount}
           required
           className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
@@ -140,12 +171,16 @@ export function LoginForm({
           name="password"
           type="password"
           autoComplete="current-password"
+          aria-invalid={invalidField === "password" || undefined}
+          aria-describedby={invalidField === "password" ? "login-field-error" : undefined}
+          onChange={() => { if (invalidField === "password") setInvalidField(null); }}
           required
           className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
         />
       </div>
 
-      {notice ? (
+      {invalidField && <p id="login-field-error" role="alert" className="text-sm font-bold text-red-100">{invalidField === "email" ? "Enter your email address." : "Enter your password."}</p>}
+      {notice && !invalidField ? (
         <p
           role="status"
           className="rounded-xl border border-[#31e800]/35 bg-[#31e800]/10 px-4 py-3 text-sm text-white"
@@ -154,7 +189,7 @@ export function LoginForm({
         </p>
       ) : null}
 
-      {message ? (
+      {message && !invalidField ? (
         <p
           role="alert"
           className="rounded-xl border border-red-300/30 bg-red-400/10 px-4 py-3 text-sm text-red-100"

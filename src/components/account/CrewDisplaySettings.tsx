@@ -104,11 +104,15 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [bookmarkedGroup, setBookmarkedGroup] = useState<string | null>(null);
   const groupHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
+    let frame = 0;
     function syncGroupBookmark() {
-      const match = /^#crew-group-([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(window.location.hash);
-      setBookmarkedGroup(match?.[1] ?? null);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const match = /^#crew-group-([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(window.location.hash);
+        setBookmarkedGroup(match?.[1].toLowerCase() ?? null);
+      });
     }
-    const frame = requestAnimationFrame(syncGroupBookmark);
+    syncGroupBookmark();
     window.addEventListener("hashchange", syncGroupBookmark);
     window.addEventListener("popstate", syncGroupBookmark);
     return () => {
@@ -117,13 +121,19 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       window.removeEventListener("popstate", syncGroupBookmark);
     };
   }, []);
+  const matchingBookmarkedGroup = bookmarkedGroup && initialGroups.some(group => group.id === bookmarkedGroup) ? bookmarkedGroup : null;
   const missingBookmarkedGroup = Boolean(bookmarkedGroup && available && !groups.some(group => group.id === bookmarkedGroup));
   useEffect(() => {
-    if (!missingBookmarkedGroup || section === "privacy") return;
-    const heading = groupHeading.current;
-    heading?.scrollIntoView({ block: "start" });
-    heading?.focus({ preventScroll: true });
-  }, [missingBookmarkedGroup, section]);
+    if (section === "privacy" || !matchingBookmarkedGroup && !missingBookmarkedGroup) return;
+    const heading = matchingBookmarkedGroup ? document.getElementById(`crew-group-toggle-${matchingBookmarkedGroup}`) : groupHeading.current;
+    if (!heading) return;
+    const frame = requestAnimationFrame(() => {
+      if (!heading.isConnected) return;
+      heading.focus({ preventScroll: true });
+      revealBelowHeader(heading);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [matchingBookmarkedGroup, missingBookmarkedGroup, section]);
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
   const incoming: CrewDisplaySnapshot = { discoverable: initialDiscoverable, discovery: initialDiscovery ?? { real: true, email: true, phone: true }, defaultRule: initialDefaultRule, groups: initialGroups, entryRules: initialEntryRules };
   const [server, setServer] = useState(incoming);
@@ -491,7 +501,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
           {groups.length ? <div className={styles.groupList}>{groups.map((group) => {
             const expanded = expandedGroupId === group.id;
             return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
-              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={expanded ? `crew-group-editor-${group.id}` : undefined} onClick={() => {
+              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button id={`crew-group-toggle-${group.id}`} type="button" disabled={pending} aria-expanded={expanded} aria-controls={expanded ? `crew-group-editor-${group.id}` : undefined} onClick={() => {
                 setRemovingGroupId(null);
                 if (!expanded) {
                   groupToReveal.current = group.id;
@@ -499,7 +509,13 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
                 }
                 setExpandedGroupId(expanded ? null : group.id);
               }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
-              {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
+              {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor} onKeyDown={event => {
+                if (event.key !== "Escape" || pending || removingGroupId === group.id) return;
+                event.preventDefault();
+                event.stopPropagation();
+                setExpandedGroupId(null);
+                document.getElementById(`crew-group-toggle-${group.id}`)?.focus({ preventScroll: true });
+              }}>
                 {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`}
                   aria-invalid={editorMessage?.id === group.id && editorMessage.field === "name" || undefined}

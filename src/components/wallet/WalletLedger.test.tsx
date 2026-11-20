@@ -200,7 +200,7 @@ test("Purchases isolates gift-card charges, including older records without prod
   expect(screen.queryByText("Entry purchase")).toBeNull();
   expect(screen.queryByText("Refund")).toBeNull();
   expect(screen.getByRole("link", { name: "View result" }).getAttribute("href")).toBe(resultHref);
-  expect(screen.getByRole("link", { name: "View product" }).getAttribute("href")).toBe(`/items/${item.slug}`);
+  expect(screen.getByRole("link", { name: item.title }).getAttribute("href")).toBe(`/items/${item.slug}`);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
   expect(screen.getByRole("button", { name: "Purchases" }).textContent).toBe("Purchases1");
   expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=purchase&from=wallet");
@@ -212,8 +212,9 @@ test("transaction actions separate the exact entry, its product, and support", (
   const entry = { id: "ledger-1", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-10-24T12:00:00Z", entryIds: [item.entryId], product: { title: item.title, image: item.image, slug: item.slug } };
   render(<WalletLedger entries={[entry]} activity={[item]} />);
   expect(screen.getByRole("link", { name: "View entry" }).getAttribute("href")).toBe(`/account/entries/${item.entryId}?entries=open&transaction=ledger-1#saved-entry-rail`);
-  expect(screen.getByRole("link", { name: "View product" }).getAttribute("href")).toBe(`/items/${item.slug}`);
+  expect(screen.getByRole("link", { name: item.title }).getAttribute("href")).toBe(`/items/${item.slug}`);
   expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=ledger-1");
+  expect(screen.getAllByRole("link")).toHaveLength(3);
 });
 test("each transaction's support shortcut preserves its identity through filtering", () => {
   render(<WalletLedger entries={[

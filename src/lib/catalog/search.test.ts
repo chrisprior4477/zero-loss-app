@@ -10,6 +10,30 @@ describe("catalog search", () => {
     expect(withoutAmazon.length).toBeGreaterThan(0);
     expect(withoutAmazon.every(item => item.value < 75 && item.retailer !== "Amazon")).toBe(true);
   });
+  test.each([
+    ["Amazon gift cards from $25–$75", [25, 50, 75]],
+    ["Amazon gift cards 50 dollars+", [50, 75, 100]],
+    ["Amazon gift cards <$75 but >=$50", [50]],
+    ["Amazon gift card 25, 50, and 75 dollars", [25, 50, 75]],
+    ["Amazon gift card not 50 dollars", [25, 75, 100]],
+    ["Amazon gift cards <= $100 <= $50", [25, 50]],
+  ] as const)("preserves the requested denominations in %s", (query, expected) => {
+    const values = searchCatalog(demoProducts, query).map(product => product.value).sort((left, right) => left - right);
+    expect(values).toEqual(expected);
+  });
+
+  test("handles merchant alternatives, shared budgets and independently priced products", () => {
+    const cards = searchCatalog(demoProducts, "Amazon or Best Buy gift cards under $75");
+    expect(new Set(cards.map(product => product.retailer))).toEqual(new Set(["Amazon", "Best Buy"]));
+    expect(cards.every(product => product.value < 75)).toBe(true);
+    expect(searchCatalog(demoProducts, "gift cards from Amazon & Walmart").map(product => product.slug)).toEqual(
+      expect.arrayContaining(["amazon-50-gift-card", "walmart-50-gift-card"]),
+    );
+    expect(searchCatalog(demoProducts, "PlayStation 5 or Amazon gift voucher for $50").map(product => product.slug)).toEqual(
+      expect.arrayContaining(["playstation-5-slim", "amazon-50-gift-card"]),
+    );
+  });
+
   test("keeps comparisons, retailer exclusions, and entry prices separate", () => {
     const range = searchCatalog(demoProducts, "gift cards >=50 and <=75");
     expect(range.map(product => product.slug)).toContain("amazon-75-gift-card");

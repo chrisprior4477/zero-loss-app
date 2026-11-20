@@ -11,12 +11,12 @@ test("a validation error preserves the full request draft for correction and ret
   submit.mockResolvedValueOnce({ status: "error", message: "Check the product name" });
   submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
   render(<CatalogRequestForm initialProduct="Kayak" />);
-  fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "  " } });
+  fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Different kayak" } });
   fireEvent.change(screen.getByLabelText("Email", { exact: true }), { target: { value: "person@example.test" } });
   fireEvent.change(screen.getByLabelText(/Anything else/), { target: { value: "Keep these brand and size details" } });
   fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
   await screen.findByRole("alert");
-  expect(screen.getByLabelText(/What would you like/)).toHaveProperty("value", "  ");
+  expect(screen.getByLabelText(/What would you like/)).toHaveProperty("value", "Different kayak");
   expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "person@example.test");
   expect(screen.getByLabelText(/Anything else/)).toHaveProperty("value", "Keep these brand and size details");
   fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Tandem kayak" } });
@@ -30,6 +30,16 @@ test("a validation error preserves the full request draft for correction and ret
   expect(submit.mock.calls[1][1].get("email")).toBe("person@example.test");
   expect(submit.mock.calls[1][1].get("notes")).toBe("Keep these brand and size details");
   expect(submit.mock.calls[1][1].get("sourceQuery")).toBe("Kayak");
+});
+
+test("whitespace-only request titles stay in the form and never send", () => {
+  render(<CatalogRequestForm />);
+  const item = screen.getByLabelText(/What would you like/);
+  fireEvent.change(item, { target: { value: "  " } });
+  fireEvent.submit(item.closest("form")!);
+  expect(submit).not.toHaveBeenCalled();
+  expect(item.getAttribute("aria-invalid")).toBe("true");
+  expect(document.activeElement).toBe(item);
 });
 
 function editDraft() {

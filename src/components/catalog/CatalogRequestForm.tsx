@@ -23,6 +23,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const sourceQuery = originalQuery || initialProduct;
   const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
   const [draft, setDraft] = useState(initialDraft);
+  const [invalidItem, setInvalidItem] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [awaitingCheck, setAwaitingCheck] = useState(false);
   const restored = useRef(false);
@@ -103,6 +104,11 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
     <form onSubmit={event => {
       event.preventDefault();
       if (sending.current || pending) return;
+      if (!awaitingCheck && (requestedItem.current?.value.trim().length ?? 0) < 2) {
+        setInvalidItem(true);
+        requestedItem.current?.focus();
+        return;
+      }
       // Keep the draft after errors; only confirmed success replaces this form.
       const formData = new FormData(event.currentTarget);
       const requestKey = draft.requestKey ?? crypto.randomUUID();
@@ -137,14 +143,16 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
           required
           minLength={2}
           maxLength={160}
-          aria-describedby={originalQuery ? "requested-item-limit" : undefined}
+          aria-invalid={invalidItem || undefined}
+          aria-describedby={invalidItem ? "requested-item-error" : originalQuery ? "requested-item-limit" : undefined}
           value={draft.requestedItem}
-          onChange={event => changeDraft({ requestedItem: event.target.value })}
+          onChange={event => { setInvalidItem(false); changeDraft({ requestedItem: event.target.value }); }}
           readOnly={awaitingCheck}
           disabled={pending}
           placeholder="Example: Kayaks, concert tickets, or running shoes"
           className="mt-2 min-h-12 w-full scroll-mt-44 rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
+        {invalidItem ? <p id="requested-item-error" role="alert" className="mt-2 text-sm text-orange-100">Enter at least two characters for the product or retailer.</p> : null}
         {originalQuery ? <p id="requested-item-limit" className="mt-2 text-sm text-white/75">Use up to 160 characters for the title. You can add more detail in Notes.</p> : null}
       </div>
       <div>

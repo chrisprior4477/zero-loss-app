@@ -54,7 +54,7 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const url = new URL(value, "https://zeroloss.local");
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse") return null;
     const preview = /^#category-preview~(?:top|bottom)~([a-z0-9-]*)~[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(url.hash);
-    if (url.hash && !/^(?:#search-results|#prize-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(url.hash)
+    if (url.hash && !/^(?:#search-results|#browse-search-input|#ending-soon-search-input|#prize-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(url.hash)
       && !(preview && (!preview[1] || marketplaceCategories.some(category => category.id === preview[1])))) return null;
     const batch = url.searchParams.get("batch");
     const category = url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "");
@@ -108,7 +108,7 @@ export function productBrowseReturnLabel(href: string): string {
     const brand = getPopularRewardBrand(url.pathname.slice("/rewards/".length));
     if (brand) return `${brand.name} rewards`;
   }
-  const category = marketplaceCategories.find((item) => item.id === url.searchParams.get("category"));
+  const category = marketplaceCategories.find((item) => item.id === marketplaceCategoryId(url.searchParams.get("category") ?? ""));
   if (category) return category.label;
   if (url.searchParams.get("sort") === "ending-soon") return "Ending Soon";
   if (url.searchParams.has("q")) return "Search results";

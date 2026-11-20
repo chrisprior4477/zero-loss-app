@@ -200,6 +200,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     if (!userId) return;
     let firstFrame = 0;
     let secondFrame = 0;
+    let filterFocusFrame = 0;
     let interrupted = false;
     const timers: number[] = [];
     function cancelScroll() {
@@ -212,6 +213,15 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
       const viewKey = JSON.stringify([userId, window.location.href]);
       if (!event && restoredView.current === viewKey) return;
       restoredView.current = viewKey;
+      if (event?.type === "popstate" && !new URLSearchParams(window.location.search).has("notice")
+        && window.location.hash === "#notification-tickets-filters") {
+        cancelAnimationFrame(filterFocusFrame);
+        filterFocusFrame = requestAnimationFrame(() => {
+          if (document.activeElement === document.body) {
+            document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]')?.focus({ preventScroll: true });
+          }
+        });
+      }
       let saved = readNotificationReturn(window.history.state, userId!, window.location.href);
       if (!saved) try {
         const key = `zero-loss-notification-view:${userId}:${new URL(window.location.href).searchParams.get("filter") ?? "all"}`;
@@ -261,6 +271,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     window.addEventListener("keydown", interrupt);
     return () => {
       cancelScroll();
+      cancelAnimationFrame(filterFocusFrame);
       window.removeEventListener("popstate", restoreView);
       window.removeEventListener("pageshow", restoreView);
       window.removeEventListener("pointerdown", interrupt);
