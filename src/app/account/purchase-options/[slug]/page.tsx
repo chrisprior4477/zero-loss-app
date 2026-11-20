@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
+import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -113,7 +114,17 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const expired = activity.filter(ticket => ticket.slug === slug && ticket.completionOptionStatus === "expired");
     const lastExpired = expired.sort((a, b) => (b.completionExpiresAt ?? "").localeCompare(a.completionExpiresAt ?? ""))[0];
     if (lastExpired) redirect(activityHref(lastExpired));
-    notFound();
+    const product = getDemoProduct(slug);
+    if (!product) notFound();
+    return <section className={styles.page} aria-labelledby="selected-offer-missing"><div className={styles.shell}>
+      <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
+      <h1 id="selected-offer-missing" tabIndex={-1}>No purchase options are available</h1>
+      <p>There are no open purchase options for {product.title} in your account.</p>
+      <div className={styles.topActions}>
+        <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.shopping}>View your purchase options</Link>
+        <Link href="/account/entries?filter=completed#my-activity-filters" className={styles.return}>View completed activity</Link>
+      </div>
+    </div></section>;
   }
 
   const item = options[0];

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PrintSheetButton } from "./PrintSheetButton";
 
 const CODE39: Record<string, string> = {
@@ -39,6 +39,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const postcard = useRef<HTMLButtonElement>(null);
   const [addressSide, setAddressSide] = useState(true);
   const demoNoteTrigger = useRef<HTMLButtonElement>(null);
+  const demoNoteId = useId();
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
   const [printPreview, setPrintPreview] = useState(false);
   const printTrigger = useRef<HTMLButtonElement>(null);
@@ -94,6 +95,11 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     } catch { /* The current tab still has the visible draft. */ }
   }
 
+  function flipPostcard() {
+    setDemoNoteVisible(false);
+    setAddressSide(side => !side);
+  }
+
   function openPrintPreview() {
     if (window.location.hash === printPreviewHash) return;
     instructionScroll.current = window.scrollY;
@@ -142,7 +148,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       </div>
     </div>
 
-    <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={flipLabel}>{addressSide ? "Show artwork" : "Show address and entry details"}</button></div>
+    <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={flipPostcard} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={flipLabel}>{addressSide ? "Show artwork" : "Show address and entry details"}</button></div>
 
     <div onKeyDown={event => {
       if (event.key !== "Escape" || !demoNoteVisible || addressSide) return;
@@ -176,14 +182,14 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
             </span>
           </span>
         </span>
-        <button ref={postcard} type="button" aria-label={addressSide ? "Flip postcard to artwork" : "Flip postcard to the mailing side"} onClick={() => setAddressSide(side => !side)} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
-        {!addressSide && <button ref={demoNoteTrigger} type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
-        {demoNoteVisible && !addressSide && <span role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
+        <button ref={postcard} type="button" aria-label={addressSide ? "Flip postcard to artwork" : "Flip postcard to the mailing side"} onClick={flipPostcard} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
+        {!addressSide && <button ref={demoNoteTrigger} type="button" aria-expanded={demoNoteVisible} aria-controls={demoNoteVisible ? demoNoteId : undefined} onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
+        {demoNoteVisible && !addressSide && <span id={demoNoteId} role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
       </div>
     </div>
 
     <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={openPrintPreview} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => {
-      setAddressSide(side => !side);
+      flipPostcard();
       requestAnimationFrame(() => {
         const card = postcard.current;
         if (!card) return;

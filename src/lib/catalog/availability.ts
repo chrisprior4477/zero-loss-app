@@ -45,6 +45,10 @@ export function progressAppearance(percentFilled: number, full = false) {
   return { color, label, almostFull: !full && percentFilled >= 90 };
 }
 
+export function lightSurfaceAvailabilityColor(percentFilled: number) {
+  return percentFilled >= 90 ? "#b51c37" : percentFilled >= 75 ? "#a43b08" : percentFilled >= 50 ? "#005fae" : "#06753b";
+}
+
 export function availabilityStatus(capacity: number, sold: number) {
   const safeCapacity = Math.max(1, capacity);
   const safeSold = Math.min(safeCapacity, Math.max(0, sold));

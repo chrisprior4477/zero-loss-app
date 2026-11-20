@@ -142,7 +142,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <input id={`${id}-search`} type="search" name="q" value={searchDraft} maxLength={maxCatalogSearchLength} aria-invalid={searchTooLong || undefined} aria-describedby={searchTooLong ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); setLocalDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none" />
           {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setLocalDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
           {searchDraft.trim() && !voice.busy ? (
-            <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
+            <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#0067cb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
           ) : null}
           <VoiceSearchControl listening={voice.listening} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
         </div>

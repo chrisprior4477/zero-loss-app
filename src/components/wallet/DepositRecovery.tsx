@@ -25,6 +25,8 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   const title = useRef<HTMLHeadingElement>(null);
   const actionButton = useRef<HTMLButtonElement>(null);
   const supportLink = useRef<HTMLAnchorElement>(null);
+  const controls = useRef<HTMLFormElement>(null);
+  const restoreAction = useRef(false);
   type RecoveryResult = { check: DepositCheck; finishFailed: boolean; initialStatus: typeof initialStatus };
   const [response, action, pending] = useActionState(async (previous: RecoveryResult | null, form: FormData): Promise<RecoveryResult> => {
     let finishFailed = false;
@@ -50,7 +52,9 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
     revealWalletSection(sectionId);
   }, [embedded, sectionId]);
   useEffect(() => {
-    if (!pending && result && result.status !== "credited") {
+    if (!pending && result && result.status !== "credited" && restoreAction.current) {
+      restoreAction.current = false;
+      if (document.activeElement !== document.body && !controls.current?.contains(document.activeElement)) return;
       const next = result.status === "discrepancy" ? supportLink.current : actionButton.current;
       next?.focus({ preventScroll: true });
     }
@@ -67,7 +71,9 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
         : readOnly && (status === "not_processed" || status === "credit_pending") ? "This deposit is still pending. Contact Support for help with this request."
           : status ? checkoutWarning ?? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
     tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
-    <form action={action} className={styles.actions}>
+    <form ref={controls} action={action} onSubmit={() => {
+      restoreAction.current = Boolean(document.activeElement === document.body || controls.current?.contains(document.activeElement));
+    }} className={styles.actions}>
       {pending ? <button className={styles.primary} disabled>Checking…</button>
         : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={supportHref ?? depositSupportHref(requestKey)}>Contact Support</a>
         : status === "missing" && onReview ? <button ref={actionButton} type="button" className={styles.secondary} onClick={onReview}>Review same deposit</button>

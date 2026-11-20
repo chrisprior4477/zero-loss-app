@@ -10,6 +10,8 @@ import { supportReferencePrefix, type SupportDeposit } from "@/lib/support/refer
 import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft } from "@/lib/support/draft";
 import { SupportRecordPicker } from "./SupportRecordPicker";
 
+type SupportFormState = SupportActionState & { fieldValue?: FormDataEntryValue | null };
+
 const field = `${styles.ticket} ${styles.field}`;
 const orderSubject = "Question about this order";
 const transactionSubject = "Question about this wallet transaction";
@@ -92,7 +94,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     }
     changeDraft(change);
   }
-  const [state, action, pending] = useActionState(async (previous: SupportActionState, data: FormData): Promise<SupportActionState> => {
+  const [state, action, pending] = useActionState(async (previous: SupportFormState, data: FormData): Promise<SupportFormState> => {
     if (data.get("intent") === "check") {
       try {
         const result = await checkSupportMessage(draft.requestKey, caseId);
@@ -113,13 +115,15 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       const result = await saveSupportCase(previous, payload);
       if (result.status === "saved") writeSupportDraft(draftKey, null);
       else changeDraft({ requestKey: attemptKey, uncertain: result.status === "error" && Boolean(result.uncertain), transactionOrigin: attemptOrigin });
-      return result;
+      return result.status === "error" && result.field ? { ...result, fieldValue: payload.get(result.field) } : result;
     }
     catch { return { status: "error", uncertain: true, message: "Connection interrupted. Your text is still here. Check the saved result below without creating a second request." }; }
     finally { sending.current = false; }
   }, { status: "idle" });
   const uncertain = draft.uncertain || (state.status === "error" && Boolean(state.uncertain));
   const locked = pending || uncertain;
+  const fieldError = state.status === "error" && state.field && state.fieldValue === draft[state.field] ? state.field : undefined;
+  const showError = state.status === "error" && (!state.field || Boolean(fieldError));
   useEffect(() => {
     if (!pending && state.status === "error" && uncertain && document.activeElement === document.body) {
       recoveryButton.current?.focus();
@@ -148,10 +152,10 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       <label className="block font-bold">What do you need help with?<span className={field}><select name="category" value={category} onChange={event => changeDraft({ category: event.target.value, categoryEdited: allowRecordPicker })} disabled={locked}>
         <option value="wallet">Wallet or funding</option><option value="entry">An entry</option><option value="reward">A prize or gift card</option><option value="account">My account</option><option value="other">Something else</option>
       </select></span></label>
-      <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value, subjectEdited: allowRecordPicker })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
+      <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value, subjectEdited: allowRecordPicker })} aria-invalid={fieldError === "subject" || undefined} aria-describedby={fieldError === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
-    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={bodyLimit} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={extraCharacters > 0 || (state.status === "error" && state.field === "body") || undefined}
-        aria-describedby={["support-privacy", extraCharacters > 0 ? lengthErrorId : "", state.status === "error" && state.field === "body" ? "support-error" : ""].filter(Boolean).join(" ")} disabled={locked} /></span></label>
+    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={bodyLimit} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={extraCharacters > 0 || fieldError === "body" || undefined}
+        aria-describedby={["support-privacy", extraCharacters > 0 ? lengthErrorId : "", fieldError === "body" ? "support-error" : ""].filter(Boolean).join(" ")} disabled={locked} /></span></label>
     {extraCharacters > 0 ? <p id={lengthErrorId} role="alert" className="text-sm font-bold">
       Trim {extraCharacters} {extraCharacters === 1 ? "character" : "characters"} to fit the {bodyLimit.toLocaleString("en-US")}-character limit.
     </p> : null}
@@ -160,7 +164,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
-    {state.status === "error" ? <p id="support-error" role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
+    {state.status === "error" && showError ? <p id="support-error" role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
       <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {

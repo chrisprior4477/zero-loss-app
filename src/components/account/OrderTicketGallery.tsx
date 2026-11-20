@@ -160,7 +160,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   ];
   return createPortal(<div className={phone ? styles.mobileDetailsLayer : styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) closeDetails(); }}>
     <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={containDialogTab}>
-      <header className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={closeDetails} aria-label="Close details">×</button></header>
+      <div className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={closeDetails} aria-label="Close details">×</button></div>
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
       <dl className={styles.references}>

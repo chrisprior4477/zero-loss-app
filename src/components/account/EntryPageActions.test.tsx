@@ -195,6 +195,25 @@ test("an unknown outcome can recover the original request after its hold reduces
   expect(createPreviewEntry).toHaveBeenCalledOnce();
 });
 
+test("reload restores the exact interrupted entry and checks it without another submission", async () => {
+  const ownerId = "owner-reload-test";
+  const storageKey = "zero-loss:entry-details:attempt:" + ownerId + ":" + props.slug;
+  createPreviewEntry.mockRejectedValueOnce(new Error("Connection interrupted"));
+  checkSavedPreviewEntry.mockResolvedValueOnce({ status: "request", request: { ...pendingReceipt(), duplicate: true } });
+  const view = render(<EntryPageActions {...props} ownerId={ownerId} remaining={100} initialQuantity={24} resumeReview />);
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 24 entries for $24" }));
+  await screen.findByRole("button", { name: "Check saved submission" });
+  expect(sessionStorage.getItem(storageKey)).toContain(props.requestKey);
+  view.unmount();
+  render(<EntryPageActions {...props} ownerId={ownerId} remaining={0} balanceCents={0} requestKey="new-key-after-reload" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Check saved submission" }));
+  await screen.findByRole("button", { name: "Undo all 24 entries" });
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey);
+  expect(createPreviewEntry).toHaveBeenCalledOnce();
+  expect(sessionStorage.getItem(storageKey)).toBeNull();
+});
+
 test.each([11, 101])("Entry Details reviews and submits %i entries without a customer cap", async quantity => {
   createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "Entries confirmed.", href: "/account/entries", outcome: "active" });
   render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);

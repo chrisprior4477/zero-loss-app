@@ -36,14 +36,15 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
       <div className={styles.actions}>
         {count > 1 && first ? <button type="button" className={checkout.primary} onClick={revealCards}>View {count} gift cards</button>
           : first ? <Link className={checkout.primary} href={purchasedRewardHref(first.id, slug, receipt)} prefetch={false}>{allReady ? "Open gift card" : "View gift card status"}</Link>
-            : <Link className={checkout.primary} href={fallbackHref}>View completed purchases</Link>}
+            : null}
         <Link className={styles.secondary} href={checkoutRewardsHref(slug, receipt)} prefetch={false}>Open My Gift Cards &amp; Rewards</Link>
       </div>
     </aside> : null}
     <section className={`${checkout.ticket} ${checkout.content}`} aria-labelledby="purchased-cards-heading">
       <h2 id="purchased-cards-heading" ref={cardsHeading} tabIndex={-1} className={styles.heading}>Cards from this checkout</h2>
       <p>{title} · {count} {count === 1 ? "gift card" : "gift cards"}</p>
-      {showCards ? <CheckoutGiftCardList cards={cards} count={count} slug={slug} receipt={receipt} /> : null}
+      {showCards && cards.length ? <CheckoutGiftCardList cards={cards} count={count} slug={slug} receipt={receipt} /> : null}
+      {!cards.length ? <Link className={checkout.primary} href={fallbackHref}>View completed purchases</Link> : null}
       <Link className={`${styles.secondary} ${styles.returnButton}`} href={completedActivityHref(first?.item.entryId, { slug, receipt })}>← Back to My Activity</Link>
     </section>
   </div></div>;

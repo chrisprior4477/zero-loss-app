@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { readDeclineForRevival, revivePurchaseOption, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
@@ -37,6 +37,9 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
     finally { setReading(false); }
   }
   const closeReview = useCallback(() => { if (!pending) setReviewing(false); }, [pending]);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  const expiryNotice = useRef<HTMLParagraphElement>(null);
+  const restoreAfterExpiry = useRef(false);
   const [expired, setExpired] = useState<boolean | null>(null);
   const deadline = Date.parse(expiresAt ?? "");
   const hasDeadline = Number.isFinite(deadline);
@@ -45,6 +48,7 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
     let timer: number | undefined;
     const checkDeadline = () => {
       const remaining = deadline - Date.now();
+      if (remaining <= 0 && document.activeElement === confirmButton.current) restoreAfterExpiry.current = true;
       setExpired(!(remaining > 0));
       if (remaining > 0) timer = window.setTimeout(checkDeadline, Math.min(remaining, 60_000));
     };
@@ -53,6 +57,12 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, [deadline, hasDeadline]);
+  useEffect(() => {
+    if (!expired || !reviewing || !restoreAfterExpiry.current) return;
+    restoreAfterExpiry.current = false;
+    const close = expiryNotice.current?.closest('[role="dialog"]')?.querySelector<HTMLButtonElement>('button[aria-label="Close revive confirmation"]');
+    close?.focus();
+  }, [expired, reviewing]);
   const disabled = !hasDeadline || expired !== false || pending || state.status === "succeeded" || needsCheck;
   const feedback = <>
     {state.status !== "idle" ? <span role="status" className={state.status === "error" ? "max-w-48 text-right text-xs font-semibold text-[#a93412]" : "max-w-48 text-right text-xs font-semibold text-[#12672e]"}>{state.message}</span> : null}
@@ -74,11 +84,12 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
       <p className="font-extrabold">{productTitle}</p>
       <p className="break-all text-sm font-bold">{ticketLabel}</p>
       <p className={dialogStyles.message}>This returns the offer to Purchase Options for free. Its original deadline stays the same.</p>
+      {expired ? <p ref={expiryNotice} role="alert" className={dialogStyles.message}>This offer expired. It can no longer be revived.</p> : null}
       <form action={action} className={dialogStyles.actions}>
         <input type="hidden" name="completionOptionId" value={optionId} />
         <input type="hidden" name="declineEventId" value={declineEventId ?? ""} />
         <button type="button" onClick={closeReview} disabled={pending} className={dialogStyles.keep}>Cancel</button>
-        <button type="submit" disabled={disabled} className={`${dialogStyles.finish} disabled:opacity-50`}>
+        <button ref={confirmButton} type="submit" disabled={disabled} className={`${dialogStyles.finish} disabled:opacity-50`}>
           {!hasDeadline ? "Deadline unavailable" : expired ? "Expired" : pending ? "Reviving…" : "Confirm revive"}
         </button>
       </form>

@@ -14,7 +14,7 @@ export function SampleRewardBarcode({ value }: { value: string }) {
       key: `${characterIndex}-${index}`,
     })), { dark: false, width: 1, key: `${characterIndex}-gap` }];
   });
-  return <div className={styles.sampleBarcode} aria-label="Sample reward barcode">
+  return <div className={styles.sampleBarcode} role="img" aria-label="Sample reward barcode">
     {bars.map(bar => <span key={bar.key} className={bar.dark ? "bg-[#061630]" : "bg-white"} style={{ width: `${bar.width}px` }} />)}
   </div>;
 }

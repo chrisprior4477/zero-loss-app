@@ -9,7 +9,7 @@ import { useFavorites } from "./FavoritesProvider";
 import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
-import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
+import { availabilityStatus, lightSurfaceAvailabilityColor, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { readFavoriteCapacityAlert, setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
@@ -79,6 +79,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
   const detailHeading = useRef<HTMLHeadingElement>(null);
   const unavailableShareHeading = useRef<HTMLHeadingElement>(null);
+  const unavailableFavoriteHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (!requestedShareUnavailable) return;
     const frame = requestAnimationFrame(() => {
@@ -89,6 +90,16 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     return () => cancelAnimationFrame(frame);
   }, [requestedShareUnavailable, selection?.shareId]);
   const selectedSlug = selectedShare?.slug ?? (selection?.slug && slugs.includes(selection.slug) ? selection.slug : null);
+  const requestedFavoriteUnavailable = Boolean(tab === "favorites" && available && selection?.slug && !slugs.includes(selection.slug));
+  useLayoutEffect(() => {
+    if (!requestedFavoriteUnavailable) return;
+    const frame = requestAnimationFrame(() => {
+      const heading = unavailableFavoriteHeading.current;
+      heading?.focus({ preventScroll: true });
+      if (heading) revealBelowHeader(heading);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [requestedFavoriteUnavailable, selection?.slug]);
   const latestAlerts = useRef(initialAlerts);
   useEffect(() => { latestAlerts.current = initialAlerts; }, [initialAlerts]);
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
@@ -178,7 +189,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       const shareId = nextTab === "shared" ? query.get("share") : null;
       const nextView = shareId && shareId === initialShareId ? initialSharedView : query.get("view") === "declined" ? "declined" : "available";
       const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
-      const slug = query.get("item");
+      const slug = query.get("item")?.toLowerCase();
       const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug ? { slug } : null;
       const previousPosition = listPosition.current;
@@ -307,7 +318,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     const { product, entryPriceCents, status } = productState(slug);
     if (!product) return null;
     return <div className={`${styles.price} ${large ? styles.detailPrice : ""}`}><span><strong>${(entryPriceCents / 100).toFixed(2)}</strong>per entry</span>
-      <span className={styles.remaining} style={{ color: status?.color }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
+      <span className={styles.remaining} style={{ color: status ? lightSurfaceAvailabilityColor(status.percentFilled) : undefined }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
   }
   function sender(share: SavedProductShare) {
     return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
@@ -326,7 +337,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : favoritesHref(favoriteFilter, detailProduct.slug))
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
-    <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding && !requestedShareUnavailable} />
+    <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding && !requestedShareUnavailable && !requestedFavoriteUnavailable} />
     <div className={styles.container}>
       <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
       <div ref={tabs} className={styles.tabs} role="tablist" aria-label="Saved items" onKeyDown={event => {
@@ -360,7 +371,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           </article>
         </> : tab === "favorites" ? <>
           {missingFavorite ? <div role="status" className={styles.empty}>
-            <h2>This prize is no longer in your Favorites</h2>
+            <h2 ref={unavailableFavoriteHeading} tabIndex={-1}>This prize is unavailable in your Favorites</h2>
             <button type="button" className={styles.back} onClick={() => back()}>Back to Favorites</button>
             {missingFavorite.product && !hidden.has(missingFavorite.product.slug) && (missingFavorite.status?.remaining ?? 0) > 0 ? <Link href={`/items/${missingFavorite.product.slug}`}>View prize →</Link> : null}
           </div> : null}

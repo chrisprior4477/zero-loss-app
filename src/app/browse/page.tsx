@@ -14,13 +14,13 @@ import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/se
 import { catalogSearchTooLong } from "@/lib/catalog/search-text";
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
-import { availabilityStatus } from "@/lib/catalog/availability";
+import { availabilityStatus, lightSurfaceAvailabilityColor } from "@/lib/catalog/availability";
 import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls, type BrowsePreviewProduct } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowseResultsLink, BrowsePrizeLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
-import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
+import { browseRetailers, filterBrowseProducts, isBrowseSort, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -78,6 +78,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     : searchBudget?.maximum != null ? `${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}` : null;
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const requestedFilters = parseBrowseFilterState(query, [...retailers, ...browseRetailers(demoProducts), ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const unknownSort = Boolean(query.sort && !isBrowseSort(query.sort));
   const invalidMinimum = query.minValue !== undefined && requestedFilters.minValue === null;
   const invalidMaximum = query.maxValue !== undefined && requestedFilters.maxValue === null;
   const reversedRange = requestedFilters.minValue !== null && requestedFilters.maxValue !== null
@@ -140,7 +141,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const hasOpenResults = products.some(product => !hidden.has(product.slug));
   const includesLowerGiftCards = denomination.values.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
-  const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
+  const requestedValues = Array.from(denomination.values, formatBudget).join(" or ");
+  const matchingValues = new Set(products.map(product => product.value));
+  const missingRequestedValues = !unavailable && denomination.values.size > 1 && products.length
+    ? Array.from(denomination.values).filter(value => !matchingValues.has(value)).map(formatBudget)
+    : [];
   const requestedBatch = typeof query.batch === "string" && /^[1-9]\d*$/.test(query.batch) ? Number(query.batch) : 1;
   const lastBatch = Math.max(1, Math.ceil(products.length / batchSize));
   const tailMatch = typeof query.batch === "string" ? /^last-([1-9]\d{0,5})$/.exec(query.batch) : null;
@@ -164,6 +169,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
+    if (key === "sort" && unknownSort) continue;
     if (key === "minValue" && (invalidMinimum || reversedRange) || key === "maxValue" && (invalidMaximum || reversedRange)) continue;
     const value = key === "subcategory" ? subcategory : key === "category" && query.category ? selectedCategory
       : key === "partnerCategory" ? selectedRetailerGroup?.id : key === "retailer" ? filters.retailer : query[key];
@@ -280,6 +286,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
+          {unknownSort ? <p role="status" className="mb-3 text-sm text-amber-200">That sort is unavailable. {endingSoon ? "Showing the fewest tickets left first." : "Showing featured results."} <Link href={searchHref + "#search-results"} className="underline">Remove unavailable sort</Link></p> : null}
           {unknownCategory ? <p role="status" className="mb-3 text-sm text-amber-200">That category is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove category filter</Link></p> : null}
           {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             That retailer is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove retailer filter</Link>
@@ -366,7 +373,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     {relatedRetailers.has(product.slug) || (deviceTopic && isGiftCardListing(product)) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
                     {open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
-                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.percentFilled >= 90 ? "#b51c37" : status.percentFilled >= 75 ? "#a43b08" : status.percentFilled >= 50 ? "#005fae" : "#06753b" }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
+                      <span className="text-right text-slate-500"><strong className="block" style={{ color: lightSurfaceAvailabilityColor(status.percentFilled) }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
                     </div> : <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-bold text-slate-600">No open entries</p>}
               </>;
               return (
@@ -381,6 +388,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             })}
           </section>
         ) : null}
+        {missingRequestedValues.length ? <p role="status" className="mt-3 text-sm text-amber-100">No matching prizes at {missingRequestedValues.join(" or ")} in these results.</p> : null}
         {searchTooLong || invalidSearch ? null : !hasOpenResults && savedMatches.length ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>

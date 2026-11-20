@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { containDialogTab, tabbableControls } from "./dialog-keyboard";
 import { useDialogBack } from "./useDialogBack";
 import styles from "./purchase-checkout.module.css";
 const wheelRowHeight = 40;
@@ -42,11 +43,12 @@ export function PurchaseDialog({ title, children, onClose, compact = false, cent
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [top, setTop] = useState(130);
+  const dismiss = useEffectEvent(() => { if (!closeDisabled) onClose(); });
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const overflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
-    close.current?.focus({ preventScroll: true });
+    (close.current?.disabled ? dialog.current : close.current)?.focus({ preventScroll: true });
     const header = document.querySelector("header.sticky");
     function position() { setTop(Math.max(12, (header?.getBoundingClientRect().height ?? 0) + 8)); }
     position();
@@ -56,12 +58,12 @@ export function PurchaseDialog({ title, children, onClose, compact = false, cent
     if (header) observer?.observe(header);
     function keys(event: KeyboardEvent) {
       if (event.defaultPrevented) return; // The card wheel owns Escape while open.
-      if (event.key === "Escape") { event.preventDefault(); onClose(); }
-      if (event.key !== "Tab") return;
-      const controls = Array.from(dialog.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),summary,[tabindex="0"]') ?? []).filter(control => control.getClientRects().length > 0);
-      const first = controls[0], last = controls.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      if (event.key === "Escape") { event.preventDefault(); dismiss(); }
+      if (event.key === "Tab" && dialog.current && !dialog.current.contains(document.activeElement)) {
+        const controls = tabbableControls(dialog.current);
+        event.preventDefault();
+        (event.shiftKey ? controls.at(-1) : controls[0] ?? dialog.current)?.focus();
+      }
     }
     document.addEventListener("keydown", keys);
     return () => {
@@ -72,9 +74,9 @@ export function PurchaseDialog({ title, children, onClose, compact = false, cent
       document.documentElement.style.overflow = overflow;
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
-  }, [onClose]);
-  return createPortal(<div className={styles.backdrop} data-center-on-phone={centerOnPhone || undefined} style={{ "--preview-top": top + "px" } as CSSProperties} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog + (compact ? " " + styles.refined : "") + " " + className}>
+  }, []);
+  return createPortal(<div className={styles.backdrop} data-center-on-phone={centerOnPhone || undefined} style={{ "--preview-top": top + "px" } as CSSProperties} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) onClose(); }}>
+    <div ref={dialog} role="dialog" tabIndex={-1} onKeyDown={containDialogTab} aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog + (compact ? " " + styles.refined : "") + " " + className}>
       <button ref={close} type="button" className={styles.close} onClick={onClose} aria-label={closeLabel} disabled={closeDisabled}>×</button>
       <h2 id="purchase-preview-dialog-title">{title}</h2>{children}
     </div>

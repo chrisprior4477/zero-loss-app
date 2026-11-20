@@ -773,7 +773,9 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
       </li>;
   }
-  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
+  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading">
+    {!focusRequest ? <AccountSettingsLandingScroll target="payment-deposits" focusTarget="payment-deposits-heading" allScreens restrictToTargetHash /> : null}
+    <div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {focusRequest && requests && !focusId && dismissedArchiveReturn !== focusRequest ? <p role="status" className="mt-3 text-sm text-amber-100">This deposit receipt is unavailable. You can still browse your payment deposits below.</p> : null}
     {depositsToCheck.length > 0 && <section className={styles.depositsToCheck} aria-labelledby="deposits-to-check-heading">

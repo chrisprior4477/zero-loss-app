@@ -16,8 +16,13 @@ export function containDialogTab(event: KeyboardEvent<HTMLElement>) {
 }
 
 export function tabbableControls(scope: ParentNode) {
-  return Array.from(scope.querySelectorAll<HTMLElement>("button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex='0']"))
-    .filter(element => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
+  const controls = Array.from(scope.querySelectorAll<HTMLElement>("button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex='0']"))
+    .filter(element => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden" && !element.closest("[inert]"));
+  return controls.filter(control => {
+    if (!(control instanceof HTMLInputElement) || control.type !== "radio" || !control.name || control.checked) return true;
+    return !controls.some(other => other instanceof HTMLInputElement && other.type === "radio"
+      && other.name === control.name && other.form === control.form && other.checked);
+  });
 }
 
 /** Keep the trigger focused after the browser settles its Back navigation. */

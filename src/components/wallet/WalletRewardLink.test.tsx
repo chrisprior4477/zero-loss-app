@@ -18,6 +18,7 @@ test.each(["/account/wallet#ready-rewards", "/account/wallet?rewards=ready#ready
   const scroll = setup(href);
   expect(fireEvent.click(screen.getByRole("link"), { button: 0 })).toBe(false);
   expect(scroll).toHaveBeenCalledExactlyOnceWith({ block: "start", behavior: "auto" });
+  expect(document.activeElement?.id).toBe(href.split("#")[1]);
 });
 
 test("changing filters still follows the normal route and loads its records", () => {

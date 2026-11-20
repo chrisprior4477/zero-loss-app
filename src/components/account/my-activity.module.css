@@ -44,7 +44,7 @@
 .filter:hover { filter: brightness(1.1); transform: translateY(-2px); }
 .filter[aria-current="page"] { filter: brightness(1.04); }
 .filter[data-filter="all"] { --ticket-color: #82d9fa; color: #081b38; }
-:is(.filter, .emptyShortcut)[data-filter="active"] { --ticket-color: #0077ff; --ticket-text: #f7fbff; }
+:is(.filter, .emptyShortcut)[data-filter="active"] { --ticket-color: #0064db; --ticket-text: #f7fbff; }
 :is(.filter, .emptyShortcut)[data-filter="prize"] { --ticket-color: #4ee85d; --ticket-text: #082528; }
 .filter[data-filter="prize"] { color: var(--ticket-text); }
 .filter[data-filter="completion"] { --ticket-color: #ff832b; color: #251c16; }

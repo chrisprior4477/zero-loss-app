@@ -163,7 +163,7 @@ export function InstallAppPrompt() {
       ? "On iPhone or iPad, tap the Share button, then choose Add to Home Screen."
       : manualPlatform === "safari"
         ? "In Safari, open the File menu and choose Add to Dock."
-        : "Open your browser menu and choose Install Zero Loss or Add to Home Screen.";
+        : "Installation is unavailable in this browser right now. You can bookmark Zero Loss for quick access.";
 
   return (
     <aside aria-label="Install Zero Loss" aria-live="polite" onKeyDown={event => {

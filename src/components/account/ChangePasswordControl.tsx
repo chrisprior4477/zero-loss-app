@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { recoverAuthForm } from "@/components/auth/recover-auth-form";
 import { changeAccountPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -20,6 +21,14 @@ function ChangePasswordForm({ onCancel, onPending }: {
 }) {
   const [state, action, pending] = useActionState(changePassword, initialState);
   const confirmation = useRef<HTMLParagraphElement>(null);
+  const currentPassword = useRef<HTMLInputElement>(null);
+  const confirmPassword = useRef<HTMLInputElement>(null);
+  const [mismatch, setMismatch] = useState(false);
+  useEffect(() => {
+    const field = currentPassword.current;
+    field?.focus({ preventScroll: true });
+    if (field) revealBelowHeader(field);
+  }, []);
   useEffect(() => { onPending(pending); }, [onPending, pending]);
   useEffect(() => {
     if (state.status === "updated") confirmation.current?.focus();
@@ -29,10 +38,17 @@ function ChangePasswordForm({ onCancel, onPending }: {
     return <p id="change-account-password-form" ref={confirmation} tabIndex={-1} role="status" className={styles.passwordSuccess}>{state.message}</p>;
   }
 
-  return <form id="change-account-password-form" action={action} className={styles.passwordForm}>
-    <label>Current password<input name="current_password" type="password" autoComplete="current-password" required /></label>
+  return <form id="change-account-password-form" action={action} className={styles.passwordForm} onChange={() => setMismatch(false)} onSubmit={event => {
+    const data = new FormData(event.currentTarget);
+    if (data.get("password") === data.get("confirm_password")) return;
+    event.preventDefault();
+    setMismatch(true);
+    confirmPassword.current?.focus();
+  }}>
+    <label>Current password<input ref={currentPassword} name="current_password" type="password" autoComplete="current-password" required /></label>
     <label>New password<input name="password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required /></label>
-    <label>Confirm new password<input name="confirm_password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required /></label>
+    <label>Confirm new password<input ref={confirmPassword} name="confirm_password" aria-invalid={mismatch || undefined} aria-describedby={mismatch ? "change-password-mismatch" : undefined} type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required /></label>
+    {mismatch ? <p id="change-password-mismatch" role="alert" className={styles.passwordError}>The two passwords don’t match.</p> : null}
     <p>Use at least {MIN_PASSWORD_LENGTH} characters.</p>
     {state.message ? <p role="alert" className={styles.passwordError}>{state.message}</p> : null}
     <div className={styles.passwordActions}>

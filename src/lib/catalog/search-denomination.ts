@@ -27,6 +27,23 @@ function retailerName(value: string) {
   return normalizeSearch(value).replace(/^the /, "");
 }
 
+export function catalogMerchant(text: string, products: readonly { retailer: string }[]): string | null {
+  const direct = retailerName(text).replace(/\bgift card\b/g, " ").replace(/\s+/g, " ").trim();
+  if (!direct) return null;
+  const exact = products.find(product => retailerName(product.retailer) === direct);
+  if (exact) return normalizeSearch(exact.retailer);
+  const name = direct.replace(/^(?:(?:for|from|at|a|an|the)\s+)+/, "");
+  if (name === "walmart" && products.some(product => matchesCatalogMerchant(product.retailer, name))) return name;
+  const match = products.find(product => retailerName(product.retailer) === name
+    || (name === "apple" && retailerName(product.retailer) === "apple gift card"));
+  return match ? normalizeSearch(match.retailer) : null;
+}
+
+export function matchesCatalogMerchant(retailer: string, merchant: string) {
+  const name = normalizeSearch(retailer);
+  return name === merchant || (merchant === "walmart" && name.startsWith("walmart "));
+}
+
 /** Currency is an exact prize value. Bare numbers beside model names remain product keywords. */
 function extractValues(query: string, products: readonly { retailer: string }[]) {
   const values = new Set<number>();
@@ -92,6 +109,16 @@ const inclusiveUpper = new RegExp(`^(?:${inclusiveUpperPhrases})$`, "i");
 type PrizeBudget = { minimum?: number; exclusiveMinimum?: boolean; maximum: number | null; inclusive: boolean };
 
 function searchBudget(normalized: string, products: readonly { retailer: string }[]): { text: string; budget: PrizeBudget } | null {
+  const comparison = /^(.*?)\s*(>=|<=|≥|≤|>|<)\s*(.+)$/.exec(normalized);
+  const compared = comparison && leadingAmount(comparison[3]);
+  if (comparison && compared) {
+    const operator = comparison[2];
+    const lower = operator.startsWith(">") || operator === "≥";
+    const inclusive = operator.endsWith("=") || operator === "≥" || operator === "≤";
+    return { text: `${comparison[1]} ${compared.text}`.trim(), budget: lower
+      ? { minimum: compared.amount, exclusiveMinimum: !inclusive, maximum: null, inclusive: true }
+      : { maximum: compared.amount, inclusive } };
+  }
   const plusMinimum = new RegExp(String.raw`^(.*?)(\$\s*${digits})\s*\+(?=\s|$)(.*)$`, "i").exec(normalized);
   if (plusMinimum) {
     const minimum = leadingAmount(plusMinimum[2])?.amount;
@@ -167,12 +194,8 @@ export function searchDenominations(query: string, products: readonly { retailer
   const exactOnly = !budget && Boolean(exact?.values.size);
   const { text, values } = range
     ? { text: range.text, values: new Set<number>() }
-    : exactOnly && exact ? exact : extractValues(/\bgift card\b/i.test(normalized) ? exactPhrase : normalized, products);
-  const merchantWords = normalizeSearch(text).replace(/\b(?:gift card|for|from|at|a|an|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  const merchant = (values.size || budget) && merchantWords
-    ? products.find(product => retailerName(product.retailer) === merchantWords
-      || (merchantWords === "apple" && retailerName(product.retailer) === "apple gift card"))?.retailer
-    : undefined;
+    : exactOnly && exact ? exact : extractValues(/\bgift card\b/i.test(normalized) || (strippedOnly && catalogMerchant(exactPhrase, products)) ? exactPhrase : normalized, products);
+  const merchant = values.size || budget || strippedOnly ? catalogMerchant(text, products) : null;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   return { text: keywords, values, budget, exactOnly, merchant: merchant ? normalizeSearch(merchant) : null };
 }

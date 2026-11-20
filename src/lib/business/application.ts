@@ -120,19 +120,29 @@ export function defaultBusinessListingCapacity(value: number) {
   return Math.ceil(Math.round(value * 100) * 3 / 100);
 }
 
-export function missingBusinessFields(values: FormValues, files: BusinessFile[], listings: PartnerListing[] = []) {
-  const required = businessIdentityFields(values);
+export function businessFieldIssues(values: FormValues, files: BusinessFile[], listings: PartnerListing[] = []) {
+  const identity = businessIdentityFields(values);
+  const required: [string, string][] = [];
   if (values.partnership === "products") required.push(["offer_name","Offer name"],["offer_type","Offer type"],["description","Customer-facing description"],["retail_value","Retail value"],["quantity","Quantity or capacity"],["relationship","Relationship"],["fulfillment_owner","Fulfillment responsibility"]);
   if (values.partnership === "fulfillment") required.push(["provider_name","Provider name"],["reward_types","Reward types"],["coverage","Geographic coverage"],["delivery_method","Delivery method"],["delivery_time","Delivery time"],["pricing_terms","Pricing terms"],["technical_contact","Technical contact"]);
   if (values.partnership === "campaign") required.push(["campaign_name","Campaign name"],["campaign_offer","Campaign offer"],["objective","Campaign objective"],["relationship","Relationship"],["campaign_supply","What the business supplies"],["audience","Intended audience"]);
   if (values.partnership === "other") required.push(["other_partnership","Partnership explanation"]);
-  const missing = required.filter(([key]) => typeof values[key] !== "string" || !String(values[key]).trim()).map(([,label]) => label);
-  missing.push(...invalidBusinessCounts(values).map(([, label]) => `${label} must be a positive whole number`));
-  missing.push(...invalidBusinessOfferFields(values).map(([, label]) => label));
-  if (values.partnership === "products") missing.push(...invalidBusinessListings(listings).map(listing => listing.message));
-  if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push("Valid work email");
-  if (values.capacity_ack !== true) missing.push("Fulfillment-capacity acknowledgment");
-  if (values.auto_relist === true && values.card_billing !== true) missing.push("Card-on-file billing authorization");
-  if (files.length && values.asset_rights !== true) missing.push("Rights to supply the attached materials");
+  const missing: { message: string; step: number; field?: string; listing?: number }[] = [];
+  for (const [step, fields] of [[0, identity], [2, required]] as const) {
+    for (const [field, message] of fields) {
+      if (typeof values[field] !== "string" || !String(values[field]).trim()) missing.push({ step, field, message });
+    }
+  }
+  missing.push(...invalidBusinessCounts(values).map(([field, label]) => ({ step: 2, field, message: `${label} must be a positive whole number` })));
+  missing.push(...invalidBusinessOfferFields(values).map(([field, message]) => ({ step: field === "website" ? 0 : 2, field, message })));
+  if (values.partnership === "products") missing.push(...invalidBusinessListings(listings).map(({ index, message }) => ({ step: 2, listing: index, message })));
+  if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push({ step: 0, field: "work_email", message: "Valid work email" });
+  if (values.capacity_ack !== true) missing.push({ step: 2, field: "capacity_ack", message: "Fulfillment-capacity acknowledgment" });
+  if (values.auto_relist === true && values.card_billing !== true) missing.push({ step: 2, field: "card_billing", message: "Card-on-file billing authorization" });
+  if (files.length && values.asset_rights !== true) missing.push({ step: 3, field: "asset_rights", message: "Rights to supply the attached materials" });
   return missing;
+}
+
+export function missingBusinessFields(values: FormValues, files: BusinessFile[], listings: PartnerListing[] = []) {
+  return businessFieldIssues(values, files, listings).map(issue => issue.message);
 }

@@ -9,7 +9,7 @@ export function normalizeSearch(value: string) {
     .replace(/\b(?:play[\s-]*station|ps)[\s-]*5\b/g, "playstation 5")
     .replace(/(\d)\s*(tb|gb)\b/g, "$1 $2")
     .replace(/\bsparkplugs?\b/g, "spark plug").replace(/\bautoparts\b/g, "auto parts")
-    .replace(/\bpet\s+smart\b/g, "petsmart").replace(/[^a-z0-9]+/g, " ").trim();
+    .replace(/\bauto\s+zone\b/g, "autozone").replace(/\bpet\s+smart\b/g, "petsmart").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function wordForm(word: string) {

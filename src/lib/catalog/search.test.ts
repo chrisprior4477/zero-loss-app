@@ -18,6 +18,27 @@ describe("catalog search", () => {
     expect(mixed).not.toContain("lg-oled-c6-65-tv");
     expect(searchCatalog(demoProducts, "Sony headphones not gift cards").map(item => item.slug)).toEqual(["sony-wh-1000xm5-headphones"]);
   });
+  test.each([
+    ["$50 Amazon or Walmart gift cards", ["amazon-50-gift-card", "walmart-50-gift-card"]],
+    ["Amazon $25 or $75 gift cards", ["amazon-25-gift-card", "amazon-75-gift-card"]],
+    ["Amazon $50 and Walmart $75 gift cards", ["amazon-50-gift-card", "walmart-75-gift-card"]],
+  ] as const)("keeps merchant and denomination scope for %s", (query, expected) => {
+    expect(searchCatalog(demoProducts, query).map(item => item.slug).sort()).toEqual([...expected].sort());
+  });
+
+  test("retains restrictions for retailer families, accessory names and signed price bounds", () => {
+    const only = searchCatalog(demoProducts, "Walmart only");
+    expect(only.map(item => item.slug)).toContain("walmart-75-gift-card");
+    const excluded = searchCatalog(demoProducts, "gift cards excluding Walmart");
+    expect(excluded.length).toBeGreaterThan(0);
+    expect(excluded.some(item => item.retailer.startsWith("Walmart"))).toBe(false);
+    expect(searchCatalog(demoProducts, "Auto Zone $50")).toEqual(searchCatalog(demoProducts, "AutoZone $50"));
+    expect(searchCatalog(demoProducts, "TV stand").some(item => /-tv$/.test(item.slug))).toBe(false);
+    const bounded = searchCatalog(demoProducts, "gift cards >= $50");
+    expect(bounded.some(item => item.value > 50)).toBe(true);
+    expect(bounded.every(item => item.value >= 50)).toBe(true);
+  });
+
   test("honors an inclusive minimum and an exact value in natural requests", () => {
     const minimum = searchCatalog(demoProducts, "Walmart gift cards 75 dollars or higher");
     const exact = searchCatalog(demoProducts, "Can you please show me any available deals for only $75 Walmart gift cards in the list");

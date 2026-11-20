@@ -29,6 +29,10 @@ export function browsePrizeValueLabel({ minValue, maxValue }: Pick<BrowseFilterS
 
 const productTypes: BrowseProductType[] = ["all", "pictured", "gift-cards"];
 const sortOptions: BrowseSort[] = ["featured", "fewest-left", "price-low", "value-high"];
+export function isBrowseSort(value: string) {
+  return value === "ending-soon" || sortOptions.some(sort => sort === value);
+}
+
 export const MAX_PRIZE_VALUE = 1_000_000;
 
 function parsePrizeValue(value: string | undefined): number | null {

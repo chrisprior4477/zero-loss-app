@@ -10,7 +10,7 @@
 .pairedActions > a, .pairedActions > button { flex: 1 1 0; min-width: 0; }
 .editorActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 440px; }
 .actions :focus-visible, .artwork summary:focus-visible { outline: 3px solid #168cff; outline-offset: 3px; }
-.primary { background: #0872fb; color: white; }
+.primary { background: #0066df; color: white; }
 .secondary { background: #dff2ff; color: #075187; }
 .confirm { background: #31e800; color: #002719; }
 .danger { border: 1px solid #b34c3b; color: #9b3628; background: white; }

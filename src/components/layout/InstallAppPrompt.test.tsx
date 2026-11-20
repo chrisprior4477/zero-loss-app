@@ -59,11 +59,11 @@ test("declining the native installation still dismisses guidance when storage is
   expect(screen.queryByLabelText("Install Zero Loss")).toBeNull();
 });
 
-test("an explicit menu request always offers device-appropriate install guidance", async () => {
+test("an explicit request explains when the browser has no offered install method", async () => {
   render(<InstallAppPrompt />);
   fireEvent(window, new Event(INSTALL_APP_REQUEST_EVENT));
   expect(await screen.findByLabelText("Install Zero Loss")).toBeTruthy();
-  expect(screen.getByText(/Open your browser menu and choose Install Zero Loss or Add to Home Screen/)).toBeTruthy();
+  expect(screen.getByText(/Installation is unavailable in this browser right now/)).toBeTruthy();
 });
 
 test("manual install instructions move focus and Escape returns it to the opener", () => {

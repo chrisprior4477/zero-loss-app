@@ -204,9 +204,9 @@
 .rewardDetails dl { margin-top: 5px; }
 .rewardDetails dl > div { padding: 6px 14px; border-right-color: #cdd7e1; }
 .rewardDetails dl > div:first-child { padding-left: 0; }
-.rewardDetails dt { color: #617b9c; font-size: 11px; }
+.rewardDetails dt { color: #536d8e; font-size: 11px; }
 .rewardDetails dd { color: #101b4e; font-size: 17px; font-weight: 850; }
-.goodStatus { color: #068c40 !important; }
+.goodStatus { color: #06753b !important; }
 .howToTicket h2 { font-size: clamp(25px, 2.2vw, 34px); font-weight: 850; letter-spacing: -.04em; line-height: 1.1; }
 .howToTicket > p { color: #526b8b; font-size: 16px; line-height: 1.35; }
 .howToTicket ol { display: grid; gap: 0; margin-top: 20px; }

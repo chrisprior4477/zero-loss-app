@@ -53,7 +53,7 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
   }
 
   return <section className={styles.preferenceSection} aria-labelledby="in-app-alert-heading">
-    <h2 id="in-app-alert-heading">In-app alert choices</h2>
+    <h2 id="in-app-alert-heading" tabIndex={-1}>In-app alert choices</h2>
     <p>Choose which optional updates appear here. Your records remain in their account sections. Account and security notices stay on.</p>
     <div className={styles.preferenceGrid}>
       {choices.filter(choice => supportEnabled || choice.key !== "support_replies").map(choice => <label key={choice.key} className={styles.preferenceChoice}>

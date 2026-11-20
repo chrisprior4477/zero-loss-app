@@ -44,8 +44,8 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, entryContext }: {
-  entryId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
+export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, entryContext }: {
+  entryId?: string; ownerId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
   itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
   entryContext?: { transaction?: string; walletView?: string; alerts?: string; notice?: string };
@@ -67,6 +67,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   const [latestRequestId, setLatestRequestId] = useState(initialReceipt?.requestId ?? requestHead.requestId);
   const [createdHereRequestId, setCreatedHereRequestId] = useState<string | null>(null);
   const attemptedForm = useRef<FormData | null>(null);
+  const submissionStorageKey = ownerId ? `zero-loss:entry-details:attempt:${ownerId}:${slug}` : null;
+  const restoredAttempt = useRef<string | null>(null);
   const activeRequestId = useRef<string | null>(initialReceipt?.requestId ?? null);
   const latestReceipt = useRef<EntryRequest | null>(initialReceipt);
   const lastServerHead = useRef(requestHead.requestId);
@@ -93,6 +95,29 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   const addFundsHref = entryReviewFundingHref(slug, entryId, quantity, activityFilter, entryContext);
   const ticketQuery = new URLSearchParams({ ...(activityFilter === "active" ? { filter: "active" } : {}), ...entryContext });
   const ticketHref = entryId ? `/account/entries/${entryId}${ticketQuery.size ? `?${ticketQuery}` : ""}#entry-details-intro` : null;
+
+  useLayoutEffect(() => {
+    if (!submissionStorageKey || restoredAttempt.current === submissionStorageKey) return;
+    restoredAttempt.current = submissionStorageKey;
+    if (initialReceipt) return;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(submissionStorageKey) ?? "null");
+      if (!saved || !isEntryQuantity(saved.quantity) || typeof saved.key !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(saved.key)) return;
+      const form = new FormData();
+      form.set("offeringSlug", slug);
+      form.set("quantity", String(saved.quantity));
+      form.set("idempotencyKey", saved.key);
+      if (typeof saved.previousRequestId === "string") form.set("previousRequestId", saved.previousRequestId);
+      attemptedForm.current = form;
+      closingRequest.current = saved.fillsPool === true;
+      // Recover the attempt from this tab after hydration through the read path.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQuantity(saved.quantity);
+      setSubmissionKey(saved.key);
+      setCheckoutOpen(true);
+      setResult({ status: "error", code: "outcome_unknown", message: "Check this saved submission before starting another entry." });
+    } catch { /* The server can still restore a saved hold without tab storage. */ }
+  }, [initialReceipt, slug, submissionStorageKey]);
 
   function openReview() {
     if (invalidQuantity !== null) return;
@@ -235,11 +260,20 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
     }
     setWorking(true);
     setActionError("");
-    closingRequest.current = remaining !== null && quantity >= remaining;
+    if (!uncertain) {
+      closingRequest.current = remaining !== null && quantity >= remaining;
+      if (submissionStorageKey) try {
+        sessionStorage.setItem(submissionStorageKey, JSON.stringify({ key: submissionKey, quantity, previousRequestId: latestRequestId, fillsPool: closingRequest.current }));
+      } catch { /* A verified receipt still works without tab storage. */ }
+    }
     try {
       const response = uncertain
         ? await checkSavedPreviewEntry(slug, String(form.get("idempotencyKey") ?? ""))
         : await createPreviewEntry({ status: "idle" }, form);
+      if (submissionStorageKey && !(response.status === "error" && response.code === "outcome_unknown")) try {
+        const saved = JSON.parse(sessionStorage.getItem(submissionStorageKey) ?? "null");
+        if (saved?.key === form.get("idempotencyKey")) sessionStorage.removeItem(submissionStorageKey);
+      } catch { /* The verified result is still usable. */ }
       if (uncertain && response.status === "error" && !response.code) setApproved(false);
       setResult(response);
       if (response.status === "error" && response.code === "insufficient_balance") router.refresh();

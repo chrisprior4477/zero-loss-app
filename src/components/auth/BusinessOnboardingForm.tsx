@@ -7,16 +7,16 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { createContext, useCallback, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { businessIdentityFields, businessSignupPath, defaultBusinessListingCapacity, invalidBusinessCounts, invalidBusinessListings, invalidBusinessOfferFields, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
+import { businessFieldIssues, businessIdentityFields, businessSignupPath, defaultBusinessListingCapacity, invalidBusinessCounts, invalidBusinessListings, invalidBusinessOfferFields, demoOf, initialValues, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { downloadMaterial, isListingPhoto, materialTypes, stageMaterials } from "@/lib/business/materials";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { useBusinessApplication } from "./useBusinessApplication";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-type Editor = { draft: BusinessDraft; staging: boolean; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
+type Editor = { draft: BusinessDraft; staging: boolean; discardMaterial: (file: BusinessFile) => void; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
 const BusinessEditor = createContext<Editor | null>(null);
 function useEditor() {
   const editor = useContext(BusinessEditor);
@@ -184,7 +184,7 @@ function restoreListings(draft: BusinessDraft): BusinessDraft {
 
 export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/signup" }: { owner: string | null; record: BusinessRecord | null; personalSignupHref?: string }) {
   const router = useRouter();
-  const { draft, setDraft: writeDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
+  const { draft, setDraft: writeDraft, discardMaterial, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
     guestDraft, importGuest, dismissGuest, submitted, hasUnsavedChanges, recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields } = useBusinessApplication(owner, record, restoreListings);
   const { values, step } = draft;
   const setDraft = useCallback<Dispatch<SetStateAction<BusinessDraft>>>(update => {
@@ -201,6 +201,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
   const [listingToReview, setListingToReview] = useState<number | null>(null);
+  const [fieldToReview, setFieldToReview] = useState<{ step: number; field: string } | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [unsavedDestination, setUnsavedDestination] = useState<string | null>(null);
   const [staging, setStaging] = useState(false);
@@ -222,7 +223,24 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
   const mainProposal = String(values[proposalKey] || "Not provided yet");
   const invalidListings = values.partnership === "products" ? invalidBusinessListings(draft.listings) : [];
   const invalidOfferFields = invalidBusinessOfferFields(values);
-  const missing = missingBusinessFields(values, draft.files, draft.listings);
+  const issues = businessFieldIssues(values, draft.files, draft.listings);
+  const missing = issues.map(issue => issue.message);
+  useEffect(() => {
+    if (!fieldToReview || step !== fieldToReview.step) return;
+    const frame = requestAnimationFrame(() => {
+      const field = formRef.current?.elements.namedItem(fieldToReview.field);
+      const target = field instanceof HTMLElement ? field : formRef.current?.querySelector<HTMLElement>("[data-business-step-heading]");
+      target?.focus({ preventScroll: true });
+      if (target) revealBelowHeader(target);
+      setFieldToReview(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fieldToReview, step]);
+  function editIssue(issue: (typeof issues)[number]) {
+    if (issue.listing !== undefined) setListingToReview(issue.listing);
+    else if (issue.field) setFieldToReview({ step: issue.step, field: issue.field });
+    setStep(issue.step);
+  }
   useEffect(() => {
     if (step !== 2 || listingToReview === null) return;
     const frame = requestAnimationFrame(() => {
@@ -274,7 +292,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       const { staged, rejected } = await stageMaterials(Array.from(files), index);
       if (staged.length) setDraft(current => {
         const position = listingId && originalDemo === current.values.demo_variant ? current.listings.findIndex(listing => listing.id === listingId) : -1;
-        return { ...current, files: [...current.files, ...staged.map(file => ({ ...file, listingIndex: position < 0 ? null : position }))] };
+        return { ...current, values: { ...current.values, asset_rights: false }, files: [...current.files, ...staged.map(file => ({ ...file, listingIndex: position < 0 ? null : position }))] };
       });
       const saved = staged.length ? owner ? "Files selected. Saving privately…" : "Files selected on this device. Sign in to save them privately." : "";
       setDraftMessage([saved, ...rejected].filter(Boolean).join(" "));
@@ -303,7 +321,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       values: { ...initialValues, partnership: demoPartnership[chosenDemo], demo_variant: chosenDemo,
         listing_count: chosenDemo === "tools" ? "10" : "1", recurrence_limit: chosenDemo === "tools" ? "10" : "1",
         recurrence: String(details.recurrence || details.relationship || "one-time"),
-        ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false } }));
+        ...business, ...details, capacity_ack: true, asset_rights: false, card_billing: false } }));
     setErrors([]);
     setDraftMessage(demoCampaigns[chosenDemo].brand + " demo selected.");
   }
@@ -394,11 +412,11 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
       <button type="button" className="mt-3 text-cyan-200 underline" onClick={discardRecoveredDraft}>Discard unsaved edits in this tab</button>
     </div> : null}
   </div>;
-  return <BusinessEditor.Provider value={{ draft, staging, setDraft, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
+  return <BusinessEditor.Provider value={{ draft, staging, setDraft, discardMaterial, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
     <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
     <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} aria-label={`Step ${index + 1}: ${name}`} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
+      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/65">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} aria-label={`Step ${index + 1}: ${name}`} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
       <form ref={formRef} onSubmit={submitApplication} noValidate className="min-w-0">
         {conflictPending && <div className="mb-4 rounded-xl bg-[#073153] p-4">
           <p role="status">{draftMessage}</p>
@@ -418,7 +436,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
           {step === 1 && <div><StepHeading title="What do you want to build with us?" description="Choose the closest fit. You can explain something different under Another partnership."/><div className="mt-6 grid gap-3 sm:grid-cols-2">{partnerships.map((option) => <label key={option.id} className={`cursor-pointer rounded-2xl border p-5 transition focus-within:ring-4 focus-within:ring-cyan-300/15 ${partnership === option.id ? "border-[#31e800] bg-[#31e800]/10" : "border-cyan-200/25 bg-[#001b3d] hover:border-cyan-200/50"}`}><input type="radio" name="partnership" value={option.id} checked={partnership === option.id} onChange={change} className="sr-only"/><span className="text-xl">{option.icon}</span><strong className="mt-2 block text-lg">{option.title}</strong><span className="mt-2 block text-sm leading-6 text-white/60">{option.description}</span></label>)}</div></div>}
           {step === 2 && <Details partnership={partnership} demoCase={demoCase} values={values} change={change} onFillDemo={fillDemoDetails}/>}
           {step === 3 && <AssetsStep partnership={partnership} demoCase={demoCase} onLoadDemo={loadDemoAssets} values={values} change={change}/>}
-          {step === 4 && <ReviewStep partnership={partnership} demoCase={demoCase} values={values} change={change} selectedTitle={selected.title} mainProposal={mainProposal} missing={missing}/>}
+          {step === 4 && <ReviewStep partnership={partnership} demoCase={demoCase} values={values} change={change} selectedTitle={selected.title} mainProposal={mainProposal} issues={issues} onEditIssue={editIssue}/>}
         </section>
         {step === 4 && accountPrompt}
         {errors.length ? <div className="mt-4 rounded-xl border border-red-300/35 bg-red-400/10 p-4 text-sm text-red-100">
@@ -459,7 +477,7 @@ function MaterialDownload({ owner, file }: { owner: string; file: BusinessFile }
 }
 
 function ApplicationFiles({ listingIndex = null }: { listingIndex?: number | null }) {
-  const { draft, staging, setDraft, attach } = useEditor();
+  const { draft, staging, setDraft, discardMaterial, attach } = useEditor();
   const photos = listingIndex !== null;
   const files = photos ? draft.files.filter(file => file.listingIndex === listingIndex) : draft.files;
   return <div className="mt-4 rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-4"
@@ -478,7 +496,10 @@ function ApplicationFiles({ listingIndex = null }: { listingIndex?: number | nul
           setDraft(current => ({ ...current, files: current.files.map(item => item.id === file.id ? { ...item, listingIndex: index } : item) }));
         }}><option value="">Campaign materials</option>{draft.listings.map((item,index) => <option key={index} value={index} disabled={!isListingPhoto(file)}>Listing {index+1}: {item.title}</option>)}</select>
       </label>}
-      <button type="button" className="mt-2 text-cyan-200 underline" onClick={() => setDraft(current => ({ ...current, files: current.files.filter(item => item.id !== file.id) }))}>Remove from application</button>
+      <button type="button" className="mt-2 text-cyan-200 underline" onClick={() => {
+        discardMaterial(file);
+        setDraft(current => ({ ...current, files: current.files.filter(item => item.id !== file.id) }));
+      }}>Remove from application</button>
     </div>)}
   </div>;
 }
@@ -492,12 +513,18 @@ function AssetsStep({ partnership, demoCase, onLoadDemo, values, change }: { par
   const campaign = demoCampaigns[activeDemo];
   const hasMatchingDemo = Boolean(demoCase && demoPartnership[demoCase] === partnership);
   const [animation, setAnimation] = useState(hasMatchingDemo ? 1 : 0);
-  useEffect(() => {
+  const [replay, setReplay] = useState(0);
+  useLayoutEffect(() => {
     if (!hasMatchingDemo) return;
-    const timer = window.setTimeout(() => setAnimation(2), 1750);
-    return () => window.clearTimeout(timer);
-  }, [hasMatchingDemo, partnership]);
-  function playDemo() { onLoadDemo(); setAnimation(0); window.setTimeout(() => setAnimation(1), 30); window.setTimeout(() => setAnimation(2), 1780); }
+    const start = replay ? window.setTimeout(() => setAnimation(1), 30) : undefined;
+    const finish = window.setTimeout(() => setAnimation(2), replay ? 1780 : 1750);
+    return () => { window.clearTimeout(start); window.clearTimeout(finish); };
+  }, [hasMatchingDemo, partnership, replay]);
+  function playDemo() {
+    onLoadDemo();
+    setAnimation(0);
+    setReplay(value => value + 1);
+  }
   return <div className="space-y-6"><StepHeading title="Add the material we should review" description="Attach your own materials for review or replay the sample upload." action={<button type="button" onClick={playDemo} className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/45 bg-cyan-300/10 px-4 text-xs font-black text-cyan-100 hover:bg-cyan-300 hover:text-[#00132e]">{hasMatchingDemo ? "Replay demo upload" : "Load demo campaign assets"}</button>}/>
     <div className="relative min-h-56 overflow-hidden rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-6 text-center sm:p-8">
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-cyan-300/10 text-2xl text-cyan-200">⇩</div><strong className="mt-3 block text-lg">Sample campaign upload</strong><p className="mt-1 text-sm text-white/50">Images, video, logos, descriptions, specifications, media kits, or fulfillment documents</p>
@@ -522,6 +549,7 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
   const description = String(draft.values.preview_description ?? campaign.body);
   const items = detailedItems?.map(item => item.title) ?? campaign.catalog ?? [headline];
   const selected = selectedItem === null ? null : detailedItems?.[selectedItem];
+  const proposedCapacity = Number(/^\s*(?:up to\s+)?([\d,]+)/i.exec(String(draft.values.quantity ?? ""))?.[1].replaceAll(",", ""));
   const modalOpen = selectedItem !== null || editor !== null;
 
   function close() { setSelectedItem(null); setEditor(null); }
@@ -565,7 +593,7 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
         setSelectedItem(index);
       }} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30">
         {picture(index, "h-36 rounded-lg")}
-        <div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div>
+        <div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">{detailedItems?.[index]?.capacity || proposedCapacity ? `${(detailedItems?.[index]?.capacity || proposedCapacity).toLocaleString("en-US")} capacity` : "Capacity pending"}</span></div>
         <h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{title}</h3>
         <div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{detailedItems ? "$" + detailedItems[index].value : campaign.value} value</span><strong>Enter for {formatUsdFromCents(Math.round((detailedItems?.[index]?.entryPrice ?? 1) * 100))}</strong></div>
         <span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for {formatUsdFromCents(Math.round((detailedItems?.[index]?.entryPrice ?? 1) * 100))}</span>
@@ -706,14 +734,14 @@ function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
   }} onClick={event => { if (event.target === event.currentTarget) setEditorOpen(null); }} className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea ref={feedbackField} aria-label="Design feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
 }
 
-function ReviewStep({ partnership, demoCase, values, change, selectedTitle, mainProposal, missing }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void; selectedTitle: string; mainProposal: string; missing: string[] }) {
+function ReviewStep({ partnership, demoCase, values, change, selectedTitle, mainProposal, issues, onEditIssue }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void; selectedTitle: string; mainProposal: string; issues: ReturnType<typeof businessFieldIssues>; onEditIssue: (issue: ReturnType<typeof businessFieldIssues>[number]) => void }) {
   const hasDemo = Boolean(demoCase && demoPartnership[demoCase] === partnership);
   const activeDemo: DemoCase = hasDemo && demoCase ? demoCase : partnership;
   return <div className="space-y-6"><StepHeading title="Review and submit" description="Review the application and, for this walkthrough, see how the supplied material can become a campaign concept. Submission still requires Zero Loss review and does not publish or approve anything."/>
     {hasDemo && <><div className="rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-4 sm:p-6"><div className="mb-5"><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-200">Zero Loss listing preview</p><p className="mt-1 text-sm text-white/55">Click a listing to inspect the customer-facing detail view.</p></div><CampaignPreview partnership={activeDemo}/></div><div className="rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-4 sm:p-6"><p className="text-xs font-black uppercase tracking-[.18em] text-[#72ff4e]">Partner print kit</p><h3 className="mt-2 text-xl font-black">Review, revise, and download</h3><p className="mt-2 text-sm leading-6 text-white/55">Both designs preserve the partner-uploaded imagery by default. Three included redesign requests can create an alternate treatment.</p><PrintKitPreviews partnership={activeDemo}/><p className="mt-5 text-[11px] leading-5 text-orange-100/65">Demo artwork only. QR destination, eligibility language, dates, rules, and final claims require approval before publication.</p></div></>}
     {!hasDemo && <p className="rounded-xl border border-cyan-300/25 bg-[#001b3d] p-4 text-sm text-white/65">Add demo campaign assets in Step 4 to generate the matching printable concept here.</p>}
     <dl className="grid gap-3 sm:grid-cols-2">{[["Business",String(values.business_name || "Not provided")],["Partnership",selectedTitle],["Main proposal",mainProposal],["Listings requested",String(values.listing_count || "1")],["Publishing frequency",String(values.recurrence || values.relationship || "One time")],["Release limit",String(values.recurrence_limit || "1")],["Automatic relisting",values.auto_relist ? "Requested — separate billing authorization required" : "No"],["Fulfillment",String(values.fulfillment_owner || "Not provided")],["Demo assets",hasDemo ? `${demoCampaigns[activeDemo].filenames.length} original images` : "None"]].map(([label,value]) => <div key={label} className="rounded-xl bg-[#001b3d] p-4"><dt className="text-xs text-white/45">{label}</dt><dd className="mt-1 break-words text-sm text-white">{value}</dd></div>)}</dl>
-    {missing.length ? <div role="alert" className="rounded-xl border border-[#ff8a45]/35 bg-[#ff8a45]/10 p-4"><strong className="text-orange-100">Missing required information</strong><p className="mt-1 text-sm text-white/65">{missing.join(", ")}</p></div> : <p className="rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-4 text-sm font-bold text-[#9bff83]">All required preview information is complete.</p>}
+    {issues.length ? <div className="rounded-xl border border-[#ff8a45]/35 bg-[#ff8a45]/10 p-4"><strong role="status" className="text-orange-100">Missing required information</strong><ul className="mt-1 text-sm text-white/85">{issues.map(issue => <li key={issue.message}><button type="button" className="py-2 text-left underline" onClick={() => onEditIssue(issue)}>{issue.message} →</button></li>)}</ul></div> : <p className="rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-4 text-sm font-bold text-[#9bff83]">All required preview information is complete.</p>}
     <label className="flex gap-3 text-sm font-bold leading-6 text-white/85"><input type="checkbox" name="submit_authority" checked={Boolean(values.submit_authority)} onChange={change} className="mt-1 accent-[#31e800]"/>I am authorized to submit this information and the supplied materials for review.</label>
   </div>;
 }
@@ -724,6 +752,7 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   const [selected, setSelected] = useState(0);
   const [addedMessage, setAddedMessage] = useState("");
   const listing = listings[selected];
+  const [retailDraft, setRetailDraft] = useState<{ listing: string | undefined; text: string } | null>(null);
   const [specificationDraft, setSpecificationDraft] = useState<{ listing: number; text: string } | null>(null);
   const specifications = specificationDraft?.listing === selected ? specificationDraft.text
     : listing?.specifications.map(([label, value]) => label + ": " + value).join("\n") ?? "";
@@ -767,7 +796,12 @@ function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
   }
   return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} data-listing-index={index} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div>
     <button type="button" onClick={removeProduct} disabled={listings.length <= 1} className="mt-3 rounded-lg border border-orange-300/45 px-3 py-2 text-sm font-bold text-orange-100 disabled:opacity-40">Remove listing</button>
-    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => updateAmount("value", Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={specifications} onBlur={() => setSpecificationDraft(null)} onChange={event => changeSpecifications(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" min="0.01" step="0.01" value={retailDraft?.listing === listing.id && retailDraft ? retailDraft.text : listing.value} onBlur={() => setRetailDraft(null)} onChange={event => {
+      const text = event.target.value;
+      const value = event.target.valueAsNumber;
+      setRetailDraft({ listing: listing.id, text });
+      if (Number.isFinite(value) && value > 0 && event.target.validity.valid) updateAmount("value", value);
+    }} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => updateAmount("capacity", Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={specifications} onBlur={() => setSpecificationDraft(null)} onChange={event => changeSpecifications(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
 }
 
 function countEditedListings(draft: BusinessDraft, change: number): FormValues {

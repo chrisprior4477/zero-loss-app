@@ -33,6 +33,9 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const query = await searchParams;
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && query.viewed ? `#${openEntriesAnchorId}` : "")));
   const filter = activityFilter(query.filter);
+  if (query.filter !== undefined && query.filter !== filter) {
+    redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined }));
+  }
   const transactionReturn = transactionOriginHref(query);
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;

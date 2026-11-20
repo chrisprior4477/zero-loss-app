@@ -44,6 +44,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
+  const invalidPanel = history && query.panel !== undefined && !["transactions", "deposits", "funding", "methods", "card"].some(panel => panel === query.panel);
+  if (invalidPanel) {
+    const hasExactDestination = Boolean(query.transaction || query.deposit || query.from || query.weeklyDeposit);
+    redirect(accountPageReturnPath("/account/wallet", { ...query, panel: undefined, landing: hasExactDestination ? undefined : "balance" }, hasExactDestination ? "" : "#balance"));
+  }
   const recoveryKey = history && typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : undefined;
   const weeklyDeposit = history && typeof query.weeklyDeposit === "string" && depositRequestKeyPattern.test(query.weeklyDeposit) ? query.weeklyDeposit : undefined;
   const depositRow = history && !recoveryKey && query.panel === "deposits" && typeof query.depositRow === "string" && depositRequestKeyPattern.test(query.depositRow) ? query.depositRow : undefined;

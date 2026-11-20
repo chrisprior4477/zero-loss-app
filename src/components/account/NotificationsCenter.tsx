@@ -10,6 +10,7 @@ import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountAc
 import { accountRoutes } from "@/lib/account/navigation";
 import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import { StatusTicket } from "./StatusTicket";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { NotificationsLandingScroll } from "./NotificationsLandingScroll";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { FavoriteAlertEmailPreference } from "./FavoriteAlertEmailPreference";
@@ -77,6 +78,16 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const [crewFeedback, setCrewFeedback] = useState<Record<string, CrewRequestFeedback>>({});
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
+  const crewTrigger = useRef<HTMLButtonElement | null>(null);
+  const crewNotice = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (responding || !crewMessage || !crewTrigger.current) return;
+    const trigger = crewTrigger.current;
+    crewTrigger.current = null;
+    if (document.activeElement !== document.body && document.activeElement !== trigger) return;
+    crewNotice.current?.focus({ preventScroll: true });
+    if (crewNotice.current) revealBelowHeader(crewNotice.current);
+  }, [responding, crewMessage]);
   const [readMessage, setReadMessage] = useState("");
   const [readMessageLocation, setReadMessageLocation] = useState<"top" | "bottom">("top");
   const readTrigger = useRef<HTMLButtonElement | null>(null);
@@ -84,9 +95,10 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     if (savingRead || !readMessage || !readTrigger.current) return;
     const trigger = readTrigger.current;
     readTrigger.current = null;
-    if (!trigger.isConnected || (document.activeElement !== document.body && document.activeElement !== trigger)) return;
-    trigger.focus({ preventScroll: true });
-    revealBelowHeader(trigger);
+    if (document.activeElement !== document.body && document.activeElement !== trigger) return;
+    const target = trigger.isConnected && !trigger.disabled ? trigger : headingRef.current?.querySelector("h1");
+    target?.focus({ preventScroll: true });
+    if (target) revealBelowHeader(target);
   }, [readMessage, savingRead]);
   const failedReadKey = userId ? `zero-loss-notification-read-retry:${userId}` : null;
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
@@ -328,7 +340,8 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
     return () => { active = false; };
   }, [failedReadKey, readAvailable]);
 
-  function updateCrewRequest(id: string, accept?: boolean) {
+  function updateCrewRequest(id: string, trigger: HTMLButtonElement, accept?: boolean) {
+    crewTrigger.current = trigger;
     setCrewMessage("");
     startTransition(async () => {
       let feedback: CrewRequestFeedback;
@@ -386,7 +399,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
           return next;
         });
         setReadMessage(message);
-      } else readTrigger.current = null;
+      } else setReadMessage("All notifications marked as read.");
     });
   }
 
@@ -448,7 +461,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
       {focusedNotice && noticeIndex < 0 ? <div ref={noticeFallback} tabIndex={-1} role="status" className={styles.sourceWarning}>
         {movedNotice ? <>This update is outside the selected filter. <Link href={notificationHref(movedNotice.category, movedNotice.id)}>Open this update in {filters.find(([key]) => key === movedNotice.category)?.[1]}</Link></> : incompleteFeed ? "We couldn’t verify this update right now. Try refreshing this page." : "This update is no longer available. Your current updates are below."}
       </div> : null}
-      {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
+      {crewMessage ? <p ref={crewNotice} tabIndex={-1} role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage && readMessageLocation === "top" ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
       {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
@@ -478,9 +491,9 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
               }}>
               {requestId && feedback?.state !== "resolved" ? <>
                 <div className={styles.crewActions}>
-                  {feedback?.state === "unconfirmed" ? <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId)}>Check request status</button> : <>
-                    <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId, true)}>Approve</button>
-                    <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId, false)}>Decline</button>
+                  {feedback?.state === "unconfirmed" ? <button type="button" disabled={responding} onClick={event => updateCrewRequest(requestId, event.currentTarget)}>Check request status</button> : <>
+                    <button type="button" disabled={responding} onClick={event => updateCrewRequest(requestId, event.currentTarget, true)}>Approve</button>
+                    <button type="button" disabled={responding} onClick={event => updateCrewRequest(requestId, event.currentTarget, false)}>Decline</button>
                   </>}
                 </div>
                 {feedback ? <p role={feedback.state === "unconfirmed" ? "alert" : "status"} className={styles.body}>{feedback.message}</p> : null}
@@ -493,7 +506,6 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
               updateBookmark({ start: batches.end }); batches.more();
             }}>See more updates ({batches.remaining} remaining)</button>}
             <button type="button" onClick={event => markAllRead(event.currentTarget, "bottom")} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>
-            {readMessage && readMessageLocation === "bottom" && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
             {(batches.expanded || batches.size > groupsPerPage) && <button type="button" aria-controls="notification-tickets" aria-expanded onClick={() => {
               if (focusedNotice) clearExactNotice();
               updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });
@@ -502,8 +514,10 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
               listRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
             }}>Close</button>}
           </div>}
+          {readMessage && readMessageLocation === "bottom" && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
         </section>
       </div>
+      <AccountSettingsLandingScroll target="alert-settings" focusTarget="in-app-alert-heading" allScreens restrictToTargetHash />
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
         <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>

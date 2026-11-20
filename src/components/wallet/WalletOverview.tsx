@@ -12,6 +12,7 @@ import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
 import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { WalletHistoryLandingScroll } from "./WalletLandingScroll";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { PurchaseDepositRecovery } from "./PurchaseDepositRecovery";
@@ -75,7 +76,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <div className={styles.page}>
-    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={landOnBalance || (!recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable)} />
+    {landOnBalance ? <AccountSettingsLandingScroll target="balance" initialTarget="balance" focusTarget="balance" settleAfterNavigation allScreens /> : null}
+    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={!landOnBalance && !recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="#balance" actionHref={canFund ? addFundsHref : undefined} actionDisabled={!canFund} />

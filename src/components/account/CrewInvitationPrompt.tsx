@@ -24,7 +24,7 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const id = useId();
-  useDialogBack(open, close, busy, true);
+  const releasePromptHistory = useDialogBack(open, close, busy, true);
   useEffect(() => {
     if (!open || !dialog.current) return;
     const element = dialog.current;
@@ -36,14 +36,13 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   function close() {
     if (pending.current) return;
     setOpen(false);
-    if (request?.status !== "pending" || result?.ok) {
-      const url = new URL(window.location.href);
-      const requestId = url.searchParams.get("request");
-      if (requestId && (!request || requestId === request.id)) {
-        url.searchParams.delete("request");
-        if (url.hash === `#crew-request-${requestId}`) url.hash = "";
-        window.history.replaceState(window.history.state, "", url);
-      }
+    const url = new URL(window.location.href);
+    const requestId = url.searchParams.get("request");
+    if (requestId && (!request || requestId === request.id)) {
+      releasePromptHistory(true);
+      url.searchParams.delete("request");
+      if (url.hash === `#crew-request-${requestId}`) url.hash = "";
+      window.history.replaceState(window.history.state, "", url);
     }
     if (result?.ok) router.refresh();
   }

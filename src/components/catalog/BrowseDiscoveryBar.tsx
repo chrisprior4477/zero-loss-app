@@ -234,7 +234,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       url.searchParams.set("category", "ending-soon");
       url.searchParams.set("sort", props.filters.sort);
     }
-    if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
+    if (search.trim()) url.searchParams.set("q", search.trim());
     return `${url.pathname}${url.search}#search-results`;
   }
   function choosePrizeCategory(value: string) {

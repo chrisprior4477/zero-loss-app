@@ -1,5 +1,5 @@
 .control { display: flex; min-width: 0; align-items: center; gap: 10px; }
-.trigger { min-height: 42px; padding: 8px 15px; border: 1px solid #ff9b4d; border-radius: 11px; background: #ff6500; color: #fff; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.trigger { min-height: 42px; padding: 8px 15px; border: 1px solid #ff9b4d; border-radius: 11px; background: #ff6500; color: #331501; font-size: 13px; font-weight: 800; white-space: nowrap; }
 .trigger:disabled { opacity: .6; cursor: wait; }
 .notice { max-width: 260px; color: #b9e8fa; font-size: 12px; line-height: 1.35; }
 .dialog { width: min(92vw, 510px); max-height: min(90vh, 740px); padding: 25px; overflow: auto; border: 1px solid #44dfff; border-radius: 20px; background: #061c3c; color: #fff; box-shadow: 0 25px 80px #00112ccc; }
@@ -12,7 +12,7 @@
 .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .actions button { min-height: 44px; padding: 9px 15px; border-radius: 10px; font-size: 14px; font-weight: 800; }
 .cancel { border: 1px solid #6d98b8; color: #fff; }
-.confirm { background: #ff6500; color: #fff; }
+.confirm { background: #ff6500; color: #331501; }
 .actions button:disabled { opacity: .6; }
 .trigger:focus-visible, .actions button:focus-visible { outline: 3px solid #7be9ff; outline-offset: 3px; }
 @media (max-width: 600px) {

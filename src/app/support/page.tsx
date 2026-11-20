@@ -1,3 +1,4 @@
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { supportMessageAnchor, supportRewardReturn } from "@/lib/support/references";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -167,7 +168,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const navigation = <nav aria-label="Support navigation" className={styles.navigation}><a className={button} data-tone="support" href={`/support${!inbox && casePage ? `?page=${casePage + 1}` : ""}#case-list`}>My support cases</a><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
   if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (query.deposit !== undefined && !validDeposit) ||
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
-    (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
+    (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}
+      <AccountSettingsLandingScroll target={query.case !== undefined ? "conversation" : "report-problem"} initialTarget={query.case !== undefined ? "conversation" : "report-problem"} focusTarget="support-view-unavailable" allScreens />
+      <section id={query.case !== undefined ? "conversation" : "report-problem"} className={`${card} ${styles.anchor}`}>
+        <h2 id="support-view-unavailable" tabIndex={-1}><span role="alert">That support view is not available for your account.</span></h2>
+        <Link className={button} href="/support#case-list">Return to My support cases</Link>
+      </section>
+    </PageContainer>;
   if (validCase) {
     const lookup = await Promise.resolve(db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle())
       .then(result => ({ result }), () => ({ result: null }));

@@ -76,7 +76,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     const previous = attachedPage.current;
     const same = record && previous?.id === record.id && previous.kind === record.kind;
     focusRecordId.current = record?.id ?? null;
-    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record), same ? undefined : record?.id);
+    void load(record?.kind ?? "order", same ? previous.page : 0, Boolean(record), record?.id);
   }
 
   return <div className={styles.attachment}>

@@ -102,6 +102,10 @@ export default async function LiveAccountSection({
       ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
       : walletTransactionHelpHref;
     const filter = fulfillmentFilter(query?.filter);
+    if (query?.filter !== undefined && query.filter !== filter) {
+      const anchor = selectedOrderNumber ? `#order-${selectedOrderNumber}` : selectedRewardId ? "#fulfillment-records" : "";
+      redirect(accountPageReturnPath("/account/orders", { ...query, filter: undefined }, anchor));
+    }
     const fromNotification = Boolean((selectedOrderNumber || selectedRewardId) && query?.from === "notifications");
     const alerts = fromNotification ? query?.alerts === undefined ? selectedOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts) : undefined;
     const notice = fromNotification && validNotice(query?.notice) ? query.notice : undefined;

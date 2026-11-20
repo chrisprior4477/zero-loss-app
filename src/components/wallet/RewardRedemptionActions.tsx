@@ -65,6 +65,7 @@ export function RewardRedemptionActions({
         {appleWalletUrl ? <a href={appleWalletUrl} aria-label="Add to Apple Wallet" className={`${walletButton} bg-black text-white`}>{appleLabel}</a> : <button type="button" disabled aria-label="Add to Apple Wallet" className={`${walletButton} bg-[#494949] text-white`}>{appleLabel}</button>}
         {googleWalletUrl ? <a href={googleWalletUrl} aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#182435]`}>{googleLabel}</a> : <button type="button" disabled aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#526171]`}>{googleLabel}</button>}
       </div>
+      {Boolean(appleWalletUrl) !== Boolean(googleWalletUrl) ? <p className="mt-2 text-center text-xs text-[#4a667c]">{appleWalletUrl ? "Google" : "Apple"} Wallet is unavailable for this reward.</p> : null}
       {remainingOffers && <Link href={`/account/purchase-options/${encodeURIComponent(remainingOffers.slug)}`} prefetch={false}
         className="mt-2 block w-full rounded-xl bg-[#ff861c] px-3 py-2.5 text-center text-sm font-black leading-6 text-[#061630] hover:bg-[#ff9a42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075b8c]">
         View your remaining{" "}

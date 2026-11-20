@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { blankDraft, guestDraftKey, readDeviceDraft, type BusinessDraft, type BusinessRecord } from "@/lib/business/application";
+import { blankDraft, guestDraftKey, readDeviceDraft, type BusinessDraft, type BusinessFile, type BusinessRecord } from "@/lib/business/application";
 import { readBusinessApplication, saveBusinessApplication } from "@/lib/business/actions";
 import { releaseMaterials, uploadMaterials } from "@/lib/business/materials";
 import { recoverBusinessDraft } from "@/lib/business/recover-draft";
@@ -28,6 +28,40 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
   const locked = useRef(submitted);
   const conflict = useRef(false);
   const latestDraft = useRef(draft);
+  const removedMaterials = useRef(new Map<string, BusinessFile>());
+  const protectedDrafts = useRef<BusinessDraft[]>([]);
+  const referencedIds = [...new Set([draft, savedDraft, guestDraft, recoveredDraft].flatMap(candidate => candidate?.files.map(file => file.id) ?? []))].sort().join(',');
+  useLayoutEffect(() => {
+    protectedDrafts.current = [draft, savedDraft, guestDraft, recoveredDraft].filter((candidate): candidate is BusinessDraft => candidate !== null);
+  }, [draft, savedDraft, guestDraft, recoveredDraft]);
+  useLayoutEffect(() => {
+    if (!referencedIds || !navigator.locks) return;
+    const controller = new AbortController();
+    const releases: (() => void)[] = [];
+    for (const id of referencedIds.split(',')) {
+      void navigator.locks.request(`zero-loss-business-material:${id}`, { mode: 'shared', signal: controller.signal }, () =>
+        new Promise<void>(resolve => releases.push(resolve))).catch(() => undefined);
+    }
+    return () => {
+      controller.abort();
+      releases.forEach(release => release());
+    };
+  }, [referencedIds]);
+  useEffect(() => {
+    if (!navigator.locks) return;
+    for (const [id, file] of removedMaterials.current) {
+      if (protectedDrafts.current.some(candidate => candidate.files.some(item => item.id === id))) continue;
+      removedMaterials.current.delete(id);
+      void navigator.locks.request(`zero-loss-business-material:${id}`, async () => {
+        const device = localStorage.getItem(guestDraftKey);
+        const deviceDraft = device ? readDeviceDraft(device) : null;
+        if ((device && !deviceDraft) || deviceDraft?.files.some(item => item.id === id)
+          || protectedDrafts.current.some(candidate => candidate.files.some(item => item.id === id))) return;
+        await releaseMaterials([file]);
+      }).catch(() => undefined);
+    }
+  }, [savedDraft]);
+  function discardMaterial(file: BusinessFile) { removedMaterials.current.set(file.id, file); }
   useLayoutEffect(() => { latestDraft.current = draft; }, [draft]);
   const initialRead = useRef(false);
   useEffect(() => {
@@ -243,5 +277,5 @@ export function useBusinessApplication(owner: string | null, record: BusinessRec
     return !submitted && draft !== lastSaved.current;
   }
   const status = savedDraft !== draft && message.startsWith("Draft saved") ? "Unsaved changes." : message;
-  return { draft, setDraft, initialized, saving, submitted, hasUnsavedChanges, message: status, setMessage, save, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields };
+  return { draft, setDraft, initialized, saving, submitted, hasUnsavedChanges, message: status, setMessage, save, discardMaterial, guestDraft, importGuest, dismissGuest: () => setGuestDraft(null), recoveredDraft, reviewRecoveredDraft, discardRecoveredDraft, conflictPending, retryConflict, conflictingFields };
 }
