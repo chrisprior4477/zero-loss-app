@@ -1,6 +1,9 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { requestBrowseResultsFocus, SearchResultsAutoScroll } from "./SearchResultsAutoScroll";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+
 beforeEach(() => {
   window.history.replaceState(null, "", "/browse");
   vi.useFakeTimers();

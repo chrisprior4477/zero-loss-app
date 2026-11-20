@@ -45,7 +45,12 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
       }
       setTarget({ value, kind }); return;
     }
-    if (value.length < 3) { setInvalid(true); setMessage("Enter at least three letters, an email, or a phone number."); return; }
+    if (value.length < 3) {
+      setInvalid(true);
+      setMessage("Enter at least three letters, an email, or a phone number.");
+      queryField.current?.focus();
+      return;
+    }
     setBusy(true);
     try {
       const result = await searchCrewByName(value);

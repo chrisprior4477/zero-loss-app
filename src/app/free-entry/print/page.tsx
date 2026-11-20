@@ -41,6 +41,7 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   if (!product) redirect(freeEntryHref(params.offering, params.from, parseEntryQuantity(params.quantity), params.share));
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;
   const instructions = freeEntryHref(product.slug, params.from, quantity, params.offering === product.slug ? params.share : undefined);
+  if (params.quantity !== undefined && quantity === null) redirect(`${instructions}&quantity=invalid#free-entry-intro`);
   if (params.name !== undefined || params.account !== undefined || params.reference !== undefined) {
     redirect(`${instructions}#free-entry-intro`);
   }

@@ -155,16 +155,15 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const selectedEntryId = chosen[0]?.entryId;
   const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
   const rememberSelectionFor = (href: string) => {
-    rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
-    freezeHandoff();
+    rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff });
   };
   const rememberSelection = () => rememberSelectionFor(walletHref);
   const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
   useLayoutEffect(() => {
     const href = handoffId ? purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId) : null;
-    setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview } : null);
+    setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff } : null);
     return () => setWalletFundingContext(null);
-  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview, handoffId]);
+  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview, handoffId, freezeHandoff]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
   if (lastServerBalance !== initialBalance) {
     setLastServerBalance(initialBalance);
@@ -203,7 +202,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       const query = new URLSearchParams(window.location.search);
       if (query.get("resume") !== "wallet") return;
       const draft = JSON.parse(sessionStorage.getItem(extraDraftKey) ?? "null");
-      if (!draft || draft.choice !== (query.get("choice") ?? "") || draft.checkout !== checkoutDetails
+      if (!draft || draft.choice !== (query.get("choice")?.toLowerCase() ?? "") || draft.checkout !== checkoutDetails
         || typeof draft.savedAt !== "number" || draft.savedAt > Date.now() || Date.now() - draft.savedAt > 86_400_000
         || typeof draft.extra !== "string" || !/^\d+$/.test(draft.extra)) return;
       // This restores an unsubmitted amount. The current shortfall and the user's approval remain separate.
@@ -221,7 +220,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     setExtra(next);
     setAcknowledged(false);
     const query = new URLSearchParams(window.location.search);
-    if (query.get("resume") === "wallet") keepExtra(next, query.get("choice") ?? "", savedAt);
+    if (query.get("resume") === "wallet") keepExtra(next, query.get("choice")?.toLowerCase() ?? "", savedAt);
   }
   const [approvedDeposit, setApprovedDeposit] = useState<string | null>(null);
   const depositApproved = acknowledged && approvedDeposit === depositDetails;

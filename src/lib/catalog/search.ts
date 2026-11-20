@@ -13,13 +13,13 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
-  const { text, values, budget, exactOnly, merchant, conflictingBudget, entryPrice, excludedValue } = denomination;
+  const { text, values, budget, exactOnly, merchant, conflictingBudget, entryPrice, excludedValues } = denomination;
   if (conflictingBudget) return [];
   const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:any\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
-  const retailerExclusion = /(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?$/i.exec(query);
+  const retailerExclusion = /(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|excluding|except(?: for)?|without|not)\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
     const suffix = retailerExclusion[1];
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
@@ -46,7 +46,7 @@ export function searchCatalogMatches(
   }
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
-  if ((!tokens.length && !values.size && !budget && entryPrice === null && excludedValue === null) || tokens.length > maxCatalogSearchTerms) return [];
+  if ((!tokens.length && !values.size && !budget && entryPrice === null && !excludedValues.size) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
   const television = tokens.includes("tv") || tokens.includes("television");
   const accessoryQuery = television ? /\b(?:tv|television)s?\s+(?:(?:wall|table)\s+)?(stand|mount|remote|antenna)s?\b|\b(stand|mount|remote|antenna)s?\s+for\s+(?:(?:a|the)\s+)?(?:tv|television)s?\b/.exec(normalizedQuery) : null;
@@ -55,7 +55,7 @@ export function searchCatalogMatches(
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (entryPrice === null || product.entryPrice === entryPrice)
-    && (excludedValue === null || product.value !== excludedValue)
+    && !excludedValues.has(product.value)
     && (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
     && (budget?.minimum === undefined || (budget.exclusiveMinimum ? product.value > budget.minimum : product.value >= budget.minimum))
@@ -107,14 +107,17 @@ export function searchCatalogMatches(
 }
 
 function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
-  const hasOr = /\s+or\s+/i.test(query);
+  const hasOr = /\s+or\s+(?!equal\s+to\b)/i.test(query);
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (!hasOr && (!giftCards || !/\s+and\s+/i.test(query))) return null;
-  const clauses = query.split(hasOr ? /\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+/i : /\s+and\s+/i);
+  const clauses = query.split(hasOr ? /\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+(?!equal\s+to\b)/i : /\s+and\s+/i);
   const parts = clauses.map(clause => {
     const parsed = searchDenominations(clause.trim(), products);
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(parsed.text, products) };
   });
+  if (hasOr && parts.every(part => part.budget) && parts[0].text && parts.slice(1).every(part => !part.text)) {
+    return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant }));
+  }
   if (!hasOr && !parts.every(part => part.merchant && part.values.size === 1)) return null;
   if (denomination.budget && !parts.some(part => part.budget)) return null;
   const merchants = new Set(parts.flatMap(part => part.merchant ? [part.merchant] : []));

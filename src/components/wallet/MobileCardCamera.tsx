@@ -42,6 +42,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const captureHeading = useRef<HTMLHeadingElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const guide = useRef<HTMLDivElement>(null);
@@ -116,6 +117,9 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     trigger.current?.focus({ preventScroll: true });
   }
   useDialogBack(open, close, saving, true, true);
+  useEffect(() => {
+    if (open && (front || artwork)) captureHeading.current?.focus();
+  }, [open, front, artwork]);
   function acceptColors(colors: number[]) {
     if (front) { setArtwork([...front, ...colors] as Artwork); stopCamera(); }
     else setFront(colors);
@@ -156,14 +160,15 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     } catch { setError("The card could not be saved. Your preview is still here—please try again."); }
     finally { savingRef.current = false; setSaving(false); }
   }
+  const cameraLabel = savedCard ? `Use camera to update ${demoCardFixture(token)?.issuer ?? "sample card"} ending ${savedCard.lastFour}` : "Use camera";
   return <>
-    <button type="button" ref={trigger} className={styles.trigger} disabled={disabled || saving} aria-label="Use camera" onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); setOpen(true); void startCamera(); }}>
+    <button type="button" ref={trigger} className={styles.trigger} disabled={disabled || saving} aria-label={cameraLabel} title={cameraLabel} onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); setOpen(true); void startCamera(); }}>
       <span className={styles.camera} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5 9.5 3h5L16 5h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /><circle cx="12" cy="13" r="4" /></svg></span><span className={styles.label} aria-hidden="true">Use camera</span>
     </button>
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-label="Sample card camera" onCancel={event => { event.preventDefault(); close(); }}>
       <button type="button" className={styles.close} disabled={saving} aria-label="Close camera" onClick={close}>×</button>
       <p className={styles.eyebrow}>SAMPLE CARD CAMERA</p>
-      <h2>{artwork ? "Your sample card" : front ? "Now capture the back" : "Capture the front"}</h2>
+      <h2 ref={captureHeading} tabIndex={-1}>{artwork ? "Your sample card" : front ? "Now capture the back" : "Capture the front"}</h2>
       {savedCard ? <p><strong>This updates your saved {demoCardFixture(cameraToken)?.issuer} •••• {demoCardFixture(cameraToken)?.lastFour}.</strong> No additional card is added.</p> : null}
       <p>{artwork ? "We recreated the colors with fake details. The original photos are discarded." : front ? "Front captured. Flip your pretend card over and line up the back." : "Use any pretend card—even one drawn on paper. No real bank card needed. Allow camera access when your phone asks."}</p>
       {artwork ? <><p className={styles.issuer}><strong>{demoCardFixture(cameraToken)?.issuer} •••• {demoCardFixture(cameraToken)?.lastFour}</strong></p><DemoCardArtwork token={cameraToken} artwork={artwork} back={back} cardholder={displayName} /><button type="button" className={styles.flip} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></> : <>

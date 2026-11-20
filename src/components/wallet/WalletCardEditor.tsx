@@ -47,9 +47,13 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const codeInput = useRef<HTMLInputElement>(null);
   const validationId = useId();
   const editorUrl = useRef<string | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   useLayoutEffect(() => {
     editorUrl.current = window.location.href;
-    return () => { editorUrl.current = null; };
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === document.body) heading.current?.focus({ preventScroll: true });
+    });
+    return () => { cancelAnimationFrame(frame); editorUrl.current = null; };
   }, []);
   const [cardholder, setCardholder] = useState(displayName);
   const [number, setNumber] = useState(fixture.number as string);
@@ -93,8 +97,13 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   }, { status: "idle" });
   const updated = showSaveResult && !pending && state.status === "succeeded" && Boolean(savedCard);
 
-  return <section id={depositLabel ? fundingCardEditorId : "wallet-card-editor"} className={styles.editor} aria-labelledby="wallet-card-editor-title">
-    <h3 id="wallet-card-editor-title" tabIndex={-1}>{savedCard ? "Edit card" : "Add a card"}</h3>
+  return <section id={depositLabel ? fundingCardEditorId : "wallet-card-editor"} className={styles.editor} aria-labelledby="wallet-card-editor-title" onKeyDown={event => {
+    if (event.key !== "Escape" || event.defaultPrevented || pending || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onCancel();
+  }}>
+    <h3 ref={heading} id="wallet-card-editor-title" tabIndex={-1}>{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       {!savedCard || onAddCard ? <button type="button" className={styles.primary} disabled={disabled || pending} onClick={onAddCard ?? (() => nameInput.current?.focus())}>Add Card</button> : null}

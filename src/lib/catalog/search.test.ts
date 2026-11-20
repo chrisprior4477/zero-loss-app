@@ -26,6 +26,28 @@ describe("catalog search", () => {
     expect(searchCatalog(demoProducts, query).map(product => product.slug)).toEqual(["amazon-25-gift-card"]);
   });
 
+  test.each([
+    ["gift cards less than or equal to $50", [25, 50]],
+    ["gift cards greater than or equal to $75", [75, 100]],
+    ["gift cards at least $50, up to $75", [50, 75]],
+    ["gift cards under $75 and under $50", [25]],
+    ["gift cards $25 through 75 dollars", [25, 50, 75]],
+    ["gift cards between $25 and $50 inclusive", [25, 50]],
+    ["gift cards $75 not $50 and not $100", [75]],
+    ["gift cards less than $50 or over $75", [25, 100]],
+    ["gift cards with $1.00/entry", [25, 50, 75, 100]],
+    ["gift cards $75 and under please", [25, 50, 75]],
+  ] as const)("keeps the intended gift card values for %s", (query, expected) => {
+    const cards = demoProducts.filter(product => /^(?:amazon|walmart)-(?:25|50|75|100)-gift-card$/.test(product.slug));
+    expect([...new Set(searchCatalog(cards, query).map(product => product.value))].sort((a, b) => a - b)).toEqual(expected);
+  });
+
+  test("recognizes an explicit retailer exclusion in natural wording", () => {
+    const matches = searchCatalog(demoProducts, "gift cards from retailers other than Walmart");
+    expect(matches.some(product => product.slug === "amazon-75-gift-card")).toBe(true);
+    expect(matches.some(product => product.retailer.startsWith("Walmart"))).toBe(false);
+  });
+
   test("accepts thru in an inclusive gift-card price range", () => {
     expect(searchCatalog(demoProducts, "Walmart gift cards from $25 thru $75").map(product => product.value).sort()).toEqual([25, 50, 75]);
   });

@@ -2,7 +2,7 @@ import { fundingHref } from "./funding-navigation";
 import { useEffect, useSyncExternalStore } from "react";
 
 // Navigation context only. Ownership, price and payment are verified on the server.
-type PurchaseFundingContext = { href: string; slug: string; selected: string[]; decline: boolean; ownerId?: string; available?: string[]; needsReview?: boolean };
+type PurchaseFundingContext = { href: string; slug: string; selected: string[]; decline: boolean; ownerId?: string; available?: string[]; needsReview?: boolean; freezeSelection?: () => void };
 type WalletFundingContext = PurchaseFundingContext | { href: string; rememberEntry?: () => void };
 export const purchaseSelectionKey = "zero-loss-purchase-funding-selection";
 let current: WalletFundingContext | null = null;
@@ -46,6 +46,8 @@ export function rememberWalletSelection(context: WalletFundingContext) {
     context.rememberEntry?.();
     return;
   }
-  try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(context)); }
+  const { freezeSelection, ...draft } = context;
+  freezeSelection?.();
+  try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(draft)); }
   catch { /* The exact option still travels in the wallet URL. */ }
 }

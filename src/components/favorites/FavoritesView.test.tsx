@@ -77,6 +77,24 @@ test.each([share.token, null])("opening a saved share preserves its exact return
   expect(link.searchParams.get("from")).toBe(`/account/favorites?tab=shared&share=${share.id}`);
   expect(link.searchParams.get("share")).toBe(token);
 });
+test("a failed read for the previous share does not appear on the current share", async () => {
+  let finishFirstView!: (value: unknown) => void;
+  const second = { ...share, id: "33333333-3333-4333-8333-333333333333", slug: "airpods-pro" };
+  mocks.state.mockImplementation(id => id === share.id
+    ? new Promise(resolve => { finishFirstView = resolve; })
+    : Promise.resolve({ ok: true, viewedAt: "today", declinedAt: null }));
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
+  show({ initialTab: "shared", initialShares: [share, second] });
+  fireEvent.click(screen.getByRole("button", { name: /View PlayStation/ }));
+  fireEvent.click(screen.getByRole("tab", { name: "Your Favorites 1" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Shared with You 2" }));
+  fireEvent.click(screen.getByRole("button", { name: /View Apple AirPods/ }));
+
+  await act(async () => finishFirstView({ ok: false, message: "The first share could not be marked as viewed." }));
+  expect(new URLSearchParams(window.location.search).get("share")).toBe(second.id);
+  expect(screen.queryByText("The first share could not be marked as viewed.")).toBeNull();
+});
+
 test("a late viewed response cannot erase a completed decline", async () => {
   window.history.replaceState({}, "", "/account/favorites?tab=shared");
   let finishView!: (value: unknown) => void;

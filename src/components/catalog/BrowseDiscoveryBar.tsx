@@ -258,7 +258,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function applySearch(value: string, restoreSearch = false) {
     const destination = searchDestination(value);
-    if (restoreSearch) requestBrowseResultsFocus(destination, "top-search");
+    if (restoreSearch || value.trim()) requestBrowseResultsFocus(destination, restoreSearch ? "top-search" : "heading");
     if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {

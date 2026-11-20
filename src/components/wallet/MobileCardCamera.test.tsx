@@ -33,7 +33,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.resetAllMocks(); });
 
 async function captureBoth(index = 0) {
-  fireEvent.click(screen.getAllByRole("button", { name: "Use camera" })[index]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Use camera\b/ })[index]);
   const dialog = screen.getByRole("dialog", { name: "Sample card camera" });
   await waitFor(() => expect(within(dialog).getByRole("button", { name: "Take front photo" })).toBeTruthy());
   expect(within(dialog).getByText(/even one drawn on paper/)).toBeTruthy();

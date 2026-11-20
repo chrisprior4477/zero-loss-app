@@ -25,7 +25,7 @@ function timeLeft(remaining: number) {
     const hours = Math.floor(remaining / hourMs);
     return hours === 0 ? "Less than 1 hour left" : `${hours} ${hours === 1 ? "hour" : "hours"} left`;
   }
-  const days = Math.max(1, Math.ceil(remaining / dayMs) - 1);
+  const days = Math.floor(remaining / dayMs);
   return `${days} ${days === 1 ? "day" : "days"} left`;
 }
 

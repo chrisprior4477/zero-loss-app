@@ -27,6 +27,14 @@ test("a missing posting timestamp cannot become a zero or a guessed week", () =>
   expect(partial.weeks[0].cents).toBe(BigInt(2000));
 });
 
+test("a posting timestamp after the report cutoff cannot become the latest receipt", () => {
+  const earlier = receipt("earlier", "2026-11-08T11:00:00Z", 100);
+  const later = receipt("later", "2026-11-08T13:00:00Z", 200);
+  const chart = getDepositWeeks([later, earlier], "2026-11-08T12:00:00Z", "America/New_York")!;
+  expect(chart.latest).toBe(earlier);
+  expect(chart.weeks[0].receipts).toEqual([earlier]);
+});
+
 test("lifetime funding totals can exceed a single safe integer; historical cents remain exact", () => {
   const max = BigInt(Number.MAX_SAFE_INTEGER);
   expect(formatDepositTotal(max + max)).toBe("$180,143,985,094,819.82");

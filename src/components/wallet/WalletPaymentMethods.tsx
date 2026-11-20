@@ -201,7 +201,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       {missingCard ? <p ref={missingCardNotice} tabIndex={-1} role="status">This saved card is no longer available. Choose a card from your payment methods.</p> : null}
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
-      {!availableToken && enabled && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}
+      {!availableToken && enabled && !unavailable ? <p className={styles.notice}><span>All five sample cards are saved. Choose a saved card to edit.</span>{" "}The camera here updates the {demoCardFixture(cameraToken)?.issuer} card ending {demoCardFixture(cameraToken)?.lastFour}.</p> : null}
         <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" id="wallet-add-card-trigger" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
       </div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
@@ -55,17 +56,35 @@ type ScrollProps = {
   invalidType?: boolean;
   normalizeAvailability?: boolean;
   availableOnly?: boolean;
+  invalidSubcategory?: boolean;
+  invalidGroceryIdea?: boolean;
+  duplicateSelectors?: boolean;
+  oldTailPrizes?: string[];
+  batchSize?: number;
 };
 
 export function SearchResultsAutoScroll({
   searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false,
   obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly,
+  invalidSubcategory, invalidGroceryIdea, duplicateSelectors, oldTailPrizes, batchSize = 24,
 }: ScrollProps) {
+  const router = useRouter();
   useLayoutEffect(() => {
-    if (window.location.pathname !== "/browse" || !(obsoleteBatch || invalidTicketRange || invalidType || normalizeAvailability)) return;
+    if (window.location.pathname !== "/browse" || !(obsoleteBatch || invalidTicketRange || invalidType || normalizeAvailability || invalidSubcategory || invalidGroceryIdea || duplicateSelectors)) return;
     const url = new URL(window.location.href);
+    const selected = url.hash.startsWith("#prize-") ? oldTailPrizes?.indexOf(url.hash.slice(7)) ?? -1 : -1;
+    const tail = oldTailPrizes && selected >= 0 ? Math.floor((oldTailPrizes.length - selected - 1) / batchSize) + 1 : null;
+    if (duplicateSelectors) for (const name of new Set(url.searchParams.keys())) {
+      if (url.searchParams.getAll(name).length > 1) url.searchParams.set(name, url.searchParams.get(name)!);
+    }
+    if (invalidSubcategory) url.searchParams.delete("subcategory");
+    if (invalidGroceryIdea) {
+      url.searchParams.delete("groceryIdea");
+      if (url.hash === "#more-groceries" && !document.getElementById("more-groceries")) url.hash = "#search-results";
+    }
     if (obsoleteBatch) {
-      if (normalizedBatch) url.searchParams.set("batch", normalizedBatch);
+      const nextBatch = tail === null ? normalizedBatch : oldTailPrizes!.length <= batchSize ? null : tail === 1 ? "last" : `last-${tail}`;
+      if (nextBatch) url.searchParams.set("batch", nextBatch);
       else url.searchParams.delete("batch");
     }
     if (invalidTicketRange) url.searchParams.delete("ticketsLeft");
@@ -74,8 +93,10 @@ export function SearchResultsAutoScroll({
       if (availableOnly) url.searchParams.set("available", "1");
       else url.searchParams.delete("available");
     }
-    if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url.href);
-  }, [mobileBrowseKey, obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly]);
+    if (url.href === window.location.href) return;
+    if (tail === null) window.history.replaceState(window.history.state, "", url.href);
+    else router.replace(url.pathname + url.search + url.hash, { scroll: false });
+  }, [mobileBrowseKey, obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly, invalidSubcategory, invalidGroceryIdea, duplicateSelectors, oldTailPrizes, batchSize, router]);
 
   useLayoutEffect(() => {
     let cancelled = false;
@@ -97,6 +118,7 @@ export function SearchResultsAutoScroll({
         }
       }
       const hashId = window.location.hash.slice(1);
+      if (oldTailPrizes?.includes(hashId.slice(6)) && !document.getElementById(hashId)) return;
       const missingPrize = /^prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(hashId) && !document.getElementById(hashId);
       if (missingPrize) window.history.replaceState(window.history.state, "", "#search-results");
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
@@ -150,6 +172,6 @@ export function SearchResultsAutoScroll({
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch]);
+  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch, oldTailPrizes]);
   return null;
 }

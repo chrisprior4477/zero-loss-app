@@ -7,6 +7,7 @@ test("wallet links identify immutable choices rather than the last choice from a
   const second = savePurchaseHandoff({ ...first, selected: ["2"], decline: true });
   expect(original).not.toBe(second);
   expect(JSON.parse(readPurchaseHandoff(original)!)).toMatchObject(first);
+  expect(readPurchaseHandoff(original.toUpperCase())).toEqual(readPurchaseHandoff(original));
   expect(JSON.parse(readPurchaseHandoff(second)!)).toMatchObject({ selected: ["2"], decline: true });
   vi.useFakeTimers();
   vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000);

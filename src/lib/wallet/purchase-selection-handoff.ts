@@ -4,7 +4,7 @@ const maxAge = 24 * 60 * 60 * 1000;
 export const purchaseChoicePattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 export function savePurchaseHandoff(draft: { ownerId: string; slug: string; available: string[]; selected: string[]; decline: boolean; needsReview: boolean }, editableId?: string): string {
-  const id = editableId ?? crypto.randomUUID();
+  const id = editableId?.toLowerCase() ?? crypto.randomUUID();
   try {
     // Expired drafts are disposable; no account or transaction records live here.
     for (let index = localStorage.length - 1; index >= 0; index--) {
@@ -23,7 +23,7 @@ export function savePurchaseHandoff(draft: { ownerId: string; slug: string; avai
 export function readPurchaseHandoff(id: string): string | null {
   if (!purchaseChoicePattern.test(id)) return null;
   try {
-    const raw = localStorage.getItem(prefix + id);
+    const raw = localStorage.getItem(prefix + id.toLowerCase());
     const saved = JSON.parse(raw ?? "null");
     if (!saved || typeof saved.savedAt !== "number" || !Number.isFinite(saved.savedAt)
       || saved.savedAt > Date.now() || Date.now() - saved.savedAt >= maxAge) return null;

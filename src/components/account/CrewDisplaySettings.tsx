@@ -248,11 +248,13 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
 
   useEffect(() => {
     if (!groupToReveal.current) return;
-    document.getElementById(`crew-group-${groupToReveal.current}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    const groupRow = document.getElementById(`crew-group-${groupToReveal.current}`);
     if (groupToFocus.current === groupToReveal.current) {
-      document.getElementById(`crew-group-name-${groupToReveal.current}`)?.focus({ preventScroll: true });
+      const field = document.getElementById(`crew-group-name-${groupToReveal.current}`);
+      field?.focus({ preventScroll: true });
+      if (field) revealBelowHeader(field);
       groupToFocus.current = null;
-    }
+    } else groupRow?.scrollIntoView?.({ behavior: "smooth", block: "center" });
     groupToReveal.current = null;
   }, [groups, expandedGroupId]);
 
@@ -489,7 +491,14 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
           {groups.length ? <div className={styles.groupList}>{groups.map((group) => {
             const expanded = expandedGroupId === group.id;
             return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
-              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => { setRemovingGroupId(null); setExpandedGroupId(expanded ? null : group.id); }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
+              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={expanded ? `crew-group-editor-${group.id}` : undefined} onClick={() => {
+                setRemovingGroupId(null);
+                if (!expanded) {
+                  groupToReveal.current = group.id;
+                  groupToFocus.current = group.id;
+                }
+                setExpandedGroupId(expanded ? null : group.id);
+              }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
                 {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`}

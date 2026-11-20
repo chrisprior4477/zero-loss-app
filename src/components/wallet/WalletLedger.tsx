@@ -188,8 +188,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setFilter(saved.filter);
       setQuery(saved.query ?? "");
       setDraft(saved.query ?? "");
-      setFrom(saved.from);
-      setThrough(saved.through);
+      setFrom(saved.draftFrom ?? saved.from);
+      setThrough(saved.draftThrough ?? saved.through);
       setAppliedDates({ from: saved.from, through: saved.through });
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
@@ -248,7 +248,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
     const bookmark = { [ledgerReturnKey]: {
-      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived, offset: firstRecord,
+      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived, offset: firstRecord,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,
@@ -263,7 +263,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
     const row = anchor.closest("li");
     const saved: LedgerReturn = {
-      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived,
+      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived,
       offset: firstRecord, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
     };
@@ -278,7 +278,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
-    cancelVoice();
+    voice.reset();
     updateBookmark({ query: next, offset: 0 });
     setQuery(next);
     setDraft(next);
@@ -295,8 +295,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     } else searchInput.current?.blur();
   }
   function resetFilters() {
-    cancelVoice();
-    updateBookmark({ query: "", filter: "all", from: "", through: "", offset: 0 });
+    voice.reset();
+    updateBookmark({ query: "", filter: "all", from: "", through: "", draftFrom: "", draftThrough: "", offset: 0 });
     setQuery("");
     setDraft("");
     setFilter("all");
@@ -310,10 +310,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   function changeDates(nextFrom: string, nextThrough: string) {
     setFrom(nextFrom);
     setThrough(nextThrough);
-    if (reversedDates(nextFrom, nextThrough)) return;
+    if (reversedDates(nextFrom, nextThrough)) {
+      updateBookmark({ draftFrom: nextFrom, draftThrough: nextThrough });
+      return;
+    }
     const dates = { from: nextFrom, through: nextThrough };
     setAppliedDates(dates);
-    updateBookmark({ ...dates, offset: 0 });
+    updateBookmark({ ...dates, draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
     batches.reset();
   }
   const historyIncomplete = typeof totalCount === "number" && totalCount > entries.length;
@@ -407,7 +410,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <p aria-live="polite">Showing {firstRecord > 0 || lastRecord < matching.length ? `${firstRecord + 1}–${lastRecord}` : lastRecord} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}

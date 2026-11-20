@@ -62,6 +62,13 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   </div>;
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
   const sharedToken = offering === product.slug && typeof share === "string" && shareUuid.test(share) ? share : undefined;
+  if (rawQuantity !== undefined && quantity === null) return <div className="mx-auto max-w-3xl p-6 text-white">
+    <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Check your free-entry quantity</h1>
+    <HelpLandingScroll target="free-entry-intro" focusAnchor="free-entry-intro" />
+    <p role="status" className="mt-3">This link does not contain a valid whole-number entry quantity.</p>
+    <Link href={freeEntryHref(product.slug, browseReturn, 1, sharedToken) + "#free-entry-intro"} className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Continue with one entry</Link>
+    <Link href={productEntryHref(product.slug, 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action")} className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Back to {product.title}</Link>
+  </div>;
   const backHref = productEntryHref(product.slug, quantity ?? 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action");
   const account = await getAccountContext();
   const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");

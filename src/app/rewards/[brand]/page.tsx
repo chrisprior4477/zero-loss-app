@@ -45,7 +45,7 @@ export default async function RewardBrandPage({ params }: Props) {
             const card = <>
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
                 <Image src={brand.imagePath} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />
-                <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
+                <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-[#00132e] shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
               </div>
               <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-4 sm:gap-4">
                 <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">${amount} {brand.name} Gift Card</h2><p className="mt-1 text-sm text-white/65">{open ? "$1 per entry · Investor demo" : "No open entries"}</p></div>

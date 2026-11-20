@@ -76,7 +76,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           { key: "processing", label: "In progress", count: processing, icon: "active" },
           { key: "fulfilled", label: "Issued", count: fulfilled, icon: "gift" },
           { key: "exceptions", label: "Exceptions", count: exceptions, icon: "bell" },
-        ] as const).map(item => <a key={item.key} href={fulfillmentHref(undefined, item.key)} aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
+        ] as const).map(item => <a key={item.key} href={fulfillmentHref(undefined, item.key)} aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : item.count ? `at least ${item.count} known ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
           <AccountIcon name={item.icon} /><span>{item.label}</span><strong>{countLabel(item.count)}</strong>
         </a>)}
       </section>

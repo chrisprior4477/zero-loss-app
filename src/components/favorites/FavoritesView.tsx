@@ -168,8 +168,14 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     setSharedView(next); setSelected(null); setMessage("");
     location(savedShareHref(undefined, next), true);
   }
+  function isViewingShare(id: string) {
+    return window.location.pathname === "/account/favorites" && new URLSearchParams(window.location.search).get("share") === id;
+  }
   function applyShareResult(id: string, result: Awaited<ReturnType<typeof setReceivedProductState>>, viewedOnly = false) {
-    if (!result.ok) { setMessage(result.message); return; }
+    if (!result.ok) {
+      if (!viewedOnly || isViewingShare(id)) setMessage(result.message);
+      return;
+    }
     setShareOverrides(current => ({ ...current, [id]: { ...current[id], viewedAt: result.viewedAt, ...(!viewedOnly ? { declinedAt: result.declinedAt } : {}) } }));
     window.dispatchEvent(new Event("zero-loss-notifications-read"));
   }
@@ -177,7 +183,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     if (!initialShareId || !initialShares?.some(s => s.id === initialShareId && !hidden.has(s.slug))) return;
     let active = true;
     void setReceivedProductState(initialShareId, "viewed").then(result => { if (active) applyShareResult(initialShareId, result, true); })
-      .catch(() => { if (active) setMessage("The item is available, but its viewed status could not be saved."); });
+      .catch(() => { if (active && isViewingShare(initialShareId)) setMessage("The item is available, but its viewed status could not be saved."); });
     return () => { active = false; };
   }, [initialShareId]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
@@ -227,7 +233,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     // Keep the list in history; Next.js copies its router state into this entry.
     window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId, sharedView) : favoritesHref(favoriteFilter, slug));
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
-      .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
+      .catch(() => { if (isViewingShare(shareId)) setMessage("The item is available, but its viewed status could not be saved."); });
   }
   function back(keepCurrentView = false) {
     const target = selection?.shareId ?? selection?.slug;

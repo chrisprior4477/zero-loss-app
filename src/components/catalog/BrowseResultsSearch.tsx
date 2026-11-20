@@ -36,7 +36,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     // A new search starts at the first batch, retaining the shopper's filters.
     url.searchParams.delete("batch");
     const destination = `${url.pathname}${url.search}#${anchor}`;
-    if (restoreTop) requestBrowseResultsFocus(destination, "top-search");
+    if (restoreTop || term) requestBrowseResultsFocus(destination, restoreTop ? "top-search" : "heading");
     if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
   }
   return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;

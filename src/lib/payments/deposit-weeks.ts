@@ -12,12 +12,13 @@ export function getDepositWeeks(requests: readonly DemoFundingRequest[], asOf: s
     const parts = Object.fromEntries(calendar.formatToParts(timestamp).map(part => [part.type, part.value]));
     return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
   }
-  const today = localDay(Date.parse(asOf));
+  const cutoff = Date.parse(asOf);
+  const today = localDay(cutoff);
   const monday = today - ((new Date(today).getUTCDay() + 6) % 7) * day;
   const posted = requests.filter(request => request.reconciliation === "reconciled");
   const dated = posted.filter(request => request.postedAt && Number.isFinite(Date.parse(request.postedAt)));
   if (posted.length && !dated.length) return null;
-  const ordered = dated.sort((a, b) => Date.parse(b.postedAt!) - Date.parse(a.postedAt!) || b.id.localeCompare(a.id));
+  const ordered = dated.filter(request => Date.parse(request.postedAt!) <= cutoff).sort((a, b) => Date.parse(b.postedAt!) - Date.parse(a.postedAt!) || b.id.localeCompare(a.id));
   const weeks = Array.from({ length: 4 }, (_, index) => {
     const start = monday - index * 7 * day;
     return { start, label: rangeFormat.formatRange(start, Math.min(start + 6 * day, today)), cents: BigInt(0), receipts: [] as DemoFundingRequest[] };
@@ -29,7 +30,7 @@ export function getDepositWeeks(requests: readonly DemoFundingRequest[], asOf: s
     week.receipts.push(request);
     week.cents += BigInt(request.amount);
   }
-  return { latest: ordered[0], weeks, partial: posted.length !== dated.length };
+  return { latest: ordered[0], weeks, partial: posted.length !== ordered.length };
 }
 
 // A customer's total deposits over time can exceed a single safe integer.

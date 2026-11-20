@@ -46,7 +46,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const backButton = useRef<HTMLButtonElement>(null);
   const instructionScroll = useRef<number | null>(null);
   const latestDraft = useRef<PrintDraft | null>(null);
-  const cleanAccountReference = accountReference.trim();
+  const cleanAccountReference = accountReference.trim().toUpperCase();
   const validAccountReference = /^DEMO-[0-9A-Z]{3,12}$/i.test(cleanAccountReference);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${cleanAccountReference}`), [cleanAccountReference, offeringSlug]);
   const flipLabel = addressSide ? "Show artwork side of postcard" : "Show address and entry details";
@@ -174,7 +174,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
               <span className="flex items-start justify-between gap-2"><span><span className="block text-[8px] font-black uppercase tracking-[0.18em] text-[#067abb] sm:text-xs">Zero Loss AMOE</span><span className="block text-sm font-black sm:mt-1 sm:text-2xl">Mail-in entry request</span></span><span className={`grid aspect-[.82/1] w-10 place-items-center border-2 border-dashed border-[#ff630f] bg-[#fff3e7] text-center text-[6px] font-black leading-2 text-[#b43d00] shadow-md transition-all duration-700 sm:w-20 sm:text-[10px] sm:leading-3 ${addressSide ? "translate-y-0 rotate-[-2deg] opacity-100 delay-300" : "-translate-y-10 rotate-12 opacity-0"}`}>USA<br /><span className="text-xs sm:text-xl">65¢</span><br />POSTCARD</span></span>
               <span className="mt-2 grid min-h-0 flex-1 grid-cols-[1.18fr_.82fr] gap-2 sm:mt-3 sm:grid-cols-[.95fr_1.05fr] sm:gap-6">
                 <span className="flex min-h-0 min-w-0 flex-col items-center justify-center border-2 border-dashed border-slate-400 p-1.5 text-center text-[9px] leading-3 text-slate-600 sm:p-3 sm:text-[11px] sm:leading-4">
-                  <span className="flex w-full flex-wrap items-center justify-center gap-x-1 [overflow-wrap:anywhere]"><strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><strong className="text-[#00132e]">Account:</strong><span>{accountReference}</span><strong className="text-[#00132e]">Offering:</strong><span>{offeringTitle}</span></span>
+                  <span className="flex w-full flex-wrap items-center justify-center gap-x-1 [overflow-wrap:anywhere]"><strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><strong className="text-[#00132e]">Account:</strong><span>{cleanAccountReference}</span><strong className="text-[#00132e]">Offering:</strong><span>{offeringTitle}</span></span>
                   <span className="mt-1 flex min-h-0 w-full max-w-[250px] flex-col items-center rounded-lg border border-slate-300 bg-white p-0.5 sm:mt-2 sm:p-1"><Barcode value={reference} /><span className="block text-center font-mono text-[8px] font-bold">{reference}</span></span>
                   <span className="mt-0.5 text-center text-[8px] font-bold uppercase tracking-wider text-slate-500 sm:mt-1">Cut along dotted line</span>
                 </span>
@@ -205,7 +205,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       <section className="amo-print-insert">
         <p className="text-center text-[10pt] font-black uppercase tracking-[0.18em] text-[#067abb]">Zero Loss AMOE entry insert</p>
         <h2 className="mt-1 text-center text-[17pt] font-black text-[#00132e]">Mail-in entry request</h2>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[10pt] leading-5 text-slate-700"><strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Account:</strong><span>{accountReference}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Offering:</strong><span>{offeringTitle}</span></div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[10pt] leading-5 text-slate-700"><strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Account:</strong><span>{cleanAccountReference}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Offering:</strong><span>{offeringTitle}</span></div>
         <div className="mt-4 flex flex-col items-center"><Barcode value={reference} /><span className="mt-1 font-mono text-[9pt] font-bold text-[#00132e]">{reference}</span></div>
         <p className="mt-3 text-center text-[8pt] leading-4 text-slate-600">Attach this insert securely to a standard postcard. Keep the barcode flat, uncovered, and readable. Mailing eligibility, dates, limits, and the processing address are controlled by the Official Rules.</p>
         <p className="mt-2 text-center text-[8pt] font-black uppercase tracking-[0.12em] text-[#b43d00]">Prototype — do not mail</p>

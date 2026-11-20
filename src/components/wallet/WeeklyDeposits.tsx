@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { demoCardFixture } from "@/lib/payments/demo-card";
@@ -28,8 +28,8 @@ export function DepositCreditLink({ request, restoreLedgerView = false, fromDepo
   } : undefined} className="font-bold underline">View wallet credit →</Link>;
 }
 
-function ReceiptDetails({ request, timeZone, open }: { request: DemoFundingRequest; timeZone?: string; open?: boolean }) {
-  return <details open={open} className={styles.weekReceipt}><summary><DepositReceiptDate request={request} timeZone={timeZone} /> · <strong>{formatUsdFromCents(request.amount)}</strong></summary>
+function ReceiptDetails({ request, timeZone, open, onClose }: { request: DemoFundingRequest; timeZone?: string; open?: boolean; onClose?: () => void }) {
+  return <details open={open} className={styles.weekReceipt} onToggle={event => { if (!event.currentTarget.open) onClose?.(); }}><summary><DepositReceiptDate request={request} timeZone={timeZone} /> · <strong>{formatUsdFromCents(request.amount)}</strong></summary>
     <p>Payment &amp; credit matched</p><p>Request {request.id}</p><DepositCreditLink request={request} fromWeek /></details>;
 }
 
@@ -58,10 +58,15 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
   }, [requests, hiddenIds, asOf, timeZone]);
   const [openWeek, setOpenWeek] = useState<number | null>(null);
   const [restoredReceipt, setRestoredReceipt] = useState<string | null>(null);
+  const dismissedReceipt = useRef<string | null>(null);
+  function dismissRestoredReceipt() {
+    dismissedReceipt.current = restoredReceipt;
+    setRestoredReceipt(null);
+  }
   useEffect(() => {
     function restore() {
       const key = restoreReceipt ?? window.history.state?.weeklyDepositReceipt;
-      if (!key || !chart) return;
+      if (!key || !chart || key === dismissedReceipt.current) return;
       const week = chart.weeks.find(week => week.receipts.some(receipt => receipt.idempotencyKey === key));
       setOpenWeek(week?.start ?? null);
       setRestoredReceipt(key);
@@ -80,6 +85,8 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
     && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id))) ||
     (openWeek === null && restoredReceipt ? requests?.find(request => request.idempotencyKey === restoredReceipt
       && request.reconciliation === "reconciled" && !hiddenIds?.includes(request.id)) : undefined) || (restoreReceipt ? openWeek === null ? requestedReceipt : undefined : chart?.latest);
+  const showDisplayedReceipt = displayedReceipt && !chart?.weeks.some(week => week.start === openWeek
+    && week.receipts.some(receipt => receipt.id === displayedReceipt.id));
   return <aside className={styles.weeklyPanel} aria-labelledby="weekly-deposit-heading">
     <h2 id="weekly-deposit-heading" tabIndex={-1}>Weekly deposits</h2>
     {!chart ? <p role="status">Weekly deposit history is unavailable.</p> : <>
@@ -92,13 +99,17 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
             onClick={() => setOpenWeek(openWeek === week.start ? null : week.start)}>
             <span>{week.label}</span><span className={styles.barTrack} aria-hidden="true"><i style={{ width: `${100 * Number(week.cents) / largest}%` }} /></span><b>{formatDepositTotal(week.cents)}</b>
           </button>
-          {openWeek === week.start && <div className={styles.weekDetails}>{week.receipts.map(request => <ReceiptDetails key={request.id} request={request} timeZone={timeZone} open={restoredReceipt === request.idempotencyKey ? true : undefined} />)}</div>}
+          {openWeek === week.start && <div className={styles.weekDetails}>{week.receipts.map(request => <ReceiptDetails key={request.id} request={request} timeZone={timeZone} open={restoredReceipt === request.idempotencyKey ? true : undefined} onClose={restoredReceipt === request.idempotencyKey ? dismissRestoredReceipt : undefined} />)}</div>}
         </div>)}
       </div>
       <p className={styles.weekHint}>{total ? "Select a week to see its deposits." : "No posted deposits in the last four weeks."}</p>
       {restoreReceipt && !requestedReceipt ? <p role="status">This deposit receipt is unavailable.</p> : null}
-      {displayedReceipt && <div className={styles.latestDeposit}><strong>{requestedArchived && displayedReceipt.id === requestedReceipt.id ? "Archived deposit receipt" : displayedReceipt.id === chart.latest?.id ? "Latest posted deposit" : "Deposit receipt"}</strong><details key={displayedReceipt.id} open={openWeek === null && restoredReceipt === displayedReceipt.idempotencyKey ? true : undefined} className={styles.weekReceipt}
-        onToggle={event => { setOpenReceipt(event.currentTarget.open ? displayedReceipt.id : null); }}>
+      {showDisplayedReceipt && displayedReceipt && <div className={styles.latestDeposit}><strong>{requestedArchived && displayedReceipt.id === requestedReceipt.id ? "Archived deposit receipt" : displayedReceipt.id === chart.latest?.id ? "Latest posted deposit" : "Deposit receipt"}</strong><details key={displayedReceipt.id} open={openWeek === null && restoredReceipt === displayedReceipt.idempotencyKey ? true : undefined} className={styles.weekReceipt}
+        onToggle={event => {
+          const open = event.currentTarget.open;
+          setOpenReceipt(open ? displayedReceipt.id : null);
+          if (!open && restoredReceipt === displayedReceipt.idempotencyKey) dismissRestoredReceipt();
+        }}>
         <summary><DepositReceiptDate request={displayedReceipt} timeZone={timeZone} /><b>View {formatUsdFromCents(displayedReceipt.amount)} receipt</b></summary>
         <p>Payment &amp; credit matched</p><p>Request {displayedReceipt.id}</p><DepositCreditLink request={displayedReceipt} fromWeek />
       </details></div>}
