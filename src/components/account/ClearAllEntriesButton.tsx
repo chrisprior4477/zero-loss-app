@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { useRouter } from "next/navigation";
-import { clearOwnDemoEntries, previewDemoEntryReset } from "@/lib/account/demo-entry-reset-actions";
+import { checkDemoEntryReset, clearOwnDemoEntries, previewDemoEntryReset } from "@/lib/account/demo-entry-reset-actions";
 import styles from "./clear-all-entries-button.module.css";
 
 export function ClearAllEntriesButton() {
@@ -71,12 +71,16 @@ export function ClearAllEntriesButton() {
   }
 
   function checkEntries() {
+    const key = requestKey.current;
+    if (!key) return;
     startTransition(async () => {
       try {
-        const preview = await previewDemoEntryReset();
-        if (preview.status === "error") { setNotice(preview.message); return; }
+        const receipt = await checkDemoEntryReset(key);
+        if (receipt.status === "error") { setNotice(receipt.message); return; }
         closeDialog();
-        setNotice(`Your account currently has ${preview.entryCount} demo ${preview.entryCount === 1 ? "entry" : "entries"}. No additional reset was requested. Review My Activity before clearing entries again.`);
+        const status = receipt.clearedCount === null ? "No saved receipt was found for this reset." : `This reset cleared ${receipt.clearedCount} demo ${receipt.clearedCount === 1 ? "entry" : "entries"}.`;
+        const current = receipt.currentCount === null ? "" : ` Your account currently has ${receipt.currentCount} demo ${receipt.currentCount === 1 ? "entry" : "entries"}.`;
+        setNotice(status + current);
         router.refresh();
       } catch { setNotice("We still couldn’t check your entries. Reconnect and check again; no additional reset was requested."); }
     });

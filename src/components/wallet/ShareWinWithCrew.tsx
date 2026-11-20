@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { shareWinWithCrew } from "@/lib/crew/actions";
+import { getOwnWinShareRecipients, shareWinWithCrew } from "@/lib/crew/actions";
 
 export type WinShareCrewMember = { id: string; name: string };
 
-export function ShareWinWithCrew({ rewardId, members }: { rewardId: string; members: WinShareCrewMember[] }) {
+export function ShareWinWithCrew({ rewardId, members, initialShared = [] }: { rewardId: string; members: WinShareCrewMember[]; initialShared?: string[] | null }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
-  const [shared, setShared] = useState<Set<string>>(() => new Set());
+  const [shared, setShared] = useState<Set<string>>(() => new Set(initialShared ?? []));
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
+
+  async function checkSharedRecipients() {
+    try {
+      const ids = await getOwnWinShareRecipients(rewardId);
+      if (ids) {
+        setShared(current => new Set([...current, ...ids]));
+        setSelected(current => current.filter(id => !ids.includes(id)));
+      }
+    } catch { /* Keep the already-confirmed recipients visible. */ }
+  }
 
   function share() {
     if (!selected.length || pending) return;
@@ -21,10 +31,12 @@ export function ShareWinWithCrew({ rewardId, members }: { rewardId: string; memb
         const result = await shareWinWithCrew(rewardId, selected);
         setError(!result.ok);
         if (result.ok) { setShared(current => new Set([...current, ...selected])); setSelected([]); }
+        else await checkSharedRecipients();
         setMessage(result.message);
       } catch {
         setError(true);
-        setMessage("We couldn’t confirm the share. Refresh and check before trying again.");
+        setMessage("We couldn’t confirm the share. Check which shares were saved before trying again.");
+        await checkSharedRecipients();
       }
     });
   }
@@ -32,6 +44,7 @@ export function ShareWinWithCrew({ rewardId, members }: { rewardId: string; memb
   return <section aria-labelledby="share-win-heading" className="mt-6 rounded-2xl border border-cyan-300/25 bg-[#06223d] p-5 text-white">
     <h2 id="share-win-heading" className="text-xl font-black">Share this win with your Crew</h2>
     <p className="mt-2 text-sm text-[#b5cce4]">Choose which connected Crew members to share this win with. They’ll get an email if they’ve turned on win updates. Your gift-card number and entry details stay private.</p>
+    {initialShared === null ? <p role="status" className="mt-2 text-sm">Saved share status is temporarily unavailable. Reload this reward to check again.</p> : null}
     {members.length ? <>
       <div className="mt-4 flex flex-wrap gap-3">
         {members.map(member => <label key={member.id} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold"><input type="checkbox" checked={selected.includes(member.id)} disabled={pending || shared.has(member.id)} onChange={event => { setSelected(current => event.target.checked ? [...current, member.id] : current.filter(id => id !== member.id)); setMessage(""); }} />{member.name}{shared.has(member.id) ? " · Shared" : ""}</label>)}

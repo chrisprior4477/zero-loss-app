@@ -68,6 +68,12 @@ function extractValues(query: string, products: readonly { retailer: string }[])
 
 function leadingAmount(text: string) {
   const value = text.trim();
+  // Interpret a k suffix only inside an explicit budget phrase.
+  const shorthand = /^\$?\s*(\d+(?:\.\d+)?)\s*k(?=\s|$)/i.exec(value);
+  if (shorthand) {
+    const amount = Number(shorthand[1]) * 1000;
+    return Number.isFinite(amount) ? { amount, text: value.slice(shorthand[0].length).trim() } : null;
+  }
   const match = initialCurrency.exec(value) ?? initialDigits.exec(value);
   if (!match) return null;
   const amount = match[3] ? spokenValue(match[3]) : Number((match[1] ?? match[2]).replaceAll(",", ""));
@@ -111,7 +117,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       budget: { minimum: Math.min(low.amount, high.amount), maximum: Math.max(low.amount, high.amount), inclusive: true },
     };
   }
-  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above)|or more)\s*$/i.exec(normalized);
+  const minimumPhrase = /^(.*?)\s+(?:and (?:up|over|above|higher)|or more)\s*$/i.exec(normalized);
   const minimumValue = minimumPhrase ? extractValues(minimumPhrase[1], products) : null;
   if (minimumValue?.values.size === 1) {
     const minimum = [...minimumValue.values][0];
@@ -153,8 +159,8 @@ export function searchDenominations(query: string, products: readonly { retailer
     const retailer = retailerName(normalizeSearch(amountText).replace(/\bgift card\b/g, "").trim());
     if (products.some(product => retailerName(product.retailer) === retailer)) normalized = expanded;
   }
-  const exactPhrase = normalized.replace(/\bonly\b[.!?]?/gi, " ").trim();
-  const strippedOnly = /\bonly\b/i.test(normalized);
+  const exactPhrase = normalized.replace(/\b(?:only|exactly)\b[.!?]?/gi, " ").trim();
+  const strippedOnly = /\b(?:only|exactly)\b/i.test(normalized);
   const range = normalized.length <= 512 ? searchBudget(strippedOnly ? exactPhrase : normalized, products) : null;
   const budget = range?.budget ?? null;
   const exact = strippedOnly ? extractValues(exactPhrase, products) : null;

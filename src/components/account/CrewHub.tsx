@@ -58,7 +58,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const router = useRouter();
   const { tab, selectTab } = useCrewTab(initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] = useState<{ recipientId?: string } | null>(null);
   const shareOpener = useRef<HTMLButtonElement>(null);
   const [message, setMessage] = useState("");
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
@@ -279,10 +279,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId); }}
           onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
-          onShare={event => { shareOpener.current = event.currentTarget; setSharing(true); }} onAdd={openCrewSearch} />
+          onShare={event => { shareOpener.current = event.currentTarget; setSharing({ recipientId: event.currentTarget.dataset.crewRecipient }); }} onAdd={openCrewSearch} />
         <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={openCrewSearch}>Add people +</button></section>
       </> : null}
-      {sharing ? <CrewSharePicker opener={shareOpener} products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
+      {sharing ? <CrewSharePicker recipientId={sharing.recipientId} opener={shareOpener} products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(null)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
         <CrewDisplaySettings key={currentUserId} ownerId={currentUserId} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />

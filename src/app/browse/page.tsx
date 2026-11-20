@@ -42,7 +42,8 @@ type BrowsePageProps = {
 const batchSize = 24;
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
-  const query = await searchParams;
+  const incoming = await searchParams;
+  const query = Object.fromEntries(Object.entries(incoming).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]));
   const [{ availability, account, hidden, unavailable }, partnerGroups] = await Promise.all([getShoppingCatalog(), getGiftCardPartnerGroups()]);
   const resolved = new Set(resolvedCatalogSlugs(account?.activity));
   const availableProducts = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
@@ -75,7 +76,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     ? searchBudget.maximum === null ? searchBudget.exclusiveMinimum ? `above ${formatBudget(searchBudget.minimum)}` : `${formatBudget(searchBudget.minimum)} and up` : !searchBudget.exclusiveMinimum && searchBudget.inclusive ? `${formatBudget(searchBudget.minimum)}–${formatBudget(searchBudget.maximum)}` : `${searchBudget.exclusiveMinimum ? "above" : "at least"} ${formatBudget(searchBudget.minimum)} and ${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}`
     : searchBudget?.maximum != null ? `${searchBudget.inclusive ? "up to" : "under"} ${formatBudget(searchBudget.maximum)}` : null;
   const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
-  const requestedFilters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const requestedFilters = parseBrowseFilterState(query, [...retailers, ...browseRetailers(demoProducts), ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const invalidMinimum = query.minValue !== undefined && requestedFilters.minValue === null;
+  const invalidMaximum = query.maxValue !== undefined && requestedFilters.maxValue === null;
   const reversedRange = requestedFilters.minValue !== null && requestedFilters.maxValue !== null
     && requestedFilters.minValue > requestedFilters.maxValue;
   const filters = reversedRange ? { ...requestedFilters, minValue: null, maxValue: null } : requestedFilters;
@@ -161,13 +164,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
-    if (reversedRange && (key === "minValue" || key === "maxValue")) continue;
+    if (key === "minValue" && (invalidMinimum || reversedRange) || key === "maxValue" && (invalidMaximum || reversedRange)) continue;
     const value = key === "subcategory" ? subcategory : query[key];
     if (value) searchParamsForView.set(key, value);
   }
   if (searchTerm) searchParamsForView.set("q", searchTerm);
   if (ticketsLeft) searchParamsForView.set("ticketsLeft", ticketsLeft);
   const searchHref = `/browse${searchParamsForView.size ? `?${searchParamsForView}` : ""}`;
+  const retailerOutsideScope = Boolean(filters.retailer && retailers.indexOf(filters.retailer) === -1 && (selectedCategory || subcategory || selectedRetailerGroup));
+  const allCategoriesForRetailer = new URLSearchParams(searchParamsForView);
+  for (const key of ["category", "subcategory", "partnerCategory", "ticketsLeft"]) allCategoriesForRetailer.delete(key);
+  if (allCategoriesForRetailer.get("sort") === "ending-soon") allCategoriesForRetailer.delete("sort");
   const canSuggestRecovery = !products.length && !unavailable && !searchTooLong;
   let broaderSearch: { href: string; count: number } | null = null;
   let broaderWithoutBudget: { href: string; count: number } | null = null;
@@ -269,6 +276,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
+          {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
+            {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
+          </p>}
+          {retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
+            {filters.retailer} has no prizes in this category. <BrowseResultsLink target="heading" href={`/browse?${allCategoriesForRetailer}#search-results`} className="underline">Search for {filters.retailer} across all categories</BrowseResultsLink>
+          </p> : null}
           {reversedRange && <p role="status" className="mb-3 text-sm text-amber-200">The minimum prize value exceeded the maximum. Showing results with the price range cleared. <Link href={searchHref + "#search-results"} className="underline">Remove the invalid range from this link</Link></p>}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={subcategory} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
@@ -435,7 +448,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               {nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
                 href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
               {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
-                href={previousBatchHref}>Previous 24</Link>}
+                href={previousBatchHref}>Previous {tailBatch ? Math.min(batchSize, tailStart) : batchSize}</Link>}
             </div>
           ) : nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
             href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</Link>}

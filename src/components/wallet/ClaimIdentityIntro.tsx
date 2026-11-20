@@ -2,11 +2,13 @@
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { useEffect, useRef } from "react";
 import styles from "./claim-identity-intro.module.css";
 
 export function ClaimIdentityIntro({ onContinue, onClose, onSkipDemo, busy = false, error }: { onContinue: () => void; onClose: () => void; onSkipDemo?: () => void; busy?: boolean; error?: string | null }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  useDialogBack(true, onClose, busy, true);
 
   useEffect(() => {
     const modal = dialog.current;

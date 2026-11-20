@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { accountLocale } from "@/lib/account/locale";
+import { safeTimeZone } from "@/lib/account/timezone";
+import { supportRewardContext } from "@/lib/support/references";
 import { activityHref, checkoutRewardsHref, completedActivityHref, isWalletReward, openPrizeOptions, purchasedRewardHref, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
 import type { CheckoutCard } from "@/lib/account/checkout-cards";
 import checkoutStyles from "@/components/account/checkout-gift-cards.module.css";
@@ -51,10 +54,11 @@ function rewardLabel(item: ActivityItem, isPreview: boolean) {
   }
 }
 
-function claimedDate(value: string | null | undefined, timeZone: string) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone }).format(date);
+function rewardDate(value: string | null | undefined, timeZone: string, locale?: string | null, deadline = false) {
+  const date = new Date(value ?? NaN);
+  if (!Number.isFinite(date.getTime())) return deadline ? "Not available" : "—";
+  const format: Intl.DateTimeFormatOptions = deadline ? { dateStyle: "long", timeStyle: "short" } : { year: "numeric", month: "short", day: "numeric" };
+  return new Intl.DateTimeFormat(accountLocale(locale), { ...format, timeZone: safeTimeZone(timeZone) }).format(date);
 }
 
 function rewardGroup(item: ActivityItem) {
@@ -65,8 +69,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, timeZone = "America/New_York", cardEndings = {} }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; timeZone?: string; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; focusHistoryCard?: string; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -126,7 +130,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
                 <span className={overview.savedIdentity}><span>Card ref. <span className={overview.identityValue}>{repeatedCardRef(item)}</span></span><span>Saved in your wallet</span></span>
                 <span className={overview.claimIdentity}>
                   {item.rewardId && cardEndings[item.rewardId] ? <strong>Card ending <span className={overview.identityValue}>{cardEndings[item.rewardId]}</span></strong> : null}
-                  <span>Claimed <span className={overview.identityValue}>{claimedDate(item.rewardClaimedAt, timeZone)}</span></span>
+                  <span>Claimed <span className={overview.identityValue}>{rewardDate(item.rewardClaimedAt, timeZone, locale)}</span></span>
                 </span>
               </span> : <>
                 {repeatedCardRef(item) ? <span className={overview.rewardMeta}>Card ref. {repeatedCardRef(item)}</span> : null}
@@ -164,7 +168,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           <RewardHistoryCarousel key={view} focusRow={historyTarget || undefined}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
           {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId || item.entryId ? `wallet-reward-${item.rewardId ?? item.entryId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : item.entryId ? `/account/wallet?rewards=expired&expiredEntry=${encodeURIComponent(item.entryId)}#reward-history` : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
-            <span>{claimedDate(item.rewardClaimedAt, timeZone)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><span className="min-w-0"><strong>{item.title}</strong>{repeatedCardRef(item) ? <small className="block">Card ref. {repeatedCardRef(item)}</small> : null}</span></span>
+            <span>{rewardDate(item.rewardClaimedAt, timeZone, locale)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><span className="min-w-0"><strong>{item.title}</strong>{repeatedCardRef(item) ? <small className="block">Card ref. {repeatedCardRef(item)}</small> : null}</span></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
           </RewardHistoryCarousel>
@@ -194,7 +198,7 @@ function sampleRewardNumber(slug: string) {
 type CheckoutContext = { receipt: string; cards: CheckoutCard[]; current: CheckoutCard; count: number };
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView: sourceView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York", checkoutContext, claimCheckHref }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] | null; checkoutContext?: CheckoutContext; claimCheckHref?: string }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView: sourceView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], sharedCrewRecipients = [], timeZone = "America/New_York", checkoutContext, claimCheckHref, locale }: { timeZone?: string; locale?: string | null; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] | null; sharedCrewRecipients?: string[] | null; checkoutContext?: CheckoutContext; claimCheckHref?: string }) {
   const returnView = sourceView === "ready" && item.rewardStatus === "expired" ? "expired" : sourceView;
   const directPurchase = item.rewardSource === "purchase" && !item.entryId;
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
@@ -228,12 +232,12 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
               ? { title: "Not issued yet", message: "No gift card or redeemable barcode has been issued." }
               : { title: "Reward temporarily unavailable", message: "We couldn’t load your saved gift-card number. Refresh to try again, or contact support if this continues." };
   const statusLabel = rewardReady ? (item.rewardClaimedAt ? "Claimed — ready to use" : "Demo ready") : canClaim ? "Ready to claim" : notice.title;
-  const claimDeadline = item.rewardClaimExpiresAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short", timeZone }).format(new Date(item.rewardClaimExpiresAt)) : "Not available";
+  const claimDeadline = rewardDate(item.rewardClaimExpiresAt, timeZone, locale, true);
   const detailRows = [
     ["Retailer", item.retailer],
     ["Value", formatUsdFromCents(item.priceCents)],
     ["Status", statusLabel],
-    item.rewardClaimedAt ? ["Claimed on", claimedDate(item.rewardClaimedAt, timeZone)] : ["Claim by", claimDeadline],
+    item.rewardClaimedAt ? ["Claimed on", rewardDate(item.rewardClaimedAt, timeZone, locale)] : ["Claim by", claimDeadline],
   ];
   if (item.rewardId && accountOverview && readyWalletRewards(accountOverview.activity).some(other => other.rewardId && other.rewardId !== item.rewardId && rewardGroup(other) === rewardGroup(item))) {
     detailRows.push(["Card reference", cardReference(item.rewardId)]);
@@ -296,14 +300,14 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
                 <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
-                <div><p>{notice.title}</p><span>{notice.message}</span><Link href={rewardSupportHref(item.rewardId, orderFilter)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+                <div><p>{notice.title}</p><span>{notice.message}</span><Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} checkHref={claimCheckHref} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}
                   afterShopping={checkoutContext ? <Link className={`${checkoutStyles.secondary} ${checkoutStyles.returnButton}`} href={completedActivityHref(item.entryId, { slug: item.slug, receipt: checkoutContext.receipt })}>← Back to My Activity</Link> : undefined}
                   remainingOffers={rewardReady && remainingCount > 0 ? { count: remainingCount, retailer: item.retailer, slug: item.slug } : undefined} />
               )}
-              {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} /> : null}
+              {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} checkHref={supportRewardContext(claimCheckHref ?? walletRewardHref(item), item.rewardId) ?? `${walletRewardHref(item)}#reward-pass`} /> : null}
               {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
             </div>
           </div>
@@ -327,7 +331,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         </aside> : null}
       </div>
 
-      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <a href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</a></p> : <ShareWinWithCrew rewardId={item.rewardId} members={crewMembers} /> : null}
+      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <a href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</a></p> : <ShareWinWithCrew rewardId={item.rewardId} members={crewMembers} initialShared={sharedCrewRecipients} /> : null}
 
       <p className={styles.rewardDisclosure}>This retailer gift card is not restricted to the featured product. Availability, pricing, and redemption methods are controlled by {item.retailer}.</p>
       {isPreview ? <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-[#31e800]/40 bg-[#06223d] p-4 text-center text-white">

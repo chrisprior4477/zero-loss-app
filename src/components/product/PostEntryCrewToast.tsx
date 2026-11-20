@@ -19,7 +19,7 @@ import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster" | "contactEdit";
+type Step = "home" | "person" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster" | "contactEdit";
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
@@ -43,10 +43,23 @@ const recentDeliveries = new Map<string, Promise<CrewDelivery>>();
 export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false }: Props) {
   const initialItem = product ?? { slug: request!.slug, title: request!.title };
   const [item, setItem] = useState<ProductShareItem>(initialItem);
-  const [step, setStep] = useState<Step>("home");
+  const recipientId = !request && !product?.win ? product?.recipientId : undefined;
+  const [step, setStep] = useState<Step>(recipientId ? "person" : "home");
+  const [recipientLoad, setRecipientLoad] = useState<"loading" | "ready" | "failed">("loading");
+  const [recipientRetry, setRecipientRetry] = useState(0);
   const history = useRef<Step[]>([]);
   const [origin] = useState(() => typeof window === "undefined" ? "" : window.location.origin);
   const [options, setOptions] = useState<CrewShareOptions | null>(null);
+  useEffect(() => {
+    if (!recipientId) return;
+    let alive = true;
+    void getCrewShareOptions().then(result => {
+      if (!alive) return;
+      if (result.ok) setOptions(result);
+      setRecipientLoad(result.ok ? "ready" : "failed");
+    }).catch(() => { if (alive) setRecipientLoad("failed"); });
+    return () => { alive = false; };
+  }, [recipientId, recipientRetry]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupsOnly, setGroupsOnly] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -556,9 +569,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
   }
 
-  async function shareCrew(target: string[] | null) {
+  async function shareCrew(target: string[] | null, personId?: string) {
+    const person = personId ? members.find(member => member.id === personId) : undefined;
+    if (personId && (!person || request)) return;
     const groups = target ? options?.groups.filter(value => target.includes(value.id)) ?? [] : [];
-    const recipients = [...new Set(target ? groups.flatMap(group => group.memberIds) : members.map(member => member.id))];
+    const recipients = person ? [person.id] : [...new Set(target ? groups.flatMap(group => group.memberIds) : members.map(member => member.id))];
     if (!recipients.length || target && groups.length !== target.length) return;
     await run(async () => {
       const singleGroup = groups.length === 1 ? groups[0].id : null;
@@ -582,7 +597,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         feedback(result.message, !result.ok);
         if (result.ok) {
           const deliveredToAllGroups = result.groupCount === undefined || result.groupCount === groups.length;
-          setSharedGroupName(deliveredToAllGroups ? groups.length > 1 ? `${groups.length} groups` : groups[0]?.name ?? "" : "");
+          setSharedGroupName(person?.name ?? (deliveredToAllGroups ? groups.length > 1 ? `${groups.length} groups` : groups[0]?.name ?? "" : ""));
         }
         setShared(result.ok);
       }
@@ -620,7 +635,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) { event.preventDefault(); if (linkReady) invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew", contactEdit: "Save this contact" };
+  const recipient = members.find(member => member.id === recipientId);
+  const titles: Record<Step, string> = { person: recipient ? `Share with ${recipient.name}` : "Review who gets this find", home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew", contactEdit: "Save this contact" };
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : groupsOnly ? "Group share saved" : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
   const journey = true;
@@ -638,6 +654,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "roster" ? <button type="button" className={styles.primary} disabled={busy || !members.length} onClick={() => { setStep("audience"); void shareCrew(null); }}>Send to my Crew</button> : null}
       {!["group", "find", "copy", "contacts", "contactGroup", "contactEdit"].includes(step) ? itemSummary : null}
 
+      {step === "person" && !shared ? <div className={styles.actions}>
+        {recipientLoad === "loading" ? <p role="status">Checking your Crew connection…</p> : recipientLoad === "failed" ?
+          <button type="button" className={styles.primary} onClick={() => { setRecipientLoad("loading"); setRecipientRetry(value => value + 1); }}>Retry loading Crew</button> : recipient ?
+          <button type="button" className={styles.primary} disabled={busy} onClick={() => void shareCrew(null, recipient.id)}>Share with {recipient.name}</button> :
+          <p role="status">That person is no longer available in your Crew.</p>}
+      </div> : null}
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>

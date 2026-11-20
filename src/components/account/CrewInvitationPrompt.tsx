@@ -4,6 +4,7 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDialogBack } from "./useDialogBack";
 import { useEffect, useId, useRef, useState } from "react";
 import { respondToCrewRequest, removeCrewConnection, setCrewShareBack } from "@/lib/crew/actions";
 import { containDialogTab } from "./dialog-keyboard";
@@ -23,6 +24,7 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const id = useId();
+  useDialogBack(open, close, busy, true);
   useEffect(() => {
     if (!open || !dialog.current) return;
     const element = dialog.current;

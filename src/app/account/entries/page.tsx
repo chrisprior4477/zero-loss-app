@@ -30,7 +30,7 @@ const accountLinks = [
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
   const query = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.filter === "completed" && query.viewed ? `#${openEntriesAnchorId}` : "")));
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && query.viewed ? `#${openEntriesAnchorId}` : "")));
   const filter = activityFilter(query.filter);
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;

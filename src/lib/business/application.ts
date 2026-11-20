@@ -1,3 +1,5 @@
+import { addressRequirements } from "@/lib/account/address-requirements";
+
 export type Partnership = "products" | "fulfillment" | "campaign" | "other";
 export type DemoCase = Partnership | "restaurant" | "tools";
 export type FormValues = Record<string, string | boolean>;
@@ -57,13 +59,29 @@ export function readDeviceDraft(json: string): BusinessDraft | null {
   return validValues(saved) ? { ...blankDraft, values: { ...initialValues, ...saved } } : null;
 }
 
-export function missingBusinessFields(values: FormValues, files: BusinessFile[]) {
+export function businessIdentityFields(values: FormValues) {
+  const rules = addressRequirements(String(values.country ?? "").trim());
+  const addressKeys = { city: "C", region: "S", postal_code: "Z" } as Record<string, string>;
   const required: [string, string][] = [["business_name","Business name"],["address_line_1","Street address"],["city","City"],["region","State or region"],["postal_code","ZIP or postal code"],["country","Country"],["contact_name","Authorized contact"],["work_email","Work email"],["business_type","Business type"],["service_area","Service area"]];
+  return required.filter(([key]) => !addressKeys[key] || !rules || rules.required.includes(addressKeys[key]));
+}
+
+export function invalidBusinessCounts(values: FormValues) {
+  const counts = [["listing_count", "Number of listings"], ["recurrence_limit", "Maximum number of releases"]] as const;
+  return counts.filter(([name]) => {
+    const value = String(values[name] ?? "").trim();
+    return value && (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value)));
+  });
+}
+
+export function missingBusinessFields(values: FormValues, files: BusinessFile[]) {
+  const required = businessIdentityFields(values);
   if (values.partnership === "products") required.push(["offer_name","Offer name"],["offer_type","Offer type"],["description","Customer-facing description"],["retail_value","Retail value"],["quantity","Quantity or capacity"],["relationship","Relationship"],["fulfillment_owner","Fulfillment responsibility"]);
   if (values.partnership === "fulfillment") required.push(["provider_name","Provider name"],["reward_types","Reward types"],["coverage","Geographic coverage"],["delivery_method","Delivery method"],["delivery_time","Delivery time"],["pricing_terms","Pricing terms"],["technical_contact","Technical contact"]);
   if (values.partnership === "campaign") required.push(["campaign_name","Campaign name"],["campaign_offer","Campaign offer"],["objective","Campaign objective"],["relationship","Relationship"],["campaign_supply","What the business supplies"],["audience","Intended audience"]);
   if (values.partnership === "other") required.push(["other_partnership","Partnership explanation"]);
   const missing = required.filter(([key]) => typeof values[key] !== "string" || !String(values[key]).trim()).map(([,label]) => label);
+  missing.push(...invalidBusinessCounts(values).map(([, label]) => `${label} must be a positive whole number`));
   if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push("Valid work email");
   if (values.capacity_ack !== true) missing.push("Fulfillment-capacity acknowledgment");
   if (values.auto_relist === true && values.card_billing !== true) missing.push("Card-on-file billing authorization");

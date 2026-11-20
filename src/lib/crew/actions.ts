@@ -122,6 +122,16 @@ export async function sharePrizeWithCrewGroups(offeringSlug: string, groups: { i
   };
 }
 
+export async function getOwnWinShareRecipients(rewardId: string): Promise<string[] | null> {
+  if (!crewUuid.test(rewardId)) return null;
+  try {
+    const session = await signedInClient();
+    if (!session) return null;
+    const { data, error } = await session.db.rpc("get_crew_win_share_recipients", { p_reward_id: rewardId });
+    return !error && Array.isArray(data) ? data.filter((id): id is string => typeof id === "string" && crewUuid.test(id)) : null;
+  } catch { return null; }
+}
+
 export async function shareWinWithCrew(rewardId: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
   if (!crewUuid.test(rewardId) || !Array.isArray(recipientIds) || recipientIds.length < 1
     || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {

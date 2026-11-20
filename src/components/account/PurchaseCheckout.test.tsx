@@ -201,7 +201,10 @@ test("a return with changed offers still requires review when only one offer rem
   fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
   const dialog = within(screen.getByRole("dialog", { name: "Choose your options" }));
   expect(dialog.getByText("Option 1 · Ticket #entry-1")).toBeTruthy();
-  fireEvent.click(dialog.getByRole("button", { name: "Use these options" }));
+  const apply = dialog.getByRole<HTMLButtonElement>("button", { name: "Use these options" });
+  expect(apply.disabled).toBe(true);
+  fireEvent.click(dialog.getByRole("button", { name: "Option 1" }));
+  fireEvent.click(apply);
   expect(screen.getByRole("button", { name: "Make purchase: $399" })).toBeTruthy();
   expect(mocks.purchase).not.toHaveBeenCalled();
 });

@@ -32,6 +32,8 @@ export function SocialActivityFeed() {
   const sectionRef = useRef<HTMLElement>(null);
   const [platform, setPlatform] = useState<Platform>("x");
   const [paused, setPaused] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [rotation, setRotation] = useState(0);
   const trackViewportRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, wasPaused: false, startX: 0, scrollLeft: 0 });
   const canAnimate = useVisibleMotion(sectionRef);
@@ -48,7 +50,7 @@ export function SocialActivityFeed() {
   );
 
   useEffect(() => {
-    if (paused || !canAnimate) return;
+    if (paused || focusWithin || !canAnimate) return;
     const timer = window.setInterval(() => {
       setPlatform((current) => {
         const index = platforms.findIndex((item) => item.id === current);
@@ -56,12 +58,12 @@ export function SocialActivityFeed() {
       });
     }, 20000);
     return () => window.clearInterval(timer);
-  }, [paused, canAnimate]);
+  }, [paused, focusWithin, canAnimate, rotation]);
 
   useEffect(() => {
     const viewport = trackViewportRef.current;
     if (!viewport) return;
-    if (paused || !canAnimate) return;
+    if (paused || focusWithin || !canAnimate) return;
 
     let frame = 0;
     let previousTime = performance.now();
@@ -77,7 +79,7 @@ export function SocialActivityFeed() {
     };
     frame = requestAnimationFrame(move);
     return () => cancelAnimationFrame(frame);
-  }, [paused, canAnimate, platform, stripItems.length]);
+  }, [paused, focusWithin, canAnimate, platform, stripItems.length]);
 
   useEffect(() => {
     if (trackViewportRef.current) trackViewportRef.current.scrollLeft = 0;
@@ -110,7 +112,9 @@ export function SocialActivityFeed() {
   };
 
   return (
-    <section ref={sectionRef} aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/45 bg-[radial-gradient(ellipse_at_8%_-15%,rgba(255,176,58,.78)_0%,transparent_36%),radial-gradient(ellipse_at_92%_115%,rgba(255,67,8,.7)_0%,transparent_43%),linear-gradient(125deg,#d94b0b_0%,#f65c0d_42%,#c9400a_72%,#10254a_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,220,166,.28)]">
+    <section ref={sectionRef} onFocusCapture={() => setFocusWithin(true)} onBlurCapture={event => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false);
+    }} aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/45 bg-[radial-gradient(ellipse_at_8%_-15%,rgba(255,176,58,.78)_0%,transparent_36%),radial-gradient(ellipse_at_92%_115%,rgba(255,67,8,.7)_0%,transparent_43%),linear-gradient(125deg,#d94b0b_0%,#f65c0d_42%,#c9400a_72%,#10254a_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,220,166,.28)]">
       <h2 id="social-activity-title" className="sr-only">Social Activity Live Feed</h2>
       <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-5 h-full w-full opacity-75">
         <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,125,22,.92)" strokeWidth="24" strokeLinecap="round" />
@@ -132,7 +136,7 @@ export function SocialActivityFeed() {
       <div className="group relative z-10 flex h-[152px] gap-3 p-3">
         <nav aria-label="Filter social activity" className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-1 py-1">
           {platforms.map((item) => (
-            <button key={item.id} type="button" onClick={() => setPlatform(item.id)} aria-label={item.label} aria-pressed={platform === item.id} className="grid h-9 w-9 place-items-center rounded-full border text-[12px] font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" style={{ color: item.id === "x" ? "#071426" : "white", background: item.color, borderColor: platform === item.id ? "white" : "rgba(255,255,255,.12)", boxShadow: platform === item.id ? `0 0 0 2px #071426, 0 0 0 4px ${item.color}` : "none" }}>
+            <button key={item.id} type="button" onClick={() => { setPlatform(item.id); setRotation(value => value + 1); }} aria-label={item.label} aria-pressed={platform === item.id} className="grid h-9 w-9 place-items-center rounded-full border text-[12px] font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" style={{ color: item.id === "x" ? "#071426" : "white", background: item.color, borderColor: platform === item.id ? "white" : "rgba(255,255,255,.12)", boxShadow: platform === item.id ? `0 0 0 2px #071426, 0 0 0 4px ${item.color}` : "none" }}>
               <PlatformIcon platform={item.id} />
             </button>
           ))}

@@ -1,5 +1,9 @@
 "use client";
 
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
+import { currentProductEntryHref } from "@/lib/entries/return-intent";
+import { fundingReturnPath } from "@/lib/wallet/funding-navigation";
+import { isEntryQuantity } from "@/lib/entries/quantity";
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -69,9 +73,12 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const [guestDestination, setGuestDestination] = useState<string | null>(null);
   const search = useSearchParams().toString();
   const walletFunding = useWalletFundingContext();
   const walletHref = walletFunding?.href ?? (currentWalletHref ? `${currentWalletHref}#balance` : walletHistoryHref);
+  const drawerFundingHref = fundingReturnPath(`${walletHref.split("#")[0].replace(/&landing=balance$/, "")}#add-funds`);
+  const exactFundingHref = drawerFundingHref && drawerFundingHref !== `${walletHistoryHref}#add-funds` ? drawerFundingHref : undefined;
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
   const [menuVisibilityUpdate, setMenuVisibilityUpdate] = useState<{ original: boolean; enabled: boolean } | null>(null);
@@ -183,6 +190,13 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
         {...profileShortcut}
         onClick={() => {
           if (onPreviewOpen) { onPreviewOpen(); return; }
+          if (!isSignedIn) {
+            const { pathname, search, hash } = window.location;
+            const draft = window.history.state?.freeEntryDraft;
+            const selection = draft && typeof draft.slug === "string" && isEntryQuantity(draft.quantity) ? { slug: draft.slug, quantity: draft.quantity } : null;
+            setGuestDestination(currentProductEntryHref(pathname, search, selection)
+              ?? (pathname === "/browse" ? signInReturnPath(pathname + search + hash) ?? signInReturnPath(pathname + search) : null));
+          }
           const query = new URLSearchParams(window.location.search);
           const inWallet = pathname === "/account/wallet" && query.get("view") === "history" && !query.has("reward") && !query.has("rewardId");
           setCurrentWalletHref(inWallet ? `${pathname}${window.location.search}` : null);
@@ -223,7 +237,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
               </div>
             ) : (
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
-                <Link href="/signup" replace onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+                <Link href={authNavigationHref("/signup", guestDestination)} replace onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                 </Link>
               <div className="min-w-0 flex-1"><h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2><p className="text-[12px] text-white/55">Sign in or create an account</p></div>
@@ -234,7 +248,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
             <div className={`min-h-0 flex-1 overflow-y-auto ${showAccountContent ? styles.accountContent : "px-5 py-4"}`}>
               {showAccountContent ? <>
                 <DrawerOverview state={state} balanceLabel={balanceLabel} fundingEnabled={fundingEnabled}
-                  walletHref={walletHref} onWalletNavigate={openWallet} onNavigate={close} />
+                  walletHref={walletHref} fundingHref={exactFundingHref} onWalletNavigate={openWallet} onNavigate={close} />
 
                 <nav aria-label="Account navigation" className={styles.nav}>
                   {accountNavigation.map(([label, href]) => {
@@ -279,8 +293,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   </div>
                 </div>
 
-                <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} replace onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
-                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login?focus=email#login-form" replace onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
+                <Link href={accountPath === "business" ? "/signup?account=business" : authNavigationHref("/signup", guestDestination)} replace onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
+                <p className="text-center text-xs text-white/50">Already registered? <Link href={`${authNavigationHref("/login", guestDestination)}${guestDestination ? "&" : "?"}focus=email#login-form`} replace onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
                 <Link href="/how-it-works" onClick={close} className="grid min-h-11 w-full place-items-center rounded-xl border border-[#ff7a2d] bg-[#ff630f] px-4 text-sm font-black text-white transition hover:bg-[#ff7a2d]">How It Works</Link>
                 <Link href={accountRoutes.favorites} replace onClick={close} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-[#082848] px-4 text-sm font-bold text-cyan-100"><span aria-hidden="true" className="text-lg text-[#31e800]">♡</span>Favorites &amp; Sent to You</Link>
               </section>}

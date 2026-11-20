@@ -2,12 +2,20 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { restartPreviewReward } from "@/lib/account/lifecycle-actions";
+import { restartPreviewReward, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 
-export function DemoRewardRestartControl({ rewardId }: { rewardId: string }) {
+async function submitRestart(previous: PurchaseOptionActionState, formData: FormData): Promise<PurchaseOptionActionState> {
+  try {
+    return await restartPreviewReward(previous, formData);
+  } catch {
+    return { status: "error", recovery: "check", message: "The connection was interrupted. Check this reward or retry the same restart." };
+  }
+}
+
+export function DemoRewardRestartControl({ rewardId, checkHref = `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass` }: { rewardId: string; checkHref?: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
-  const [state, action, pending] = useActionState(restartPreviewReward, { status: "idle" });
+  const [state, action, pending] = useActionState(submitRestart, { status: "idle" });
 
   useEffect(() => {
     if (state.status === "succeeded" && state.href) router.push(state.href);
@@ -20,10 +28,10 @@ export function DemoRewardRestartControl({ rewardId }: { rewardId: string }) {
       <p className="text-xs leading-5">This hides the sample reward from your demo view. Your original entry, purchase, and wallet history stay saved.</p>
       <form action={action} className="mt-3 flex flex-wrap gap-2">
         <input type="hidden" name="rewardId" value={rewardId} />
-        <button type="submit" disabled={pending || state.status === "succeeded"} className="min-h-11 flex-1 rounded-lg bg-[#ff7417] px-3 text-xs font-extrabold text-[#17213b] disabled:opacity-55">{pending ? "Restarting…" : "Remove & restart demo"}</button>
+        <button type="submit" disabled={pending || state.status === "succeeded"} className="min-h-11 flex-1 rounded-lg bg-[#ff7417] px-3 text-xs font-extrabold text-[#17213b] disabled:opacity-55">{pending ? "Restarting…" : state.status === "error" && state.recovery === "check" ? "Retry same restart" : "Remove & restart demo"}</button>
         <button type="button" onClick={() => setConfirming(false)} disabled={pending} className="min-h-11 rounded-lg border border-[#17213b]/30 px-3 text-xs font-bold disabled:opacity-55">Keep reward</button>
       </form>
     </div>}
-    {state.status !== "idle" ? <p role="status" className="mt-2 text-xs font-bold text-[#173d5e]">{state.message}</p> : null}
+    {state.status !== "idle" ? <p role="status" className="mt-2 text-xs font-bold text-[#173d5e]">{state.message}{state.status === "error" && state.recovery === "check" ? <> <a className="underline" href={checkHref}>Check this reward</a></> : null}</p> : null}
   </section>;
 }

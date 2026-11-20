@@ -1,3 +1,4 @@
+import { getOwnWinShareRecipients } from "@/lib/crew/actions";
 import { notificationFilter, notificationHref, validNotice } from "@/lib/account/notification-return";
 import { exactOrderHref, fulfillmentFilter, fulfillmentFilterLabel, fulfillmentHref } from "@/lib/account/fulfillment";
 import type { Metadata } from "next";
@@ -69,7 +70,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : weeklyDeposit ? "#weekly-deposit-heading" : purchaseArrival ? "#reward-pass" : typeof query.checkout === "string" ? "#checkout-gift-cards" : rewardSection);
     // A legacy bookmark may still carry only an in-page fragment. Let the browser
     // inherit it here so the sign-in form can recover the allowlisted panel.
-    const loginAnchor = next === "/account/wallet?view=history" ? "" : "#login-form";
+    const loginAnchor = next === "/account/wallet?view=history" || next === "/account/wallet" ? "" : "#login-form";
     redirect(`${authNavigationHref("/login", next)}&focus=email${loginAnchor}`);
   }
   if (cardView) redirect("/account/wallet?view=history&panel=card");
@@ -164,10 +165,15 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] | null = [];
+    let sharedCrewRecipients: string[] | null = [];
     if (reward?.status === "prize" && reward.rewardId) {
       const db = await createClient();
       try {
-        const { data, error } = await db.rpc("get_crew_member_profiles");
+        const [{ data, error }, shared] = await Promise.all([
+          db.rpc("get_crew_member_profiles"),
+          getOwnWinShareRecipients(reward.rewardId),
+        ]);
+        sharedCrewRecipients = shared;
         crewMembers = !error && Array.isArray(data) ? data.filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
           .map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name })) : null;
       } catch { crewMembers = null; }
@@ -208,9 +214,31 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const fulfillmentReturn = sourceOrder
         ? exactOrderHref(sourceOrder.orderNumber, orderFilter, false, orderNotification, orderContext?.filter, notice)
         : orderContext ? fulfillmentHref(reward.rewardId ?? undefined, orderFilter, false, undefined, orderContext) : undefined;
-      return <WalletRewardDetail claimCheckHref={accountPageReturnPath("/account/wallet", query, "#reward-pass")} orderFilter={orderFilter} fulfillmentReturn={fulfillmentReturn} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
-        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink} checkoutContext={checkoutContext}
+      return <WalletRewardDetail claimCheckHref={accountPageReturnPath("/account/wallet", query, "#reward-pass")} orderFilter={orderFilter} fulfillmentReturn={fulfillmentReturn} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} locale={account.preferredLocale} item={reward}
+        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} sharedCrewRecipients={sharedCrewRecipients} returnLink={returnLink} checkoutContext={checkoutContext}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
+    }
+    if (account.activity.isPreview && typeof query.rewardId === "string" && checkoutReceiptId.test(query.rewardId)) {
+      const db = await createClient();
+      const restart = await db.from("demo_reward_restarts")
+        .select("reward_id")
+        .eq("customer_id", account.userId)
+        .eq("reward_id", query.rewardId)
+        .eq("idempotency_key", `restart_${query.rewardId.replaceAll("-", "")}`)
+        .maybeSingle();
+      if (!restart.error && restart.data) {
+        const original = await db.from("customer_rewards").select("customer_entry_id").eq("id", query.rewardId).eq("customer_id", account.userId).maybeSingle();
+        const entry = original.data?.customer_entry_id
+          ? await db.from("customer_entries").select("offering_slug").eq("id", original.data.customer_entry_id).eq("customer_id", account.userId).maybeSingle()
+          : null;
+        const product = !entry?.error && typeof entry?.data?.offering_slug === "string" ? getDemoProduct(entry.data.offering_slug) : null;
+        return <PageContainer><section id="reward-pass" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6" aria-labelledby="reward-restarted-title">
+          <h1 id="reward-restarted-title" className="text-lg font-bold text-white">Demo reward restarted</h1>
+          <p className="mt-2 text-sm text-[#b5cce4]">This reward was removed from your current demo view. Your original entry and wallet history are saved.</p>
+          {product ? <Link className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]" href={`/items/${product.slug}#enter-entry`}>Return to {product.title}</Link> : null}
+          <Link href={rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet</Link>
+        </section></PageContainer>;
+      }
     }
     return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></div></PageContainer>;
   }
@@ -227,6 +255,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: id });
     return error ? null : data;
   });
-  const rewards = <WalletRewards cardEndings={cardEndings} timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
+  const rewards = <WalletRewards cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory ? focusCard : undefined)} />;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={`/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }

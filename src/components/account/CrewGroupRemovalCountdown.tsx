@@ -7,7 +7,9 @@ import styles from "./crew-group-removal-countdown.module.css";
 export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm }: {
   name: string; busy: boolean; retry?: number; onUndo: () => void; onConfirm: () => void;
 }) {
-  const [deadline] = useState(() => Date.now() + 30_000);
+  const [deadline, setDeadline] = useState(() => Date.now() + 30_000);
+  const [reviewedAttempt, setReviewedAttempt] = useState(retry);
+  const needsReview = retry !== reviewedAttempt;
   const [seconds, setSeconds] = useState(30);
   const submitting = useRef(false);
   const undoButton = useRef<HTMLButtonElement>(null);
@@ -18,7 +20,7 @@ export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm
   }, []);
   useLayoutEffect(() => { if (!busy) submitting.current = false; }, [busy, retry]);
   useEffect(() => {
-    if (busy) return;
+    if (busy || needsReview) return;
     const timer = window.setInterval(() => {
       if (submitting.current) return;
       const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
@@ -26,19 +28,23 @@ export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm
       if (!left) { window.clearInterval(timer); onUndo(); }
     }, 250);
     return () => window.clearInterval(timer);
-  }, [deadline, busy, onUndo]);
+  }, [deadline, busy, needsReview, onUndo]);
 
   return <section className={styles.confirmation} aria-label="Confirm group removal" aria-busy={busy}>
-    <div className={styles.header}><div><strong>Remove “{name}”?</strong><p>Removes this group and its saved contact list. Your Crew connections and other groups stay.</p></div><EntryUndoCountdown seconds={seconds} compact /></div>
+    <div className={styles.header}><div><strong>Remove “{name}”?</strong><p>Removes this group and its saved contact list. Your Crew connections and other groups stay.</p></div>{!needsReview ? <EntryUndoCountdown seconds={seconds} compact /> : null}</div>
     <p>Undo keeps this group. Time runs out? We’ll keep it.</p>
     <div className={styles.actions}>
       <button ref={undoButton} type="button" className={styles.undo} disabled={busy} onClick={onUndo}>Undo</button>
-      <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
+      {needsReview ? <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
+        setSeconds(30);
+        setDeadline(Date.now() + 30_000);
+        setReviewedAttempt(retry);
+      }}>Review removal again</button> : <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
         if (submitting.current) return;
         if (Date.now() >= deadline) { onUndo(); return; }
         submitting.current = true;
         onConfirm();
-      }}>{busy ? "Removing…" : "Confirm removal"}</button>
+      }}>{busy ? "Removing…" : "Confirm removal"}</button>}
     </div>
   </section>;
 }

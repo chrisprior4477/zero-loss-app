@@ -258,7 +258,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   function review() {
     if (locked) return;
     setPurchaseExpired(false);
-    if (needsReview) { setOverlay("options"); return; }
+    if (needsReview || !selected.length) { setOverlay("options"); return; }
     setError(""); setNotice(""); setAcknowledged(false);
     if (shortfall) { setOverlay("fund"); return; }
     setPurchaseRequest({ slug: item.slug, purchaseIds: [...selected], declineIds: decline ? options.filter(option => !selected.includes(option.completionOptionId!)).map(option => option.completionOptionId!) : [], totalCents: total, requestId: crypto.randomUUID(), confirmed: true });
@@ -317,13 +317,28 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         setOverlay(null);
         router.refresh();
       } else if (result.status === "missing") {
-        setError("No deposit receipt was found for this attempt. You can confirm the same demo deposit again.");
+        setError(cards.some(saved => saved.token === depositAttempt.token)
+          ? "No deposit receipt was found for this attempt. You can confirm the same demo deposit again."
+          : "This deposit was not recorded and its saved card was removed. Review a new deposit to continue.");
         setDepositMissing(true);
       } else if (result.status === "credit_pending" || result.status === "not_processed" || result.status === "discrepancy") {
         setError(depositWarning(depositAttempt.amount, result.status));
       } else setError("Open the exact deposit in your wallet to see its current status.");
     } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
+  }
+  function reviewReplacementDeposit() {
+    if (inFlight.current || !depositMissing || !depositAttempt || cards.some(saved => saved.token === depositAttempt.token)) return;
+    saveAttempt(null);
+    setDepositAttempt(undefined);
+    setDepositMissing(false);
+    setRecovery(null);
+    setError("");
+    setNotice("");
+    setApprovedDeposit(null);
+    setAcknowledged(false);
+    setCard(cards.find(saved => saved.isDepositDefault)?.token ?? cards.find(saved => saved.isDefault)?.token ?? cards[0]?.token ?? null);
+    setOverlay("fund");
   }
   function recordCompletedPurchase(result: { href: string; cardReady: boolean; totalCents: number; rewardIds?: string[]; purchasedCount?: number }, request: BulkPurchaseRequest) {
     try {
@@ -403,7 +418,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     {recovery === "deposit" ? <>
       {walletId && depositAttempt ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkDeposit()}>Check this deposit</button> : null}
       <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>{walletId && depositAttempt ? "Open deposit in wallet" : "Check this deposit"}</Link>
-      {depositMissing && depositAttempt && cards.some(saved => saved.token === depositAttempt.token) ? <button type="button" className={styles.primary} disabled={busy || !fundingAvailable} onClick={() => void addFunds(depositAttempt)}>Confirm same {usd(depositAttempt.amount)} demo deposit · {demoCardFixture(depositAttempt.token)?.issuer}</button> : null}
+      {depositMissing && depositAttempt ? cards.some(saved => saved.token === depositAttempt.token) ? <button type="button" className={styles.primary} disabled={busy || !fundingAvailable} onClick={() => void addFunds(depositAttempt)}>Confirm same {usd(depositAttempt.amount)} demo deposit · {demoCardFixture(depositAttempt.token)?.issuer}</button> : <button type="button" className={styles.primary} disabled={busy || !fundingAvailable} onClick={reviewReplacementDeposit}>Review a new deposit</button> : null}
     </> : null}
     <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>
   </div> : null}</>;
@@ -424,8 +439,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     <section id="purchase-options-intro" className={`${styles.ticket} ${styles.content} ${styles.refined}`} aria-label="Your purchase options">
       <h1>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
       <div className={singleOffer ? `${styles.quantity} ${styles.singleQuantity}` : styles.quantity}>
-        {!singleOffer ? <NumberWheel label="Buying" min={1} max={options.length} value={chosen.length} disabled={locked || overlay !== null} onChange={changeQuantity} /> : null}
-        <div><h3>{buyLabel}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div>
+        {!singleOffer ? <NumberWheel label="Buying" min={1} max={options.length} value={Math.max(1, chosen.length)} disabled={locked || overlay !== null || chosen.length === 0} onChange={changeQuantity} /> : null}
+        <div><h3>{chosen.length ? buyLabel : "Choose the offers you want to buy"}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div>
       </div>
       {rest ? <fieldset className={styles.offerChoices} disabled={locked}><legend>The other {rest} {rest === 1 ? "offer" : "offers"}</legend><div className={styles.offerTiles}>
         <button type="button" aria-pressed={decline} onClick={() => updateChoice({ decline: true })}>

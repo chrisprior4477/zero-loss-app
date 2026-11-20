@@ -32,7 +32,8 @@ export async function restartPreviewReward(
       p_reward_id: rewardId,
       p_idempotency_key: `restart_${rewardId.replaceAll("-", "")}`,
     });
-    if (error || data?.status !== "restarted" || typeof data.slug !== "string" || !getDemoProduct(data.slug)) {
+    if (error) return { status: "error", recovery: "check", message: "We couldn’t confirm the restart. Check this reward before trying again." };
+    if (data?.status !== "restarted" || typeof data.slug !== "string" || !getDemoProduct(data.slug)) {
       return { status: "error", message: "We couldn’t restart this demo. Your reward is still saved; refresh and try again." };
     }
     revalidatePath("/", "layout");
@@ -40,7 +41,7 @@ export async function restartPreviewReward(
     revalidatePath("/account/wallet");
     return { status: "succeeded", message: "Sample reward removed from your demo view. The original entry and wallet history are preserved.", href: `/items/${data.slug}#enter-entry` };
   } catch {
-    return { status: "error", message: "We couldn’t confirm the restart. Refresh your rewards before trying again." };
+    return { status: "error", recovery: "check", message: "We couldn’t confirm the restart. Check this reward before trying again." };
   }
 }
 

@@ -37,6 +37,26 @@ export async function previewDemoEntryReset(): Promise<Preview> {
   }
 }
 
+export async function checkDemoEntryReset(requestKey: string): Promise<
+  { status: "checked"; clearedCount: number | null; currentCount: number | null } | { status: "error"; message: string }
+> {
+  const unavailable = { status: "error", message: "We couldn’t verify this reset yet. Check again before clearing entries." } as const;
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) return unavailable;
+  try {
+    const db = await authorizedDemoAccount();
+    const [receipt, current] = await Promise.all([
+      db.from("demo_entry_reset_events").select("entry_count").eq("request_key", requestKey).maybeSingle(),
+      db.rpc("get_demo_entry_reset_preview"),
+    ]);
+    if (receipt.error) return unavailable;
+    const clearedCount = receipt.data?.entry_count ?? null;
+    if (clearedCount !== null && (!Number.isSafeInteger(clearedCount) || clearedCount < 0)) return unavailable;
+    const count = current.data?.entryCount;
+    const currentCount = !current.error && Number.isSafeInteger(count) && count >= 0 ? count : null;
+    return { status: "checked", clearedCount, currentCount };
+  } catch { return unavailable; }
+}
+
 export async function clearOwnDemoEntries(expectedCount: number, requestKey: string, revision: string): Promise<Result> {
   if (!Number.isSafeInteger(expectedCount) || expectedCount < 1 || !/^[0-9a-f]{64}$/.test(revision) || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) {
     return { status: "error", message: "Invalid reset request. Please try again." };

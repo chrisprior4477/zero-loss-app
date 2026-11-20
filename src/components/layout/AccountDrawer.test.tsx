@@ -101,7 +101,7 @@ test.each(["Add funds", "Playable Wallet: $0.00", "Wallet & Transactions"])("the
   render(<AccountDrawer {...props} fundingEnabled />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const link = screen.getByRole("link", { name: label });
-  expect(link.getAttribute("href")).toBe(label === "Add funds" ? href.replace("#balance", "#add-funds") : href);
+  expect(link.getAttribute("href")).toBe(label === "Add funds" ? href.replace("&landing=balance#balance", "#add-funds") : href);
   fireEvent.click(link);
   expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toEqual(selection);
   expect(screen.queryByRole("dialog")).toBeNull();

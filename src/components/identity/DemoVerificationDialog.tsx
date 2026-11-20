@@ -1,5 +1,7 @@
 "use client";
 
+import { useDialogBack } from "@/components/account/useDialogBack";
+
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import { useEffect, useRef, useState } from "react";
@@ -82,6 +84,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
   const [openAttempt, setOpenAttempt] = useState(0);
   const busy = phase !== "idle";
   const saving = phase === "saving";
+  useDialogBack(true, onClose, saving, true);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);

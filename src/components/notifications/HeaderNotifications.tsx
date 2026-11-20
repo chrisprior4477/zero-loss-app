@@ -62,7 +62,14 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     element.showModal();
     const before = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { element.close(); document.body.style.overflow = before; if (keyboardOpened.current) opener?.focus({ preventScroll: true }); else opener?.blur(); };
+    return () => {
+      element.close();
+      document.body.style.overflow = before;
+      if (keyboardOpened.current) {
+        const destination = opener?.isConnected ? opener : document.querySelector<HTMLElement>('[aria-label="Open account menu"]');
+        destination?.focus({ preventScroll: true });
+      } else opener?.blur();
+    };
   }, [value?.open]);
   const unread = value?.unread ?? [];
   const all = value?.notifications ?? unread;

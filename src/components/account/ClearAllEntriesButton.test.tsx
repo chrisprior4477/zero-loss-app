@@ -1,17 +1,18 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-const actions = vi.hoisted(() => ({ preview: vi.fn(), clear: vi.fn() }));
+const actions = vi.hoisted(() => ({ preview: vi.fn(), clear: vi.fn(), check: vi.fn() }));
 const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/account/demo-entry-reset-actions", () => ({
   previewDemoEntryReset: actions.preview,
   clearOwnDemoEntries: actions.clear,
+  checkDemoEntryReset: actions.check,
 }));
 
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 
-afterEach(() => { cleanup(); actions.preview.mockReset(); actions.clear.mockReset(); navigation.refresh.mockReset(); });
+afterEach(() => { cleanup(); actions.preview.mockReset(); actions.clear.mockReset(); actions.check.mockReset(); navigation.refresh.mockReset(); });
 
 test("confirms scope and preserves data on cancellation", async () => {
   actions.preview.mockResolvedValue({ status: "ready", entryCount: 7 });
@@ -56,8 +57,9 @@ test("a failed entry check offers a retry without requesting a reset", async () 
   expect(await screen.findByRole("dialog")).toBeTruthy();
 });
 
-test("a lost clear response can only check current entries, including a repeated connection failure", async () => {
-  actions.preview.mockResolvedValueOnce({ status: "ready", entryCount: 47 }).mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "ready", entryCount: 0 });
+test("a lost clear response checks the exact receipt and current count without a second reset", async () => {
+  actions.preview.mockResolvedValueOnce({ status: "ready", entryCount: 47 });
+  actions.check.mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "checked", clearedCount: 47, currentCount: 1 });
   actions.clear.mockRejectedValue(new Error("Missing confirmation"));
   render(<ClearAllEntriesButton />);
   fireEvent.click(screen.getByRole("button", { name: "Clear All Entries" }));
@@ -69,7 +71,8 @@ test("a lost clear response can only check current entries, including a repeated
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still couldn’t check"));
   fireEvent.click(await screen.findByRole("button", { name: "Check entry status" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(screen.getByRole("status").textContent).toContain("currently has 0 demo entries");
+  expect(screen.getByRole("status").textContent).toContain("This reset cleared 47 demo entries. Your account currently has 1 demo entry.");
+  expect(actions.check).toHaveBeenCalledWith(actions.clear.mock.calls[0][1]);
   expect(actions.clear).toHaveBeenCalledOnce();
   expect(navigation.refresh).toHaveBeenCalledOnce();
 });

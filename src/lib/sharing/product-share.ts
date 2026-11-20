@@ -1,14 +1,16 @@
-export type ProductShareItem = { slug: string; title: string; image?: string; retailer?: string; value?: number; win?: { rewardId: string; demo: boolean } };
+export type ProductShareItem = { slug: string; title: string; image?: string; retailer?: string; value?: number; recipientId?: string; win?: { rewardId: string; demo: boolean } };
 export const PRODUCT_SHARE_EVENT = "zero-loss-open-product-share";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function isProductShareItem(value: unknown): value is ProductShareItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ProductShareItem>;
-  return typeof item.slug === "string" && item.slug.length <= 150 && slugPattern.test(item.slug)
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return (item.recipientId === undefined || typeof item.recipientId === "string" && uuid.test(item.recipientId))
+    && typeof item.slug === "string" && item.slug.length <= 150 && slugPattern.test(item.slug)
     && typeof item.title === "string" && item.title.length > 0 && item.title.length <= 300
     && (item.win === undefined || (typeof item.win === "object" && item.win !== null && typeof item.win.demo === "boolean"
-      && typeof item.win.rewardId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.win.rewardId)));
+      && typeof item.win.rewardId === "string" && uuid.test(item.win.rewardId)));
 }
 
 /** Share only the public listing, never the current account/entry URL or query. */

@@ -19,12 +19,12 @@ function sameTabWalletDraft(handoffId: string, ownerId: string, slug: string) {
   } catch { return null; }
 }
 
-function restore(raw: string | null, ownerId: string, slug: string, available: string[], firstId: string): Choice | null {
+function restore(raw: string | null, ownerId: string, slug: string, available: string[]): Choice | null {
   if (!raw) return null;
   let draft: Partial<Draft> | null;
   try { draft = JSON.parse(raw); } catch { return null; }
   if (!draft || draft.slug !== slug || (draft.ownerId !== undefined && draft.ownerId !== ownerId)
-    || typeof draft.decline !== "boolean" || !Array.isArray(draft.selected) || !draft.selected.length
+    || typeof draft.decline !== "boolean" || !Array.isArray(draft.selected) || (!draft.selected.length && draft.needsReview !== true)
     || !draft.selected.every(id => typeof id === "string") || new Set(draft.selected).size !== draft.selected.length) return null;
 
   const current = new Set(available);
@@ -36,7 +36,7 @@ function restore(raw: string | null, ownerId: string, slug: string, available: s
     : !draft.decline || selected.length === current.size;
   const changed = !sameOffers || selected.length !== draft.selected.length;
   return {
-    selected: selected.length ? selected : [firstId],
+    selected,
     decline: changed ? false : draft.decline,
     needsReview: changed || draft.needsReview === true,
   };
@@ -53,26 +53,26 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
   const inMemory = useRef<{ key: string; raw: string } | null>(null);
 
   useLayoutEffect(() => {
-    let saved = inMemory.current?.key === key ? restore(inMemory.current.raw, ownerId, slug, available, firstId) : null;
+    let saved = inMemory.current?.key === key ? restore(inMemory.current.raw, ownerId, slug, available) : null;
     const query = new URLSearchParams(window.location.search);
     if (!saved) try {
       const handoffId = query.get("choice");
       if (handoffId !== null) {
         const currentDraft = sessionStorage.getItem(`${key}:arrival`) === handoffId
-          ? restore(sessionStorage.getItem(key), ownerId, slug, available, firstId) : null;
+          ? restore(sessionStorage.getItem(key), ownerId, slug, available) : null;
         const handoff = readPurchaseHandoff(handoffId) ?? sameTabWalletDraft(handoffId, ownerId, slug);
-        saved = currentDraft ?? restore(handoff, ownerId, slug, available, firstId)
-          ?? { selected: [firstId], decline: false, needsReview: true };
+        saved = currentDraft ?? restore(handoff, ownerId, slug, available)
+          ?? { selected: [], decline: false, needsReview: true };
         sessionStorage.setItem(`${key}:arrival`, handoffId);
       } else if (query.get("resume") === "wallet") {
         const handoff = sessionStorage.getItem(purchaseSelectionKey);
         sessionStorage.removeItem(purchaseSelectionKey);
-        saved = restore(handoff, ownerId, slug, available, firstId);
+        saved = restore(handoff, ownerId, slug, available);
       }
-      saved ??= restore(sessionStorage.getItem(key), ownerId, slug, available, firstId);
+      saved ??= restore(sessionStorage.getItem(key), ownerId, slug, available);
     } catch { /* An unreadable tab draft does not authorize a purchase. */ }
     const returning = query.has("choice") || query.get("resume") === "wallet";
-    const initial = saved ?? { selected: [firstId], decline: !returning, needsReview: returning };
+    const initial = saved ?? { selected: returning ? [] : [firstId], decline: !returning, needsReview: returning };
     // Restore the selection together before the customer can review it.
     setChoice(initial);
     setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));

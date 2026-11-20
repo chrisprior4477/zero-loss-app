@@ -24,6 +24,20 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
   const emailField = useRef<HTMLInputElement>(null);
   const restoreSubmitFocus = useRef(false);
   useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const raw = sessionStorage.getItem("zero-loss-recovery-email");
+        sessionStorage.removeItem("zero-loss-recovery-email");
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (typeof saved.email === "string" && saved.email.length <= 254 && saved.destination === destination && saved.expires >= Date.now()) {
+          setEmail(current => current || saved.email);
+        }
+      } catch { /* The visitor can type their address directly. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [destination]);
+  useEffect(() => {
     if (pending || !restoreSubmitFocus.current) return;
     restoreSubmitFocus.current = false;
     if (feedback.status !== "error") return;
