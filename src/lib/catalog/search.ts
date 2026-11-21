@@ -6,7 +6,7 @@ import { catalogMerchant, matchesCatalogMerchant, searchDenominations, smallNumb
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
-const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inches|inch|terabytes?|gigabytes?)\b`, "gi");
+const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inches|inch|terabytes?|gigabytes?|quarts?|ounces?|people|persons?)\b`, "gi");
 
 export function searchCatalogMatches(
   products: readonly DemoProduct[],
@@ -19,6 +19,13 @@ export function searchCatalogMatches(
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
+  const multiBrandTelevisions = /^(\S+)\s+(?:and|or|&)\s+(\S+)\s+(\d+\s*[- ]?\s*(?:inch(?:es)?|in\b|")\s+(?:tvs?|televisions?))\s*[.!?]?$/i.exec(query.trim());
+  const hasBrand = (name: string) => products.some(product => normalizeSearch(product.brand) === normalizeSearch(name));
+  if (multiBrandTelevisions && hasBrand(multiBrandTelevisions[1]) && hasBrand(multiBrandTelevisions[2])) {
+    const scoped = products.filter(product => !isGiftCardListing(product) && [multiBrandTelevisions[1], multiBrandTelevisions[2]]
+      .some(brand => normalizeSearch(product.brand) === normalizeSearch(brand)));
+    return searchCatalogMatches(scoped, multiBrandTelevisions[3], undefined, { includeLowerGiftCards });
+  }
   const standaloneConsole = /^(.*\b(?:p[.\s-]*s|play[\s-]*station)[.\s-]*5\b.*?)\s*,?\s+(?:but\s+)?(?:no|not|without|excluding)\s+(?:(?:a|any)\s+)?(?:game\s+)?bundles?\s*[.!?]?$/i.exec(query);
   if (standaloneConsole) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && !/\bbundle\b/.test(normalizeSearch(product.title))), standaloneConsole[1], undefined, { includeLowerGiftCards });

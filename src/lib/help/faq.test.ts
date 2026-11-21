@@ -109,3 +109,23 @@ test.each([
 ])("answers the help search %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });
+
+test.each([
+  ["can I use the website without an account", "enter-a-prize"],
+  ["never got the confirmation message", "verification-email"],
+  ["send me a new reset link", "password"],
+  ["delete old debit card", "delete-card"],
+  ["what happens if I undo only one of my entries", "undo-entry"],
+  ["does paying the rest combine my earlier entries", "purchase-options"],
+  ["how long is the declined offer held", "decline-and-revive"],
+  ["why did my wallet deposit show twice", "funding-status"],
+  ["credit card charged but no wallet credit", "funding-status"],
+  ["how to change my delivery address", "time-zone"],
+  ["hide me from name search in crew", "crew-discoverability"],
+  ["take somebody out of my own group", "group-members"],
+  ["support tracking reference", "support-case-number"],
+  ["show purchases from last week", "wallet-history"],
+  ["change number that friends find me by", "change-phone"]
+])("answers the customer question %s", (query, id) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(id);
+});

@@ -24,23 +24,28 @@ type Props = {
 
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const params = await searchParams;
-  if (!params.offering) redirect("/free-entry");
-  if (Array.isArray(params.offering)) {
-    const choices = await freeEntryChoices(params.offering, params.share);
+  const requested = params.offering;
+  const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
+  if (!offering) {
+    const returnPath = productBrowseReturnPath(params.from);
+    redirect(returnPath ? `/free-entry?from=${encodeURIComponent(returnPath)}#free-entry-intro` : "/free-entry");
+  }
+  if (Array.isArray(offering)) {
+    const choices = await freeEntryChoices(offering, params.share);
     return <div className="mx-auto max-w-3xl p-6 text-white">
     <AccountSettingsLandingScroll target="free-entry-choices" initialTarget="free-entry-choices" focusTarget="free-entry-choices" allScreens />
     <h1 id="free-entry-choices" tabIndex={-1} className="text-2xl font-black">{choices.length ? "Choose one prize to print" : "The selected prizes are unavailable"}</h1>
     <p className="mt-3">{choices.length ? "This link includes more than one prize selection." : "Return to prize selection to choose an open offering."}</p>
-    {choices.length > 0 && choices.length < new Set(params.offering.map(value => value.toLowerCase())).size ? <p role="status" className="mt-3">Some of the selected prizes are unavailable. Choose an open prize below.</p> : null}
+    {choices.length > 0 && choices.length < new Set(offering.map(value => value.toLowerCase())).size ? <p role="status" className="mt-3">Some of the selected prizes are unavailable. Choose an open prize below.</p> : null}
     {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, params.from, parseEntryQuantity(params.quantity), share).replace("/free-entry?", "/free-entry/print?") + (params.quantity !== undefined && parseEntryQuantity(params.quantity) === null ? "&quantity=invalid" : "")}>{product.title}</Link></li>)}</ul>}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(params.from) ?? "/browse#search-results"}>Back to prize selection</Link>
     </div>;
   }
-  const offering = params.offering.toLowerCase();
-  const product = await freeEntryProduct(offering);
+  const slug = offering.toLowerCase();
+  const product = await freeEntryProduct(slug);
   if (product === undefined) {
     const parsed = parseEntryQuantity(params.quantity);
-    const instructions = freeEntryHref(offering, params.from, parsed, params.share)
+    const instructions = freeEntryHref(slug, params.from, parsed, params.share)
       + (params.quantity !== undefined && parsed === null ? "&quantity=invalid" : "");
     return <div className="mx-auto max-w-3xl p-6 text-white">
       <h1 className="text-2xl font-black">Availability temporarily unavailable</h1>
@@ -50,7 +55,7 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   }
   if (!product) {
     const parsed = parseEntryQuantity(params.quantity);
-    redirect(freeEntryHref(offering, params.from, parsed, params.share)
+    redirect(freeEntryHref(slug, params.from, parsed, params.share)
       + (params.quantity !== undefined && parsed === null ? "&quantity=invalid" : ""));
   }
   const quantity = parseEntryQuantity(params.quantity);
@@ -62,5 +67,5 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   if (await getAccountContext()) redirect(`${instructions}#print-entry-insert`);
   return <FreeEntryPrintSheet offering={product.slug} title={product.title}
     name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001" blankSample
-    back={<Link href={`${instructions}#free-entry-intro`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>} />;
+    back={<Link href={`${instructions}#free-entry-intro`} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to entry instructions</Link>} />;
 }

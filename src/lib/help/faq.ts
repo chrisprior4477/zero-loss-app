@@ -43,7 +43,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "change-phone", category: "account", question: "How do I change my phone number?",
-    answer: "Open Contact details in Profile, update the phone number, and save your changes.",
+    answer: "Open Contact details in Profile, update the phone number, and save your changes. To control whether someone can find you by that number, open Privacy in Your Crew and change phone discovery.",
     keywords: "change update edit contact cell mobile phone number",
     action: { label: "Open Contact details", href: "/account/profile?section=contact#contact-details-heading" },
   },
@@ -82,6 +82,12 @@ export const faqItems: FaqItem[] = [
     answer: "Open a prize shared from that group and use its Leave control. The confirmation identifies the group before you make the change.",
     keywords: "leave quit exit group sharing from a shared prize",
     action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
+  },
+  {
+    id: "crew-discoverability", category: "account", question: "How do I hide my name from Crew search?",
+    answer: "Open Privacy in Your Crew. Under Can people find me?, turn off name discovery and save. You can manage searches by email and phone separately.",
+    keywords: "hide discoverability name search find private visibility",
+    action: { label: "Open Crew Privacy", href: "/account/crew?tab=privacy#crew-privacy" },
   },
   {
     id: "time-zone", category: "account", question: "How do I change my time zone?",
@@ -128,7 +134,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "enter-a-prize", category: "entries", question: "What is the quickest way to enter a prize?",
-    answer: "Open a prize in the marketplace and use its entry controls. Choose your quantity, check the displayed total, and submit. If you need to sign in or create an account, the selected prize is kept so you can return to it afterward.",
+    answer: "You can browse the marketplace and open prize details without an account. To submit a demo entry, sign in or create an account and use the prize’s entry controls. Choose your quantity, check the displayed total, and submit. If you need to sign in or create an account, the selected prize is kept so you can return to it afterward.",
     keywords: "ticket tickets enter one dollar signup sign up", action: { label: "Browse prizes", href: "/browse" },
   },
   {
@@ -154,7 +160,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
     answer: "Wait for the saved confirmation, then check My Activity. See Open Entries shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the connection drops, check the saved result instead of starting another purchase just to see whether the first one worked.",
-    keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active" },
+    keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active#my-activity-filters" },
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
@@ -173,7 +179,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "wallet-history", category: "wallet", question: "Where can I see my wallet transactions?",
-    answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund.",
+    answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund. To find purchases from last week, choose Purchases and enter the start and end dates.",
     keywords: "wallet ledger activity records history", action: { label: "Open transaction history", href: walletTransactionsHref },
   },
   {
@@ -273,6 +279,20 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:use|browse|see)\b.*\bwithout (?:an account|signing in)\b/, "enter-a-prize"],
+  [/\b(?:never got|did not get|missing|resend)\b.*\bconfirmation message\b/, "verification-email"],
+  [/\b(?:send|new|resend|expired)\b.*\b(?:password )?reset link\b/, "password"],
+  [/\b(?:delete|remove)\b.*\b(?:debit|payment|credit)\s+card\b|\bmanage\b.*\b(?:stored|saved)\s+billing cards\b/, "delete-card"],
+  [/\bundo\b.*\b(?:only|one)\b.*\b(?:entries|tickets)\b/, "undo-entry"],
+  [/\bpay(?:ing)?\s+the\s+rest\b.*\bcombine\b.*\b(?:entries|tickets)\b/, "purchase-options"],
+  [/\bhow long\b.*\bdeclined offer\b/, "decline-and-revive"],
+  [/\bdeposit\b.*\b(?:twice|duplicate|two times)\b|\bcharged\b.*\bno wallet credit\b/, "funding-status"],
+  [/\b(?:change|update|edit)\b.*\b(?:delivery|mailing)\s+address\b/, "time-zone"],
+  [/\bhide\b.*\bname search\b.*\bcrew\b/, "crew-discoverability"],
+  [/\btake\b.*\bout of\b.*\b(?:my|own)\b.*\bgroup\b/, "group-members"],
+  [/\bsupport\b.*\btracking (?:reference|number)\b/, "support-case-number"],
+  [/\b(?:show|find|view)\b.*\bpurchases\b.*\b(?:last week|date range)\b/, "wallet-history"],
+  [/\bchange\b.*\bnumber\b.*\bfriends?\s+(?:can\s+)?find\b/, "change-phone"],
   [/\b(?:add funds|deposit|funding)\b.*\b(?:minimum|\d+\.\d{2})\b|\bpaypal\b/, "add-funds"],
   [/\b(?:real card was charged|unexpected charge)\b/, "balance-discrepancy"],
   [/\b(?:money|balance)\b.*\b(?:missing|short)\b.*\bbalance\b|\b(?:wallet|playable)\s+balance\b.*\b(?:missing|short)\b/, "balance-discrepancy"],

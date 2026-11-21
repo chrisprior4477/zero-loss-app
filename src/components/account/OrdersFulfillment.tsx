@@ -4,7 +4,7 @@ import type { AccountOrders } from "@/lib/account/orders";
 import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
 import { accountFulfillment, fulfillmentFilterLabel, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 import { OrderTicketGallery } from "./OrderTicketGallery";
-import { OrdersRetryButton } from "./OrdersRetryButton";
+import { AccountReadRetryButton } from "./AccountReadRetryButton";
 import { SelectedOrderScroll } from "./SelectedOrderScroll";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
@@ -21,7 +21,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const transactionHelp = walletTransactionHelpHref.replace("#transactions", `&fromOrders=1${filter === "all" ? "" : `&orderFilter=${filter}`}#transactions`);
   const reportHref = chooseTransaction ? transactionHelp : supportHref;
-  const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
+  const supportLabel = chooseTransaction ? "Choose a transaction to report" : supportHref.startsWith("/support?rewardId=") ? "Report a problem with this reward" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
   const { records } = fulfillment;
   const complete = overview ? fulfillment.complete : !state.incomplete && state.source !== "unavailable";
@@ -104,14 +104,14 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           {visibleOrders.length ? <>
             {!complete ? <div className={`${styles.warning} ${styles.retryWarning}`}>
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
-              <OrdersRetryButton label={retryLabel} />
+              <AccountReadRetryButton label={retryLabel} />
             </div> : null}
             <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} fromNotification={fromNotification} alerts={alerts} notice={notice} exactSelection={hasSelection} initialAnchorId={missingFocusReward ? undefined : focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3 id="order-status-empty" tabIndex={-1}>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>
             <p>Try again in a moment to check this view.</p>
-            <OrdersRetryButton label={retryLabel} />
+            <AccountReadRetryButton label={retryLabel} />
           </div> : records.length || hasSelection || filter !== "all" ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span><h3 id="order-status-empty" tabIndex={-1}>{selectedOrderNumber ? "That order is not available here" : selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{hasSelection ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
             <a href={fulfillmentHref()}>{hasSelection ? "View all orders" : "Show all records"}<AccountIcon name="arrow" /></a>

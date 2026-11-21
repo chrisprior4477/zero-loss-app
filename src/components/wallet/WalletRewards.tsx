@@ -76,10 +76,10 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
 }) {
   const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
   const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
-  function scopedHistory(href: string) {
+  function scopedHistory(href: string, keepPrize = true) {
     if (!prize && !transactionReturn) return href;
     const url = new URL(href, "https://zeroloss.local");
-    if (prize) url.searchParams.set("prize", prize);
+    if (keepPrize && prize) url.searchParams.set("prize", prize);
     if (transactionReturn) {
       const source = new URL(transactionReturn, "https://zeroloss.local").searchParams;
       for (const key of ["transaction", "walletView", "fromOrders", "orderFilter"]) {
@@ -198,7 +198,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         </>}
         {focusedHistory ? <>
           <div className={overview.returnActions} data-reward-view={view}>
-            <WalletRewardLink href={rewardViewHrefs.all}>{view === "expired" ? "Back to Gift Cards & Rewards" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
+            <WalletRewardLink href={scopedHistory(rewardViewHrefs.all, false)}>{view === "expired" ? "Back to Gift Cards & Rewards" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
             {view === "expired" ? <Link href={accountRoutes.declinedOffers}>Declined Offers<AccountIcon name="arrow" /></Link> : null}
             <Link href="/">Continue Shopping<AccountIcon name="arrow" /></Link>
           </div>
@@ -325,7 +325,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
                 <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
-                <div><p>{notice.title}</p><span>{notice.message}</span>{available && claimed && claimCheckHref ? <a href={claimCheckHref} className="mr-4 mt-3 inline-block font-bold text-[#075b8c] underline">Try this reward again</a> : null}<Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+                <div><p>{notice.title}</p><span>{notice.message}</span>{(status === null || available && claimed) && claimCheckHref ? <a href={claimCheckHref} className="mr-4 mt-3 inline-block font-bold text-[#075b8c] underline">Try this reward again</a> : null}<Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} checkHref={claimCheckHref} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}

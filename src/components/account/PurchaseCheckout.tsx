@@ -31,6 +31,7 @@ import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } f
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 import { useDialogBack } from "./useDialogBack";
+import { restoreDialogTrigger } from "./dialog-keyboard";
 import { AccountIcon } from "./AccountIcon";
 
 function Product({ item }: { item: ActivityItem }) {
@@ -74,6 +75,14 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
   const offerDetailsTrigger = useRef<HTMLButtonElement>(null);
   const offerDetailsBody = useRef<HTMLDivElement>(null);
+  function closeOfferDetails() {
+    setOfferDetailsOpen(false);
+    const trigger = offerDetailsTrigger.current;
+    if (trigger) restoreDialogTrigger(trigger, true);
+  }
+  useDialogBack(singleOffer && offerDetailsOpen, closeOfferDetails, false, true, false, offerDetailsId + "-information", () => {
+    if (singleOffer) setOfferDetailsOpen(true);
+  });
   useEffect(() => {
     if (!offerDetailsOpen) return;
     const details = offerDetailsBody.current;
@@ -510,10 +519,9 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         if (event.key !== "Escape" || !offerDetailsOpen) return;
         event.preventDefault();
         event.stopPropagation();
-        setOfferDetailsOpen(false);
-        offerDetailsTrigger.current?.focus({ preventScroll: true });
+        closeOfferDetails();
       }}>
-        <button ref={offerDetailsTrigger} type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => setOfferDetailsOpen(open => !open)}>
+        <button ref={offerDetailsTrigger} type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => offerDetailsOpen ? closeOfferDetails() : setOfferDetailsOpen(true)}>
           Offer details<AccountIcon name="chevron" />
         </button>
         <div ref={offerDetailsBody} id={offerDetailsId} className={styles.offerDetailsBody} hidden={!offerDetailsOpen}>

@@ -11,6 +11,8 @@ import { getOrderSupportHref, walletTransactionHelpHref } from "@/lib/account/or
 import { createClient } from "@/lib/supabase/server";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { walletRewards } from "@/lib/account/activity";
+import { rewardSupportHref } from "@/lib/support/references";
 
 export const metadata: Metadata = { title: "My Account" };
 
@@ -94,13 +96,17 @@ export default async function LiveAccountSection({
 
   if (section === "orders") {
     const selectedOrderNumber = typeof query?.order === "string" ? query.order : undefined;
-    const selectedRewardId = typeof query?.rewardId === "string" ? query.rewardId : undefined;
+    const selectedRewardId = typeof query?.rewardId === "string" ? query.rewardId.toLowerCase() : undefined;
+    const focusRewardId = typeof query?.focusReward === "string" ? query.focusReward.toLowerCase() : undefined;
     const selectedOrder = selectedOrderNumber || selectedRewardId ? account.orders.orders.find(order =>
       (!selectedOrderNumber || order.orderNumber === selectedOrderNumber)
       && (!selectedRewardId || order.rewardId === selectedRewardId)) : undefined;
+    const verifiedReward = !selectedOrderNumber && !selectedOrder && selectedRewardId
+      ? walletRewards(account.activity).find(item => item.rewardId === selectedRewardId && item.rewardSource !== "purchase") : undefined;
     const supportHref = selectedOrder && account.wallet?.scope === "demo"
       ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
-      : walletTransactionHelpHref;
+      : verifiedReward ? rewardSupportHref(verifiedReward.rewardId).replace("#report-problem", "&from=order&details=1#report-problem")
+        : walletTransactionHelpHref;
     const filter = fulfillmentFilter(query?.filter);
     if (query?.filter !== undefined && query.filter !== filter) {
       const anchor = selectedOrderNumber ? `#order-${selectedOrderNumber}` : selectedRewardId ? "#fulfillment-records" : "";
@@ -112,7 +118,7 @@ export default async function LiveAccountSection({
     const reportContext = `${filter === "all" ? "" : `&orderFilter=${filter}`}${alerts ? `&alerts=${alerts}` : ""}${notice ? `&notice=${encodeURIComponent(notice)}` : ""}`;
     const reportHref = supportHref.replace("#report-problem", `${reportContext}#report-problem`);
     if (query?.support === "report" && selectedOrder && supportHref !== walletTransactionHelpHref) redirect(query.details === "1" ? reportHref.replace("#report-problem", "&from=order&details=1#report-problem") : reportHref);
-    return <OrdersFulfillment state={account.orders} filter={filter} focusRewardId={typeof query?.focusReward === "string" ? query.focusReward : undefined} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={fromNotification} alerts={alerts} notice={notice} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+    return <OrdersFulfillment state={account.orders} filter={filter} focusRewardId={focusRewardId} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={fromNotification} alerts={alerts} notice={notice} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
   }
 
   return (

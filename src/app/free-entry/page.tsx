@@ -38,10 +38,10 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
-      <Link href="/legal" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Legal Center</Link>
+      <Link href="/legal#free-entry-legal-link" className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to Legal Center</Link>
       <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens />
       <FreeEntryInstructions />
-      <Link href="/browse#search-results" className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>
+      <Link href={productBrowseReturnPath(from) ?? "/browse#search-results"} className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>
     </div>
   </div>;
   if (Array.isArray(offering)) {
@@ -87,7 +87,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   return (
     <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference}
       signInHref={account ? undefined : authNavigationHref("/login", freeEntryHref(product.slug, browseReturn, quantity, sharedToken) + "#free-entry-intro")} intro={<>
-        <Link href={backHref} scroll={false} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
+        <Link href={backHref} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
         <AccountSettingsLandingScroll target="free-entry-intro" focusTarget="free-entry-intro" visitKey={product.slug} restrictToTargetHash allScreens settleAfterNavigation />
         <FreeEntryInstructions prizeSelected />
       </>} footer={

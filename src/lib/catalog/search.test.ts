@@ -526,3 +526,32 @@ test("keeps an explicit decimal gift-card value exact in Browse", () => {
   const cards = searchCatalogMatches(demoProducts, "Amazon 100.00 gift card", undefined, { includeLowerGiftCards: true });
   expect(cards.map(({ product }) => product.slug)).toEqual(["amazon-100-gift-card"]);
 });
+
+test.each([
+  ["Roku streaming dongle", "roku-streaming-stick-plus"],
+  ["Logitech wireless ergonomic mouse", "logitech-mx-master-3s"],
+  ["Yeti insulated travel cup", "yeti-rambler-30-tumbler"],
+  ["Coleman tent for four people", "coleman-sundome-4"],
+  ["Vortex 10 by 42 binoculars", "vortex-diamondback-hd-10x42"],
+  ["Weber charcoal barbecue", "weber-original-kettle-22"],
+  ["Little Giant folding stepladder", "little-giant-flip-n-lite-m4"],
+  ["Milwaukee stackable toolbox", "milwaukee-packout-large-tool-box"],
+  ["Ryobi cordless tire pump", "ryobi-one-plus-inflator"],
+  ["RIDGID shop vac", "ridgid-nxt-6-gallon-vac"],
+  ["Hydro Flask straw water bottle 32 ounces", "hydro-flask-flex-straw-32"],
+  ["Catit cat drinking fountain", "catit-flower-fountain"],
+  ["Cuisinart icecream machine", "cuisinart-ice-21-ice-cream-maker"],
+  ["Vitamin C supplements by Nature Made", "nature-made-vitamin-c-tablets"],
+  ["Milani pencil eyeliner black", "milani-stay-put-eyeliner"],
+  ["OOLY paint kit for kids", "ooly-ocean-watercolor-kit"],
+  ["Timbuk2 laptop rucksack", "timbuk2-division-backpack"],
+  ["Exploding Kittens original edition cardgame", "exploding-kittens-original"],
+  ["Starbucks gc twenty-five", "starbucks-25-gift-card"],
+  ["PlayStation five gaming console", "playstation-5-slim"],
+  ["Apple in ear noise cancelling headphones", "airpods-pro"],
+  ["Ninja air fryer four quarts", "ninja-af101-air-fryer"],
+  ["KitchenAid stand mixer five quarts", "kitchenaid-artisan-5qt-mixer"],
+  ["Samsung and LG 65 inch TVs", "lg-oled-c6-65-tv"]
+])("finds the expected listing for %s", (query, slug) => {
+  expect(searchCatalog(demoProducts, query)[0]?.slug).toBe(slug);
+});

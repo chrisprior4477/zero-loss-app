@@ -12,6 +12,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { ReviveOptionButton } from "@/components/account/ReviveOptionButton";
 import { DeclinedOfferCountdown, DeclinedOfferReminder } from "@/components/account/DeclinedOfferDeadline";
+import { DeclinedOfferFilterNotice } from "@/components/account/DeclinedOfferFilterNotice";
 import { DeclinedOfferList } from "@/components/account/DeclinedOfferList";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { createClient } from "@/lib/supabase/server";
@@ -30,12 +31,13 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   const prize = typeof query?.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
   const offerId = typeof requested === "string" && crewUuid.test(requested) ? requested : undefined;
   const filter = activityFilter(query?.filter);
+  const obsoleteFilter = query?.filter !== undefined && query.filter !== filter;
   const transactionReturn = transactionOriginHref(query ?? {});
   const selectedHref = accountPageReturnPath("/account/declined-offers", { ...query, offer: offerId, filter: filter === "all" ? undefined : filter }, offerId ? `#declined-offer-${offerId}` : "");
   const noticeReturn = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/declined-offers", query, offerId ? `#declined-offer-${offerId}` : "")));
+  if (!account) redirect(authNavigationHref("/login", selectedHref));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId) && (Boolean(offerId) || !prize || item.slug === prize));
   const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
@@ -84,6 +86,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
+    {obsoleteFilter && <DeclinedOfferFilterNotice />}
     {requested !== undefined && !offerId ? <div id="invalid-declined-offer" className={styles.empty}>
       <AccountSettingsLandingScroll target="invalid-declined-offer" initialTarget="invalid-declined-offer" focusTarget="invalid-declined-heading" allScreens />
       <h2 id="invalid-declined-heading" tabIndex={-1}>This declined-offer link is invalid</h2>

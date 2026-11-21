@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { LegalPage, ReviewNotice, legalCopy } from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ const pages = [
 export default function LegalPageOverview() {
   return (
     <LegalPage current="/legal" title="Legal and safety" description="The essentials behind the Zero Loss preview, collected in one place and written to match what the site currently does.">
+      <HelpLandingScroll target="" focusAnchor="free-entry-legal-link" />
       <ReviewNotice />
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {pages.map((page) => (
@@ -26,7 +28,7 @@ export default function LegalPageOverview() {
           </Link>
         ))}
       </div>
-      <p className={`mt-7 max-w-3xl ${legalCopy.paragraph}`}>The <Link className={legalCopy.link} href="/free-entry">free-entry page</Link> currently demonstrates a proposed mail-in process; it does not create an entry. For a question about your account or a request to close it, use the <Link className={legalCopy.link} href="/contact#message">private support form</Link> while signed in.</p>
+      <p className={`mt-7 max-w-3xl ${legalCopy.paragraph}`}>The <Link id="free-entry-legal-link" className={legalCopy.link} href="/free-entry">free-entry page</Link> currently demonstrates a proposed mail-in process; it does not create an entry. For a question about your account or a request to close it, use the <Link className={legalCopy.link} href="/contact#message">private support form</Link> while signed in.</p>
     </LegalPage>
   );
 }

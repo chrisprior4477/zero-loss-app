@@ -13,6 +13,7 @@ import { CrewConnectedGallery, CrewSharePicker } from "./CrewConnectedGallery";
 import { CrewInlineFinder } from "./CrewInlineFinder";
 import connectedStyles from "./crew-connected.module.css";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { CrewLandingScroll } from "./CrewLandingScroll";
 import { StatusTicket } from "./StatusTicket";
 import stripStyles from "./account-status-strip.module.css";
@@ -291,7 +292,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
     {tab === "picks" && <AccountSettingsLandingScroll target="sharing" focusTarget="my-shared-picks-heading" restrictToTargetHash allScreens settleAfterNavigation />}
-    {tab === "privacy" && <AccountSettingsLandingScroll target="crew-privacy" initialTarget="crew-privacy" focusTarget="discover-title" allScreens settleAfterNavigation />}
+    {tab === "privacy" && <HelpLandingScroll target="crew-privacy" focusAnchor="crew-privacy" focusOnArrival />}
     <CrewLandingScroll ownerId={currentUserId} groups={initialTab === "groups" && tab === "groups"}
       enabled={initialTab === "groups" && tab === "groups" || initialTab === "crew" && tab === "crew" && !selectedMemberId && !incomingInviteToken} />
     {invalidTab ? <p role="status">That Crew section is unavailable. Showing Your Crew.</p> : null}

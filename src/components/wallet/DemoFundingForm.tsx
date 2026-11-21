@@ -11,6 +11,7 @@ import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
 import Link from "next/link";
+import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
@@ -548,7 +549,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         </div>
         {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey, continueTo?.href, false, continueTo?.entryDepositReturn)} className={paymentStyles.primary}>Contact Support</Link>
           : <button type="button" className={paymentStyles.primary} onClick={() => onRecover(request)} aria-label={`Check this deposit · ${formatUsdFromCents(request.amount)}`}>Check this deposit</button>}
-      </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
+      </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. <AccountReadRetryButton label="Check deposits again" className={paymentStyles.secondary} /></p>
     )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>

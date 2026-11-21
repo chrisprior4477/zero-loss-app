@@ -93,6 +93,23 @@ test("ticket ranges never show closed or less-than-90%-full pools and are absent
 });
 
 describe("Browse search results", () => {
+  test("links an exact closed prize without offering it as an available result", async () => {
+    const slug = "roku-streaming-stick-plus";
+    availability.mockResolvedValue({
+      [slug]: { slug, capacity: 75, sold: 75, remaining: 0, entryPriceCents: 100 },
+    });
+    const search = { q: "Roku streaming dongle" };
+    render(await BrowsePage({ searchParams: Promise.resolve(search) }));
+    const closed = within(screen.getByRole("region", { name: "Closed offering" }));
+    expect(closed.getByRole("heading").textContent).toMatch(/Roku Streaming Stick.*has closed/);
+    const details = new URL(closed.getByRole("link", { name: "View the prize details" }).getAttribute("href")!, "https://example.test");
+    expect(details.pathname).toBe(`/items/${slug}`);
+    expect(details.searchParams.get("from")).toContain("#search-results");
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve({ ...search, available: "1" }) }));
+    expect(screen.queryByRole("region", { name: "Closed offering" })).toBeNull();
+  });
+
   test.each([
     ["Best Buy one hundred dollars", [100, 75, 50, 25]],
     ["Best Buy seventy-five dollar gift cards", [75, 50, 25]],

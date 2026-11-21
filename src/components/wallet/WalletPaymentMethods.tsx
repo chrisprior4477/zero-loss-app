@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
@@ -201,7 +202,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     router.refresh();
   }
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
-    {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
+    {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. <AccountReadRetryButton label="Retry saved cards" className="font-bold underline" /></p> : null}
     {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
       openWalletPanel("#payment-methods", window.history.state, true);

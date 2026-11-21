@@ -65,7 +65,7 @@ test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, in
   const url = await openOrderNotification(order);
   expect(within(screen.getByRole("region", { name: "Retailer gift-card fulfillment" })).getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href"))
-    .toBe(`/account/wallet?reward=${order.rewardSlug}&rewardId=${order.rewardId}&via=order-notification&alerts=orders&notice=order-${order.orderNumber}-fulfilled`);
+    .toBe(`/account/wallet?reward=${order.rewardSlug}&rewardId=${order.rewardId}&via=order-notification&alerts=orders&notice=order-${order.orderNumber}-fulfilled&order=${order.orderNumber}`);
   expect(document.getElementById(decodeURIComponent(url.hash.slice(1)))).toBeTruthy();
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();

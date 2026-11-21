@@ -476,7 +476,8 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
           const stamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
           const purchaseStamp = stamp && stamp.orderNumber === order.orderNumber ? stamp : undefined;
           const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + `&via=${fromNotification ? "order-notification" : exactSelection ? "order-selection" : "orders"}${alertContext}`
-            + (filter === "all" ? "" : `&orderFilter=${filter}`);
+            + (filter === "all" ? "" : `&orderFilter=${filter}`)
+            + (order.orderNumber && (fromNotification || exactSelection) ? `&order=${encodeURIComponent(order.orderNumber)}` : "");
           const position = index % size;
           const page = Math.floor(index / size);
           const column = page * columns + position % columns;

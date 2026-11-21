@@ -150,7 +150,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
     name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={validAccountReference ? cleanAccountReference : "VALID DEMO ACCOUNT NEEDED"}
     reference={reference} blankSample={!name.trim() || !validAccountReference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
-      className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
+      className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to entry instructions</button>} />;
 
   return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">

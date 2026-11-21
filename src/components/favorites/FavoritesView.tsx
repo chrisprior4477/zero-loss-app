@@ -177,7 +177,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     location(savedShareHref(undefined, next), true);
   }
   function isViewingShare(id: string) {
-    return window.location.pathname === "/account/favorites" && new URLSearchParams(window.location.search).get("share") === id;
+    return window.location.pathname === "/account/favorites" && new URLSearchParams(window.location.search).get("share")?.toLowerCase() === id;
   }
   function applyShareResult(id: string, result: Awaited<ReturnType<typeof setReceivedProductState>>, viewedOnly = false) {
     if (!result.ok) {
@@ -200,20 +200,28 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       if (window.location.pathname !== "/account/favorites") return;
       const query = new URLSearchParams(window.location.search);
       const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
-      const shareId = nextTab === "shared" ? query.get("share") : null;
+      const shareId = nextTab === "shared" ? query.get("share")?.toLowerCase() : null;
       const nextView = shareId && shareId === initialShareId ? initialSharedView : query.get("view") === "declined" ? "declined" : "available";
       const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
       const slug = query.get("item")?.toLowerCase();
       const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug ? { slug } : null;
       const restoreTabFocus = restoreScroll && (document.activeElement === document.body || tabs.current?.contains(document.activeElement));
+      const filterControl = document.activeElement?.closest<HTMLButtonElement>("[data-saved-filter]");
       const previousPosition = listPosition.current;
       setSkipFreshLanding(restoreScroll && !nextSelected && Boolean(previousPosition));
       listPosition.current = savedListPosition(state);
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
       if (nextTab === "favorites") setFavoriteFilter(nextFavoriteFilter);
       if (!restoreScroll) return;
-      if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(nextFavoriteFilter))) {
+      if (!nextSelected && filterControl) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (document.activeElement !== filterControl && document.activeElement !== document.body) return;
+          const selected = document.querySelector<HTMLElement>("#saved-products-panel [data-saved-filter][aria-pressed=true]");
+          selected?.focus({ preventScroll: true });
+          if (selected) revealBelowHeader(selected);
+        }));
+      } else if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(nextFavoriteFilter))) {
         restoreListPosition(previousPosition.target, previousPosition.top, previousPosition.artwork);
       } else if (!nextSelected && restoreTabFocus) {
         requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -402,8 +410,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
           {showFavoriteFilters ? <>
             <div className={styles.listFilters} role="group" aria-label="Filter favorites">
-              <button type="button" aria-pressed={!watching} onClick={() => chooseFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
-              <button type="button" aria-pressed={watching} onClick={() => chooseFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
+              <button type="button" data-saved-filter aria-pressed={!watching} onClick={() => chooseFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
+              <button type="button" data-saved-filter aria-pressed={watching} onClick={() => chooseFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
             </div>
             <p className={styles.note} aria-live="polite">{watching
               ? `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`
@@ -422,8 +430,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
               })}</div>}
         </> : <>
           <div className={styles.listFilters} role="group" aria-label="Shared prize status">
-            <button type="button" aria-pressed={sharedView === "available"} onClick={() => chooseSharedView("available")}>Available <span>{initialShares ? shares.length - declinedCount : "–"}</span></button>
-            <button type="button" aria-pressed={sharedView === "declined"} onClick={() => chooseSharedView("declined")}>Declined <span>{initialShares ? declinedCount : "–"}</span></button>
+            <button type="button" data-saved-filter aria-pressed={sharedView === "available"} onClick={() => chooseSharedView("available")}>Available <span>{initialShares ? shares.length - declinedCount : "–"}</span></button>
+            <button type="button" data-saved-filter aria-pressed={sharedView === "declined"} onClick={() => chooseSharedView("declined")}>Declined <span>{initialShares ? declinedCount : "–"}</span></button>
           </div>
           <p className={styles.note}>{sharedView === "declined" ? "Shares you declined. Reopen a prize while its pool is still available." : "Open prizes shared with you. Declined shares are in the Declined view."}</p>
           {sharesIncomplete ? <p role="status" className={styles.notice}>Some shared prizes or their status could not be verified. <a href={savedShareHref(selection?.shareId, sharedView)}>Check shared prizes again</a></p> : null}

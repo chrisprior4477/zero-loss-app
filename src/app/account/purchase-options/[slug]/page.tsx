@@ -29,22 +29,26 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const { slug: requestedSlug } = await params;
   const slug = requestedSlug.toLowerCase();
   const query = await searchParams;
-  const { option: selectedEntryId, decline, receipt } = query;
-  const invalidOption = typeof selectedEntryId === "string" && !/^ent_[a-f0-9]{32}$/i.test(selectedEntryId);
+  const { option, decline, receipt } = query;
+  const optionValues = Array.isArray(option) ? new Set(option.map(value => value.toLowerCase())) : null;
+  const selectedEntryId = optionValues?.size === 1 ? [...optionValues][0] : typeof option === "string" ? option : undefined;
+  const invalidOption = option !== undefined && (!selectedEntryId || !/^ent_[a-f0-9]{32}$/i.test(selectedEntryId));
   const optionId = typeof selectedEntryId === "string" && !invalidOption ? selectedEntryId.toLowerCase() : undefined;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   const notificationReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const selectors = new URLSearchParams();
   for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
-    const value = query[key];
-    if (Array.isArray(value)) notFound();
     if (key === "option") {
       if (optionId) selectors.set(key, optionId);
-    } else if (value !== undefined) selectors.set(key, value);
+      continue;
+    }
+    const value = query[key];
+    if (Array.isArray(value)) notFound();
+    if (value !== undefined) selectors.set(key, value);
   }
   const returnPath = accountReturnPath(selectors.size ? `${prizePath}?${selectors}` : prizePath);
-  if (!returnPath || Array.isArray(selectedEntryId)) notFound();
-  if (!invalidOption && (requestedSlug !== slug || optionId && optionId !== selectedEntryId)) redirect(returnPath);
+  if (!returnPath) notFound();
+  if (!invalidOption && (requestedSlug !== slug || (optionId && optionId !== option))) redirect(returnPath);
   const walletHref = transactionOriginHref(query);
   const originLinks = <>
     {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}

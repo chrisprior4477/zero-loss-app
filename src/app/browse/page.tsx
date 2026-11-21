@@ -155,12 +155,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     return [id, preview] as const;
   }));
   const hasOpenResults = products.some(product => !hidden.has(product.slug));
-  const closedAirPods = availability?.["airpods-pro"]?.remaining === 0 && searchTerm && !searchTooLong && !filters.availableOnly
-    && !hasOpenResults && !savedMatches.length
-    ? demoProducts.find(product => product.slug === "airpods-pro" && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)))
+  const matchingClosedPrize = searchTerm && !searchTooLong && !invalidSearch && !unavailable && !endingSoon
+    && !filters.availableOnly && !products.length && !savedMatches.length
+    ? filterBrowseProducts(searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product =>
+        hidden.has(product.slug) && !resolved.has(product.slug) && !unverifiedSlugs.has(product.slug)
+        && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination)
+        .filter(match => match.kind === "product")
+        .map(({ product }) => ({ ...product, sold: product.capacity })),
+      filters, searchTerm, false, allowedRetailers)[0]
     : undefined;
-  const matchingClosedPrize = closedAirPods && searchCatalogMatches([closedAirPods], searchTerm, denomination).length
-    && filterBrowseProducts([closedAirPods], filters, searchTerm, false, allowedRetailers).length ? closedAirPods : null;
   const includesLowerGiftCards = requestedDenominations.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
   const requestedValues = Array.from(requestedDenominations, formatBudget).join(" or ");

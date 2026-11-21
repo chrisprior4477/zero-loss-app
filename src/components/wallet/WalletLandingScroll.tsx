@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { readLedgerReturn, readLedgerSupportReturn } from "@/lib/wallet/ledger-return";
 
@@ -17,8 +18,8 @@ function subscribeToHistory(callback: () => void) {
 }
 
 /** A Support return owns its scroll; ordinary wallet/notification arrivals still align normally. */
-export function WalletHistoryLandingScroll({ walletId, selectedId, selectedRequested, enabled, target }: {
-  walletId?: string; selectedId?: string; selectedRequested?: boolean; enabled: boolean; target: string;
+export function WalletHistoryLandingScroll({ walletId, selectedId, selectedRequested, enabled, target, fromOrders = false }: {
+  walletId?: string; selectedId?: string; selectedRequested?: boolean; enabled: boolean; target: string; fromOrders?: boolean;
 }) {
   const returning = useSyncExternalStore(subscribeToHistory,
     () => Boolean(walletId && (readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)
@@ -30,7 +31,9 @@ export function WalletHistoryLandingScroll({ walletId, selectedId, selectedReque
   }, [selectedRequested, selectedId]);
   return <>
     <WalletLandingScroll enabled={enabled && !returning} />
-    {!selectedRequested && !returning && <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash />}
+    {!selectedRequested && !returning && (fromOrders
+      ? <HelpLandingScroll target="transactions" focusAnchor="transactions" focusOnArrival />
+      : <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash />)}
     {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} initialTarget={target} focusTarget={selectedId ? undefined : "unavailable-transaction"} visitKey={target} settleAfterNavigation allScreens />}
   </>;
 }
