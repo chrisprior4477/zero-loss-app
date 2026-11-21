@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Land below the sticky header, including older links with a duplicated fragment. */
-export function SelectedOrderScroll({ targetId, onlyIfRepeated = false }: { targetId: string; onlyIfRepeated?: boolean }) {
+export function SelectedOrderScroll({ targetId, onlyIfRepeated = false, focusSelected = false }: { targetId: string; onlyIfRepeated?: boolean; focusSelected?: boolean }) {
   useEffect(() => {
     const hash = `#${targetId}`;
     const currentHash = window.location.hash;
@@ -18,13 +18,14 @@ export function SelectedOrderScroll({ targetId, onlyIfRepeated = false }: { targ
         const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
         const top = window.scrollY + target.getBoundingClientRect().top - headerBottom - 12;
         window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+        if (focusSelected && document.activeElement === document.body) target.querySelector("h2")?.focus({ preventScroll: true });
       });
     });
     return () => {
       window.cancelAnimationFrame(firstFrame);
       window.cancelAnimationFrame(secondFrame);
     };
-  }, [targetId, onlyIfRepeated]);
+  }, [targetId, onlyIfRepeated, focusSelected]);
 
   return null;
 }

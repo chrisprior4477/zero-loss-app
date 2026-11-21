@@ -25,7 +25,7 @@ test("groups only the recorded entry batch and shows the original photo and acti
   expect(originals.getAllByRole("img", { name: product.title })).toHaveLength(4);
   expect(originals.getAllByRole("link", { name: "View entry" }).map(link => link.getAttribute("href")))
     .toEqual(entries.slice(0, 4).map(entry => `/account/entries/${entry.entryIds![0]}?entries=open&transaction=${entry.id}#saved-entry-rail`));
-  expect(originals.getAllByRole("link", { name: "Report a problem" }).map(link => link.getAttribute("href")))
+  expect(originals.getAllByRole("link", { name: /^Report a problem with / }).map(link => link.getAttribute("href")))
     .toEqual(entries.slice(0, 4).map(entry => `/support?transaction=${entry.id}`));
   stack.open = false;
   rerender(<WalletLedger entries={entries} activity={activity} selectedId={entries[2].id} />);
@@ -203,7 +203,7 @@ test("Purchases isolates gift-card charges, including older records without prod
   expect(screen.getByRole("link", { name: item.title }).getAttribute("href")).toBe(`/items/${item.slug}`);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
   expect(screen.getByRole("button", { name: "Purchases" }).textContent).toBe("Purchases1");
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=purchase&from=wallet");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=purchase&from=wallet");
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-06" } });
   expect(screen.getByRole("heading", { name: "No gift-card purchases" })).toBeTruthy();
 });
@@ -213,7 +213,7 @@ test("transaction actions separate the exact entry, its product, and support", (
   render(<WalletLedger entries={[entry]} activity={[item]} />);
   expect(screen.getByRole("link", { name: "View entry" }).getAttribute("href")).toBe(`/account/entries/${item.entryId}?entries=open&transaction=ledger-1#saved-entry-rail`);
   expect(screen.getByRole("link", { name: item.title }).getAttribute("href")).toBe(`/items/${item.slug}`);
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=ledger-1");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=ledger-1");
   expect(screen.getAllByRole("link")).toHaveLength(3);
 });
 test("each transaction's support shortcut preserves its identity through filtering", () => {
@@ -221,9 +221,9 @@ test("each transaction's support shortcut preserves its identity through filteri
     { id: "11111111-1111-4111-8111-111111111111", entry_type: "DEPOSIT", amount: 500, created_at: "2026-09-21T12:00:00Z" },
     { id: "22222222-2222-4222-8222-222222222222", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-09-21T12:01:00Z" },
   ]} />);
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(2);
   fireEvent.click(screen.getByRole("button", { name: "Entries" }));
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=22222222-2222-4222-8222-222222222222");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=22222222-2222-4222-8222-222222222222");
 });
 
 test("Refunds remains its own filter, separate from released entry holds", () => {
@@ -238,7 +238,7 @@ test("Refunds remains its own filter, separate from released entry holds", () =>
   fireEvent.click(screen.getByRole("button", { name: "Refunds" }));
   expect(screen.getByText("Refund")).toBeTruthy();
   expect(screen.queryByText("Entry reservation released")).toBeNull();
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=33333333-3333-4333-8333-333333333333");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=33333333-3333-4333-8333-333333333333");
 });
 
 test("history expands from its first batch and filters an inclusive date range", () => {
@@ -247,12 +247,12 @@ test("history expands from its first batch and filters an inclusive date range",
     entry_type: "DEPOSIT", amount: 100, created_at: `2026-09-${String(20 + index).padStart(2, "0")}T12:00:00Z`,
   }));
   render(<WalletLedger entries={entries} />);
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(5);
   fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(2);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-24" } });
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(2);
   expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
 });
 
@@ -274,7 +274,7 @@ test.each(["From date", "To date"])("reversed dates keep the last valid results 
     expect(screen.getByLabelText(label).getAttribute("aria-describedby")).toBe(message.id);
   }
   expect(screen.getByText("Showing 1 of 1 transactions")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href"))
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href"))
     .toBe(first === "From date" ? "/support?transaction=funding-after" : "/support?transaction=funding-before");
   expect(screen.queryByText("No all transactions")).toBeNull();
   // Correcting one date immediately reapplies an inclusive range.
@@ -282,7 +282,7 @@ test.each(["From date", "To date"])("reversed dates keep the last valid results 
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByLabelText("From date").hasAttribute("aria-invalid")).toBe(false);
   expect(screen.getByText("Showing 1 of 1 transactions")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=funding-after");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=funding-after");
 });
 
 test("ignoring reversed dates preserves category and archive choices, and Clear dates resets the warning", () => {
@@ -292,7 +292,7 @@ test("ignoring reversed dates preserves category and archive choices, and Clear 
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-01" } });
   expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("alert")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=funding-after");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=funding-after");
   fireEvent.click(screen.getByRole("button", { name: "Clear dates" }));
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "All time" }));
   expect(screen.queryByRole("alert")).toBeNull();
@@ -309,7 +309,7 @@ test("same-day ranges use the account time zone and empty results have a clear l
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-05" } });
   expect(screen.queryByRole("alert")).toBeNull();
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=local-nov-5");
+  expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=local-nov-5");
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-01" } });
   expect(screen.getByRole("heading", { name: "No matching transactions" })).toBeTruthy();
@@ -360,7 +360,7 @@ test("collapsing all transactions returns to the history heading, not payment de
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("wallet-transaction-list"));
     scrollIntoView.mockClear();
     fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
-    expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
+    expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(5);
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Transaction history" }));
     expect(scrollIntoView).toHaveBeenCalledOnce();
     expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByRole("heading", { name: "Transaction history" }).parentElement);

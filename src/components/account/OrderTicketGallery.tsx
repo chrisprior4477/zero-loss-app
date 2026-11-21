@@ -487,7 +487,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
               {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
             </dl>
             <span className="sr-only" id={`order-reference-${ticketId}`}>{order.title}, reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
-            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={opened?.id === ticketId} onClick={event => openDetails(ticketId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${ticketId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-label={`${order.source === "winner" ? "Reward details" : "Order details"} for ${order.title}, reference ending ${(order.orderNumber ?? order.rewardId).slice(-8).toUpperCase()}`} aria-expanded={opened?.id === ticketId} onClick={event => openDetails(ticketId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${ticketId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>

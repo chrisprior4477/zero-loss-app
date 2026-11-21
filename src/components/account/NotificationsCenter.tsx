@@ -471,7 +471,15 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
           <button type="button" onClick={event => markAllRead(event.currentTarget, "top")} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read
           </button>
-          <a href="#alert-settings"><AccountIcon name="settings" /> Alert settings</a>
+          <a href="#alert-settings" onClick={event => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const heading = document.getElementById("in-app-alert-heading");
+            if (!heading) return;
+            event.preventDefault();
+            if (window.location.hash !== "#alert-settings") window.history.pushState(window.history.state, "", "#alert-settings");
+            heading.focus({ preventScroll: true });
+            revealBelowHeader(heading);
+          }}><AccountIcon name="settings" /> Alert settings</a>
         </div>
       </header>
 
@@ -537,10 +545,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
       </div>
       <AccountSettingsLandingScroll target="alert-settings" focusTarget="in-app-alert-heading" allScreens restrictToTargetHash />
       <AccountSettingsLandingScroll target="email-preferences" focusTarget="outcome-email-heading" allScreens restrictToTargetHash />
+      <AccountSettingsLandingScroll target="email-choices" focusTarget="email-choices" allScreens restrictToTargetHash />
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
         <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
-        <h2>Email choices</h2>
+        <h2 id="email-choices" tabIndex={-1}>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>
         {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}
         {favoriteAlertEmailEnabled !== undefined ? <FavoriteAlertEmailPreference initialEnabled={favoriteAlertEmailEnabled} /> : null}

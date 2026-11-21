@@ -1,5 +1,6 @@
 import type { DemoProduct } from "./demo-products";
 import { availabilityStatus } from "./availability";
+import { normalizeSearch } from "./search-text";
 
 export const marketplaceCategories = [
   { id: "ending-soon", label: "Ending Soon" },
@@ -56,8 +57,19 @@ const movieNightSlugs = new Set([
   "directory-hulu-100-gift-card", "directory-paramount-100-gift-card",
   "directory-amc-theaters-100-gift-card", "directory-cinemark-100-gift-card",
   "directory-fandango-100-gift-card", "directory-regal-100-gift-card",
+  "directory-netflix-100-gift-card", "directory-sling-tv-100-gift-card",
   "directory-the-popcorn-factory-100-gift-card",
 ]);
+
+const additionalGiftCardRetailers: Partial<Record<MarketplaceCategoryId, readonly string[]>> = {
+  pets: ["petsmart"],
+  groceries: ["instacart"],
+  "sports-fitness": ["academy sports outdoors", "adidas", "dicks sporting goods"],
+  outdoors: ["rei", "cabelas"],
+  fishing: ["bass pro shops"],
+  "tools-diy": ["the home depot"],
+  travel: ["airbnb", "amtrak", "hotels com"],
+};
 
 export function marketplaceCategoryId(value: string): MarketplaceCategoryId | null {
   const normalized = value.trim().toLowerCase();
@@ -86,6 +98,9 @@ const includesAny = (value: string, needles: readonly string[]) =>
   needles.some((needle) => value.includes(needle));
 
 export function productMatchesMarketplaceCategory(product: DemoProduct, category: MarketplaceCategoryId): boolean {
+  const cardRetailers = additionalGiftCardRetailers[category];
+  if (cardRetailers && isGiftCardListing(product) && cardRetailers.includes(normalizeSearch(product.retailer))) return true;
+  if (category === "movie-night" && movieNightSlugs.has(product.slug)) return true;
   if ((category === "groceries" || category === "pets") && marketplaceCategoryId(product.category) === category && isGiftCardListing(product)) return true;
   if (category !== "ending-soon" && product.collections) return product.collections.includes(category);
   if (isRetailerCollection(category)) return isGiftCardListing(product) && collectionRetailers[category].includes(product.retailer);
@@ -106,7 +121,7 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
     case "home-essentials":
       return includesAny(haystack, ["home essentials", "homegoods", "home depot", "lowe", "vacuum", "baby essentials"]);
     case "movie-night":
-      return movieNightSlugs.has(product.slug);
+      return false;
     case "tools-diy":
       return product.slug === "dewalt-20v-drill-kit";
     case "sports-fitness":

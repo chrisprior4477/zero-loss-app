@@ -6,7 +6,8 @@ import { useLayoutEffect } from "react";
 export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
   useLayoutEffect(() => {
     let cancelled = false;
-    const fromCrew = new URLSearchParams(window.location.search).get("from")?.startsWith("/account/crew");
+    const source = new URLSearchParams(window.location.search).get("from");
+    const fromCrew = source?.startsWith("/account/crew");
     const needsSettling = !fromCrew || ["#enter-entry", "#entry-action"].includes(window.location.hash);
     let first = 0, second = 0;
     let settle: ReturnType<typeof setTimeout>;
@@ -22,7 +23,14 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           window.scrollTo({ top: Math.max(0, window.scrollY + action.getBoundingClientRect().top - header - 12), behavior: "instant" });
           if (!focused) { action.focus({ preventScroll: true }); focused = true; }
-        } else document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" });
+        } else {
+          document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" });
+          if (!focused && hash === "#enter-entry" && source?.startsWith("/rewards/")) {
+            const entry = document.getElementById("enter-entry");
+            entry?.focus({ preventScroll: true });
+            focused = Boolean(entry);
+          }
+        }
       };
       scroll();
       if (!needsSettling) return;

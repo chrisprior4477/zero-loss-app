@@ -10,7 +10,7 @@ test("the main transaction list keeps the originating Orders filter in Support l
   const id = "11111111-1111-4111-8111-111111111111";
   render(<WalletOverview ordersFilter="fulfilled" wallet={{ ...empty, transactionCount: 1,
     entries: [{ id, entry_type: "DEPOSIT", amount: 2500, created_at: "2026-11-20T12:00:00Z" }] }} />);
-  const href = screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")!;
+  const href = screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")!;
   const params = new URL(href, "https://example.invalid").searchParams;
   expect(params.get("from")).toBe("wallet");
   expect(params.get("fromOrders")).toBe("1");

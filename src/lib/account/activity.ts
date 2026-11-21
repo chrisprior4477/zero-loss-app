@@ -1,3 +1,5 @@
+import type { FulfillmentFilter } from "./fulfillment";
+
 export type ActivityStatus = "active" | "prize" | "completion" | "completed";
 export type CompletionOptionStatus = "available" | "declined" | "purchased" | "expired" | "cancelled";
 export type RewardStatus = "ready" | "redeemed" | "expired" | "cancelled" | "issuance_pending" | "issuance_failed";
@@ -51,13 +53,17 @@ export const walletHistoryHref = "/account/wallet?view=history";
 export const walletTransactionsHref = `${walletHistoryHref}&panel=transactions#transactions`;
 export const walletDepositsHref = `${walletHistoryHref}&panel=deposits#payment-deposits`;
 
-export function declinedOfferHref(optionId?: string | null, filter: ActivityFilter = "all", transaction?: { id: string; restoreView: boolean }) {
+export function declinedOfferHref(optionId?: string | null, filter: ActivityFilter = "all", transaction?: { id: string; restoreView: boolean; orderFilter?: FulfillmentFilter }) {
   const params = new URLSearchParams();
   if (optionId) params.set("offer", optionId);
   if (filter !== "all") params.set("filter", filter);
   if (optionId && transaction) {
     params.set("transaction", transaction.id);
     if (transaction.restoreView) params.set("walletView", "1");
+    if (transaction.orderFilter) {
+      params.set("fromOrders", "1");
+      params.set("orderFilter", transaction.orderFilter);
+    }
   }
   return `/account/declined-offers${params.size ? `?${params}` : ""}${optionId ? `#declined-offer-${encodeURIComponent(optionId)}` : ""}`;
 }

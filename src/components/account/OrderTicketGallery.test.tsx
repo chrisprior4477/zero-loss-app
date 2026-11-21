@@ -18,7 +18,7 @@ const record = (id: number, changes: Partial<FulfillmentRecord> = {}): Fulfillme
 
 test("order details use the customer's locale and time zone for dates", () => {
   render(<TimeZoneProvider value="Europe/London" locale="en-GB"><OrderTicketGallery orders={[record(1)]} /></TimeZoneProvider>);
-  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Order details for / }));
   expect(screen.getByText("26 Oct 2026").getAttribute("dateTime")).toBe("2026-10-26T12:00:00Z");
 });
 
@@ -51,7 +51,7 @@ test.each([true, false])("the track stays between groups after releasing a drag 
     Object.assign(event, pointer);
     fireEvent(target, event);
   };
-  const details = () => screen.getAllByRole("button", { name: "Order details" })[0];
+  const details = () => screen.getAllByRole("button", { name: /^Order details for / })[0];
 
   gesture(details(), "pointerdown", 140, 40);
   gesture(details(), "pointermove", 139, 100);
@@ -72,7 +72,7 @@ test.each([true, false])("the track stays between groups after releasing a drag 
   fireEvent.click(details(), { detail: 1 });
   expect(screen.queryByRole("dialog")).toBeNull();
 
-  const incomingDetails = within(incoming as HTMLElement).getByRole("button", { name: "Order details" });
+  const incomingDetails = within(incoming as HTMLElement).getByRole("button", { name: /^Order details for / });
   gesture(incomingDetails, "pointerdown", 75, 43);
   gesture(incomingDetails, "pointerup", 75, 43);
   fireEvent.click(incomingDetails, { detail: 1 });
@@ -105,7 +105,7 @@ test("details copy full references and exact checkout amounts, then return focus
   const order = record(1);
   render(<OrderTicketGallery orders={[order]} />);
   expect(screen.queryByRole("dialog")).toBeNull();
-  const trigger = screen.getByRole("button", { name: "Order details" });
+  const trigger = screen.getByRole("button", { name: /^Order details for / });
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog", { name: "Order details" });
   expect(within(dialog).getByText("$99")).toBeTruthy();
@@ -133,14 +133,14 @@ test("ticket edges navigate to the adjacent phone page and never suggest a nonex
   expect(screen.queryByRole("button", { name: "Show next order tickets" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Show previous order tickets" }));
   expect(screen.getByText("1–2 of 4")).toBeTruthy();
-  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Order details for / })[0]);
   expect((screen.getByRole("button", { name: "Show next order tickets" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test("Tab and Shift+Tab wrap within the open details", () => {
   vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([new DOMRect(0, 0, 1, 1)] as unknown as DOMRectList);
   render(<OrderTicketGallery orders={[record(1)]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Order details for / }));
   const dialog = within(screen.getByRole("dialog"));
   const close = dialog.getByRole("button", { name: "Close details" });
   const last = dialog.getByRole("button", { name: "Copy for Support" });
@@ -169,7 +169,7 @@ test("the last page of three phone records shows one ticket without a repeated n
 test('a winning reward opens a direct support form with its own reward reference and no purchase transaction',()=>{
  const reward=record(1,{source:'winner',orderNumber:null,rewardId:'11111111-1111-4111-8111-111111111111',amountPaidCents:null});
  render(<OrderTicketGallery orders={[reward]}/>);
- fireEvent.click(screen.getByRole('button',{name:'Reward details'}));
+ fireEvent.click(screen.getByRole("button", { name: /^Reward details for /}));
  const dialog=screen.getByRole('dialog',{name:'Reward details'});
  expect(within(dialog).getByRole('link',{name:'Report a problem to Support'}).getAttribute('href')).toBe(`/support?rewardId=${reward.rewardId}&from=order&details=1#report-problem`);
  expect(within(dialog).getByRole('button',{name:'Copy for Support'})).toBeTruthy();
@@ -183,7 +183,7 @@ test.each([0, 1])("rotation keeps the selected order from a later phone page ope
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
   fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
-  const trigger = screen.getAllByRole("button", { name: "Order details" })[offset];
+  const trigger = screen.getAllByRole("button", { name: /^Order details for / })[offset];
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog");
   fireEvent.click(within(dialog).getByRole("button", { name: "Copy for Support" }));
@@ -211,7 +211,7 @@ test("an order opened on the wide layout selects its own phone page even after c
   let change = () => {};
   vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: (_: string, fn: () => void) => { change = fn; }, removeEventListener: vi.fn() }));
   render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
-  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[5]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Order details for / })[5]);
   act(() => { phone = true; change(); });
   expect(within(screen.getByRole("dialog")).getByText("Reward 6 · Retailer")).toBeTruthy();
   expect(screen.getByText("5–6 of 8")).toBeTruthy();
@@ -240,7 +240,7 @@ test("resizing a later page without an open dialog keeps the same orders within 
 test("a failed copy provides selectable text instead of claiming success", async () => {
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
   render(<OrderTicketGallery orders={[record(1)]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Order details for / }));
   fireEvent.click(screen.getByRole("button", { name: "Copy for Support" }));
   const text = await screen.findByRole("textbox", { name: "Details to copy" });
   expect((text as HTMLTextAreaElement).value).toContain("order-full-reference-1");
@@ -272,7 +272,7 @@ test("exception status and unavailable checkout amounts remain visible without i
   render(<OrderTicketGallery orders={[record(1, { status: "exception", rewardStatus: "issuance_failed", amountPaidCents: null })]} />);
   expect(screen.getByText("Action needed")).toBeTruthy();
   expect(screen.getByText("Unavailable")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Order details for / }));
   expect(screen.getByText(/entitlement remains recorded/)).toBeTruthy();
 });
 
@@ -317,7 +317,7 @@ test.each([true, false])("refresh and Support return reopen the same order; expl
   const orders = Array.from({ length: 8 }, (_, i) => record(i + 1));
   let view = render(<OrderTicketGallery orders={orders} />);
   fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
-  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[1]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Order details for / })[1]);
   const number = phone ? 4 : 8;
   expect(window.history.state.zeroLossOrderTickets.openId).toBe(record(number).rewardId);
   expect(window.history.state.router).toBe("keep");

@@ -49,6 +49,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     uncertain: false,
   };
   const [draft, setDraft] = useState(initialDraft);
+  const [validation, setValidation] = useState<Extract<SupportFormState, { status: "error" }> | null>(null);
   const { subject, body, category, caseStatus } = draft;
   const record = allowRecordPicker ? draft.record : undefined;
   const pickedTransaction = record?.kind === "transaction" ? record.id : "";
@@ -133,8 +134,9 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   }, { status: "idle" });
   const uncertain = draft.uncertain || (state.status === "error" && Boolean(state.uncertain));
   const locked = pending || uncertain;
-  const fieldError = state.status === "error" && state.field && state.fieldValue === draft[state.field] ? state.field : undefined;
-  const showError = state.status === "error" && (!state.field || Boolean(fieldError));
+  const feedback = validation?.field && validation.fieldValue === draft[validation.field] ? validation : state;
+  const fieldError = feedback.status === "error" && feedback.field && feedback.fieldValue === draft[feedback.field] ? feedback.field : undefined;
+  const showError = feedback.status === "error" && (!feedback.field || Boolean(fieldError));
   useEffect(() => {
     if (pending || state.status !== "error" || document.activeElement !== document.body) return;
     const field = fieldError ? formRef.current?.elements.namedItem(fieldError) : null;
@@ -149,6 +151,18 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   return <form ref={formRef} onSubmit={event => {
     event.preventDefault();
     if (locked || sending.current || extraCharacters > 0) return;
+    const invalidField = !caseId && subject.trim().length < 5 ? "subject" : body.trim().length < 10 ? "body" : null;
+    if (invalidField) {
+      const message = invalidField === "subject" ? "Enter at least 5 characters for the subject, excluding spaces at the beginning and end." : "Enter at least 10 characters for the message, excluding spaces at the beginning and end.";
+      setValidation({ status: "error", field: invalidField, fieldValue: draft[invalidField], message });
+      const input = event.currentTarget.elements.namedItem(invalidField);
+      if (input instanceof HTMLElement) {
+        input.focus({ preventScroll: true });
+        revealBelowHeader(input);
+      }
+      return;
+    }
+    setValidation(null);
     const data = new FormData(event.currentTarget);
     data.set("requestKey", draft.reuseRequestKey ? draft.requestKey : crypto.randomUUID());
     sending.current = true;
@@ -178,7 +192,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
-    {state.status === "error" && showError ? <p ref={formError} id="support-error" role="alert" tabIndex={-1} className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
+    {feedback.status === "error" && showError ? <p ref={formError} id="support-error" role="alert" tabIndex={-1} className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{feedback.message}</p> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
       <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {

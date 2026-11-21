@@ -96,7 +96,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, appliedDates.from, appliedDates.through, timeZone), [displayEntries, appliedDates, compact, timeZone]);
-  const searched = useMemo(() => searchLedger(dated, query, description, entries), [dated, query, entries]);
+  const searched = useMemo(() => searchLedger(dated, query, description, entries, { timeZone, locale }), [dated, query, entries, timeZone, locale]);
   const matching = useMemo(() => filter === "all" ? searched : searched.filter(entry => category(entry) === filter), [searched, filter]);
   const groups = useMemo(() => ledgerGroups(matching, !compact), [matching, compact]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(groups.length, desktop ? 6 : 5, groups.findIndex(group => group.rows.some(row => row.id === selectedId)), "pages");
@@ -193,7 +193,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setAppliedDates({ from: saved.from, through: saved.through });
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
-      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description, savedEntries);
+      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description, savedEntries, { timeZone, locale });
       const savedGroups = ledgerGroups(savedMatches);
       const rowIndex = savedGroups.findIndex(group => stackId(group.rows[0]) === saved.rowId || group.rows.some(entry => `transaction-${entry.id}` === saved.rowId));
       const savedOffset = savedGroups.findLastIndex(group => group.offset <= saved.offset);
@@ -243,7 +243,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       window.removeEventListener("wheel", interrupt);
       window.removeEventListener("keydown", interrupt);
     };
-  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, cancelVoice, bookmarkKey]);
+  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, locale, cancelVoice, bookmarkKey]);
 
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
@@ -362,7 +362,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         </details> : null}
         {productHref ? <Link href={productHref} className={styles.productAction} tabIndex={compact ? undefined : -1} aria-hidden={!compact || undefined}>View product</Link> : null}
         {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
-        <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+        <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label={`Report a problem with ${title}, ${dateLabel(entry.created_at, timeZone, locale)}, reference ending ${entry.id.slice(-8).toUpperCase()}`}>Report a problem</Link>
       </div>
     </li>;
   }

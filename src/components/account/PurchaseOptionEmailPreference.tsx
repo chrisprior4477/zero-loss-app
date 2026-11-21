@@ -34,7 +34,7 @@ export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabl
       startTransition(() => action(data));
     }}>
       <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} disabled={initialEnabled === null || pending} /> Email me when my open purchase option is nearing its deadline</label>
-      <button ref={saveButton} type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
+      <button ref={saveButton} type="submit" disabled={initialEnabled === null || pending} aria-label={pending ? "Saving purchase deadline email preference" : "Save preference for purchase deadline emails"}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your purchase options remain in My Activity." : "If this is on, we’ll remind you at 7 days and 24 hours before an open option ends. Turning it off does not change the option or its deadline."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>

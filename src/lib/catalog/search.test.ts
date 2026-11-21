@@ -4,6 +4,20 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
   test.each([
+    ["gift cards $50 or cheaper", "gift cards at most $50"],
+    ["gift cards 50 dollars each", "$50 gift cards"],
+    ["gift cards either $25 or $50", "gift cards $25 or $50"],
+    ["gift cards entry fee no more than $1", "gift cards up to $1 per entry"],
+    ["gift cards tickets cost $1", "gift cards $1 per entry"],
+    ["gift cards that aren’t from Amazon", "gift cards except Amazon"],
+    ["TVs without Samsung", "LG 65-inch TV"],
+    ["gift cards from either Amazon or Walmart", "Amazon or Walmart gift cards"],
+    ["TVs by either Samsung or LG", "Samsung or LG TVs"],
+    ["PlayStation with one terabyte", "1TB PlayStation"],
+    ["50 inch class TV", "50 inch TV"],
+    ["Samsung TV fifty inch", "Samsung 50 inch TV"],
+    ["PlayStation 5 Slim at the Best Buy store", "PlayStation 5 Slim from Best Buy"],
+    ["Game Stop gift card", "GameStop gift card"],
     ["Amazon gift cards worth more than $50 and $1 per entry", "Amazon gift cards more than $50"],
     ["Amazon gift cards $25–$50 for $1 entry", "Amazon gift cards $25–$50"],
     ["Amazon gift cards with an entry price of $1", "Amazon gift cards"],

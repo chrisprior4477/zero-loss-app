@@ -23,6 +23,66 @@ export type FaqItem = {
 // Keep these answers aligned with the server-enforced flows, not planned features.
 export const faqItems: FaqItem[] = [
   {
+    id: "default-card", category: "wallet", question: "How do I change my default payment card?",
+    answer: "Open Payment methods and choose the default payment method on the saved sample card you want to use. You can still choose a different card when adding demo funds.",
+    keywords: "set choose change switch default preferred card funding",
+    action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
+  },
+  {
+    id: "delete-card", category: "wallet", question: "How do I delete a saved payment card?",
+    answer: "Open Payment methods, find the card by its name and last four digits, and choose Delete Card. Review the card before confirming.",
+    keywords: "delete remove saved payment debit credit card",
+    action: { label: "Manage saved cards", href: "/account/wallet?view=history&panel=methods#payment-methods" },
+  },
+  {
+    id: "pool-completion", category: "entries", question: "When does a pool close and post its outcome?",
+    answer: "In the demo, a pool resolves when its entries fill. Open Entries shows your active entries and the current pool status. You can find posted outcomes in My Activity.",
+    keywords: "drawing date end close completion outcome when pick winner",
+    action: { label: "See Open Entries", href: "/account/entries?filter=active#my-activity-filters" },
+  },
+  {
+    id: "change-phone", category: "account", question: "How do I change my phone number?",
+    answer: "Open Contact details in Profile, update the phone number, and save your changes.",
+    keywords: "change update edit contact cell mobile phone number",
+    action: { label: "Open Contact details", href: "/account/profile#contact-details-heading" },
+  },
+  {
+    id: "profile-photo", category: "account", question: "How do I change my profile photo?",
+    answer: "Open Profile and choose the photo control. Select a picture, adjust the crop, and save it.",
+    keywords: "change add upload replace avatar profile picture photo",
+    action: { label: "Open Profile", href: "/account/profile" },
+  },
+  {
+    id: "email-alert-preferences", category: "account", question: "How do I stop email alerts?",
+    answer: "Open Email choices in Notifications. Turn off the email alerts you want to stop, then save each preference. In-app alerts have their own settings.",
+    keywords: "unsubscribe stop turn off email alerts notification emails preferences",
+    action: { label: "Open Email choices", href: "/account/notifications#email-choices" },
+  },
+  {
+    id: "privacy-requests", category: "account", question: "How do I request my data or close my account?",
+    answer: "Read Your choices and requests in the Privacy Policy. Sign in and send a private Support message to request access, correction, account closure, or deletion.",
+    keywords: "download export access delete erase close account data privacy",
+    action: { label: "Read privacy choices and requests", href: "/privacy#choices" },
+  },
+  {
+    id: "support-case-number", category: "support", question: "Where is my Support case number?",
+    answer: "Open My support cases or select a case to view the conversation. The case number appears on the case record.",
+    keywords: "case number reference ticket support case id",
+    action: { label: "Open My support cases", href: "/support#case-list" },
+  },
+  {
+    id: "crew-phone", category: "account", question: "Can I add someone to Crew by phone?",
+    answer: "Open Add people in Your Crew. Enter their verified phone number, including the country code, or choose one contact on a browser that supports the phone contact picker.",
+    keywords: "invite contact add people friend lookup phone number crew",
+    action: { label: "Open Add people", href: "/account/crew?tab=add#crew-intro" },
+  },
+  {
+    id: "crew-leave-group", category: "account", question: "How do I leave a Crew group from a shared prize?",
+    answer: "Open a prize shared from that group and use its Leave control. The confirmation identifies the group before you make the change.",
+    keywords: "leave quit exit group sharing from a shared prize",
+    action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
+  },
+  {
     id: "time-zone", category: "account", question: "How do I change my time zone?",
     answer: "Open Profile and update your mailing address. Zero Loss uses the address to determine your time zone. If the address matches more than one zone, choose the correct one before saving.",
     keywords: "timezone time zone local time change clock date deadline address profile",
@@ -41,7 +101,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
     answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date for that item.",
-    keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders#fulfillment-records" },
+    keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
     id: "decline-and-revive", category: "entries", question: "What happens if I decline an offer?",
@@ -82,7 +142,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
-    answer: "Open Purchase Options in My Activity. Select an available option to see the amount already applied, the remaining amount, and its decision deadline. Completing the purchase is a separate choice; entering does not automatically purchase the gift card. Completed activity remains in your history.",
+    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Completing the purchase is a separate choice. Completed activity remains in your history.",
     keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion" },
   },
   {
@@ -180,6 +240,14 @@ export const faqItems: FaqItem[] = [
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
+const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:deposit|funding)\b.*\bpending\b|\bpending\b.*\b(?:deposit|funding)\b|\bfunds?\s+missing\b/, "funding-status"],
+  [/\b(?:gift[ -]card|reward)\b.*\b(?:missing|not showing|not arrived)\b/, "reward-unavailable"],
+  [/\b(?:what happens if i lose|purchase option expiration|how much is left to pay)\b/, "purchase-options"],
+  [/\bentr(?:y|ies)\b.*\b(?:not showing|missing|did not post)\b/, "entry-status"],
+  [/\b(?:hide|stop showing)\b.*\bpicks\b/, "stop-sharing"],
+  [/\b(?:download|delete|export|access)\b.*\b(?:my\s+)?data\b|\bclose\b.*\bmy account\b/, "privacy-requests"],
+];
 
 export function faqSearchWords(query: string) {
   const normalized = normalizeFaq(query)
@@ -196,6 +264,7 @@ export function faqSearchWords(query: string) {
 
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const words = faqSearchWords(query);
+  const intent = faqIntents.find(([pattern]) => pattern.test(normalizeFaq(query)))?.[1];
   const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;
   const matches = (value: string, word: string) => {
     const text = normalizeFaq(value);
@@ -203,7 +272,7 @@ export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   };
   if (words.join(" ") === "order history") return category === "all" || category === "rewards" ? faqItems.filter(item => item.id === "order-receipt") : [];
   const questionScore = (item: FaqItem) => words.filter(word => matches(item.question, word)).length;
-  return faqItems.filter(item => (category === "all" || item.category === category) && words.every(word =>
-    matches(`${item.question} ${item.answer} ${item.keywords}`, word)))
-    .sort((left, right) => questionScore(right) - questionScore(left));
+  return faqItems.filter(item => (category === "all" || item.category === category) && (item.id === intent || words.every(word =>
+    matches(`${item.question} ${item.answer} ${item.keywords}`, word))))
+    .sort((left, right) => Number(right.id === intent) - Number(left.id === intent) || questionScore(right) - questionScore(left));
 }

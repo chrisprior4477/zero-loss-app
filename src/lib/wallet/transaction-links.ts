@@ -35,7 +35,7 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
       : isWalletReward(item) && item.rewardId
       ? `${activityHref(item)}${origin}`
       : item.completionOptionStatus === "declined" && item.completionOptionId
-      ? declinedOfferHref(item.completionOptionId, "all", { id: entry.id, restoreView })
+      ? declinedOfferHref(item.completionOptionId, "all", { id: entry.id, restoreView, orderFilter: ordersFilter })
       : activityHref(item);
     return [{ id, href, label: expired ? "View expired option" : item.status === "active" ? "View entry" : item.completionOptionStatus === "declined" ? "Review declined offer" : item.status === "completion" ? "View purchase option" : "View result" }];
   });

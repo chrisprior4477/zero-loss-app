@@ -89,6 +89,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const [acknowledged, setAcknowledged] = useState(false);
   const [overlay, setOverlay] = useState<"fund" | "purchase" | "options" | "decline" | null>(initiallyConfirmDecline ? "decline" : null);
   const [declineDraft, setDeclineDraft] = useState<string[] | null>(null);
+  const declineHistoryScope = offerDetailsId + "-decline";
+  const forwardDecline = useRef<string[] | null>(null);
   const backToSelection = useCallback(() => setOverlay("options"), []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -302,6 +304,17 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     }
     review();
     refreshReview(() => router.refresh());
+  });
+  useDialogBack(false, close, false, false, false, declineHistoryScope, () => {
+    const ids = forwardDecline.current;
+    if (!ids || overlay === "decline" || locked) return;
+    forwardDecline.current = null;
+    if (ids.length !== available.length || !ids.every(id => available.includes(id))) {
+      setNotice("Your offers changed. Review the available options again.");
+      return;
+    }
+    setDeclineDraft(null);
+    setOverlay("decline");
   });
 
   async function addFunds(retry?: CheckoutDepositAttempt) {
@@ -518,7 +531,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack
+    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack historyScope={declineDraft ? undefined : declineHistoryScope}
+      onBackFromReview={declineDraft ? undefined : ids => { forwardDecline.current = ids; }}
       selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact closeDisabled={busy || checkingReceipt} centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}

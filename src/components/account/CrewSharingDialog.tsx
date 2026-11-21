@@ -5,11 +5,11 @@ import { useDialogBack } from "./useDialogBack";
 import { createPortal } from "react-dom";
 import styles from "./crew-shared-picks.module.css";
 
-export function CrewSharingDialog({ title, children, onClose, onBack = onClose, busy = false }: { title: string; children: ReactNode; onClose: () => void; onBack?: () => void | true; busy?: boolean }) {
+export function CrewSharingDialog({ title, children, onClose, onBack = onClose, busy = false, historyScope }: { title: string; children: ReactNode; onClose: () => void; onBack?: () => void | true; busy?: boolean; historyScope?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
-  useDialogBack(true, onBack, busy, true);
+  useDialogBack(true, onBack, busy, true, false, historyScope);
   useLayoutEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;

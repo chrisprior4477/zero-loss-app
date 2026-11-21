@@ -38,8 +38,8 @@ export function NumberWheel({ label, min, max, value, disabled, onChange }: { la
   </div>;
 }
 
-export function PurchaseDialog({ title, children, onClose, compact = false, centerOnPhone = false, className = "", closeLabel = "Close purchase popup", closeDisabled = false, handleBrowserBack = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean; centerOnPhone?: boolean; className?: string; closeLabel?: string; closeDisabled?: boolean; handleBrowserBack?: boolean }) {
-  useDialogBack(handleBrowserBack, onClose, closeDisabled, handleBrowserBack);
+export function PurchaseDialog({ title, children, onClose, compact = false, centerOnPhone = false, className = "", closeLabel = "Close purchase popup", closeDisabled = false, handleBrowserBack = false, historyScope, onBack = onClose }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean; centerOnPhone?: boolean; className?: string; closeLabel?: string; closeDisabled?: boolean; handleBrowserBack?: boolean; historyScope?: string; onBack?: () => void }) {
+  useDialogBack(handleBrowserBack, onBack, closeDisabled, handleBrowserBack, false, historyScope);
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [top, setTop] = useState(130);

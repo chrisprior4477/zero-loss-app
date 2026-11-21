@@ -62,6 +62,21 @@ test("keeps posted amounts, card denominations and transaction alternatives inde
   expect(search("50 cents or one dollar")).toEqual(["small", "entry"]);
   expect(search("$75 Amazon gift card amount: -$28")).toEqual(["purchase"]);
   expect(search("refund from Amazon of $25")).toEqual(["refund"]);
+  expect(search("top-ups $25")).toEqual(["deposit"]);
+  expect(search("completed deposits")).toEqual(["deposit"]);
+  expect(search("posted transactions")).toEqual(entries.map(entry => entry.id));
+  expect(search("50 cents, $1")).toEqual(["small", "entry"]);
+  expect(search("transaction between $.50 and $1")).toEqual(["small", "entry"]);
+  expect(search("Amazon gift card worth $75")).toEqual(["refund", "purchase", "entry"]);
+  expect(search("between -$28 and -$1.00")).toEqual(["purchase", "entry"]);
+});
+
+test("searches the printed transaction date in the account's time zone", () => {
+  const entry = { id: "credit", entry_type: "REFUND", amount: 100, created_at: "2026-11-06T02:00:00Z" };
+  const search = (query: string) => searchLedger([entry], query, () => ["Refund"], [entry], { timeZone: "America/New_York", locale: "en-US" });
+  expect(search("November 5")).toEqual([entry]);
+  expect(search("Nov 5, 2026")).toEqual([entry]);
+  expect(search("Nov 6")).toEqual([]);
 });
 
 test("keeps an amount alternative scoped to the transaction type and recognizes signed speech", () => {

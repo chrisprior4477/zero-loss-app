@@ -34,7 +34,8 @@ function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: bool
 }
 
 export default async function FreeEntryPage({ searchParams }: Props) {
-  const { offering, from, share, quantity: rawQuantity } = await searchParams;
+  const { offering: requested, from, share, quantity: rawQuantity } = await searchParams;
+  const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
       <Link href="/legal" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Legal Center</Link>

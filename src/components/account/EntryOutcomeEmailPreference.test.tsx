@@ -14,11 +14,11 @@ test.each(["entry", "account", "entry-page"] as const)("%s preserves the selecte
   render(<EntryOutcomeEmailPreference initialEnabled={false} placement={placement} />);
   fireEvent.click(screen.getByRole("checkbox"));
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", true);
-  fireEvent.submit(screen.getByRole("button", { name: "Save preference" }).closest("form")!);
+  fireEvent.submit(screen.getByRole("button", { name: /^Save preference for / }).closest("form")!);
   expect(await screen.findByRole("status")).toHaveProperty("textContent", expect.stringContaining("Your choice is still here"));
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", true);
-  expect(screen.getByRole("button", { name: "Save preference" })).toHaveProperty("disabled", false);
-  fireEvent.submit(screen.getByRole("button", { name: "Save preference" }).closest("form")!);
+  expect(screen.getByRole("button", { name: /^Save preference for / })).toHaveProperty("disabled", false);
+  fireEvent.submit(screen.getByRole("button", { name: /^Save preference for / }).closest("form")!);
   await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Email preference saved."));
   expect(save.mock.calls[1][1].get("enabled")).toBe("true");
 });
@@ -26,7 +26,7 @@ test.each(["entry", "account", "entry-page"] as const)("%s preserves the selecte
 test("an unavailable preference cannot be submitted", () => {
   render(<EntryOutcomeEmailPreference initialEnabled={null} />);
   expect(screen.getByRole("checkbox")).toHaveProperty("disabled", true);
-  expect(screen.getByRole("button", { name: "Save preference" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: /^Save preference for / })).toHaveProperty("disabled", true);
   expect(save).not.toHaveBeenCalled();
 });
 
@@ -34,10 +34,10 @@ test("turning emails off also survives a failed save and retries as off", async 
   save.mockRejectedValueOnce(new Error("Connection lost")).mockResolvedValueOnce({ status: "succeeded", message: "Saved off" });
   render(<EntryOutcomeEmailPreference initialEnabled />);
   fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.submit(screen.getByRole("button", { name: "Save preference" }).closest("form")!);
+  fireEvent.submit(screen.getByRole("button", { name: /^Save preference for / }).closest("form")!);
   await screen.findByRole("status");
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", false);
-  fireEvent.submit(screen.getByRole("button", { name: "Save preference" }).closest("form")!);
+  fireEvent.submit(screen.getByRole("button", { name: /^Save preference for / }).closest("form")!);
   await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Saved off"));
   expect(save.mock.calls[1][1].get("enabled")).toBeNull();
 });
@@ -46,8 +46,8 @@ test("the save remains pending until its response, then displays normal server e
   let finish!: (value: unknown) => void;
   save.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   render(<EntryOutcomeEmailPreference initialEnabled={true} />);
-  fireEvent.submit(screen.getByRole("button", { name: "Save preference" }).closest("form")!);
-  expect(await screen.findByRole("button", { name: "Saving…" })).toHaveProperty("disabled", true);
+  fireEvent.submit(screen.getByRole("button", { name: /^Save preference for / }).closest("form")!);
+  expect(await screen.findByRole("button", { name: /^Saving .*email preference$/ })).toHaveProperty("disabled", true);
   await act(async () => finish({ status: "error", message: "Sign in again before saving this choice." }));
   expect(screen.getByRole("status").textContent).toBe("Sign in again before saving this choice.");
   expect(screen.getByRole("checkbox")).toHaveProperty("checked", true);

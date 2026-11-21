@@ -2,17 +2,24 @@ import type { DemoProduct } from "./demo-products";
 import { isGiftCardListing } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
 import { maxCatalogSearchLength, maxCatalogSearchTerms, normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
-import { catalogMerchant, matchesCatalogMerchant, searchDenominations } from "./search-denomination";
+import { catalogMerchant, matchesCatalogMerchant, searchDenominations, smallNumberWords, spokenValue } from "./search-denomination";
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
+const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inches|inch|terabytes?|gigabytes?)\b`, "gi");
+
 export function searchCatalogMatches(
   products: readonly DemoProduct[],
-  query: string,
-  denomination = searchDenominations(query, products),
+  rawQuery: string,
+  parsedDenomination?: ReturnType<typeof searchDenominations>,
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
+  if (rawQuery.length > maxCatalogSearchLength) return [];
+  const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
+    .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
+    .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
+  const denomination = query === rawQuery && parsedDenomination ? parsedDenomination : searchDenominations(query, products);
   const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, excludedValues } = denomination;
   const qualifier = /\s+(?:from|at|sold by)\s+(.+)$/i.exec(denomination.text);
   const qualifiedMerchant = qualifier && !catalogMerchant(denomination.text, products) ? catalogMerchant(qualifier[1], products) : null;
@@ -39,12 +46,19 @@ export function searchCatalogMatches(
     const suffix = retailerExclusion[1];
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
     const names = qualified ? suffix.replace(/\s+gift\s*cards?$/i, "") : suffix;
+    const positive = query.slice(0, retailerExclusion.index).trim();
+    if (/\b(?:tvs?|televisions?)\b/i.test(positive) && !/\bgift\s*cards?\b/i.test(positive)) {
+      const brand = normalizeSearch(names);
+      if (products.some(product => normalizeSearch(product.brand) === brand)) {
+        const eligible = products.filter(product => !isGiftCardListing(product) && normalizeSearch(product.brand) !== brand);
+        return searchCatalogMatches(eligible, positive, undefined, { includeLowerGiftCards });
+      }
+    }
     const whole = catalogMerchant(names, products);
     const excluded = whole ? [whole] : names.split(/\s*,\s*|\s+(?:or|and)\s+/i)
       .map(name => catalogMerchant(name.replace(/^(?:or|and)\s+/i, ""), products));
     if (excluded.length && excluded.every((name): name is string => Boolean(name))) {
       const remaining = products.filter(product => !excluded.some(name => matchesCatalogMerchant(product.retailer, name)));
-      const positive = query.slice(0, retailerExclusion.index).trim();
       if (positive || qualified) return searchCatalogMatches(remaining, positive || "gift cards", undefined, { includeLowerGiftCards });
       return remaining.map(product => ({ product, kind: "product" }));
     }
@@ -131,14 +145,15 @@ export function searchCatalogMatches(
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
-  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up)\b)/i;
+  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b)/i;
   const hasOr = orSeparator.test(query);
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
   const clauses = query.split(hasOr ? new RegExp(/\s*,(?!\d)\s*(?:or\s+)?/.source + "|" + orSeparator.source, "i") : /\s+(?:and|&)\s+/i);
   const parts = clauses.map(clause => {
     const parsed = searchDenominations(clause.trim(), products);
-    return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(parsed.text, products) };
+    const retailerClause = parsed.text.replace(/^(?:gift\s+card\s+)?(?:from\s+)?either\s+/i, "");
+    return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(retailerClause, products) };
   });
   const last = parts.at(-1);
   const sharedScreenType = last && /^\d+ inch (tvs?|televisions?)$/i.exec(normalizeSearch(last.text));

@@ -37,7 +37,7 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
     }}>
       <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} disabled={initialEnabled === null || pending} /> Email me when any of my entry outcomes posts</label>
       {showError ? <p ref={errorNotice} tabIndex={-1} role="status" className={`${styles.outcomeEmailStatus} basis-full`} data-status="error">{feedback.message}</p> : null}
-      <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
+      <button type="submit" disabled={initialEnabled === null || pending} aria-label={pending ? "Saving entry outcome email preference" : "Save preference for entry outcome emails"}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "If this is on, we'll email you when an entered prize pool closes and its result is ready. You'll also find the result in Notifications."}</p>
     {showFeedback && !pending && feedback.status !== "idle" && !showError ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>

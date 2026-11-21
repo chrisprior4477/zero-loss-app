@@ -51,7 +51,7 @@
 .detailActions .shareButton { display:flex;align-items:center;justify-content:center;gap:7px;background:#ff7900;color:#102947;padding:10px;min-height:42px;border-radius:8px;margin:0; }
 .shareButton svg { width:18px;height:18px; }
 .backToList { margin-top:8px;background:#d7efff;color:#14354e; }
-.declineButton { width:100%;min-height:40px;margin-top:12px;padding:10px;border-radius:8px;background:#087fff;color:white;font-size:13px;font-weight:800; }
+.declineButton { width:100%;min-height:40px;margin-top:12px;padding:10px;border-radius:8px;background:#0069d6;color:white;font-size:13px;font-weight:800; }
 .kept { margin:10px 0 0;color:#526a7e;font-size:12px;line-height:1.4; }
 .empty { padding:26px 18px;background:#0d2f53;border-radius:15px;font-size:14px;line-height:1.6; }
 .empty h2 { font-size:20px;font-weight:800; }

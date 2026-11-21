@@ -82,7 +82,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
         </a>)}
       </section>
 
-      {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation skipForHash="order-status-filters" /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />}
+      {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation skipForHash="order-status-filters" /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!hasSelection} focusSelected={hasSelection && !openSelectionDetails} />}
       <AccountSettingsLandingScroll target="order-status-filters" focusTarget="order-status-filters" settleAfterNavigation allScreens restrictToTargetHash />
       {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash /> : null}
       {filter !== "all" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll

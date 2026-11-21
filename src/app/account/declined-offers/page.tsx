@@ -17,19 +17,20 @@ import { AccountSettingsLandingScroll } from "@/components/account/AccountSettin
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { transactionOriginHref } from "@/lib/wallet/ledger-return";
+import { fulfillmentFilter } from "@/lib/account/fulfillment";
 import styles from "@/components/account/my-activity.module.css";
 
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[] }> }) {
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[] }> }) {
   const query = await searchParams;
   const requested = query?.offer;
   const prize = typeof query?.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
   const offerId = typeof requested === "string" && crewUuid.test(requested) ? requested : undefined;
   const filter = activityFilter(query?.filter);
   const transaction = offerId && typeof query?.transaction === "string" && crewUuid.test(query.transaction)
-    ? { id: query.transaction, restoreView: query.walletView === "1" } : undefined;
+    ? { id: query.transaction, restoreView: query.walletView === "1", orderFilter: query.fromOrders === "1" ? fulfillmentFilter(query.orderFilter) : undefined } : undefined;
   const transactionReturn = transactionOriginHref(query ?? {});
   const selectedHref = prize && !offerId ? `/account/declined-offers?prize=${encodeURIComponent(prize)}${filter === "all" ? "" : `&filter=${filter}`}` : declinedOfferHref(offerId, filter, transaction);
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;

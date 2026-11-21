@@ -43,7 +43,7 @@ function saveView() {
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-06" } });
   fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
-  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[2]);
+  fireEvent.click(screen.getAllByRole("link", { name: /^Report a problem with / })[2]);
   return page;
 }
 
@@ -85,7 +85,7 @@ test("Support Back restores both dates, category, the five-ticket page and posit
   const saved = window.history.state;
   expect(saved.frameworkState).toBe("keep");
   expect(saved[ledgerReturnKey]).toMatchObject({ filter: "funding", from: "2026-11-01", through: "2026-11-06", offset: 5, rowId: "transaction-funding-7" });
-  expect(screen.getAllByRole("link", { name: "Report a problem" })[2].getAttribute("href")).toBe("/support?transaction=funding-7&walletView=1");
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })[2].getAttribute("href")).toBe("/support?transaction=funding-7&walletView=1");
   page.unmount();
   window.history.replaceState({}, "", "/support?transaction=funding-7");
   window.history.replaceState(saved, "", href);
@@ -101,7 +101,7 @@ test("Support Back restores both dates, category, the five-ticket page and posit
   // A second visit stores the customer's current choices, not the first bookmark.
   fireEvent.click(screen.getByRole("button", { name: "Clear dates" }));
   fireEvent.click(screen.getByRole("button", { name: "Entries" }));
-  fireEvent.click(screen.getByRole("link", { name: "Report a problem" }));
+  fireEvent.click(screen.getByRole("link", { name: /^Report a problem with / }));
   expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "entries", from: "", through: "", offset: 0, rowId: "transaction-entry-1" });
 });
 
@@ -109,7 +109,7 @@ test("the explicit Support link restores the search, date range and filter for t
   const page = saveView();
   fireEvent.change(screen.getByRole("searchbox", { name: "Search transactions" }), { target: { value: "$1" } });
   fireEvent.submit(screen.getByRole("search", { name: "Search wallet transactions" }));
-  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[1]);
+  fireEvent.click(screen.getAllByRole("link", { name: /^Report a problem with / })[1]);
   page.unmount();
   window.history.replaceState({}, "", walletSupportReturnHref("funding-1", true));
   render(<WalletLedger walletId="wallet-1" selectedId="funding-1" entries={allEntries} />);
@@ -127,7 +127,7 @@ test("returning from Support restores the Purchases filter and its page", () => 
   const page = render(<WalletLedger walletId="wallet-1" entries={mixed} />);
   fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
   fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
-  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[1]);
+  fireEvent.click(screen.getAllByRole("link", { name: /^Report a problem with / })[1]);
   expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "purchases", offset: 5, rowId: "transaction-purchase-6" });
   page.unmount();
   render(<WalletLedger walletId="wallet-1" entries={mixed} />);
@@ -169,7 +169,7 @@ test("a smaller refreshed history clamps the restored batch instead of showing a
   render(<WalletLedger walletId="wallet-1" entries={entries.slice(0, 2)} />);
   flush();
   expect(screen.getByText("Showing 2 of 2 transactions")).toBeTruthy();
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: /^Report a problem with / })).toHaveLength(2);
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 1300, behavior: "instant" });
 });
 
@@ -184,7 +184,7 @@ test.each([false, true])("wallet landing does not override Support restoration (
 
 test("opening Support in another tab does not overwrite this tab's return position", () => {
   render(<WalletLedger walletId="wallet-1" entries={entries} />);
-  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[0], { ctrlKey: true });
+  fireEvent.click(screen.getAllByRole("link", { name: /^Report a problem with / })[0], { ctrlKey: true });
   expect(window.history.state[ledgerReturnKey]).toBeUndefined();
 });
 
@@ -274,7 +274,7 @@ test("mobile search keeps focus while typing and returns to the exact filtered t
   fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
   expect(scrollIntoView).toHaveBeenCalledTimes(2);
   expect(screen.getByText("Showing 6–6 of 6 transactions")).toBeTruthy();
-  fireEvent.click(screen.getByRole("link", { name: "Report a problem" }));
+  fireEvent.click(screen.getByRole("link", { name: /^Report a problem with / }));
   expect(window.history.state[ledgerReturnKey]).toMatchObject({ query: "Best Buy $249", filter: "purchases", offset: 5, rowId: "transaction-search-11" });
   view.unmount();
   render(<WalletLedger {...props} />);

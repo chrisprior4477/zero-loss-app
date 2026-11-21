@@ -32,7 +32,7 @@ export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnable
     <p>Choose which of <Link href="/account/favorites" className="font-bold underline">Your Favorites</Link> to watch. Each watched item can send one email when its pool reaches 90% full.</p>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <label><input type="checkbox" checked={enabled} disabled={initialEnabled === null || pending} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} /> Allow emails for items I watch</label>
-      <button ref={retryButton} type="button" onClick={save} disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
+      <button ref={retryButton} type="button" onClick={save} disabled={initialEnabled === null || pending} aria-label={pending ? "Saving favorite alert email preference" : "Save preference for favorite alert emails"}>{pending ? "Saving…" : "Save preference"}</button>
     </div>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your saved items are unchanged." : "Turn this off to pause all Favorites alert emails. It does not remove your saved items."}</p>
     {showFeedback && !pending && feedback.status !== "idle" ? <p role={feedback.status === "error" ? "alert" : "status"} className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>

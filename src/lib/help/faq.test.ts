@@ -44,3 +44,26 @@ test("wallet answers use the live transaction button name and the exact reward-h
   expect(refund.answer).not.toContain("Get help");
   expect(faqItems.find(item => item.id === "reward-unavailable")!.action.href).toBe("/account/wallet?rewards=history#reward-history");
 });
+
+test.each([
+  ["why is my deposit pending", "funding-status"],
+  ["change default card", "default-card"],
+  ["delete payment card", "delete-card"],
+  ["my gift card is missing", "reward-unavailable"],
+  ["what happens if i lose", "purchase-options"],
+  ["entry not showing", "entry-status"],
+  ["drawing date", "pool-completion"],
+  ["change phone number", "change-phone"],
+  ["how to change profile photo", "profile-photo"],
+  ["stop email alerts", "email-alert-preferences"],
+  ["download my data", "privacy-requests"],
+  ["close my account", "privacy-requests"],
+  ["where is my case number", "support-case-number"],
+  ["hide my picks", "stop-sharing"],
+  ["can i invite by phone", "crew-phone"],
+  ["leave a group", "crew-leave-group"],
+  ["how much is left to pay", "purchase-options"],
+  ["purchase option expiration", "purchase-options"],
+])("returns the appropriate help for %s", (query, id) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(id);
+});

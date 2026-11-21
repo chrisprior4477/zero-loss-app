@@ -351,7 +351,7 @@ export function DemoParticipationPanel({
   const resetButton = isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceSaving || preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null;
 
   return (
-    <aside id="enter-entry" className={compact ? compactStyles.panel : `scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
+    <aside id="enter-entry" tabIndex={-1} className={compact ? compactStyles.panel : `scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
       {compact ? <>
         <div className={compactStyles.price}><strong>${entryPrice.toFixed(2)}</strong><span>per entry</span></div>
         <div className={compactStyles.progress}>

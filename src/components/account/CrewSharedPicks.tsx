@@ -7,6 +7,7 @@ import type { CrewVisibilityGroup, CrewVisibilityRule } from "@/lib/crew/visibil
 import { cleanupCutoff, entrySharedAtInScope, entrySharedInScope, type SharingSelection } from "@/lib/crew/sharing-management";
 import { cleanupCrewShares, shareOwnedCrewEntry, undoCrewShareCleanup, type SharingResult } from "@/lib/crew/sharing-actions";
 import { CrewSharingDialog } from "./CrewSharingDialog";
+import { useDialogBack } from "./useDialogBack";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import styles from "./crew-shared-picks.module.css";
 
@@ -14,6 +15,7 @@ type Props = { ownerId?: string; entries: OwnCrewEntry[]; groups: CrewVisibility
 type Operation = { id: string; selection: SharingSelection; label: string; startedAt?: number };
 type UndoReceipt = { id: string; until: number; label: string; message: string };
 const undoLifetime = 86_400_000;
+const cleanupHistoryScope = "crew-cleanup";
 function startOperation(operation: Operation) {
   return { ...operation, startedAt: operation.startedAt ?? Date.now() };
 }
@@ -93,10 +95,17 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   const [picker, setPicker] = useState(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
   const [cleanupAudience, setCleanupAudience] = useState<{ scope: string; label: string } | null>(null);
+  const forwardCleanup = useRef(false);
   const [days, setDays] = useState(30);
   const [review, setReview] = useState<{ before?: string; entries: OwnCrewEntry[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const inFlight = useRef(false);
+  useDialogBack(false, () => setCleanup(null), false, false, false, cleanupHistoryScope, () => {
+    if (!forwardCleanup.current || cleanup || picker || pending || !cleanupAudience) return;
+    forwardCleanup.current = false;
+    setReview(null);
+    setCleanup("choose");
+  });
   const list = useRef<HTMLDivElement>(null);
   const isShared = (entry: OwnCrewEntry) => entrySharedInScope(entry, scope, defaultRule, rules);
   const buckets = useMemo(() => {
@@ -211,7 +220,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     {!scopeAvailable ? <p role="alert">That group is no longer available. Choose another audience to continue.</p> : null}
     <div className={styles.toolbar}>
       <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); writePreference("shared-only", e.target.checked); resetList(); }} /> Shared only</label>
-      <button type="button" disabled={disabled} onClick={() => { setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
+      <button type="button" disabled={disabled} onClick={() => { forwardCleanup.current = false; setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
     </div>
     {status}
     {undoReceipts.map(receipt => <div key={receipt.id} className={styles.notice}>
@@ -260,9 +269,10 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
         {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { selectScope(g.id); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}
       </div>
     </CrewSharingDialog> : null}
-    {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }} busy={pending}
+    {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }} busy={pending} historyScope={cleanupHistoryScope}
       onBack={() => {
         if (cleanup === "review") { setCleanup("choose"); return true; }
+        forwardCleanup.current = true;
         setCleanup(null);
       }}>
       <div className={styles.cleanup}>

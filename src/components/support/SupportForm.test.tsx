@@ -213,14 +213,15 @@ test("a definitive rejection leaves message editable and does not show success",
 });
 
 test("validation preserves the selected category and draft for a corrected retry", async () => {
-  mocks.save.mockResolvedValueOnce({ status: "error", field: "subject", message: "Please enter a subject of 5–140 characters." })
-    .mockResolvedValueOnce({ status: "saved", caseId });
+  mocks.save.mockResolvedValueOnce({ status: "saved", caseId });
   render(<SupportForm requestKey="support_request_001" />);
   fireEvent.change(screen.getByRole("combobox", { name: "What do you need help with?" }), { target: { value: "reward" } });
   fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "     " } });
   fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "My reward needs a closer look." } });
   fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
   await screen.findByRole("alert");
+  expect(mocks.save).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Subject" }));
   expect(screen.getByRole("combobox")).toHaveProperty("value", "reward");
   expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "     ");
   expect(screen.getByRole("textbox", { name: "Subject" }).getAttribute("aria-invalid")).toBe("true");
@@ -228,7 +229,7 @@ test("validation preserves the selected category and draft for a corrected retry
   fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "Reward question" } });
   fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
-  const corrected = mocks.save.mock.calls[1][1] as FormData;
+  const corrected = mocks.save.mock.calls[0][1] as FormData;
   expect(corrected.get("category")).toBe("reward");
   expect(corrected.get("subject")).toBe("Reward question");
   expect(corrected.get("body")).toBe("My reward needs a closer look.");

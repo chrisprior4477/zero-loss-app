@@ -4,7 +4,7 @@ export function normalizeSearch(value: string) {
   return value.replace(/\b10\s*¼/g, "10.25").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[’']/g, "").replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b/g, "gift card")
     .replace(/\bt[.\s]*j[.\s]*maxx\b/g, "tj maxx")
-    .replace(/\bbestbuy\b/g, "best buy").replace(/\bhomedepot\b/g, "home depot")
+    .replace(/\bbestbuy\b/g, "best buy").replace(/\bhomedepot\b/g, "home depot").replace(/\bgame[\s-]+stop\b/g, "gamestop")
     .replace(/\bpack[\s-]+out\b/g, "packout").replace(/\b10\s+1\s*\/\s*4\b/g, "10.25")
     .replace(/\bair[\s-]+pods\b/g, "airpods")
     .replace(/\blittle[\s-]*green\b/g, "little green").replace(/\blip[\s-]*stick\b/g, "lipstick")
@@ -12,7 +12,7 @@ export function normalizeSearch(value: string) {
     .replace(/\bo[.\s]+l[.\s]+e[.\s]+d\b/g, "oled")
     .replace(/\b(?:play[\s-]*station|p[.\s-]*s)[.\s-]*5\b/g, "playstation 5")
     .replace(/\bplay[\s-]+station\b/g, "playstation").replace(/\bm\s+70\s+h\b/g, "m70h")
-    .replace(/(\d)\s*(?:["”″]|[- ]+inches?\b|[- ]?in\b)(?:\s+class\b)?/g, "$1 inch")
+    .replace(/(\d)\s*(?:["”″]|[- ]+inches\b|[- ]+inch\b|[- ]?in\b)(?:\s+class\b)?/g, "$1 inch")
     .replace(/(\d)\s*(tb|gb|terabytes?|gigabytes?)\b/g, (_, size: string, unit: string) => `${size} ${unit.startsWith("t") ? "tb" : "gb"}`)
     .replace(/\bsparkplugs?\b/g, "spark plug").replace(/\bautoparts\b/g, "auto parts")
     .replace(/\bauto\s+zone\b/g, "autozone").replace(/\bpet\s+smart\b/g, "petsmart").replace(/[^a-z0-9]+/g, " ").trim();
