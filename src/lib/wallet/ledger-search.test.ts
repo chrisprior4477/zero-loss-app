@@ -3,6 +3,43 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("matches amount, date and direction shorthand without treating held or unrelated amounts as charges", () => {
+  const created_at = "2026-11-06T02:00:00Z";
+  const later = "2026-11-07T12:00:00Z";
+  const netflix = { slug: "netflix-gift-card", title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/card.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "credit", entry_type: "REFUND", amount: 3000, created_at: later },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at },
+    { id: "refund", entry_type: "REFUND", amount: 100, created_at },
+    { id: "adjustment", entry_type: "CORRECTION", amount: -50, created_at },
+    { id: "netflix", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: netflix },
+    { id: "different-retailer", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at },
+    { id: "netflix-other-amount", entry_type: "PURCHASE_DEBIT", amount: -2300, created_at, product: netflix },
+    { id: "title-only", entry_type: "ENTRY_DEBIT", amount: -300, created_at, product: { ...netflix, title: "$50 Netflix Gift Card" } },
+  ];
+  const search = (query: string) => searchLedger(entries, query, row => ledgerDescription(row.entry_type, row.product?.title),
+    entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
+  for (const query of ["$1 debit", "1.00 USD debit", "debits of $1", "$1 or $2 paid", "US$1.00 spent"]) {
+    expect(search(query), query).toEqual(["entry"]);
+  }
+  expect(search("$25 deposited")).toEqual(["deposit"]);
+  expect(search("All entry payments")).toEqual(["entry", "title-only"]);
+  for (const query of ["posted on 11/05/2026", "transactions on November 5", "11-05-2026"]) {
+    expect(search(query), query).toEqual(search("2026-11-05"));
+  }
+  expect(search("after Nov 5, 2026")).toEqual(["credit"]);
+  expect(search("from 2026-11-01 until 2026-11-10")).toEqual(entries.map(row => row.id));
+  expect(search("amount = -$1")).toEqual(["entry", "hold"]);
+  expect(search("$1 exactly")).toEqual(["entry", "hold", "refund"]);
+  expect(search("$1 to $2")).toEqual(["entry", "hold", "refund"]);
+  expect(search("charges between $0.50 and $1")).toEqual(["entry", "adjustment"]);
+  expect(search("wallet credit over $25")).toEqual(["credit"]);
+  expect(search("-50¢")).toEqual(["adjustment"]);
+  expect(search("Netflix card charge $24")).toEqual(["netflix"]);
+});
+
 test("keeps natural amount phrases scoped to posted values and transaction type", () => {
   const created_at = "2026-11-05T20:00:00Z";
   const entries: LedgerEntryRow[] = [

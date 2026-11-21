@@ -11,6 +11,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/ledger-return";
 import styles from "@/components/account/purchase-options.module.css";
 import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
@@ -28,7 +29,15 @@ type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "r
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug: requestedSlug } = await params;
   const slug = requestedSlug.toLowerCase();
-  const query = await searchParams;
+  const raw = await searchParams;
+  const resume = matchingQueryValue(raw.resume);
+  const choice = matchingQueryValue(raw.choice);
+  const validChoice = choice && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(choice) ? choice : undefined;
+  const query = {
+    ...raw,
+    choice: validChoice,
+    resume: resume === "wallet" && (raw.choice === undefined || validChoice) ? resume : undefined,
+  };
   const { option, decline, receipt } = query;
   const optionValues = Array.isArray(option) ? new Set(option.map(value => value.toLowerCase())) : null;
   const selectedEntryId = optionValues?.size === 1 ? [...optionValues][0] : typeof option === "string" ? option : undefined;
@@ -48,7 +57,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   }
   const returnPath = accountReturnPath(selectors.size ? `${prizePath}?${selectors}` : prizePath);
   if (!returnPath) notFound();
-  if (!invalidOption && (requestedSlug !== slug || (optionId && optionId !== option))) redirect(returnPath);
+  const staleContinuation = (raw.choice !== undefined && !validChoice) || (raw.resume !== undefined && !query.resume);
+  if (!invalidOption && (staleContinuation || requestedSlug !== slug || (optionId && optionId !== option))) redirect(returnPath);
   const walletHref = transactionOriginHref(query);
   const originLinks = <>
     {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}

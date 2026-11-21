@@ -164,9 +164,10 @@ export function searchCatalogMatches(
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
+  const giftCards = /\bgift card\b/.test(normalizeSearch(query));
+  if (giftCards) query = query.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b)/i;
   const hasOr = orSeparator.test(query);
-  const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
   const clauses = query.split(hasOr ? new RegExp(/\s*,(?!\d)\s*(?:or\s+)?/.source + "|" + orSeparator.source, "i") : /\s+(?:and|&)\s+/i);
   const parts = clauses.map(clause => {

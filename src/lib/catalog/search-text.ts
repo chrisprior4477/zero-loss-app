@@ -20,6 +20,7 @@ export function normalizeSearch(value: string) {
     .replace(/\btool[\s-]*box(?:es)?\b/g, "tool box")
     .replace(/\bcard[\s-]*games?\b/g, "card game")
     .replace(/\bice[\s-]*cream\b/g, "ice cream")
+    .replace(/\bair[\s-]*fryer\b/g, "air fryer").replace(/\btake[\s-]*away\b/g, "takeaway")
     .replace(/\bshop[\s-]+vac(?:uum)?\b/g, "shop vacuum")
     .replace(/\b(\d+)\s*(?:x|×|by)\s*(\d+)\b/g, "$1x$2")
     .replace(/\b(\d+)[\s-]*(?:persons?|people)\b/g, "$1 person")

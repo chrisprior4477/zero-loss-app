@@ -71,6 +71,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const bottomCategories = useRef<HTMLButtonElement>(null);
   const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
   const panel = openPanel?.panel;
+  const panelOpen = Boolean(panel);
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
   const [queries, setQueries] = useState({ categories: "", retailers: "" });
   const query = queries[mode];
@@ -84,7 +85,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     setPreview(null);
   }
   const [preview, setPreview] = useState<string | null>(null);
-  const [refining, setRefining] = useState<{ category: MarketplaceCategoryId | null; href: string } | null>(null);
+  const [refineTarget, setRefineTarget] = useState<{ category: MarketplaceCategoryId | null; href: string } | null>(null);
+  const refining = panel === "filters" ? refineTarget : null;
   const [localSearch, setLocalSearch] = useState(props.searchTerm);
   const session = useBrowseResultsSearch();
   const search = session?.draft ?? localSearch;
@@ -133,7 +135,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     .sort((left, right) => left.label.localeCompare(right.label));
 
   useLayoutEffect(() => {
-    if (!panel) return;
+    if (!panelOpen) return;
     const element = dialog.current;
     element?.showModal();
     const previousOverflow = document.body.style.overflow;
@@ -151,7 +153,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       element?.close();
       restoreDialogTrigger(opener.current);
     };
-  }, [panel]);
+  }, [panelOpen]);
 
   useLayoutEffect(() => {
     if (panel !== "categories" || preview === null) return;
@@ -163,7 +165,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       ? previewRef.current?.querySelector<HTMLButtonElement>("[data-refine-preview]")
       : Array.from(previewRef.current?.querySelectorAll<HTMLAnchorElement>("[data-preview-prize]") ?? [])
         .find(link => link.dataset.previewPrize === target);
-    control?.focus({ preventScroll: true });
+    restoreDialogTrigger(control);
   }, [panel, preview]);
 
   useLayoutEffect(() => {
@@ -198,7 +200,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     voice.cancel();
     session?.voice.cancel();
     setPreview(null);
-    setRefining(null);
+    setRefineTarget(null);
     setQueries({ categories: "", retailers: "" });
     filterDraft.current = undefined;
     setInitialFilterDraft(undefined);
@@ -208,25 +210,27 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     opener.current = button;
     resetPicker(next, position);
   }
-  function close(returnToPreview = true) {
+  function stopFilterVoice() {
     pickerVoice.cancel();
     if (panel === "filters" && session?.editor === "filters") {
       session.voice.cancel();
       session.setEditor(null);
     }
-    if (returnToPreview && refining && panel === "filters") {
-      previewFocus.current = "refine";
-      setRefining(null);
-      setOpenPanel(current => current && { ...current, panel: "categories" });
-      return true as const;
-    }
+  }
+  function returnToPreview() {
+    stopFilterVoice();
+    previewFocus.current = "refine";
+    setOpenPanel(current => current && { ...current, panel: "categories" });
+  }
+  function dismissPicker() {
+    stopFilterVoice();
     setOpenPanel(null);
   }
   useLayoutEffect(() => {
     const trigger = opener.current;
-    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger, href: props.browseHref, queries, mode, preview };
-  }, [openPanel, props.browseHref, queries, mode, preview]);
-  const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true, false, "browse-discovery", () => {
+    if (openPanel && trigger && !refining) lastPanel.current = { ...openPanel, trigger, href: props.browseHref, queries, mode, preview };
+  }, [openPanel, props.browseHref, queries, mode, preview, refining]);
+  const endPanelHistory = useDialogBack(panelOpen, dismissPicker, false, true, false, "browse-discovery", () => {
     const last = lastPanel.current;
     if (last?.trigger.isConnected && last.href === props.browseHref) {
       opener.current = last.trigger;
@@ -237,14 +241,28 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       setOpenPanel({ panel: last.panel, position: last.position });
     }
   });
+  const endRefineHistory = useDialogBack(Boolean(refining), returnToPreview, false, false, true, "browse-category-refine", () => {
+    if (panel === "categories" && refineTarget) setOpenPanel(current => current && { ...current, panel: "filters" });
+  });
+  function close() {
+    if (refining) {
+      endRefineHistory();
+      returnToPreview();
+    } else dismissPicker();
+  }
+  useLayoutEffect(() => {
+    if (!refining) return;
+    restoreDialogTrigger(dialog.current?.querySelector<HTMLInputElement>('input[name="q"]'));
+  }, [refining]);
   function navigateFromPanel(destination: string) {
     if (panel === "filters" && refining && openPanel) {
       const target = comparableBrowseHref(destination);
       if (target === comparableBrowseHref(props.browseHref)) { close(); return; }
       rememberPreview(target, refining.category ?? "", openPanel.position);
     }
-    close(false);
+    dismissPicker();
     if (new URL(destination, window.location.origin).href !== window.location.href) {
+      endRefineHistory(true);
       endPanelHistory(true);
       if (destination.startsWith("/browse")) requestBrowseResultsFocus(destination);
       router.replace(destination, { scroll: false });
@@ -375,7 +393,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         </Link>
         <button type="button" data-refine-preview onClick={() => {
           pickerVoice.cancel();
-          setRefining({ category: category.id || null, href });
+          setRefineTarget({ category: category.id || null, href });
+          setInitialFilterDraft(undefined);
           setOpenPanel(current => current && { ...current, panel: "filters" });
         }}>Refine search</button>
       </div>
@@ -390,12 +409,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     <span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span>
   </button>);
 
-  const filterProps = refining ? {
+  const filterProps = refineTarget ? {
     ...props,
-    selectedCategory: refining.category, selectedRetailerGroup: null, subcategory: "",
-    ticketsLeft: refining.category === "ending-soon" ? props.ticketsLeft : null,
-    filters: parseBrowseFilterState(Object.fromEntries(new URL(refining.href, "https://zeroloss.local").searchParams), []),
-    clearHref: refining.category ? marketplaceCategoryHref(refining.category) : "/browse",
+    selectedCategory: refineTarget.category, selectedRetailerGroup: null, subcategory: "",
+    ticketsLeft: refineTarget.category === "ending-soon" ? props.ticketsLeft : null,
+    filters: parseBrowseFilterState(Object.fromEntries(new URL(refineTarget.href, "https://zeroloss.local").searchParams), []),
+    clearHref: refineTarget.category ? marketplaceCategoryHref(refineTarget.category) : "/browse",
   } : props;
 
   const controls = (position: ControlsPosition) => <>
@@ -491,7 +510,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0
               ? <p className={styles.noMatches}>{invalidCatalogSearch(query) || catalogSearchTooLong(query.trim()) ? "" : query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
           </div>
-        </> : <div className={styles.filterBody}><FilterForm {...filterProps} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div>}
+        </> : null}
+        {panel === "filters" || refineTarget ? <div className={styles.filterBody} hidden={panel !== "filters"}><FilterForm key={refineTarget?.href ?? "filters"} {...filterProps} active={panel === "filters"} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div> : null}
       </div>
     </dialog> : null}
   </div>

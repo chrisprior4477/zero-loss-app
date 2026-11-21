@@ -61,6 +61,7 @@ type ScrollProps = {
   invalidGroceryIdea?: boolean;
   duplicateSelectors?: boolean;
   conflictingSearch?: boolean;
+  conflictingFilters?: string;
   oldTailPrizes?: string[];
   batchSize?: number;
 };
@@ -68,7 +69,7 @@ type ScrollProps = {
 export function SearchResultsAutoScroll({
   searchKey, mobileBrowseKey = "", groceryKey = "", invalidSearch = false,
   obsoleteBatch, focusObsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly,
-  invalidSubcategory, invalidGroceryIdea, duplicateSelectors, conflictingSearch, oldTailPrizes, batchSize = 24,
+  invalidSubcategory, invalidGroceryIdea, duplicateSelectors, conflictingSearch, conflictingFilters, oldTailPrizes, batchSize = 24,
 }: ScrollProps) {
   const router = useRouter();
   useLayoutEffect(() => {
@@ -77,7 +78,7 @@ export function SearchResultsAutoScroll({
     const selected = url.hash.startsWith("#prize-") ? oldTailPrizes?.indexOf(url.hash.slice(7)) ?? -1 : -1;
     const tail = oldTailPrizes && selected >= 0 ? Math.floor((oldTailPrizes.length - selected - 1) / batchSize) + 1 : null;
     if (duplicateSelectors) for (const name of new Set(url.searchParams.keys())) {
-      if (name === "q" && conflictingSearch) continue;
+      if (name === "q" && conflictingSearch || conflictingFilters?.split(",").includes(name)) continue;
       if (url.searchParams.getAll(name).length > 1) url.searchParams.set(name, url.searchParams.get(name)!);
     }
     if (invalidSubcategory) url.searchParams.delete("subcategory");
@@ -99,7 +100,7 @@ export function SearchResultsAutoScroll({
     if (url.href === window.location.href) return;
     if (tail === null) window.history.replaceState(window.history.state, "", url.href);
     else router.replace(url.pathname + url.search + url.hash, { scroll: false });
-  }, [mobileBrowseKey, obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly, invalidSubcategory, invalidGroceryIdea, duplicateSelectors, conflictingSearch, oldTailPrizes, batchSize, router]);
+  }, [mobileBrowseKey, obsoleteBatch, normalizedBatch, invalidTicketRange, invalidType, normalizeAvailability, availableOnly, invalidSubcategory, invalidGroceryIdea, duplicateSelectors, conflictingSearch, conflictingFilters, oldTailPrizes, batchSize, router]);
 
   useLayoutEffect(() => {
     let cancelled = false;

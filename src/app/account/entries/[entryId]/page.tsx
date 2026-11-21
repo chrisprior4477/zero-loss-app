@@ -28,17 +28,23 @@ import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/led
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { entryReviewContext } from "@/lib/wallet/funding-navigation";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
 export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string }> }) {
   const entryId = (await params).entryId.toLowerCase();
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
-  const query = await searchParams;
+  const raw = await searchParams;
+  const query = raw && { ...raw, quantity: matchingQueryValue(raw.quantity) ?? raw.quantity };
+  const selectedQuantity = parseEntryQuantity(query?.quantity);
+  const invalidQuantity = query?.review === "entry" && query.quantity !== undefined && selectedQuantity === null;
   const entryContext = entryReviewContext(query);
   const missingTransaction = transactionOriginHref(query ?? {});
   const missingNotification = entryContext.notice ? notificationHref(notificationFilter(entryContext.alerts), entryContext.notice) : undefined;
-  const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");
+  const destination = accountPageReturnPath(`/account/entries/${entryId}`,
+    invalidQuantity ? { ...query, review: undefined, quantity: undefined } : query,
+    invalidQuantity ? "#add-entries-title" : query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", destination));
   if (account.activity.source === "unavailable") {
@@ -84,8 +90,8 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .sort(compareSavedEntries);
   const entryCount = relatedEntries.length;
   const entryView = query?.entries;
-  const resumeReview = query?.review === "entry";
-  const initialQuantity = resumeReview ? parseEntryQuantity(query?.quantity) ?? 1 : 1;
+  const resumeReview = query?.review === "entry" && !invalidQuantity;
+  const initialQuantity = resumeReview ? selectedQuantity ?? 1 : 1;
   const savedTickets = relatedEntries.map((entry, index) => ({
     entryId: entry.entryId!,
     number: index + 1,
@@ -131,7 +137,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <PreferenceSnapshot><div className={styles.page}>
-    <AccountSettingsLandingScroll target="entry-details-intro" focusTarget={resumeReview || initialReceipt ? undefined : "entry-details-heading"} initialTarget={resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}`} settleAfterNavigation allScreens />
+    <AccountSettingsLandingScroll target="entry-details-intro" focusTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? undefined : "entry-details-heading"} initialTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}:${invalidQuantity}`} settleAfterNavigation allScreens />
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1 id="entry-details-heading" tabIndex={-1}>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
@@ -166,6 +172,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>{entryCount === 1 ? "Your saved entry is one chance" : `Your ${entryCount} saved entries are ${entryCount} separate chances`} in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
+        {invalidQuantity ? <p role="status" id="entry-review-quantity" tabIndex={-1}>The saved quantity is invalid. Choose how many additional entries you want below before reviewing.</p> : null}
         <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} ownerId={account.userId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} itemImage={item.image} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} transactionReturnHref={walletHref} notificationReturnHref={alertsHref} entryContext={entryContext} />
       </section>
       </EntryTicketSelectionProvider>

@@ -164,7 +164,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. PayPal is unavailable. Do not enter real payment-card details.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. Apple Pay and PayPal are unavailable. Do not enter real payment-card details.",
     keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
@@ -224,8 +224,9 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "notifications", category: "account", question: "Where do I see updates that need my attention?",
-    answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
+    answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Use Alert settings to choose which in-app alerts appear. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
     keywords: "email alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
+    followUpAction: { label: "Open Alert settings", href: "/account/notifications#alert-settings" },
   },
   {
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
@@ -279,6 +280,17 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:used up|ran out of|out of|no)\b.*\bbalance\b.*\benter\b/, "insufficient-balance"],
+  [/\b(?:hold|reservation)\b.*\b(?:turned into|became|converted to)\b.*\b(?:ticket|entry)\b/, "entry-status"],
+  [/\b(?:itemized|receipt)\b.*\b(?:one|my|a|this)\s+ticket\b/, "entry-receipt"],
+  [/\b(?:checkout|purchase)\b.*\b(?:send|ship|deliver|get)\b.*\bprize\b.*\bgift[ -]card\b/, "purchase-meaning"],
+  [/\b(?:settings?|change|control)\b.*\b(?:in[ -]app alerts?|alerts? (?:inside|on|in) (?:the )?(?:website|site|app))\b/, "notifications"],
+  [/\b(?:gift[ -]card|reward)\b.*\b(?:issuing|being issued|pending issuance)\b/, "reward-unavailable"],
+  [/\b(?:open|find|view)\b.*\b(?:existing|previous)\b.*\b(?:support|help)\s+(?:case|conversation)\b/, "support-case"],
+  [/\b(?:give|send|submit|share)\b.*\b(?:idea|suggestion)\b.*\b(?:product|prize|retailer)\b/, "request-product"],
+  [/\bgift[ -]card\b.*\bdemo\b.*\b(?:spendable|redeemable|usable|real)\b/, "mvp"],
+  [/\b(?:loading|add(?:ing)?|deposit(?:ing)?)\b.*\bapple pay\b|\bapple pay\b.*\b(?:wallet|funding|deposit)\b/, "add-funds"],
+  [/\b(?:draw|drawing|pool)\b.*\b(?:wait|close)\b.*\b(?:every|all)\b.*\b(?:spots?|tickets?|entries)\b/, "pool-completion"],
   [/\b(?:use|browse|see)\b.*\bwithout (?:an account|signing in)\b/, "enter-a-prize"],
   [/\b(?:never got|did not get|missing|resend)\b.*\bconfirmation message\b/, "verification-email"],
   [/\b(?:send|new|resend|expired)\b.*\b(?:password )?reset link\b/, "password"],

@@ -29,6 +29,7 @@ import { ledgerEntryProduct } from "@/lib/wallet/history";
 import { ledgerDescription } from "@/lib/wallet/transaction-links";
 import { HelpShortcuts } from "@/components/help/HelpShortcuts";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import styles from "@/components/help/help-tickets.module.css";
 
 export const metadata: Metadata = { title: "Support" };
@@ -131,8 +132,9 @@ function SupportReceipt({ title, detail, image, amount, timestamp, timeZone, sta
   </aside>;
 }
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; from?: string; fromOrders?: string; orderFilter?: string; page?: string; messages?: string; messageAnchor?: string; rewardReturn?: string; walletView?: string; details?: string; alerts?: string; notice?: string; checkoutReturn?: string; entryReturn?: string; depositList?: string; fromUpdates?: string; updateCategory?: string }> }) {
-  const query = await searchParams;
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string | string[]; transaction?: string; rewardId?: string; deposit?: string; view?: string; from?: string; fromOrders?: string; orderFilter?: string; page?: string; messages?: string; messageAnchor?: string; rewardReturn?: string; walletView?: string; details?: string; alerts?: string; notice?: string; checkoutReturn?: string; entryReturn?: string; depositList?: string; fromUpdates?: string; updateCategory?: string }> }) {
+  const raw = await searchParams;
+  const query = { ...raw, case: matchingQueryValue(raw.case) ?? raw.case };
   const account = await getAccountContext();
   const validCase = typeof query.case === "string" && uuid.test(query.case) ? query.case : null;
   const validTransaction = typeof query.transaction === "string" && uuid.test(query.transaction) ? query.transaction : null;

@@ -12,13 +12,14 @@ const currency = new RegExp(String.raw`(?:\$\s*|\bUSD\s*)(${digits})(?:[ -]+(?:d
 
 const entryAmount = String.raw`(?:${currency.source})|(?:\$\s*|\bUSD\s*)?\b${digits}`;
 const entryPricePattern = new RegExp([
-  String.raw`\b(?:with\s+|for\s+)?(?:an?\s+)?(?:entry\s+(?:price|fee|cost)|tickets?\s+cost)\s*:?\s*(?:of\s+)?(?<labeledCeiling>(?:up to|at most|no more than|below|under|less than)\s+)?(?<labeled>${entryAmount})`,
+  String.raw`\b(?:with\s+|for\s+)?(?:an?\s+)?(?:entry\s+(?:price|fee|cost)s?|tickets?\s+cost)\s*:?\s*(?:of\s+)?(?<labeledCeiling>(?:up to|at most|no more than|below|under|less than)\s+)?(?<labeled>${entryAmount})`,
+  String.raw`\b(?:with|paying)\s+(?<entryFees>${entryAmount})\s+(?:entry fees?|(?:per|each)\s+entry)\b`,
   String.raw`\bwith\s+(?:an?\s+)?(?<single>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
   String.raw`\b(?:costing|costs?|for)\s+(?<toEnter>${entryAmount})\s+to enter\b`,
   String.raw`\b(?:with\s+)?entr(?:y|ies)\s+at\s+(?<each>${entryAmount})\s+each\b`,
   String.raw`(?:(?<ceiling>\b(?:up to|at most|no more than|less than|under|below)\s+)|\b(?:with|for|at)\s+)?(?<per>${entryAmount})(?<trailingCeiling>\s+or\s+(?:less|lower|under))?(?:\s+(?:per|a|each)\s+|\s*\/\s*|\s+)(?:entry|ticket)\b`,
 ].join("|"), "i");
-const excludedValuePattern = new RegExp(String.raw`\s*,?\s+(?:(?:and|but)\s+(?=(?:not|excluding|except|other than)\b))?(?:not|excluding|except(?: for)?|other than)\s+((?:${currency.source}))(?=\s|,|$)`, "gi");
+const excludedValuePattern = new RegExp(String.raw`\s*,?\s+(?:(?:and|but)\s+(?=(?:not|excluding|except|other than)\b))?(?:not|excluding|except(?: for)?|other than)\s+(?:the\s+)?((?:${currency.source}))(?:\s+ones?\b)?(?=\s|,|$)`, "gi");
 
 const initialCurrency = new RegExp(`^(?:${currency.source})`, "i");
 const initialDigits = new RegExp(`^(${digits})(?=\\s|$)`, "i");
@@ -44,7 +45,7 @@ export function catalogMerchant(text: string, products: readonly { retailer: str
   if (!direct) return null;
   const exact = products.find(product => retailerName(product.retailer) === direct);
   if (exact) return normalizeSearch(exact.retailer);
-  const name = direct.replace(/^(?:(?:for|from|at|sold by|a|an|the)\s+)+/, "").replace(/\s+sold by\s+/, " ").replace(/\s+store$/, "");
+  const name = direct.replace(/^(?:(?:for|from|at|of|sold by|a|an|the)\s+)+/, "").replace(/\s+sold by\s+/, " ").replace(/\s+store$/, "");
   if (name === "walmart" && products.some(product => matchesCatalogMerchant(product.retailer, name))) return name;
   const match = products.find(product => retailerName(product.retailer) === name
     || (name === "apple" && retailerName(product.retailer) === "apple gift card")
@@ -254,13 +255,17 @@ export function searchDenominations(query: string, products: readonly { retailer
   const unsupportedCurrency = new RegExp(String.raw`(?:\b${foreignCode}\s*\$?\s*\d|\d[\d.,]*\s*${foreignCode}\b|\b(?:CA|AU|NZ)\s*\$\s*\d|[€£¥]\s*\d)`, "i").test(query);
   let normalized = query.trim().replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
     .replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b|\b(?:(?:grocery|fuel)\s+)?vouchers?\b/gi, "gift card")
+    .replace(/\b(?:sony\s+)?playstation store cards?\b/gi, "Sony PlayStation gift card")
+    .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")
+    .replace(/\bstrictly\s+(?=below|under|less than|above|over|more than)/gi, "")
     .replace(/\beither\s+(?=\$\s*\d)/gi, "");
+  if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;
   const screen = /\b(?:tvs?|televisions?)\b/i.test(normalized) ? screenComparison.exec(normalized) : null;
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
   if (screen) normalized = normalized.replace(screen[0], " ").replace(/\s+/g, " ").trim();
   const entryMatch = entryPricePattern.exec(normalized);
-  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter;
+  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees;
   const exclusiveEntryPrice = /^(?:below|under|less than)\b/i.test(entryMatch?.groups?.labeledCeiling ?? entryMatch?.groups?.ceiling ?? "");
   const entryPrice = entryAmountText ? leadingAmount(entryAmountText)?.amount ?? null : null;
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);
@@ -273,9 +278,9 @@ export function searchDenominations(query: string, products: readonly { retailer
   }).trim().replace(/\s+/g, " ");
   if (normalized.length <= 512 && /\bgc\b/i.test(normalized)) {
     const expanded = normalized.replace(/\bgc\b/gi, "gift card");
-    const amountText = searchBudget(expanded, products)?.text ?? extractValues(expanded, products).text;
-    const retailer = retailerName(normalizeSearch(amountText).replace(/\bgift card\b/g, "").trim());
-    if (products.some(product => retailerName(product.retailer) === retailer)) normalized = expanded;
+    const candidate = expanded.replace(/\b(?:only|exactly)\b/gi, " ");
+    const amountText = searchBudget(candidate, products)?.text ?? extractValues(candidate, products).text;
+    if (catalogMerchant(amountText, products)) normalized = expanded;
   }
   const hasCurrency = new RegExp(currency.source, "i").test(normalized);
   const exactPhrase = normalized.replace(/\b(?:only|exactly)\b[.!?]?/gi, " ")

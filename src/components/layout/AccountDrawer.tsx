@@ -22,7 +22,10 @@ import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt"
 import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
 import { useAccountProfileShortcut } from "./useAccountProfileShortcut";
 import { useDialogBack } from "@/components/account/useDialogBack";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
+
+const profileReturnKey = "zero-loss-wallet-profile-focus";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -105,6 +108,36 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
     // Includes browser Back/Forward and query-only navigation.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
+  }, [pathname, search]);
+  useEffect(() => {
+    let frame = 0;
+    let settleTimer = 0;
+    function restoreProfileReturn() {
+      let origin: string | null = null;
+      try { origin = window.sessionStorage.getItem(profileReturnKey); } catch { return; }
+      if (!origin || window.location.href !== origin) return;
+      cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+      const restore = () => {
+        const active = document.activeElement;
+        const landingFocus = active instanceof HTMLElement && active.tabIndex < 0 && /^H[1-6]$/.test(active.tagName);
+        if (window.location.href === origin && (active === document.body || landingFocus)) restoreDialogTrigger(triggerRef.current);
+      };
+      frame = requestAnimationFrame(restore);
+      // The Wallet can mount a new header and assign its own landing focus.
+      settleTimer = window.setTimeout(() => {
+        if (window.location.href !== origin) return;
+        restore();
+        try { window.sessionStorage.removeItem(profileReturnKey); } catch { /* Storage may be unavailable. */ }
+      }, 350);
+    }
+    restoreProfileReturn();
+    window.addEventListener("popstate", restoreProfileReturn);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+      window.removeEventListener("popstate", restoreProfileReturn);
+    };
   }, [pathname, search]);
 
   useEffect(() => {
@@ -233,7 +266,13 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
           <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>
-                <Link href="/account/profile#profile-intro" replace={replaceDrawerStep} onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
+                <Link href="/account/profile#profile-intro" replace={replaceDrawerStep} onClick={event => {
+                  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  if (pathname === "/account/wallet") {
+                    try { window.sessionStorage.setItem(profileReturnKey, window.location.href); } catch { /* Profile can still open. */ }
+                  }
+                  close();
+                }} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
                   <DrawerAvatar avatar={resolvedMenuVisibility ? resolvedAvatar : null} initials={initials} size="large" />
                   <span><strong>{shownName}</strong><small>Your account</small></span>
                 </Link>

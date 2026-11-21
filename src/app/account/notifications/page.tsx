@@ -16,14 +16,16 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const requestedFilter = matchingQueryValue(query?.filter);
   const filter = notificationFilter(requestedFilter);
   const obsoleteFilter = query?.filter !== undefined && requestedFilter !== filter;
-  const notice = validNotice(query?.notice) ? query.notice : undefined;
+  const requestedNotice = matchingQueryValue(query?.notice);
+  const notice = validNotice(requestedNotice) ? requestedNotice : undefined;
+  const noticeConflict = Array.isArray(query?.notice) && requestedNotice === undefined;
   const [listPath] = notificationHref(filter, notice).split("#");
   const notificationDestination = listPath + (query?.section === "email" ? "#email-choices" : "#notification-tickets-filters");
   const account = await getAccountContext();
   if (!account) {
     redirect(authNavigationHref("/login", notificationDestination) + "&focus=email#login-form");
   }
-  if (Array.isArray(query?.filter) && !obsoleteFilter) {
+  if ((Array.isArray(query?.filter) && !obsoleteFilter && !noticeConflict) || (Array.isArray(query?.notice) && notice && !obsoleteFilter)) {
     redirect(notificationDestination);
   }
   const db = await createClient();
@@ -32,7 +34,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const { data: favoriteAlertEmailEnabled, error: favoriteAlertEmailError } = await db.rpc("get_favorite_alert_email_enabled");
   const { data: purchaseOptionEmailEnabled, error: purchaseOptionEmailError } = await db.rpc("get_purchase_option_email_enabled");
   const { data: crewWinEmailEnabled, error: crewWinEmailError } = await db.rpc("get_crew_win_email_enabled");
-  return <PreferenceSnapshot><>{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
+  return <PreferenceSnapshot><>{noticeConflict ? <p role="status" className="mx-auto max-w-6xl p-4 text-sm">This link names more than one update. Select the update you want from the list.</p> : null}{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     key={`${filter}:${notice ?? ""}`}
     initialFilter={filter}
     obsoleteFilter={obsoleteFilter}

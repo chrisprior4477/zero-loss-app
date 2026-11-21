@@ -11,6 +11,7 @@ import { crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { readOwnCrewEntries, readOwnCrewShares } from "@/lib/crew/own-entries";
 import { parseCrewTab } from "@/lib/crew/navigation";
 import { entryReviewContext } from "@/lib/wallet/funding-navigation";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 
 export const metadata: Metadata = { title: "Your Crew" };
 
@@ -27,11 +28,12 @@ export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; r
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
-type CrewQuery = Partial<Record<"member" | "pick" | "tab" | "request" | "invite" | "design" | "entry" | "filter" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string>>;
+type CrewQuery = Partial<Record<"member" | "pick" | "request" | "invite" | "design" | "entry" | "filter" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string>> & { tab?: string | string[] };
 
 export default async function CrewPage({ searchParams }: { searchParams: Promise<CrewQuery> }) {
   const { account, hidden, availability } = await getShoppingCatalog();
-  const params = await searchParams;
+  const raw = await searchParams;
+  const params = { ...raw, tab: matchingQueryValue(raw.tab) };
   if (!account) {
     let section = params.pick ? "#crew-intro" : "";
     if (params.tab === "add") section = "#crew-search";

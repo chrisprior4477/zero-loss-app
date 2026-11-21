@@ -32,20 +32,26 @@ import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
 import { checkoutCards, checkoutReceiptId } from "@/lib/account/checkout-cards";
 import { CheckoutGiftCardList } from "@/components/account/CheckoutGiftCardList";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import checkout from "@/components/account/purchase-checkout.module.css";
 import cardStyles from "@/components/account/checkout-gift-cards.module.css";
 
 export async function generateMetadata({ searchParams }: PageProps<"/account/wallet">): Promise<Metadata> {
   const query = await searchParams;
-  const history = query.reward === undefined && query.rewardId === undefined && (query.view === "history" || query.view === "card");
+  const history = query.reward === undefined && query.rewardId === undefined && ["history", "card", "saved-cards"].includes(matchingQueryValue(query.view) ?? "");
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; order?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; panelUnavailable?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; entryFromOrders?: string | string[]; entryOrderFilter?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
   const rawQuery = await searchParams;
+  const rewardId = matchingQueryValue(rawQuery.rewardId);
   const query = {
     ...rawQuery,
-    rewardId: typeof rawQuery.rewardId === "string" && checkoutReceiptId.test(rawQuery.rewardId) ? rawQuery.rewardId.toLowerCase() : rawQuery.rewardId,
+    reward: matchingQueryValue(rawQuery.reward) ?? rawQuery.reward,
+    rewardId: rewardId && checkoutReceiptId.test(rewardId) ? rewardId.toLowerCase() : rewardId ?? rawQuery.rewardId,
+    view: matchingQueryValue(rawQuery.view) ?? rawQuery.view,
+    panel: matchingQueryValue(rawQuery.panel) ?? rawQuery.panel,
+    rewards: matchingQueryValue(rawQuery.rewards) ?? rawQuery.rewards,
   };
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -54,6 +60,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     ["methods", "#payment-methods"], ["card", "#wallet-add-card"],
   ]);
   const knownPanel = typeof query.panel === "string" ? panelHash.get(query.panel) : undefined;
+  if (!requestedReward && query.view === "saved-cards") {
+    redirect(accountPageReturnPath("/account/wallet", { ...query, view: "history", panel: "methods" }, "#payment-methods"));
+  }
   if (!requestedReward && !history && (knownPanel || query.view === "card")) {
     const panel = query.view === "card" ? "card" : query.panel;
     redirect(accountPageReturnPath("/account/wallet", { ...query, view: "history", panel },
@@ -70,7 +79,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const fromRewardHistory = query.rewardHistory === "1";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
-  const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
+  const parsedQuantity = parseEntryQuantity(matchingQueryValue(query.quantity));
+  const invalidQuantity = Boolean(fromProduct && query.quantity !== undefined && parsedQuantity === null);
+  const requestedQuantity = parsedQuantity ?? 1;
   const entryOrigin = { transaction: query.entryTransaction, walletView: query.entryWalletView, fromOrders: query.entryFromOrders, orderFilter: query.entryOrderFilter, alerts: query.alerts, notice: query.notice };
   const account = await getAccountContext();
   if (!account) {
@@ -83,6 +94,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
       ? accountPageReturnPath("/account/wallet", query, query.panel === "transactions" ? "#transactions" : "#payment-deposits")
       : history && query.landing === "balance" ? accountPageReturnPath("/account/wallet", query, "#balance")
+      : invalidQuantity && fromProduct && query.entry === undefined ? productEntryHref(fromProduct.slug, 1, query.browse, query.share).replace(/#enter-entry$/, "#entry-action")
+      : invalidQuantity && typeof query.entry === "string" && /^ent_[a-f0-9]{32}$/i.test(query.entry)
+        ? accountPageReturnPath(`/account/entries/${query.entry}`, { filter: query.filter, ...entryReviewContext(entryOrigin) }, "#add-entries-title")
       : history && !query.transaction && (fromProduct || query.panel === "funding") ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.filter, entryOrigin)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice, query.share)
@@ -95,7 +109,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const fromEntry = fromProduct && typeof query.entry === "string" && account.activity.source !== "unavailable"
     ? findActivityItem(account.activity.activity, fromProduct.slug, query.entry) : undefined;
   const forEntry = fromProduct && (query.entry === undefined || fromEntry?.status === "active");
-  const availability = forEntry && account.wallet ? await getOfferingAvailability() : null;
+  const availability = forEntry && !invalidQuantity && account.wallet ? await getOfferingAvailability() : null;
   const currentAvailability = forEntry ? availability?.[fromProduct.slug] : undefined;
   const selectionUnavailable = currentAvailability !== undefined && currentAvailability.remaining < requestedQuantity;
   const amounts = forEntry ? entryFundingAmounts(availability?.[fromProduct.slug]?.entryPriceCents ?? null, requestedQuantity, account.wallet?.balanceCents ?? null) : undefined;
@@ -109,7 +123,17 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse, query.share) } : undefined;
   if (fundingReturn && forEntry) {
-    if (selectionUnavailable) {
+    if (invalidQuantity) {
+      fundingReturn.invalidQuantity = true;
+      fundingReturn.entryQuantity = undefined;
+      fundingReturn.entryDepositReturn = undefined;
+      if (fromEntry?.status === "active" && fromEntry.entryId) {
+        const entryPath = `/account/entries/${fromEntry.entryId}`;
+        fundingReturn.href = accountPageReturnPath(entryPath, { filter: query.filter, ...entryReviewContext(entryOrigin) });
+      } else {
+        fundingReturn.href = fundingReturn.href.replace(/#enter-entry$/, "#entry-action");
+      }
+    } else if (selectionUnavailable) {
       fundingReturn.entryQuantity = undefined;
       fundingReturn.shortfallCents = undefined;
       fundingReturn.depositCents = undefined;
@@ -119,7 +143,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const stalePurchaseReturn = recoveryKey && fromEntry && fromEntry.status !== "active"
     && !openPrizeOptions([fromEntry], fromEntry.slug).length;
   // A URL only selects from this authenticated account's authorized data.
-  const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
+  const rewardConflict = Array.isArray(query.reward) || Array.isArray(query.rewardId);
+  const matchingRewards = rewardConflict ? [] : walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"
     ? matchingRewards.find(item => item.rewardId === query.rewardId)
     : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
@@ -149,7 +174,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   }
   const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history" || query.rewards === "other"
     ? query.rewards : "all";
-  const rewardPrize = typeof query.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
+  const rewardPrize = typeof query.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize)
+    && (getDemoProduct(query.prize) || account.activity.activity.some(item => item.slug === query.prize)) ? query.prize : undefined;
   const rewardScope = new URLSearchParams();
   if (rewardView !== "all") rewardScope.set("rewards", rewardView);
   if (rewardPrize) rewardScope.set("prize", rewardPrize);
@@ -292,7 +318,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (history) {
     const hiddenProducts = catalog && !catalog.unavailable ? catalog.hidden : new Set(resolvedCatalogSlugs(account.activity));
     const ordersFilter = query.fromOrders === "1" && query.panel === "transactions" ? fulfillmentFilter(query.orderFilter) : undefined;
-    return <WalletOverview unavailablePanel={query.panelUnavailable === "1"} ordersFilter={ordersFilter} ordersReturnHref={ordersFilter ? fulfillmentHref(undefined, ordersFilter) : undefined} landOnBalance={query.landing === "balance" && !recoveryKey && !transaction?.requested} notificationReturnHref={validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined} hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} transactionRetryHref={transactionOriginHref(query)} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} weeklyDeposit={weeklyDeposit} fromDeposits={query.panel === "deposits"} depositList={query.depositList === "1"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={stalePurchaseReturn ? undefined : fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+    return <WalletOverview unavailablePanel={query.panelUnavailable === "1"} ordersFilter={ordersFilter} ordersReturnHref={ordersFilter ? fulfillmentHref(undefined, ordersFilter) : undefined} landOnBalance={query.landing === "balance" && !recoveryKey && !transaction?.requested} notificationReturnHref={validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined} hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} transactionRetryHref={transactionOriginHref(query)} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} weeklyDeposit={weeklyDeposit} fromDeposits={query.panel === "deposits"} depositList={query.depositList === "1"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={stalePurchaseReturn ? undefined : fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry ? query.review === "entry" ? "entry" : "purchase" : false} />;
   }
   const focusCard = typeof query.card === "string" ? query.card : undefined;
   const expired = rewardView === "expired" && typeof query.expiredEntry === "string" && account.activity.source !== "unavailable"
@@ -305,6 +331,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   });
   const expiredSelection = rewardView === "expired" && typeof query.expiredEntry === "string" && !expired
     ? account.activity.source === "unavailable" ? "unavailable" : "missing" : undefined;
-  const rewards = <><LegacyWalletFragment /><WalletRewards prize={rewardPrize} invalidView={query.rewards !== undefined && query.rewards !== "all" && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} expiredRetryHref={expiredSelection === "unavailable" ? accountPageReturnPath("/account/wallet", query, "#reward-history") : undefined} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} /></>;
+  const rewards = <><LegacyWalletFragment /><WalletRewards prize={rewardPrize} invalidPrize={query.prize !== undefined && !rewardPrize} invalidWalletView={query.view !== undefined} invalidView={query.rewards !== undefined && query.rewards !== "all" && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} expiredRetryHref={expiredSelection === "unavailable" ? accountPageReturnPath("/account/wallet", query, "#reward-history") : undefined} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} /></>;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={transactionOriginHref(query) ?? `/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }

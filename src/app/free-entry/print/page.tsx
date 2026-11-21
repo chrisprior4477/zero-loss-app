@@ -6,6 +6,7 @@ import { AccountSettingsLandingScroll } from "@/components/account/AccountSettin
 import { freeEntryChoices, freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { freeEntryHref, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "Print AMOE Entry Insert" };
@@ -23,7 +24,8 @@ type Props = {
 };
 
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
-  const params = await searchParams;
+  const raw = await searchParams;
+  const params = { ...raw, quantity: matchingQueryValue(raw.quantity) ?? raw.quantity };
   const requested = params.offering;
   const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) {

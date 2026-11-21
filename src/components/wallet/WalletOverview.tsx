@@ -53,7 +53,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   savedCards?: DemoCard[];
   cardUnavailable?: boolean;
   returnToProduct?: FundingContinuation;
-  returnUnavailable?: boolean;
+  returnUnavailable?: boolean | "entry" | "purchase";
 }) {
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
@@ -143,14 +143,17 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
       <section id={canFund && !recoveryKey && returnToProduct ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
         <div className={styles.fundingBody}>
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
-        {returnToProduct && !recoveryKey ? <div className={styles.fundingReturn}><p>{returnToProduct.selectionUnavailable
+        {returnToProduct && !recoveryKey ? <div className={styles.fundingReturn}><p>{returnToProduct.invalidQuantity
+          ? "This link has an invalid entry quantity. Return to the prize or saved entry to choose a quantity before funding it."
+          : returnToProduct.selectionUnavailable
           ? `Entry availability for ${returnToProduct.title} changed. Check the prize again before funding those entries.`
           : returnToProduct.label === "Open gift card"
             ? `Your purchase of ${returnToProduct.title} is complete. Your gift card is ready to open.`
             : returnToProduct.label === "Back to purchase option" && canFund
               ? `Add funds to complete your purchase of ${returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.`
               : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
-        {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
+        {returnUnavailable === "entry" ? <p role="status" className={styles.fundingReturn}>We couldn’t find that saved entry in your account. <Link href="/account/entries?filter=active#my-activity-filters">View your open entries →</Link></p>
+          : returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
         {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} timeZone={timeZone} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits key={weeklyDeposit ?? "weeks"} restoreReceipt={selected ? undefined : weeklyDeposit} requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} asOf={new Date().toISOString()} timeZone={timeZone} />}

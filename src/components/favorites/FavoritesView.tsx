@@ -13,7 +13,7 @@ import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { availabilityStatus, lightSurfaceAvailabilityColor, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { readFavoriteCapacityAlert, setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
-import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
+import { savedShareHref, savedShareStatus, shareUuid, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
 import { readReceivedProductState, setReceivedProductState } from "@/lib/sharing/saved-share-actions";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./favorites.module.css";
@@ -68,7 +68,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const [tab, setTab] = useState(initialTab);
   useEffect(() => {
     if (!obsoleteFilter) return;
-    window.history.replaceState(window.history.state, "", obsoleteFilter + window.location.hash);
+    const destination = new URL(obsoleteFilter, window.location.origin);
+    if (!destination.hash) destination.hash = window.location.hash;
+    window.history.replaceState(window.history.state, "", destination);
     document.getElementById("obsolete-favorites-filter")?.focus();
   }, [obsoleteFilter]);
   const [favoriteFilter, setFavoriteFilter] = useState(initialFavoriteFilter);
@@ -199,8 +201,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     function restoreHistory(state: unknown, restoreScroll: boolean) {
       if (window.location.pathname !== "/account/favorites") return;
       const query = new URLSearchParams(window.location.search);
-      const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
-      const shareId = nextTab === "shared" ? query.get("share")?.toLowerCase() : null;
+      const share = query.get("share");
+      const nextTab = query.get("tab") === "shared" || (share && shareUuid.test(share)) ? "shared" : "favorites";
+      const shareId = nextTab === "shared" ? share?.toLowerCase() : null;
       const nextView = shareId && shareId === initialShareId ? initialSharedView : query.get("view") === "declined" ? "declined" : "available";
       const nextFavoriteFilter = query.get("watch") === "1" ? "watching" : "all";
       const slug = query.get("item")?.toLowerCase();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { crewTabHref, isCrewTab, parseCrewTab, type CrewTab } from "@/lib/crew/navigation";
+import { crewTabFromUrl, crewTabHref, type CrewTab } from "@/lib/crew/navigation";
 
 const sectionChanged = "zero-loss-crew-section";
 function subscribe(onChange: () => void) {
@@ -13,7 +13,7 @@ function subscribe(onChange: () => void) {
 /** Section navigation is bookmarkable without reloading the mounted Crew editors. */
 export function useCrewTab(initialTab: CrewTab) {
   const tab = useSyncExternalStore(subscribe,
-    () => parseCrewTab(new URLSearchParams(window.location.search).get("tab")),
+    () => crewTabFromUrl(new URL(window.location.href)).tab,
     () => initialTab);
 
   const [invalidTab, setInvalidTab] = useState(false);
@@ -22,14 +22,15 @@ export function useCrewTab(initialTab: CrewTab) {
     let frame = 0;
     function restore(event?: Event) {
       const url = new URL(window.location.href);
-      const value = url.searchParams.get("tab");
-      const next = parseCrewTab(value);
+      const { tab: next, invalid } = crewTabFromUrl(url);
       const changed = lastTab.current !== next;
       lastTab.current = next;
-      const invalid = value !== null && !isCrewTab(value);
       if (invalid) {
         url.searchParams.delete("tab");
         window.history.replaceState({ ...window.history.state, zeroLossCrewInvalidTab: true }, "", url);
+      } else if (url.searchParams.getAll("tab").length > 1) {
+        url.searchParams.set("tab", next);
+        window.history.replaceState(window.history.state, "", url);
       }
       setInvalidTab(invalid || window.history.state?.zeroLossCrewInvalidTab === true);
       if (event?.type !== "popstate" || !changed) return;
@@ -48,7 +49,7 @@ export function useCrewTab(initialTab: CrewTab) {
   function selectTab(nextTab: CrewTab) {
     lastTab.current = nextTab;
     setInvalidTab(false);
-    if (parseCrewTab(new URLSearchParams(window.location.search).get("tab")) === nextTab) return;
+    if (crewTabFromUrl(new URL(window.location.href)).tab === nextTab && !invalidTab) return;
     // Next's native-history integration retains its routing state. A new entry
     // lets Back/Forward revisit sections without saving any account preferences.
     window.history.pushState(null, "", crewTabHref(window.location.href, nextTab));

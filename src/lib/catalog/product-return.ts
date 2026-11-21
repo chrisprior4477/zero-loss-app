@@ -52,6 +52,8 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const denomination = /-([1-9]\d{0,5})-gift-card$/.exec(retailer[2]);
     return denomination && popularRewardProductSlug(brand.slug, Number(denomination[1])) === retailer[2] ? value : null;
   }
+  const denominationList = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)#reward-values$/.exec(value);
+  if (denominationList && getPopularRewardBrand(denominationList[1])) return value;
   if (!/^\/browse(?:[?#]|$)/.test(value)) return null;
   try {
     const url = new URL(value, "https://zeroloss.local");

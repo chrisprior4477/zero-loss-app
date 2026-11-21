@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
@@ -29,7 +29,7 @@ export type BrowseFilterProps = {
   onNavigate?: (destination: string) => void;
 };
 
-export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate, onSearchDraft }: BrowseFilterProps & { id: string; onSearchDraft?: (draft: string) => void }) {
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate, onSearchDraft, active = true }: BrowseFilterProps & { id: string; onSearchDraft?: (draft: string) => void; active?: boolean }) {
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
@@ -43,6 +43,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const invalidSearch = invalidCatalogSearch(searchDraft);
   const invalidSearchDraft = searchTooLong || invalidSearch;
   const voice = useVoiceSearch(setLocalDraft);
+  const stopVoice = useEffectEvent(() => voice.cancel());
+  useEffect(() => { if (!active) stopVoice(); }, [active]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const directoryMatches = showSearchSuggestions ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)

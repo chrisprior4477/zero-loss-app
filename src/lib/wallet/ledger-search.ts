@@ -37,12 +37,12 @@ function localDateKey(timeZone: string) {
 
 const englishMonths = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-function searchDate<T extends LedgerEntryRow>(entries: T[], query: string, calendar: SearchCalendar) {
+function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], query: string, calendar: SearchCalendar) {
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(query);
   if (iso) return searchDate(entries, `${iso[2]}/${iso[3]}/${iso[1]}`, calendar);
-  const numeric = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(query);
+  const numeric = /^(\d{1,2})([/-])(\d{1,2})\2(\d{4})$/.exec(query);
   if (numeric) {
-    const [, month, day, year] = numeric.map(Number);
+    const [, month, , day, year] = numeric.map(Number);
     const date = new Date(Date.UTC(year, month - 1, day));
     if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return [];
     const format = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
@@ -68,37 +68,55 @@ function searchDate<T extends LedgerEntryRow>(entries: T[], query: string, calen
     normalizeSearch(formatter.format(new Date(entry.created_at))).split(" ").every(term => terms.includes(term))));
 }
 
+function dateBoundary(value: string, calendar: SearchCalendar) {
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const numeric = /^(\d{1,2})([/-])(\d{1,2})\2(\d{4})$/.exec(value);
+  const input = iso ? `${iso[2]}/${iso[3]}/${iso[1]}` : numeric ? value.replaceAll("-", "/") : value;
+  const includesYear = /\b\d{4}\b/.test(input);
+  const day = Date.parse(input + (includesYear ? " UTC" : " 2000 UTC"));
+  if (!Number.isFinite(day)) return null;
+  const probe = { created_at: new Date(day).toISOString().slice(0, 10) + "T12:00:00Z" };
+  // Date.parse accepts overflow and incomplete dates. Require the same exact day
+  // to match the calendar search as well.
+  if (!searchDate([probe], input, { ...calendar, timeZone: "UTC" })?.length) return null;
+  return probe.created_at.slice(includesYear ? 0 : 5, 10);
+}
+
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const trimmed = rawQuery.trim();
   if (!trimmed) return entries;
-  const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(trimmed)
-    ?? /^(.+?)\s+(?:to|through)\s+(.+)$/i.exec(trimmed);
+  const dateQuery = trimmed.replace(/^(?:(?:posted(?:\s+transactions?)?|transactions?)\s+on)\s+/i, "");
+  const after = /^after\s+(.+)$/i.exec(dateQuery);
+  const exclusiveStart = after && dateBoundary(after[1], calendar);
+  if (exclusiveStart) {
+    const formatter = localDateKey(calendar.timeZone);
+    return entries.filter(entry => formatter.format(new Date(entry.created_at)).slice(exclusiveStart.length === 10 ? 0 : 5) > exclusiveStart);
+  }
+  const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(dateQuery)
+    ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(dateQuery);
   if (dateRange) {
-    const ends = dateRange.slice(1).map(part => {
-      const value = part.trim();
-      const parsed = Date.parse(value + (/\b\d{4}\b/.test(value) ? " UTC" : " 2000 UTC"));
-      return searchDate([], value, calendar) && Number.isFinite(parsed) ? new Date(parsed).toISOString().slice(0, 10) : null;
-    });
-    const [start, end] = ends;
+    const start = dateBoundary(dateRange[1], calendar), end = dateBoundary(dateRange[2], calendar);
     if (start && end) {
-      const yearIncluded = /\b\d{4}\b/.test(dateRange[1]) && /\b\d{4}\b/.test(dateRange[2]);
+      const yearIncluded = start.length === 10 && end.length === 10;
       const formatter = localDateKey(calendar.timeZone);
-      const lower = yearIncluded ? start : start.slice(5), upper = yearIncluded ? end : end.slice(5);
+      const lower = yearIncluded ? start : start.slice(-5), upper = yearIncluded ? end : end.slice(-5);
       return entries.filter(entry => {
         const value = formatter.format(new Date(entry.created_at)).slice(yearIncluded ? 0 : 5);
         return value >= lower && value <= upper;
       });
     }
   }
-  const dateMatches = searchDate(entries, trimmed, calendar);
+  const dateMatches = searchDate(entries, dateQuery, calendar);
   if (dateMatches) return dateMatches;
   const searchAgain = (rows: T[], text: string) => searchLedger(rows, text, describe, fullLedger, calendar);
-  const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|equals\b)/i.test(trimmed);
+  const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|=|equals\b)/i.test(trimmed) || /\s+exactly$/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
     .replace(/\brefunded\b/gi, "refund")
+    .replace(/(\d+)\s*¢(?=\s|$)/g, "$1 cents")
+    .replace(/\s+exactly$/i, "")
     .replace(/\b(\d+)\s*c\b/gi, "$1 cents")
     .replace(/\bface value\s+(?=\$)/gi, "")
     .replace(/\bcompleted\s+deposits?\b/gi, "deposit")
@@ -108,22 +126,36 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/\bUS\s*(?=\$)/gi, "")
     .replace(/\$\s*([+−-])\s*(?=\d)/g, "$1$$")
     .replace(/\b(minus|negative|plus|positive)\s+(?=\$)/gi, (_, sign: string) => /^(?:minus|negative)$/i.test(sign) ? "-" : "+")
-    .replace(/\b(?:posted\s+)?amount\s*(?::|equals\b)\s*(?=[+−($\d-])/gi, "")
+    .replace(/\b(?:posted\s+)?amount\s*(?::|=|equals\b)\s*(?=[+−($\d-])/gi, "")
     .replace(new RegExp(String.raw`(^|\s|[()+−-])(${dollars})\s*\$(?=\s|$|\))`, "g"), "$1$$$2")
     .replace(/(^|\s)\$\s*(?=\()/g, "$1")
     .replace(/\(\s*[+−-]?\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1")
     .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "")
     .replace(typeAmount, "$1 ")
+    .replace(/^(?:wallet\s+)?(credits?|debits?|charges?)\s+(?:of|for)\s+/i, "$1 ")
+    .replace(/^(.+?)\s+(debited|debits?|deposited|paid|spent)$/i, (whole, amount: string, type: string) => {
+      if (!amount.split(/\s+or\s+/i).every(part => amountOnly.test(part))) return whole;
+      const scope = /^deposit/i.test(type) ? "deposit" : /^debit/i.test(type) ? "debit" : "paid";
+      return scope + " " + amount;
+    })
+    .replace(new RegExp(String.raw`^(\$\s*${dollars})\s+to\s+(\$\s*${dollars})$`, "i"), "between $1 and $2")
     .replace(/^transactions?\s+(?=[+−-]?\s*\$)/i, "").trim();
   if (!query) return entries;
-  const direction = /^(debits?|credits?)(?=\s|$)/i.exec(query);
+  const direction = /^(?:wallet\s+)?(debits?|charges?|credits?)(?=\s|$)/i.exec(query);
   if (direction) {
-    const debit = /^debit/i.test(direction[1]);
+    const debit = !/^credit/i.test(direction[1]);
     return searchAgain(entries.filter(row => row.entry_type !== "ENTRY_HOLD" && row.entry_type !== "ENTRY_HOLD_RELEASE"
       && (debit ? row.amount < 0 : row.amount > 0)), query.slice(direction[0].length).trim());
   }
   const released = /^released\s+reservations?\b/i.exec(query);
   if (released) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_HOLD_RELEASE"), query.slice(released[0].length).trim());
+  const entryPayments = /^(?:all\s+)?entry payments?\b/i.exec(query);
+  if (entryPayments) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), query.slice(entryPayments[0].length).trim());
+  const cardCharge = /^(.+?)\s+card charges?\s+(.+)$/i.exec(query);
+  if (cardCharge && amountOnly.test(cardCharge[2])) {
+    const matches = amountMatch(cardCharge[2]);
+    return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT" && matches(row.amount)), cardCharge[1]);
+  }
   const datedEntries = /^(?:entr(?:y|ies)|entry purchases?)\s+on\s+(.+)$/i.exec(query);
   if (datedEntries) {
     const matches = searchDate(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), datedEntries[1], calendar);

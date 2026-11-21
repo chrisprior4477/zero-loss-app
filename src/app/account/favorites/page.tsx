@@ -17,10 +17,11 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   const invalidTab = params.tab !== undefined && params.tab !== "favorites" && params.tab !== "shared";
   const invalidWatch = params.watch !== undefined && params.watch !== "1";
   const safeShare = typeof params.share === "string" && shareUuid.test(params.share) ? params.share.toLowerCase() : undefined;
+  const tab = safeShare || params.tab === "shared" ? "shared" : "favorites";
   const returnPath = accountPageReturnPath(accountRoutes.favorites, { ...params,
-    tab: invalidTab ? undefined : params.tab, view: invalidSharedView ? undefined : params.view,
+    tab: tab === "shared" ? tab : undefined, view: invalidSharedView ? undefined : params.view,
     watch: invalidWatch ? undefined : params.watch, item: item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item) ? item : undefined, share: safeShare,
-  });
+  }, tab === "shared" ? "#saved-items-heading" : "");
   const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", returnPath));
   const db = await createClient();
@@ -31,13 +32,13 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   ]);
   const shareList = shares.error ? null : parseSavedProductShareList(shares.data);
   const savedShares = shareList?.shares ?? null;
-  const selectedShare = params.tab === "shared" ? savedShares?.find(share => share.id === safeShare) : null;
+  const selectedShare = tab === "shared" ? savedShares?.find(share => share.id === safeShare) : null;
   const sharedView = selectedShare ? (selectedShare.declinedAt ? "declined" : "available") : params.view === "declined" ? "declined" : "available";
   return <FavoritesView key={`${params.tab ?? "favorites"}:${safeShare ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
     obsoleteFilter={invalidSharedView || invalidTab || invalidWatch ? returnPath : undefined}
     initialSharedView={sharedView}
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}
-    initialTab={params.tab === "shared" ? "shared" : "favorites"} initialShareId={safeShare ?? (typeof params.share === "string" ? params.share : undefined)} initialItem={item}
+    initialTab={tab} initialShareId={safeShare ?? (typeof params.share === "string" ? params.share : undefined)} initialItem={item}
     initialShares={savedShares} sharesIncomplete={shareList?.incomplete}
     initialAlerts={alerts.error ? null : Object.fromEntries((alerts.data ?? []).map(row => [row.product_slug, row.email_almost_full_enabled === true]))}
     emailEnabled={preference.error ? null : preference.data === true} />;

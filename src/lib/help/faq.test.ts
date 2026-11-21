@@ -3,6 +3,22 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
+test.each([
+  ["I used up my balance can I still enter", "insufficient-balance"],
+  ["how do I tell if a hold turned into a ticket", "entry-status"],
+  ["where can I get an itemized receipt for one ticket", "entry-receipt"],
+  ["will the checkout send the prize or a gift card", "purchase-meaning"],
+  ["which setting changes alerts inside the website", "notifications"],
+  ["my gift card still says issuing", "reward-unavailable"],
+  ["open an existing help conversation", "support-case"],
+  ["how do I give you an idea for a product", "request-product"],
+  ["is the gift card in this demo spendable", "mvp"],
+  ["do you support loading funds with Apple Pay", "add-funds"],
+  ["does the draw wait for every spot to sell", "pool-completion"],
+])("routes %s to %s", (query, answer) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(answer);
+});
+
 test("every answer has a unique id, a topic and an existing local destination", () => {
   expect(new Set(faqItems.map(item => item.id)).size).toBe(faqItems.length);
   for (const item of faqItems) {

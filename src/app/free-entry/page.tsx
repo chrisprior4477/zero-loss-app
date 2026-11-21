@@ -9,6 +9,7 @@ import { getAccountContext } from "@/lib/account/context";
 import { freeEntryHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { shareUuid } from "@/lib/sharing/saved-shares";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
@@ -34,7 +35,8 @@ function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: bool
 }
 
 export default async function FreeEntryPage({ searchParams }: Props) {
-  const { offering: requested, from, share, quantity: rawQuantity } = await searchParams;
+  const { offering: requested, from, share, quantity: quantityQuery } = await searchParams;
+  const rawQuantity = matchingQueryValue(quantityQuery) ?? quantityQuery;
   const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">

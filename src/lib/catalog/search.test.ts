@@ -4,6 +4,21 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
   test.each([
+    ["$25 Amazon GC only", "exactly $25 Amazon gift card"],
+    ["gift cards strictly below $75", "gift cards below $75"],
+    ["Target gift cards paying $1 each entry", "Target gift cards $1 per entry"],
+    ["gift cards with 1 dollar entry fees", "gift cards $1 per entry"],
+    ["gift cards except for the $25 ones", "gift cards excluding $25"],
+    ["gift cards under $75 plus $100", "gift cards under $75 or $100"],
+    ["PlayStation Store card $100", "$100 Sony PlayStation gift card"],
+    ["100 dollars of Home Depot gift cards", "Home Depot $100 gift card"],
+    ["Sony XM5 noise cancelling over-ear headphones", "Sony WH-1000XM5 headphones"],
+    ["Nintendo $25 eShop balance", "Nintendo $25 gift card"],
+    ["gift cards for take-away", "gift cards for takeout"],
+    ["Lodge 10¼ cast iron pan", "Lodge 10.25-inch Cast Iron Skillet"],
+    ["Hydro Flask 32oz bottle with straw lid", "Hydro Flask 32oz bottle with Flex Straw Cap"],
+    ["Ninja four quart countertop airfryer", "Ninja AF101 air fryer"],
+    ["KitchenAid Artisan five quart countertop mixer", "KitchenAid Artisan 5 quart stand mixer"],
     ["$100 Amazon gift card exact", "exactly $100 Amazon gift card"],
     ["Amazon gift cards at $100 face value", "exactly $100 Amazon gift card"],
     ["Amazon gift cards below USD100", "Amazon gift cards below $100"],

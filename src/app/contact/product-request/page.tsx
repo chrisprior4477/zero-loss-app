@@ -18,10 +18,20 @@ export default async function ProductRequestPage({
   searchParams: Promise<{ product?: string | string[]; from?: string | string[]; origin?: string | string[] }>;
 }) {
   const [query, account] = await Promise.all([searchParams, getAccountContext()]);
-  const originalQuery = (Array.isArray(query.product) ? query.product[0] : query.product)?.trim().slice(0, maxCatalogSearchLength) ?? "";
+  const requestedProducts = [...new Set((Array.isArray(query.product) ? query.product : [query.product])
+    .map(value => value?.trim().slice(0, maxCatalogSearchLength) ?? ""))];
+  const productConflict = requestedProducts.length > 1;
+  const originalQuery = productConflict ? "" : requestedProducts[0];
   const returnPath = productBrowseReturnPath(query.from);
   const browseReturn = returnPath?.startsWith("/browse") || returnPath?.startsWith("/rewards/") ? returnPath : null;
   const fromFaq = query.origin === "faq";
+  function requestHref(product?: string) {
+    const params = new URLSearchParams();
+    if (product) params.set("product", product);
+    if (browseReturn) params.set("from", browseReturn);
+    if (fromFaq) params.set("origin", "faq");
+    return "/contact/product-request" + (params.size ? "?" + params : "") + "#product-request";
+  }
   const scope = new URL(browseReturn?.startsWith("/browse") ? browseReturn : "/browse", "https://zeroloss.local").searchParams;
   for (const key of ["q", "batch"]) scope.delete(key);
   scope.sort();
@@ -43,7 +53,13 @@ export default async function ProductRequestPage({
           <p className="mt-4 max-w-2xl leading-7 text-white/70">We review customer requests when deciding which products, retailers, and rewards to add next.</p>
           <p className="mt-5 text-lg font-black">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
           <div className="my-7 h-px bg-cyan-300/18" />
-          <CatalogRequestForm initialProduct={originalQuery} ownerId={account?.userId} scope={scope.toString()} />
+          {productConflict ? <div>
+            <p role="status">This link contains more than one product. Choose the one you want to request or start a new request.</p>
+            <ul className="mt-3 flex flex-wrap gap-3">
+              {requestedProducts.filter(Boolean).map(product => <li key={product}><Link className="inline-flex min-h-11 items-center break-all text-cyan-300 underline" href={requestHref(product)}>{product}</Link></li>)}
+              <li><Link className="inline-flex min-h-11 items-center text-cyan-300 underline" href={requestHref()}>Start a new request</Link></li>
+            </ul>
+          </div> : <CatalogRequestForm initialProduct={originalQuery} ownerId={account?.userId} scope={scope.toString()} />}
         </section>
       </div>
     </div>
