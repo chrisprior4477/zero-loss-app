@@ -6,7 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { randomUUID } from "node:crypto";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { SupportCaseList, SupportCasePages, type SupportCaseListItem } from "@/components/support/SupportCasePages";
+import { MissingSupportConversation, SupportCaseList, SupportCasePages, type SupportCaseListItem } from "@/components/support/SupportCasePages";
 import { SupportForm } from "@/components/support/SupportForm";
 import { AuthDestinationLink } from "@/components/auth/LoginForm";
 import { createClient } from "@/lib/supabase/server";
@@ -143,7 +143,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const returnQuery = validCase && query.view !== "inbox" ? { ...query, view: undefined } : query;
   const next = accountPageReturnPath("/support", returnQuery, validCase ? "#conversation" : query.page || query.view === "inbox" ? "#case-list" : validTransaction || validReward || validDeposit ? "#report-problem" : "");
   const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor={validCase ? "conversation" : "case-list"} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
-  if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><AuthDestinationLink page="/forgot-password" returnTo={next} className={button}>Reset your password →</AuthDestinationLink></div><div id="report-problem" tabIndex={-1} className={`${card} ${styles.anchor}`}><div id="case-list" tabIndex={-1} className={styles.anchor}><div id={validCase ? "conversation" : undefined} tabIndex={validCase ? -1 : undefined} className={styles.anchor}><p>{validCase ? "Sign in to view this private support conversation." : "Sign in to report a problem or view your private support cases."}</p><AuthDestinationLink page="/login" returnTo={next} className={`${button} mt-4`}>Sign in to get help</AuthDestinationLink></div></div></div></PageContainer>;
+  if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><AuthDestinationLink page="/forgot-password" returnTo={next} className={button}>Reset your password →</AuthDestinationLink></div><div id="report-problem" tabIndex={-1} className={`${card} ${styles.anchor}`}><div id="case-list" tabIndex={-1} className={styles.anchor}>{!validCase && <MissingSupportConversation signedOut />}<div id={validCase ? "conversation" : undefined} tabIndex={validCase ? -1 : undefined} className={styles.anchor}><p>{validCase ? "Sign in to view this private support conversation." : "Sign in to report a problem or view your private support cases."}</p><AuthDestinationLink page="/login" returnTo={next} className={`${button} mt-4`}>Sign in to get help</AuthDestinationLink></div></div></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
   const access = await db.rpc("has_support_access");
@@ -315,8 +315,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         </>}
       </section> : null}
       <section id="case-list" tabIndex={-1} className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 tabIndex={-1} className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
-      <HelpLandingScroll target="case-list" focusAnchorPrefix="conversation" missingAnchorTarget="missing-conversation" />
-      <p id="missing-conversation" tabIndex={-1} role="status" className="mt-2 hidden text-sm text-amber-200 target:block">This link doesn’t specify a conversation. Select a case below.</p>
+      <MissingSupportConversation />
         {inbox ? inboxCases?.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : <>
           {inboxCases?.data?.length ? <SupportCaseList cases={inboxCases.data.slice(0, pageSize).map(item => ({ ...item, label: statusLabel(item.status, true) }))}
             context={inboxContext} timeZone={account.timezone} /> : <p className={`mt-4 ${styles.muted}`}>{casePage ? "No more cases on this page." : "No cases yet."}</p>}

@@ -157,6 +157,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     return [id, preview] as const;
   }));
   const hasOpenResults = products.some(product => !hidden.has(product.slug));
+  const closedAirPods = availability?.["airpods-pro"]?.remaining === 0 && searchTerm && !searchTooLong && !filters.availableOnly
+    && !hasOpenResults && !savedMatches.length
+    ? demoProducts.find(product => product.slug === "airpods-pro" && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)))
+    : undefined;
+  const matchingClosedPrize = closedAirPods && searchCatalogMatches([closedAirPods], searchTerm, denomination).length
+    && filterBrowseProducts([closedAirPods], filters, searchTerm, false, allowedRetailers).length ? closedAirPods : null;
   const includesLowerGiftCards = requestedDenominations.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
   const requestedValues = Array.from(requestedDenominations, formatBudget).join(" or ");
@@ -442,6 +448,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           </section>
         ) : products.length ? null : unavailable ? (
           <p role="status" className="mt-6 text-white/75">Prize availability could not be loaded. Refresh to check again.</p>
+        ) : matchingClosedPrize ? (
+          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-4 sm:p-8" aria-label="Closed offering">
+            <h2 className="text-2xl font-bold">{matchingClosedPrize.title} has closed</h2>
+            <p className="mt-2 text-white/75">This prize matches your search. The pool has no open entries.</p>
+            <Link className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-200 underline" href={productHrefWithBrowseReturn(matchingClosedPrize.slug, browseReturnHref + "#search-results")}>View the prize details</Link>
+            <Link className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-200 underline" href="/browse#search-results">Browse available prizes</Link>
+          </section>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-4 text-center sm:p-8">
             <h2 className="break-words text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>

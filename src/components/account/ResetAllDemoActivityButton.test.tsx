@@ -87,8 +87,9 @@ test("a lost reset response checks the account without resetting again or invent
   await screen.findByRole("dialog");
   fireEvent.click(screen.getByRole("dialog").querySelector("button:last-child")!);
   expect((await screen.findByRole("alert")).textContent).toContain("may already be saved");
-  expect(screen.getByRole("dialog").querySelector("button:last-child")?.textContent).toBe("Check demo activity");
-  fireEvent.click(await screen.findByRole("button", { name: "Check demo activity" }));
+  const check = await screen.findByRole("button", { name: "Check demo activity" });
+  expect(check).toBe(screen.getByRole("dialog").querySelector("button:last-child"));
+  fireEvent.click(check);
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still couldn’t check"));
   fireEvent.click(await screen.findByRole("button", { name: "Check demo activity" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

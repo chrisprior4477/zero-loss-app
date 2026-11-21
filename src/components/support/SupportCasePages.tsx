@@ -1,9 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { safeTimeZone } from "@/lib/account/timezone";
 import styles from "@/components/help/help-tickets.module.css";
+
+function subscribeToHash(update: () => void) {
+  window.addEventListener("hashchange", update);
+  return () => window.removeEventListener("hashchange", update);
+}
+
+export function MissingSupportConversation({ signedOut = false }: { signedOut?: boolean }) {
+  const missing = useSyncExternalStore(subscribeToHash, () => window.location.hash === "#conversation", () => false);
+  if (!missing) return null;
+  return <>
+    <AccountSettingsLandingScroll target="missing-conversation" landingAlias="conversation" focusTarget="missing-conversation" allScreens restrictToTargetHash />
+    <p id="missing-conversation" tabIndex={-1} role="status" className="mt-2 text-sm text-amber-200">
+      This link doesn’t specify a conversation. {signedOut ? "Sign in to find your case." : "Select a case below."}
+    </p>
+  </>;
+}
 
 export type SupportCaseListItem = {
   id: string; case_number: string; subject: string; status: string; label?: string; lastReply?: string;

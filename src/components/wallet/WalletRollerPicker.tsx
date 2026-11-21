@@ -151,15 +151,27 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
     setOpen(false);
     if (restoreFocus) {
       const opener = trigger.current;
-      if (opener && direction) {
-        const modal = opener.closest("dialog[open], [role=dialog][aria-modal=true]");
-        const controls = tabbableControls(modal ?? document);
-        const index = controls.indexOf(opener);
-        const adjacent = controls[index + direction] ?? (modal ? controls.at(direction === 1 ? 0 : -1) : undefined);
-        requestAnimationFrame(() => restoreDialogTrigger(adjacent ?? opener, true));
-        return;
-      }
-      restoreDialogTrigger(opener, true);
+      if (!opener) return;
+      const modal = opener.closest("dialog[open], [role=dialog][aria-modal=true]");
+      const controls = direction ? tabbableControls(modal ?? document) : [];
+      const index = controls.indexOf(opener);
+      const adjacent = direction && index >= 0
+        ? controls[index + direction] ?? (modal ? controls.at(direction === 1 ? 0 : -1) : undefined)
+        : undefined;
+      const destination = adjacent ?? opener;
+      const href = window.location.href;
+      const restore = () => {
+        if (window.location.href === href && (document.activeElement === document.body || document.activeElement === destination)) {
+          restoreDialogTrigger(destination, true);
+        }
+      };
+      // A native history return can reset focus after the overlay has unmounted.
+      const onReturn = () => requestAnimationFrame(restore);
+      window.addEventListener("popstate", onReturn, { once: true });
+      window.setTimeout(() => window.removeEventListener("popstate", onReturn), 650);
+      requestAnimationFrame(() => {
+        if (window.location.href === href) restoreDialogTrigger(destination, true);
+      });
     }
   }
   return <div className={styles.picker}>
