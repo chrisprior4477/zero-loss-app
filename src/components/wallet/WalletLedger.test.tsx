@@ -23,7 +23,7 @@ test("groups only the recorded entry batch and shows the original photo and acti
   stack.open = true;
   const originals = within(screen.getByRole("list", { name: "Individual entry purchases" }));
   expect(originals.getAllByRole("img", { name: product.title })).toHaveLength(4);
-  expect(originals.getAllByRole("link", { name: "View entry" }).map(link => link.getAttribute("href")))
+  expect(originals.getAllByRole("link", { name: /^View entry for / }).map(link => link.getAttribute("href")))
     .toEqual(entries.slice(0, 4).map(entry => `/account/entries/${entry.entryIds![0]}?entries=open&transaction=${entry.id}#saved-entry-rail`));
   expect(originals.getAllByRole("link", { name: /^Report a problem with / }).map(link => link.getAttribute("href")))
     .toEqual(entries.slice(0, 4).map(entry => `/support?transaction=${entry.id}`));
@@ -62,7 +62,7 @@ test("only an exact matched deposit credit gets a receipt shortcut", () => {
     ["matched", { requestKey, amount: 2500 }],
     ["wrong-amount", { requestKey: "another_request_12345", amount: 2500 }],
   ])} />);
-  expect(screen.getByRole("link", { name: "View deposit receipt" }).getAttribute("href"))
+  expect(screen.getByRole("link", { name: /^View deposit receipt for / }).getAttribute("href"))
     .toBe(`/account/wallet?view=history&deposit=${requestKey}#purchase-deposit`);
 });
 
@@ -211,7 +211,7 @@ test("transaction actions separate the exact entry, its product, and support", (
   const item = { ...storedActivityFixture().activity[0], entryId: `ent_${"1".repeat(32)}` };
   const entry = { id: "ledger-1", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-10-24T12:00:00Z", entryIds: [item.entryId], product: { title: item.title, image: item.image, slug: item.slug } };
   render(<WalletLedger entries={[entry]} activity={[item]} />);
-  expect(screen.getByRole("link", { name: "View entry" }).getAttribute("href")).toBe(`/account/entries/${item.entryId}?entries=open&transaction=ledger-1#saved-entry-rail`);
+  expect(screen.getByRole("link", { name: /^View entry for / }).getAttribute("href")).toBe(`/account/entries/${item.entryId}?entries=open&transaction=ledger-1#saved-entry-rail`);
   expect(screen.getByRole("link", { name: item.title }).getAttribute("href")).toBe(`/items/${item.slug}`);
   expect(screen.getByRole("link", { name: /^Report a problem with / }).getAttribute("href")).toBe("/support?transaction=ledger-1");
   expect(screen.getAllByRole("link")).toHaveLength(3);

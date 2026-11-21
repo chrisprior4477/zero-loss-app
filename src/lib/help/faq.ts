@@ -44,7 +44,7 @@ export const faqItems: FaqItem[] = [
     id: "change-phone", category: "account", question: "How do I change my phone number?",
     answer: "Open Contact details in Profile, update the phone number, and save your changes.",
     keywords: "change update edit contact cell mobile phone number",
-    action: { label: "Open Contact details", href: "/account/profile#contact-details-heading" },
+    action: { label: "Open Contact details", href: "/account/profile?section=contact#contact-details-heading" },
   },
   {
     id: "profile-photo", category: "account", question: "How do I change my profile photo?",
@@ -56,7 +56,7 @@ export const faqItems: FaqItem[] = [
     id: "email-alert-preferences", category: "account", question: "How do I stop email alerts?",
     answer: "Open Email choices in Notifications. Turn off the email alerts you want to stop, then save each preference. In-app alerts have their own settings.",
     keywords: "unsubscribe stop turn off email alerts notification emails preferences",
-    action: { label: "Open Email choices", href: "/account/notifications#email-choices" },
+    action: { label: "Open Email choices", href: "/account/notifications?section=email#email-choices" },
   },
   {
     id: "privacy-requests", category: "account", question: "How do I request my data or close my account?",
@@ -100,7 +100,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date for that item.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date for that item. Use the copy control where it is available.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -142,7 +142,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
-    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Completing the purchase is a separate choice. Completed activity remains in your history.",
+    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. Completing the purchase is a separate choice. Completed activity remains in your history.",
     keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion" },
   },
   {
@@ -157,7 +157,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose a saved card and a whole-dollar amount, then review and confirm the deposit. In this MVP, funding uses the provided demo payment method and simulated money; do not enter real payment-card details.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. PayPal is unavailable; do not enter real payment-card details.",
     keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
@@ -235,12 +235,56 @@ export const faqItems: FaqItem[] = [
     answer: "This is a working demonstration with simulated funding, test entries, illustrative activity, and sample rewards. Codes marked Sample — not redeemable cannot be used at a retailer. Some actions are saved to your demo account so you can follow the complete flow, but the MVP does not process real purchases or fulfill real prizes.",
     keywords: "demo preview test fake real money sample experience", action: { label: "Explore the marketplace", href: "/browse" },
   },
+  {
+    id: "display-name", category: "account", question: "How do I change my display name?",
+    answer: "Open Personal information in Profile, edit your display name or alias, and save your changes.",
+    keywords: "edit change nickname alias display name", action: { label: "Open Personal information", href: "/account/profile?section=personal#personal-details-heading" },
+  },
+  {
+    id: "top-menu", category: "account", question: "How do I change my top menu?",
+    answer: "Open Personalize your top menu in Profile to choose the layout for your menu and search.",
+    keywords: "appearance edit header navigation change customize menu", action: { label: "Personalize your top menu", href: "/account/profile?section=appearance#personalize-menu-heading" },
+  },
+  {
+    id: "entry-receipt", category: "entries", question: "Where can I find the receipt for an entry?",
+    answer: "Open the entry in My Activity to see its ticket details. Use Transaction history in Wallet to find the associated payment record.",
+    keywords: "entry receipt payment record proof ticket", action: { label: "Open Transaction history", href: "/account/wallet?view=history&panel=transactions#transactions" },
+  },
+  {
+    id: "group-members", category: "account", question: "How do I remove someone from my Crew group?",
+    answer: "If you manage the group, open Groups in Your Crew and edit its members. This leaves the person's Crew connection in place. To end the connection, open that person in Your Crew instead.",
+    keywords: "remove person someone member group edit", action: { label: "Open Crew groups", href: "/account/crew?tab=groups#crew-groups" },
+  },
+  {
+    id: "share-outside-crew", category: "account", question: "Can I share a prize with someone outside Crew?",
+    answer: "Open Share on the prize and choose Text, Email, or Copy link. These options send a product link. Shared Crew activity and reward ownership are separate.",
+    keywords: "share product outside crew friend link text email", action: { label: "Browse prizes", href: "/browse" },
+  },
+  {
+    id: "verification-email", category: "account", question: "What if my verification email did not come?",
+    answer: "Use Resend verification email from Create account with the address you registered. Check your spam folder for the new message. Use the separate sign-in recovery option if you forgot your sign-in details.",
+    keywords: "missing verification email resend verify confirm signup", action: { label: "Open Create account", href: "/signup" },
+  },
 ];
 
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:add funds|deposit|funding)\b.*\b(?:minimum|\d+\.\d{2})\b|\bpaypal\b/, "add-funds"],
+  [/\b(?:real card was charged|unexpected charge)\b/, "balance-discrepancy"],
+  [/\b(?:copy|download)\b.*\b(?:order\s+)?receipt\b/, "order-receipt"],
+  [/\breceipt\b.*\bentr(?:y|ies)\b|\bentry receipt\b/, "entry-receipt"],
+  [/\b(?:ship|shipping|shipped)\b.*\b(?:me|item|product)\b/, "purchase-meaning"],
+  [/\b(?:merge|combine)\b.*\bpurchase options?\b/, "purchase-options"],
+  [/\bentry\b.*\brefund(?:ed)?\b.*\bbank\b/, "undo-entry"],
+  [/\balready\b.*\b(?:used|redeemed)\b.*\bcard\b/, "reward-unavailable"],
+  [/\b(?:change|edit|update)\b.*\bdisplay name\b/, "display-name"],
+  [/\b(?:change|edit|customize|personalize)\b.*\btop menu\b/, "top-menu"],
+  [/\bremove\b.*\b(?:from|in)\b.*\bgroup\b/, "group-members"],
+  [/\bshare\b.*\b(?:outside|not in)\b.*\bcrew\b/, "share-outside-crew"],
+  [/\b(?:reply|respond|follow up)\b.*\b(?:ticket|case)\b/, "support-case"],
+  [/\bverification email\b/, "verification-email"],
   [/\b(?:deposit|funding)\b.*\bpending\b|\bpending\b.*\b(?:deposit|funding)\b|\bfunds?\s+missing\b/, "funding-status"],
   [/\b(?:gift[ -]card|reward)\b.*\b(?:missing|not showing|not arrived)\b/, "reward-unavailable"],
   [/\b(?:what happens if i lose|purchase option expiration|how much is left to pay)\b/, "purchase-options"],

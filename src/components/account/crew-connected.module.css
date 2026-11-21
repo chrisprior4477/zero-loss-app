@@ -113,7 +113,7 @@
 .findHint, .findMessage { margin-top:12px; color:#527389; font-size:11px; line-height:1.5; }
 .contactsButton { margin-top:12px; width:100%; border:0; border-radius:8px; background:#ddf1ff; padding:11px; color:#174269; font-size:12px; font-weight:800; cursor:pointer; }
 .inviteLink { margin-top:14px; color:#bce8ff; font-size:13px; }
-.inviteLink summary { cursor:pointer; }
+.inviteLink summary { cursor:pointer; min-height:24px; padding-block:3px; }
 .inviteLink p { margin:10px 0; }
 .inviteLink input { width:100%; background:#e9f7ff; color:#143652; border:0; border-radius:7px; padding:11px; }
 .inviteLink button { margin-top:10px; border:0; border-radius:7px; padding:11px; background:#c9efff; color:#143652; font-weight:800; cursor:pointer; }

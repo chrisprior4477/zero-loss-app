@@ -197,12 +197,14 @@
   .copy h2 { font-size: 15px; }
   .body { font-size: 12px; }
   .bottom { gap: 8px; }
+  .rowAction { scroll-margin-block: calc(var(--notifications-header-height, 140px) + 8px) 12px; }
   .details strong { font-size: 9px; }
 }
 @media (max-width: 360px) {
   .filters button { padding-inline: 9px; }
   .filters span { font-size: 11px; }
-  .notification { padding-inline: 16px; }
+  .notification { padding-inline: 18px; }
+  .rowAction { min-height: 48px; }
   .entryList li { gap: 6px; }
   .entryNumber { flex-basis: 23px; }
 }

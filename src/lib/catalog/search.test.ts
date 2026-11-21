@@ -4,6 +4,26 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
   test.each([
+    ["$100 Amazon gift card exact", "exactly $100 Amazon gift card"],
+    ["Amazon gift cards at $100 face value", "exactly $100 Amazon gift card"],
+    ["Amazon gift cards below USD100", "Amazon gift cards below $100"],
+    ["gift cards in the $25–$50 price range", "gift cards between $25 and $50"],
+    ["gift cards costing between $25 and $50", "gift cards between $25 and $50"],
+    ["gift cards under $50 each", "gift cards under $50"],
+    ["gift cards from $25 to under $50", "gift cards at least $25 and under $50"],
+    ["gift cards under $75 or $100", "gift cards under $75 or gift cards exactly $100"],
+    ["LG TV greater than 60 inches", "LG 65-inch TV"],
+    ["TVs wider than 60 inches", "LG 65-inch TV"],
+    ["Samsung TVs but no gift cards", "Samsung TVs without gift cards"],
+    ["PlayStation 5 1.0 TB", "PlayStation 5 1 TB"],
+    ["PlayStation 5 with 1000 GB", "PlayStation 5 1 TB"],
+    ["gift cards with a $1 entry", "gift cards $1 per entry"],
+    ["gift cards with entries at $1 each", "gift cards $1 per entry"],
+    ["C.V.S. gift card", "CVS gift card"],
+    ["OfficeMax gift card", "Office Depot gift card"],
+    ["Delta Air Lines gift card", "Delta Airlines gift card"],
+    ["Mc Donalds gift card", "McDonald’s gift card"],
+    ["battery powered leaf blower", "Kobalt leaf blower"],
     ["gift cards $50 or cheaper", "gift cards at most $50"],
     ["gift cards 50 dollars each", "$50 gift cards"],
     ["gift cards either $25 or $50", "gift cards $25 or $50"],
@@ -476,4 +496,12 @@ test.each([
   ["10¼ Lodge cast iron", "lodge-classic-10-inch-skillet"],
 ])("finds the pictured item for %s", (query, slug) => {
   expect(searchCatalog(demoProducts, query).some(product => product.slug === slug)).toBe(true);
+});
+
+test("strict entry-price comparisons stay in the fee field and exclude the limit", () => {
+  const card = demoProducts.find(product => product.slug === "lowes-150-gift-card")!;
+  const products = [card, { ...card, slug: "reduced-gift-card", entryPrice: 0.75 }];
+  for (const query of ["gift cards entry price below $1", "gift cards less than $1 per entry"]) {
+    expect(searchCatalog(products, query).map(product => product.slug)).toEqual(["reduced-gift-card"]);
+  }
 });

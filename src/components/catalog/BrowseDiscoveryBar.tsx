@@ -66,7 +66,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const previewRef = useRef<HTMLElement>(null);
   const previewFocus = useRef<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const lastPanel = useRef<{ panel: BrowsePanel; position: ControlsPosition; trigger: HTMLButtonElement } | null>(null);
+  const lastPanel = useRef<{ panel: BrowsePanel; position: ControlsPosition; trigger: HTMLButtonElement; href: string; query: string; mode: "categories" | "retailers"; preview: string | null } | null>(null);
   const topCategories = useRef<HTMLButtonElement>(null);
   const bottomCategories = useRef<HTMLButtonElement>(null);
   const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
@@ -211,13 +211,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   useLayoutEffect(() => {
     const trigger = opener.current;
-    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger };
-  }, [openPanel]);
+    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger, href: props.browseHref, query, mode, preview };
+  }, [openPanel, props.browseHref, query, mode, preview]);
   const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true, false, "browse-discovery", () => {
     const last = lastPanel.current;
-    if (last?.trigger.isConnected) {
+    if (last?.trigger.isConnected && last.href === props.browseHref) {
       opener.current = last.trigger;
-      resetPicker(last.panel, last.position);
+      setQuery(last.query);
+      setMode(last.mode);
+      setPreview(last.preview);
+      setOpenPanel({ panel: last.panel, position: last.position });
     }
   });
   function navigateFromPanel(destination: string) {

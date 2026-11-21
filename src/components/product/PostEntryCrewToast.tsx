@@ -62,6 +62,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [recipientId, recipientRetry]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupsOnly, setGroupsOnly] = useState(false);
+  const [groupHistory, setGroupHistory] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const alive = useRef(true);
@@ -137,6 +138,15 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (history.current.length) { back(); return true; }
     onClose();
   }, busy, true, false, restoreManualHistory ? "manual-product-sharing" : "product-sharing");
+  useDialogBack(groupHistory, () => {
+    if (history.current.at(-1) !== "home") { back(); return true; }
+    back();
+  }, busy, true, true, "product-share-groups", () => {
+    if (step !== "home") return;
+    setGroupsOnly(true);
+    setGroupHistory(true);
+    go("audience");
+  });
   const url = origin && linkReady ? productShareUrl(origin, item.slug, shareToken) : "";
   const text = productShareText(item.title, item);
   const body = url ? `${text}\n${url}` : "";
@@ -245,7 +255,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
   function go(next: Step) { history.current.push(step); setStep(next); setRecipientError(false); feedback(""); }
-  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
+  function back() { const previous = history.current.pop() ?? "home"; if (previous === "home") setGroupHistory(false); if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -287,6 +297,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   async function loadAudiences(onlyGroups = false) {
     if (step !== "audience" || onlyGroups !== groupsOnly) {
+      if (restoreManualHistory && onlyGroups && step === "home") setGroupHistory(true);
       setGroupsOnly(onlyGroups); setSelectedGroupIds([]); setShared(false);
       go("audience");
     }

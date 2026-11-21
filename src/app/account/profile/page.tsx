@@ -19,9 +19,12 @@ import { productMatchesMarketplaceCategory } from "@/lib/catalog/navigation";
 
 export const metadata: Metadata = { title: "Profile" };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams?: Promise<{ section?: string | string[] }> }) {
+  const section = (await searchParams)?.section;
+  const heading = section === "contact" ? "#contact-details-heading" : section === "personal" ? "#personal-details-heading"
+    : section === "appearance" ? "#personalize-menu-heading" : "";
   const { account, hidden, availability } = await getShoppingCatalog();
-  if (!account) redirect(authNavigationHref("/login", "/account/profile"));
+  if (!account) redirect(authNavigationHref("/login", "/account/profile" + heading));
   const t = accountLanguage(account.preferredLocale);
   const overview = { balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity };
   if (!account.profileSavedFields) {

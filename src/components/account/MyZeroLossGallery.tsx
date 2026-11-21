@@ -49,7 +49,7 @@ function action(item: ActivityItem) {
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId, checkout }: { ownerId?: string; items: ActivityItem[]; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] } }) {
+export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId, viewedRewardId, checkout }: { ownerId?: string; items: ActivityItem[]; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string; viewedRewardId?: string; checkout?: { receipt: string; rewardIds: string[] } }) {
   const groups = groupGalleryEntries(items);
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
@@ -118,18 +118,20 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
   }, [ownerId, filter, groupKeys, syncSwipe]);
 
   useEffect(() => {
-    if (!viewedEntryId || !items.some(item => item.entryId === viewedEntryId)) return;
+    if (!items.some(item => (viewedEntryId && item.entryId === viewedEntryId) || (viewedRewardId && item.rewardId === viewedRewardId))) return;
     const frame = requestAnimationFrame(() => {
       const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-ids]") ?? [])
-        .find(element => element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId));
+        .find(element => (viewedEntryId && element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId))
+          || (viewedRewardId && element.dataset.activityRewardId === viewedRewardId));
       const completedPurchase = filter === "completed" && card?.dataset.purchaseCompleted === "true";
-      card?.scrollIntoView?.({ block: completedPurchase ? "center" : "nearest", inline: "center", behavior: completedPurchase ? "instant" : "smooth" });
-      if (completedPurchase) card?.focus({ preventScroll: true });
-      setViewedEntry(viewedEntryId);
+      const returningFromReward = completedPurchase || card?.dataset.status === "prize";
+      card?.scrollIntoView?.({ block: returningFromReward ? "center" : "nearest", inline: "center", behavior: returningFromReward ? "instant" : "smooth" });
+      if (returningFromReward) card?.focus({ preventScroll: true });
+      setViewedEntry(viewedEntryId ?? null);
     });
     const timer = window.setTimeout(() => setViewedEntry(null), 15000);
     return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
-  }, [filter, items, viewedEntryId]);
+  }, [filter, items, viewedEntryId, viewedRewardId]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(syncSwipe);
@@ -251,7 +253,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
       {groups.map((group, index) => {
         const selectedId = (group.entries.some(entry => entry.entryId === viewedEntryId) ? viewedEntryId : undefined)
           ?? (group.entries.some(entry => entry.entryId === recentEntry?.entryId) ? recentEntry?.entryId : undefined);
-        const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
+        const selectedIndex = Math.max(0, group.entries.findIndex(entry => (selectedId && entry.entryId === selectedId) || (viewedRewardId && entry.rewardId === viewedRewardId)));
         const item = group.entries[selectedIndex];
         const purchasedReward = isPurchasedReward(item);
         const purchasedRewardNote = ({
@@ -269,7 +271,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
           : item.paidCents;
         const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
         const activityCardHref = activityHref(item, "/account/entries", filter);
-        const completedPurchase = filter === "completed" && purchasedReward && item.rewardId && item.entryId;
+        const completedPurchase = filter === "completed" && purchasedReward && item.rewardId;
         const checkoutCardHref = completedPurchase && item.rewardId && checkout?.rewardIds.includes(item.rewardId)
           ? purchasedRewardHref(item.rewardId, item.slug, checkout.receipt) : undefined;
         const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}`
@@ -291,7 +293,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={cardHref} data-activity-return-key={returnKey(item)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={cardHref} data-activity-return-key={returnKey(item)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} data-activity-slug={item.slug} data-activity-reward-id={item.rewardId ?? undefined} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>

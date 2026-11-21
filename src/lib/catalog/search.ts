@@ -20,7 +20,7 @@ export function searchCatalogMatches(
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const denomination = query === rawQuery && parsedDenomination ? parsedDenomination : searchDenominations(query, products);
-  const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, excludedValues } = denomination;
+  const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, excludedValues } = denomination;
   const qualifier = /\s+(?:from|at|sold by)\s+(.+)$/i.exec(denomination.text);
   const qualifiedMerchant = qualifier && !catalogMerchant(denomination.text, products) ? catalogMerchant(qualifier[1], products) : null;
   const qualifiedText = qualifiedMerchant && qualifier ? denomination.text.slice(0, qualifier.index) : denomination.text;
@@ -37,13 +37,13 @@ export function searchCatalogMatches(
   const text = screenRange ? brandedText.replace(screenRange[0], " ") : brandedText;
   const merchant = denomination.merchant ?? qualifiedMerchant;
   if (conflictingBudget || denomination.unsupportedCurrency) return [];
-  const withoutGiftCards = query.replace(/\s*,?\s+(?:no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  const withoutGiftCards = query.replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
   const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|(?:everywhere\s+)?except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
-    const suffix = retailerExclusion[1];
+    const suffix = retailerExclusion[1].replace(/^from\s+/i, "");
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
     const names = qualified ? suffix.replace(/\s+gift\s*cards?$/i, "") : suffix;
     const positive = query.slice(0, retailerExclusion.index).trim();
@@ -58,7 +58,9 @@ export function searchCatalogMatches(
     const excluded = whole ? [whole] : names.split(/\s*,\s*|\s+(?:or|and)\s+/i)
       .map(name => catalogMerchant(name.replace(/^(?:or|and)\s+/i, ""), products));
     if (excluded.length && excluded.every((name): name is string => Boolean(name))) {
-      const remaining = products.filter(product => !excluded.some(name => matchesCatalogMerchant(product.retailer, name)));
+      const picturedTelevision = /\b(?:tvs?|televisions?)\b/i.test(positive) && !/\bgift\s*cards?\b/i.test(positive);
+      const remaining = products.filter(product => (!picturedTelevision || !isGiftCardListing(product))
+        && !excluded.some(name => matchesCatalogMerchant(product.retailer, name)));
       if (positive || qualified) return searchCatalogMatches(remaining, positive || "gift cards", undefined, { includeLowerGiftCards });
       return remaining.map(product => ({ product, kind: "product" }));
     }
@@ -87,7 +89,7 @@ export function searchCatalogMatches(
   const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
-  const candidates = products.filter(product => (entryPrice === null || (entryPriceIsMaximum ? product.entryPrice <= entryPrice : product.entryPrice === entryPrice))
+  const candidates = products.filter(product => (entryPrice === null || (exclusiveEntryPrice ? product.entryPrice < entryPrice : entryPriceIsMaximum ? product.entryPrice <= entryPrice : product.entryPrice === entryPrice))
     && !excludedValues.has(product.value)
     && (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
@@ -97,6 +99,9 @@ export function searchCatalogMatches(
     && (!appStoreGiftCard || /\b(?:app store|itunes)\b/.test(normalizeSearch(`${product.title} ${product.retailer}`)))
     && (!merchant || matchesCatalogMerchant(product.retailer, merchant))
     && (!branded || isBrand(product))
+    && (!screenSize || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
+      && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
+        screenSize.upper ? Number(size) < screenSize.size : screenSize.inclusive ? Number(size) >= screenSize.size : Number(size) > screenSize.size)))
     && (!screenRange || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
       && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
         Number(size) >= Math.min(Number(screenRange[1]), Number(screenRange[2])) && Number(size) <= Math.max(Number(screenRange[1]), Number(screenRange[2])))))
@@ -155,6 +160,10 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
     const retailerClause = parsed.text.replace(/^(?:gift\s+card\s+)?(?:from\s+)?either\s+/i, "");
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(retailerClause, products) };
   });
+  if (hasOr && giftCards && parts[0].text && parts.some(part => part.budget)
+    && parts.slice(1).every(part => !part.text && (part.budget || part.values.size))) {
+    return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant, exactOnly: true }));
+  }
   const last = parts.at(-1);
   const sharedScreenType = last && /^\d+ inch (tvs?|televisions?)$/i.exec(normalizeSearch(last.text));
   if (hasOr && sharedScreenType && parts.slice(0, -1).every(part => /^\d+ inch$/i.test(normalizeSearch(part.text)))) {

@@ -18,19 +18,23 @@ export function DepositReceiptDate({ request, timeZone }: { request: DemoFunding
   return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
-export function DepositCreditLink({ request, restoreLedgerView = false, fromDeposits = false, fromWeek = false }: { request: DemoFundingRequest; restoreLedgerView?: boolean; fromDeposits?: boolean; fromWeek?: boolean }) {
+export function depositReceiptLabel(request: DemoFundingRequest, timeZone?: string) {
+  return formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone) + ", reference ending " + request.id.slice(-8).toUpperCase();
+}
+
+export function DepositCreditLink({ request, restoreLedgerView = false, fromDeposits = false, fromWeek = false, timeZone }: { request: DemoFundingRequest; timeZone?: string; restoreLedgerView?: boolean; fromDeposits?: boolean; fromWeek?: boolean }) {
   const id = request.ledgerId;
   if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
   const transaction = walletSupportReturnHref(id, restoreLedgerView, fromDeposits);
   const href = fromWeek ? transaction.replace("#", `&weeklyDeposit=${encodeURIComponent(request.idempotencyKey)}#`) : transaction;
   return <Link href={href} onNavigate={fromWeek ? () => {
     window.history.replaceState({ ...window.history.state, weeklyDepositReceipt: request.idempotencyKey }, "");
-  } : undefined} className="font-bold underline">View wallet credit →</Link>;
+  } : undefined} aria-label={"View wallet credit for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View wallet credit →</Link>;
 }
 
 function ReceiptDetails({ request, timeZone, open, onClose }: { request: DemoFundingRequest; timeZone?: string; open?: boolean; onClose?: () => void }) {
   return <details open={open} className={styles.weekReceipt} onToggle={event => { if (!event.currentTarget.open) onClose?.(); }}><summary><DepositReceiptDate request={request} timeZone={timeZone} /> · <strong>{formatUsdFromCents(request.amount)}</strong></summary>
-    <p>Payment &amp; credit matched</p><p>Request {request.id}</p><DepositCreditLink request={request} fromWeek /></details>;
+    <p>Payment &amp; credit matched</p><p>Request {request.id}</p><DepositCreditLink request={request} fromWeek timeZone={timeZone} /></details>;
 }
 
 type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; hideArchived?: boolean; asOf: string; timeZone?: string; restoreReceipt?: string };

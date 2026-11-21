@@ -355,13 +355,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           <Link className="lg:hidden" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(weeklyDeposit)}#payment-deposits`}>← Back to Payment deposits</Link>
         </> : null}
         {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
-        {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
+        {links.length === 1 ? <Link href={links[0].href} aria-label={links[0].label === "View entry" ? links[0].label + " for " + (entry.product?.title ?? "this prize") + ", reference ending " + links[0].id.slice(-8).toUpperCase() : undefined}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
         {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
           <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
           <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
         </details> : null}
         {productHref ? <Link href={productHref} className={styles.productAction} tabIndex={compact ? undefined : -1} aria-hidden={!compact || undefined}>View product</Link> : null}
-        {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
+        {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, depositList && entry.id === selectedId, preserveView && !depositList)} data-wallet-deposit={preserveView || undefined} prefetch={false} aria-label={"View deposit receipt for " + formatUsdFromCents(entry.amount) + ", " + dateLabel(entry.created_at, timeZone, locale) + ", reference ending " + entry.id.slice(-8).toUpperCase()}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
         <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label={`Report a problem with ${title}, ${dateLabel(entry.created_at, timeZone, locale)}, reference ending ${entry.id.slice(-8).toUpperCase()}`}>Report a problem</Link>
       </div>
     </li>;

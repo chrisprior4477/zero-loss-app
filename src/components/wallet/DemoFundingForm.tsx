@@ -6,7 +6,7 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
-import { DepositCreditLink, DepositReceiptDate } from "./WeeklyDeposits";
+import { DepositCreditLink, DepositReceiptDate, depositReceiptLabel } from "./WeeklyDeposits";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
@@ -791,8 +791,8 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
           }
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
-          <p>Request {request.id}</p><DepositCreditLink request={request} fromDeposits />
-          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} className="font-bold underline">View deposit receipt</Link></p>}
+          <p>Request {request.id}</p><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
+          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View deposit receipt</Link></p>}
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}

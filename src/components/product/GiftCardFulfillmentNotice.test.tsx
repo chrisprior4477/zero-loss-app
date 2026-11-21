@@ -50,7 +50,7 @@ test("every catalog product and category gets its own retailer and value", () =>
       />,
     );
     const page = new DOMParser().parseFromString(html, "text/html");
-    expect(page.querySelector("summary strong")?.textContent, product.slug).toBe(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
+    expect(page.querySelector("summary strong")?.textContent, product.slug).toBe(`$${product.value.toLocaleString()} ${product.retailer}${/\bgift card$/i.test(product.retailer) ? "" : " digital gift card"}`);
     expect(page.querySelector('a[href="/account/wallet"]')?.textContent, product.slug).toBe("Gift Cards & Rewards");
   }
 });
@@ -67,7 +67,7 @@ test("signed-out reward is visible without expanding details and uses each offer
     );
     const page = new DOMParser().parseFromString(html, "text/html");
     expect(page.querySelector("section[aria-label='Prize fulfillment']")?.textContent, product.slug).toContain("If you win or complete");
-    expect(page.querySelector("section[aria-label='Prize fulfillment']")?.textContent, product.slug).toContain(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
+    expect(page.querySelector("section[aria-label='Prize fulfillment']")?.textContent, product.slug).toContain(`$${product.value.toLocaleString()} ${product.retailer}${/\bgift card$/i.test(product.retailer) ? "" : " digital gift card"}`);
     expect(page.querySelector("section[aria-label='Prize fulfillment'] details"), product.slug).toBeNull();
   }
 });

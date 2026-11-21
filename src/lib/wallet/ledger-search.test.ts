@@ -100,3 +100,35 @@ test("keeps an amount alternative scoped to the transaction type and recognizes 
   expect(search("($1.00)")).toEqual(["purchase"]);
   expect(search("Funding")).toEqual(["one", "two", "three"]);
 });
+
+test("finds signed movements, exact dates and reservation states without changing history", () => {
+  const created_at = "2026-11-06T01:00:00Z";
+  const product = { title: "$75 Best Buy Gift Card", slug: "best-buy-75-gift-card", retailer: "Best Buy", image: "/gift-card.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "refund", entry_type: "REFUND", amount: 2500, created_at, product },
+    { id: "cents", entry_type: "CORRECTION", amount: 50, created_at },
+    { id: "entry1", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product },
+    { id: "entry3", entry_type: "ENTRY_DEBIT", amount: -300, created_at },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at, entryRequestId: "open" },
+    { id: "prior", entry_type: "ENTRY_HOLD", amount: -100, created_at, entryRequestId: "closed" },
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at, entryRequestId: "closed" },
+    { id: "later", entry_type: "DEPOSIT", amount: 1000, created_at: "2026-11-07T06:00:00Z" },
+  ];
+  const search = (q: string) => searchLedger(entries, q, entry => ledgerDescription(entry.entry_type, entry.product?.title), entries, { timeZone: "America/New_York", locale: "en-US" }).map(entry => entry.id);
+  expect(search("debits")).toEqual(["entry1", "entry3"]);
+  expect(search("credits")).toEqual(["deposit", "refund", "cents", "later"]);
+  expect(search("paid $1 from Best Buy")).toEqual(["entry1"]);
+  expect(search("entries on Nov 5")).toEqual(["entry1", "entry3"]);
+  expect(search("Nov 05")).toEqual(search("Nov 5"));
+  expect(search("11/05/2026")).toEqual(search("Nov 5"));
+  expect(search("November 5 to November 6")).toEqual(search("Nov 5"));
+  expect(search("-$3–-$1")).toEqual(["entry1", "entry3", "hold", "prior"]);
+  expect(search("under -$1")).toEqual(["entry3"]);
+  expect(search("face value $75 Best Buy gift card")).toEqual(["refund", "entry1"]);
+  expect(search("refunded $25")).toEqual(["refund"]);
+  expect(search("pending holds")).toEqual(["hold"]);
+  expect(search("released reservations")).toEqual(["release"]);
+  expect(search("50c")).toEqual(["cents"]);
+  expect(search("deposit $25 or refund $25")).toEqual(["deposit", "refund"]);
+});

@@ -16,7 +16,7 @@ test("the legacy results route points to completed activity", async () => {
   expect(mocks.redirect).toHaveBeenCalledWith("/account/entries?filter=completed");
 });
 test("profile returns to its editor", async () => {
-  await expect(ProfilePage()).rejects.toThrow("NEXT_REDIRECT");
+  await expect(ProfilePage({})).rejects.toThrow("NEXT_REDIRECT");
   expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fprofile");
 });
 
@@ -36,4 +36,9 @@ test("the exact Crew request is preserved without reading private data before lo
   await expect(CrewPage({ searchParams: Promise.resolve({ tab: "requests", request: id }) })).rejects.toThrow("NEXT_REDIRECT");
   expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
   expect(mocks.db).not.toHaveBeenCalled();
+});
+
+test("the profile Help shortcut keeps Contact details through login", async () => {
+  await expect(ProfilePage({ searchParams: Promise.resolve({ section: "contact" }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/profile#contact-details-heading");
 });

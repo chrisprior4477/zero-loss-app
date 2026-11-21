@@ -6,9 +6,10 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./wallet-payments.module.css";
 
-export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mobileCard }: {
+export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mobileCard, parentHistory = false }: {
   busy: boolean; message?: string; onUndo: () => void; onDelete: () => void;
   mobileCard?: string;
+  parentHistory?: boolean;
   onReview?: () => Promise<boolean>;
 }) {
   const description = useId();
@@ -24,7 +25,7 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mob
   const [reviewedMessage, setReviewedMessage] = useState<string>();
   const needsReview = Boolean(message && message !== reviewedMessage);
   const [seconds, setSeconds] = useState(30);
-  useDialogBack(Boolean(mobileCard), onUndo, busy, true);
+  useDialogBack(Boolean(mobileCard) && !parentHistory, onUndo, busy, true);
   useEffect(() => {
     if (busy || needsReview) return;
     const timer = window.setInterval(() => {

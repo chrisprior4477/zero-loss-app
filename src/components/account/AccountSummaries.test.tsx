@@ -63,19 +63,19 @@ test("retired account dashboard redirects to My Activity and preserves a selecte
 
 test("profile destination preserves stored name/photo and requires authentication", async () => {
   mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", profileSavedFields: Object.fromEntries(profileFields.map(key => [key, null])), emailConfirmed: true, activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false });
-  render(<MenuLayoutProvider initialLayout="classic">{await ProfilePage()}</MenuLayoutProvider>);
+  render(<MenuLayoutProvider initialLayout="classic">{await ProfilePage({})}</MenuLayoutProvider>);
   expect(screen.getByTestId("profile-editor").textContent).toBe("O’Neill");
   expect(screen.getByTestId("profile-editor").getAttribute("data-avatar")).toBe("/saved-photo.webp");
   expect(screen.getByRole("link", { name: "Profile" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=methods#payment-methods");
   mocks.account.mockResolvedValue(null);
-  await expect(ProfilePage()).rejects.toThrow("redirect:/login");
+  await expect(ProfilePage({})).rejects.toThrow("redirect:/login");
 });
 
 test("profile retries in place until the saved row loads, then permits editing genuinely blank fields", async () => {
   const account = { userId: "jamie-account", displayName: "Jamie", activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false };
   mocks.account.mockResolvedValue(account);
-  const page = () => ProfilePage().then(content => <MenuLayoutProvider initialLayout="classic">{content}</MenuLayoutProvider>);
+  const page = () => ProfilePage({}).then(content => <MenuLayoutProvider initialLayout="classic">{content}</MenuLayoutProvider>);
   const view = render(await page());
   for (let attempt = 0; attempt < 2; attempt++) {
     expect(screen.getByRole("heading", { name: "We couldn’t load your profile." })).toBeTruthy();

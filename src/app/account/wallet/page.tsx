@@ -217,8 +217,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const alerts = query.alerts === undefined ? sourceOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts);
       const returnLink = transactionId && typeof query.rewardId === "string" && query.via === undefined
         ? { href: transactionOriginHref(query)!, label: "Back to this transaction" }
-        : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.entryId
-          ? { href: `/account/entries?filter=completed&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this purchase" }
+        : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.rewardId
+          ? { href: reward.entryId ? completedActivityHref(reward.entryId) : "/account/entries?filter=completed&viewedReward=" + encodeURIComponent(reward.rewardId) + "#" + openEntriesAnchorId, label: "Back to this purchase" }
           : typeof query.rewardId === "string" && fromOrders && reward.rewardId
             ? query.via === "order-notification"
               ? { href: notificationHref(alerts, notice), label: "Back to order updates" }

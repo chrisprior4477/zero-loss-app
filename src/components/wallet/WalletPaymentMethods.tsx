@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DeleteCardToast } from "./DeleteCardToast";
@@ -31,6 +32,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [deleteMessage, setDeleteMessage] = useState("");
   const deleteRevision = useRef<string | undefined>(undefined);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
+  const lastDeleteReview = useRef<{ token: DemoCardToken; revision?: string; walletId?: string } | null>(null);
   const [preview, setPreview] = useState<{ walletId?: string; token?: DemoCardToken }>({});
   const previewKey = walletId ? `zero-loss-wallet-card-preview:${walletId}` : null;
   const expanded = preview.walletId === walletId ? preview.token : undefined;
@@ -52,6 +54,17 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (savedCards !== lastSavedCards) { setLastSavedCards(savedCards); setCards(savedCards); }
+  function openDeleteReview(card: DemoCard) {
+    lastDeleteReview.current = { token: card.token, revision: card.revision, walletId };
+    deleteRevision.current = card.revision;
+    setDeleteMessage("");
+    setDeleting(card.token);
+  }
+  useDialogBack(mobile && Boolean(deleting), () => setDeleting(null), busy, true, false, "saved-card-delete", () => {
+    const saved = lastDeleteReview.current;
+    const card = cards.find(candidate => candidate.token === saved?.token && candidate.revision === saved.revision);
+    if (mobile && enabled && !unavailable && !busy && saved?.walletId === walletId && saved && card) openDeleteReview(card);
+  });
   const availableToken = DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token))?.token;
   const cameraToken = availableToken ?? cards[0]?.token ?? DEMO_CARD_FIXTURES[0].token;
   const isEdit = panelHash.startsWith(savedCardEditPrefix);
@@ -221,9 +234,9 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
           const next = expanded === card.token ? undefined : card.token;
           selectPreview(next);
           if (mobile) revealWalletSection(next ? `saved-art-${next}` : `saved-card-preview-${card.token}`);
-        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} aria-label={`Delete Card: ${cardLabel}`} disabled={!enabled || unavailable || busy} onClick={() => { deleteRevision.current = card.revision; setDeleteMessage(""); setDeleting(card.token); }}>Delete Card</button></div>
+        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} aria-label={`Delete Card: ${cardLabel}`} disabled={!enabled || unavailable || busy} onClick={() => openDeleteReview(card)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
-        {deleting === card.token ? <DeleteCardToast key={card.token} mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}
+        {deleting === card.token ? <DeleteCardToast key={card.token} parentHistory mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>;
       })}</div>
       {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}

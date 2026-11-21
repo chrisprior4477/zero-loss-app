@@ -10,10 +10,14 @@ type GiftCardFulfillmentNoticeProps = {
   compact?: boolean;
 };
 
+export function rewardLabel(retailer: string, value: number) {
+  return "$" + value.toLocaleString() + " " + retailer + (/\bgift card$/i.test(retailer) ? "" : " digital gift card");
+}
+
 export function GiftCardFulfillmentNotice({ productTitle, retailer, value, isGiftCardOffering, compact = false }: GiftCardFulfillmentNoticeProps) {
   if (compact) return <ProductInfoDialog title="What you receive" className={styles.reward}
-    label={<><span>Prize: <strong>${value.toLocaleString()} {retailer} digital gift card</strong></span><span aria-hidden="true">⌄</span></>}>
-    <p className="text-lg font-extrabold">${value.toLocaleString()} {retailer} digital gift card</p>
+    label={<><span>Prize: <strong>{rewardLabel(retailer, value)}</strong></span><span aria-hidden="true">⌄</span></>}>
+    <p className="text-lg font-extrabold">{rewardLabel(retailer, value)}</p>
     <p>{!isGiftCardOffering && <>Zero Loss does not ship the {productTitle}. </>}
       If you win or complete your purchase, find your gift card details in <Link href="/account/wallet" className="font-extrabold text-cyan-300 underline">Gift Cards &amp; Rewards</Link>.
       {isGiftCardOffering && <> It is not Playable Balance or withdrawable cash.</>}
@@ -24,7 +28,7 @@ export function GiftCardFulfillmentNotice({ productTitle, retailer, value, isGif
     <section aria-label="Prize fulfillment" className="mt-4">
       <details className="group overflow-hidden rounded-xl bg-white text-[#102044]">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 bg-[#0872fb] px-4 py-2.5 text-sm font-extrabold leading-5 text-white marker:hidden focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden sm:px-5">
-          <span>Prize issued as a <strong>${value.toLocaleString()} {retailer} digital gift card</strong></span>
+          <span>Prize issued as a <strong>{rewardLabel(retailer, value)}</strong></span>
           <span aria-hidden="true" className="shrink-0 text-xl leading-none transition-transform group-open:rotate-180">⌄</span>
         </summary>
         <div className="px-4 py-3 text-sm leading-5 text-[#4c6282] sm:px-5">
@@ -45,7 +49,7 @@ export function SignedOutRewardSummary({ retailer, value, isGiftCardOffering }: 
   return (
     <section aria-label="Prize fulfillment" className="rounded-2xl bg-[#0872df] px-4 py-3 text-white sm:px-5 sm:py-4">
       <p className="text-[11px] font-extrabold uppercase tracking-[.15em] text-white/80">If you win or complete</p>
-      <p className="mt-1 text-xl font-extrabold leading-tight sm:text-2xl">${value.toLocaleString()} {retailer} digital gift card</p>
+      <p className="mt-1 text-xl font-extrabold leading-tight sm:text-2xl">{rewardLabel(retailer, value)}</p>
       <p className="mt-1 text-sm leading-5 text-white/90">
         {isGiftCardOffering
           ? `Use it for eligible purchases at ${retailer}.`

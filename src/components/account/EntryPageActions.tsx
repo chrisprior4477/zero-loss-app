@@ -44,10 +44,10 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, entryContext }: {
+export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, notificationReturnHref, entryContext }: {
   entryId?: string; ownerId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
   itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
-  requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
+  requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string; notificationReturnHref?: string;
   entryContext?: { transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string };
 }) {
   const router = useRouter();
@@ -422,7 +422,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>
       <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
-      <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
+      <Link href={notificationReturnHref ?? returnHref} className={styles.returnButton}>{notificationReturnHref ? "Back to this notification" : "Return to My Activity"} →</Link>
     </nav>
   </>;
 }

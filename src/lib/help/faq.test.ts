@@ -67,3 +67,25 @@ test.each([
 ])("returns the appropriate help for %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });
+
+test.each([
+  ["add funds minimum", "add-funds"],
+  ["can I deposit $12.50", "add-funds"],
+  ["pay by PayPal", "add-funds"],
+  ["real card was charged", "balance-discrepancy"],
+  ["copy my receipt", "order-receipt"],
+  ["download order receipt", "order-receipt"],
+  ["receipt for an entry", "entry-receipt"],
+  ["will the item ship to me", "purchase-meaning"],
+  ["can i merge purchase options", "purchase-options"],
+  ["entry refunded to my bank", "undo-entry"],
+  ["already used my card", "reward-unavailable"],
+  ["change my display name", "display-name"],
+  ["change my top menu", "top-menu"],
+  ["remove someone in my group", "group-members"],
+  ["share with someone who is not in Crew", "share-outside-crew"],
+  ["respond to support ticket", "support-case"],
+  ["my verification email did not come", "verification-email"],
+])("answers the help search %s", (query, id) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(id);
+});
