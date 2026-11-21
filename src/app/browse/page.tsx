@@ -185,7 +185,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
   const activeFilters = Boolean(subcategory) || Boolean(ticketsLeft) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || filters.minValue !== null || filters.maxValue !== null
-    || filters.sort !== "featured";
+    || filters.sort !== "featured" || filters.featuredExplicit === true;
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
   if (selectedRetailerGroup && !(selectedCategory && filters.retailer)) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);

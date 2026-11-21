@@ -5,7 +5,7 @@ import { parseBrowseFilterState } from "./browse-filters";
 test("category selection preserves Ending Soon, value, availability and sort", () => {
   const filters = parseBrowseFilterState({ category: "ending-soon", type: "gift-cards", available: "1", maxValue: "100" }, []);
   expect(discoveryCategoryHref("automotive", filters, "ending-soon"))
-    .toBe("/browse?category=ending-soon&partnerCategory=automotive&type=gift-cards&available=1&maxValue=100&sort=featured#search-results");
+    .toBe("/browse?category=ending-soon&partnerCategory=automotive&type=gift-cards&available=1&maxValue=100#search-results");
 });
 
 test("switching departments clears a conflicting marketplace category and retailer", () => {
@@ -22,7 +22,7 @@ test("selecting a retailer keeps the current marketplace category", () => {
 });
 
 test("retailer refinement preserves the Ending Soon ticket range", () => {
-  const filters = parseBrowseFilterState({ category: "ending-soon", maxValue: "100" }, []);
+  const filters = parseBrowseFilterState({ category: "ending-soon", maxValue: "100", sort: "featured" }, []);
   const url = new URL(discoveryCategoryHref("specialty-retail", filters, "ending-soon", "Best Buy", "2-5"), "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({ category: "ending-soon", partnerCategory: "specialty-retail", retailer: "Best Buy", ticketsLeft: "2-5", maxValue: "100", sort: "featured" });
   expect(discoveryCategoryHref("specialty-retail", filters, "electronics", "Best Buy", "2-5")).not.toContain("ticketsLeft");

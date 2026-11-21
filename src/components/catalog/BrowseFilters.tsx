@@ -95,7 +95,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
       const value = data.get(key)?.toString().trim() ?? "";
-      if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
+      const defaultSort = key === "sort" && value === "featured" && (selectedCategory !== "ending-soon" || (!filters.featuredExplicit && filters.sort === "featured"));
+      if (value && !(key === "type" && value === "all") && !defaultSort) params.set(key, value);
     }
     if (voice.busy && !filtersOnly) return;
     voice.cancel();
@@ -231,7 +232,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
 }
 
 export function BrowseFilters(props: BrowseFilterProps) {
-  const sortActive = props.filters.sort !== "featured";
+  const sortActive = props.filters.sort !== "featured" || props.filters.featuredExplicit === true;
   const activeCount = Number(props.filters.type !== "all") + Number(Boolean(props.selectedRetailerGroup))
     + Number(Boolean(props.filters.retailer)) + Number(props.filters.availableOnly) + Number(sortActive)
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null);

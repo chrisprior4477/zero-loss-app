@@ -67,6 +67,16 @@ test("Ending Soon ranges combine with search and budget, reset paging and preser
     .toEqual(["$100 Best Buy Gift Card", "$25 Best Buy Gift Card", "$50 Best Buy Gift Card", "$75 Best Buy Gift Card"]);
 });
 
+test("Ending Soon treats Featured as the default and can clear an explicit Featured selection", async () => {
+  const category = "ending-soon";
+  const { rerender } = render(await BrowsePage({ searchParams: Promise.resolve({ category }) }));
+  expect(topOptions().getByRole("button", { name: "Filter & sort" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Clear filters" })).toBeNull();
+  rerender(await BrowsePage({ searchParams: Promise.resolve({ category, sort: "featured" }) }));
+  expect(topOptions().getByRole("button", { name: /^Filter & sort/ }).querySelector("b")?.textContent).toBe("1");
+  expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href")).toBe("/browse?category=ending-soon#search-results");
+});
+
 test("ticket ranges never show closed or less-than-90%-full pools and are absent from ordinary Browse", async () => {
   availability.mockResolvedValue(Object.fromEntries([[25, 0], [50, 20], [75, 5], [100, 11]].map(([value, remaining]) => {
     const slug = `best-buy-${value}-gift-card`;

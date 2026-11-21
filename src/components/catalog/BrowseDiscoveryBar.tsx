@@ -95,7 +95,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const budgetLabel = browsePrizeValueLabel(props.filters);
   const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly) + Number(Boolean(props.ticketsLeft))
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
-    + Number(props.filters.sort !== "featured");
+    + Number(props.filters.sort !== "featured" || props.filters.featuredExplicit === true);
   const prizeCategories = marketplaceCategories.filter(category => !query.trim() || searchTextMatches(category.label, query));
   const prizeCategoryLabels = new Set(prizeCategories.map(category => category.label.toLowerCase()));
   const groups = query.trim().length > 1
@@ -231,7 +231,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (!endingSoon && props.filters.sort !== "featured") {
       url.searchParams.set("sort", props.filters.sort);
     }
-    if (endingSoon && props.selectedCategory === "ending-soon" && props.filters.sort !== "featured") {
+    if (endingSoon && props.selectedCategory === "ending-soon" && (props.filters.sort !== "featured" || props.filters.featuredExplicit)) {
       url.searchParams.set("category", "ending-soon");
       url.searchParams.set("sort", props.filters.sort);
     }
