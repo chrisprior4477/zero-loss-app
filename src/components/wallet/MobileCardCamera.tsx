@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useId, useEffect, useRef, useState } from "react";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { DEMO_CARD_COLORS, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
@@ -40,6 +40,7 @@ async function sampleColors(file: File): Promise<number[]> {
 export function MobileCardCamera({ token, savedCard, disabled, displayName, makeDefault = savedCard?.isDefault ?? true, makeDepositDefault = savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true, onSaved }: {
   token: DemoCardToken; savedCard?: DemoCard; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
 }) {
+  const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const captureHeading = useRef<HTMLHeadingElement>(null);
@@ -133,7 +134,18 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     opener?.focus({ preventScroll: true });
     requestAnimationFrame(restore);
   }
-  useDialogBack(open, close, saving, true, true);
+  function openCameraReview(startLive: boolean) {
+    if (disabled || saving) return;
+    reset();
+    reviewedCard.current = savedCard;
+    setCameraToken(token);
+    setFutureTransactions(makeDefault);
+    setFutureDeposits(makeDepositDefault);
+    dialog.current?.showModal();
+    setOpen(true);
+    if (startLive) void startCamera();
+  }
+  useDialogBack(open, close, saving, true, true, "card-camera-" + id, () => openCameraReview(false));
   useEffect(() => {
     if (open && (front || artwork)) captureHeading.current?.focus();
   }, [open, front, artwork]);
@@ -179,7 +191,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   }
   const cameraLabel = savedCard ? `Use camera to update ${demoCardFixture(token)?.issuer ?? "sample card"} ending ${savedCard.lastFour}` : "Use camera";
   return <>
-    <button type="button" ref={trigger} className={styles.trigger} disabled={disabled || saving} aria-label={cameraLabel} title={cameraLabel} onClick={() => { reset(); reviewedCard.current = savedCard; setCameraToken(token); setFutureTransactions(makeDefault); setFutureDeposits(makeDepositDefault); dialog.current?.showModal(); setOpen(true); void startCamera(); }}>
+    <button type="button" ref={trigger} className={styles.trigger} disabled={disabled || saving} aria-label={cameraLabel} title={cameraLabel} onClick={() => openCameraReview(true)}>
       <span className={styles.camera} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5 9.5 3h5L16 5h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /><circle cx="12" cy="13" r="4" /></svg></span><span className={styles.label} aria-hidden="true">Use camera</span>
     </button>
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-label="Sample card camera" onCancel={event => { event.preventDefault(); close(); }}>
@@ -218,7 +230,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       <button type="button" className={styles.primary} disabled={busy || saving || disabled || cameraStatus === "starting"} onClick={() => { if (artwork) void saveCard(); else if (cameraStatus === "live") capturePhoto(); else void startCamera(); }}>{saving ? "Saving card…" : busy ? "Creating sample colors…" : artwork ? "Save this card" : cameraStatus === "starting" ? "Opening camera…" : cameraStatus !== "live" ? "Start camera" : front ? "Take back photo" : "Take front photo"}</button>
       {!artwork ? <button type="button" className={styles.cancel} disabled={busy || saving} onClick={() => { captureVersion.current++; stopCamera(); input.current?.click(); }}>Use phone camera / choose photo</button> : null}
-      <button type="button" className={styles.cancel} disabled={saving} onClick={artwork || front ? () => { reset(); void startCamera(); } : close}>{artwork || front ? "Start again" : "Cancel"}</button>
+      <button type="button" className={styles.cancel} disabled={saving} onClick={artwork || front ? () => { reset(); void startCamera(); requestAnimationFrame(() => captureHeading.current?.focus()); } : close}>{artwork || front ? "Start again" : "Cancel"}</button>
       <p className={styles.note}>Saves this sample card to your wallet. No funds are added. No original photo or real card details are stored.</p>
     </dialog>
   </>;

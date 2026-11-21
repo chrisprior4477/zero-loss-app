@@ -16,6 +16,8 @@ import { DeclinedOfferList } from "@/components/account/DeclinedOfferList";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
+import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import { fulfillmentFilter } from "@/lib/account/fulfillment";
 import styles from "@/components/account/my-activity.module.css";
@@ -23,7 +25,7 @@ import styles from "@/components/account/my-activity.module.css";
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[] }> }) {
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[]; notice?: string | string[]; alerts?: string | string[] }> }) {
   const query = await searchParams;
   const requested = query?.offer;
   const prize = typeof query?.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
@@ -33,9 +35,10 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
     ? { id: query.transaction, restoreView: query.walletView === "1", orderFilter: query.fromOrders === "1" ? fulfillmentFilter(query.orderFilter) : undefined } : undefined;
   const transactionReturn = transactionOriginHref(query ?? {});
   const selectedHref = prize && !offerId ? `/account/declined-offers?prize=${encodeURIComponent(prize)}${filter === "all" ? "" : `&filter=${filter}`}` : declinedOfferHref(offerId, filter, transaction);
+  const noticeReturn = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", selectedHref));
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/declined-offers", query, offerId ? `#declined-offer-${offerId}` : "")));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId) && (Boolean(offerId) || !prize || item.slug === prize));
   const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
@@ -78,6 +81,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
         {transactionReturn ? <Link href={transactionReturn} scroll={false}>Back to this transaction</Link> : null}
+        {noticeReturn ? <Link href={noticeReturn}>Back to this notification</Link> : null}
         {prize && !offerId && <Link href={declinedOfferHref()}>View all declined offers</Link>}
         <Link href={activityReturn} scroll={false}>Return to My Activity</Link>
         <Link href="/">Continue shopping</Link>

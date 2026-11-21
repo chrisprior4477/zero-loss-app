@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
-import { useDialogBack } from "@/components/account/useDialogBack";
 import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./extra-entry-explanation.module.css";
 
@@ -18,7 +17,6 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
   const close = useRef<HTMLButtonElement>(null);
   const details = useRef<HTMLDetailsElement>(null);
   const titleId = useId();
-  useDialogBack(true, onClose, false, true);
   const remaining = Math.max(0, productValue - entryPrice);
 
   useEffect(() => {
@@ -76,7 +74,7 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
         <button type="button" disabled={!remember || saving} onClick={onSave} className={styles.save}>{saving ? "Saving your choice…" : "I understand — save my choice"}</button>
         <p className={styles.note}>Your choice is saved to your account so this explanation won’t appear again.</p>
       </> : <>
-        <p className={styles.note}>Sign in to choose extra entries and save this explanation preference.</p>
+        <p className={styles.note}>Sign in to continue with your selected entries and save this explanation preference.</p>
         <Link href={loginHref} onClick={onSignIn} className={styles.save}>Sign in to add entries</Link>
       </>}
     </footer>

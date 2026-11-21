@@ -77,17 +77,18 @@ function HeadshotSample({ disabled, onUse }: { disabled: boolean; onUse: () => v
   </>;
 }
 
-export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewOnly = false }: { rewardId: string; onClose: () => void; onComplete: () => void; previewOnly?: boolean }) {
+export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewOnly = false, historyScope }: { historyScope?: string; rewardId: string; onClose: () => void; onComplete: () => void; previewOnly?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [verification, setVerification] = useState<DemoVerification | null>(null);
   const [phase, setPhase] = useState<"opening" | "saving" | "idle">("opening");
   const [openAttempt, setOpenAttempt] = useState(0);
   const busy = phase !== "idle";
   const saving = phase === "saving";
-  useDialogBack(true, onClose, saving, true);
+  useDialogBack(true, onClose, saving, true, false, historyScope);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const retryButton = useRef<HTMLButtonElement>(null);
   const inFlight = useRef(false);
   const step = verification?.step;
   const completionLabel = previewOnly ? "Back to reward" : "Continue to claim prize";
@@ -111,7 +112,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
     });
     return () => { active = false; };
   }, [rewardId, openAttempt]);
-  useEffect(() => { if (step) heading.current?.focus(); }, [step]);
+  useEffect(() => { if (step) heading.current?.focus(); else if (phase === "idle" && error) retryButton.current?.focus(); }, [step, phase, error]);
 
   async function advance(next: DemoVerificationStep) {
     if (!verification || inFlight.current) return;
@@ -170,7 +171,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
     <div className={styles.body}>
       {step ? <nav aria-label="Verification progress"><p className={styles.mobileProgress}>Step {stageIndex[step] + 1} of 7 · {stages[stageIndex[step]]}</p><ol className={styles.progress}>{stages.map((label, index) => <li key={label} aria-current={stageIndex[step] === index ? "step" : undefined} data-complete={index < stageIndex[step]}><span>{index < stageIndex[step] ? "✓" : index + 1}</span>{label}</li>)}</ol></nav> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      {!step && !busy ? <button type="button" className={styles.primary} onClick={retryOpening}>Retry opening check</button> : null}
+      {!step && !busy ? <button ref={retryButton} type="button" className={styles.primary} onClick={retryOpening}>Retry opening check</button> : null}
       {step === "start" ? <>
         <p className={styles.copy}>Before claiming a first prize, this walkthrough shows how an identity check could work. In a live service, the required checks depend on the approved provider and eligibility rules.</p>
         <div className={styles.notice}><strong>Try the complete experience—using a sample person.</strong><p>We supply every photo and detail. Do not upload an ID, enter a Social Security number, or turn on your camera. No actual identity verification takes place.</p></div>
@@ -211,5 +212,7 @@ export function DemoIdentityPreviewButton({ rewardId }: { rewardId: string }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => { setOpen(false); requestAnimationFrame(() => trigger.current?.focus()); };
-  return <><button ref={trigger} type="button" className="mt-4 min-h-11 w-full rounded-xl border border-[#08779f]/40 bg-[#052344] px-4 py-3 text-sm font-bold text-cyan-200" onClick={() => setOpen(true)}>Preview identity check</button>{open ? createPortal(<DemoVerificationDialog rewardId={rewardId} previewOnly onClose={close} onComplete={close} />, document.body) : null}</>;
+  const historyScope = "demo-identity-preview-" + rewardId;
+  useDialogBack(false, close, false, false, false, historyScope, () => { if (!open) setOpen(true); });
+  return <><button ref={trigger} type="button" className="mt-4 min-h-11 w-full rounded-xl border border-[#08779f]/40 bg-[#052344] px-4 py-3 text-sm font-bold text-cyan-200" onClick={() => setOpen(true)}>Preview identity check</button>{open ? createPortal(<DemoVerificationDialog rewardId={rewardId} historyScope={historyScope} previewOnly onClose={close} onComplete={close} />, document.body) : null}</>;
 }

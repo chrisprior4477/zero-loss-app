@@ -560,7 +560,9 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
   const campaign = demoCampaigns[partnership];
   const { draft, setDraft } = useEditor();
   const [selectedItem, setSelectedItem] = useState<number | null>(null);
-  const [editor, setEditor] = useState<{ index: number; headline: string; description: string } | null>(null);
+  type ListingEdit = { index: number; headline: string; description: string };
+  const [editor, setEditor] = useState<ListingEdit | null>(null);
+  const pendingEdits = useRef(new Map<number, ListingEdit>());
   const trigger = useRef<HTMLButtonElement>(null);
   const closeControl = useRef<HTMLButtonElement>(null);
   const detailedItems = partnership === "restaurant" || partnership === "tools" ? draft.listings : null;
@@ -571,11 +573,16 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
   const proposedCapacity = Number(/^\s*(?:up to\s+)?([\d,]+)/i.exec(String(draft.values.quantity ?? ""))?.[1].replaceAll(",", ""));
   const modalOpen = selectedItem !== null || editor !== null;
 
-  const previousListing = useRef<number | null>(null);
-  function close() { setSelectedItem(null); setEditor(null); }
-  useDialogBack(modalOpen, () => { previousListing.current = editor ? null : selectedItem; close(); }, false, true, false, "business-listing", () => {
-    const index = previousListing.current;
-    if (index !== null && items[index]) setSelectedItem(index);
+  const previousListing = useRef<{ index: number | null; edit: ListingEdit | null } | null>(null);
+  function close() { previousListing.current = null; pendingEdits.current.clear(); setSelectedItem(null); setEditor(null); }
+  useDialogBack(modalOpen, () => {
+    previousListing.current = { index: selectedItem, edit: editor };
+    setSelectedItem(null);
+    setEditor(null);
+  }, false, true, false, "business-listing", () => {
+    const saved = previousListing.current;
+    if (saved?.edit && items[saved.edit.index]) setEditor(saved.edit);
+    else if (saved?.index !== null && saved?.index !== undefined && items[saved.index]) setSelectedItem(saved.index);
   });
   useEffect(() => {
     if (!modalOpen) return;
@@ -590,7 +597,8 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
 
   function edit(index: number) {
     const listing = detailedItems?.[index];
-    setEditor({ index, headline: listing?.title ?? headline, description: listing?.summary ?? description });
+    if (editor) pendingEdits.current.set(editor.index, editor);
+    setEditor(pendingEdits.current.get(index) ?? { index, headline: listing?.title ?? headline, description: listing?.summary ?? description });
   }
   function apply() {
     if (!editor) return;
@@ -622,7 +630,7 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
         <span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for {formatUsdFromCents(Math.round((detailedItems?.[index]?.entryPrice ?? 1) * 100))}</span>
       </button>)}
     </div>
-    <button type="button" onClick={event => { trigger.current = event.currentTarget; edit(0); }} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>
+    <button type="button" onClick={event => { trigger.current = event.currentTarget; pendingEdits.current.clear(); edit(0); }} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>
     {modalOpen ? <div role="dialog" aria-modal="true" aria-label={editor ? "Listing editor" : "Listing detail preview"}
       className={popupStyles.overlay + " fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4"}
       onKeyDown={event => {

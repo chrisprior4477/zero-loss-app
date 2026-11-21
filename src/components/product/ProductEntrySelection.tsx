@@ -17,13 +17,15 @@ export function ProductEntrySelection({ slug, initialQuantity, invalidBookmark =
   useLayoutEffect(() => {
     // Browser Back restores this specific visit, even when the page is remounted.
     const { freeEntryDraft } = window.history.state ?? {};
+    const current = window.location.pathname + window.location.search;
     if (invalidBookmark !== null || freeEntryDraft?.slug !== slug || !isEntryQuantity(freeEntryDraft.quantity)) return;
+    if (freeEntryDraft.href ? freeEntryDraft.href !== current : new URLSearchParams(window.location.search).has("quantity")) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuantity(freeEntryDraft.quantity);
   }, [slug, invalidBookmark]);
   return <EntrySelection.Provider value={{ maximum, selection: [quantity, next => {
     setQuantity(next);
-    try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next } }, ""); }
+    try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next, href: window.location.pathname + window.location.search } }, ""); }
     catch { /* The visible selection still updates. */ }
   }, invalidDraft, setInvalidDraft] }}>{children}</EntrySelection.Provider>;
 }

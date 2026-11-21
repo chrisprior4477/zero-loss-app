@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "How to display my picks" };
 
 export default async function CrewDisplayPage() {
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", "/account/crew/display"));
+  if (!account) redirect(authNavigationHref("/login", "/account/crew/display#account-settings-sections"));
   const db = await createClient();
   const [profileResult, settingsResult, membersResult, sharesResult, entriesResult] = await Promise.all([
     db.from("customer_profiles").select("crew_discoverable,crew_find_real_name,crew_find_email,crew_find_phone").eq("customer_id", account.userId).maybeSingle(),

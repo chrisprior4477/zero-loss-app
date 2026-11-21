@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
+import { ResendVerificationRecovery } from "@/components/auth/ResendVerificationForm";
 import { SignUpExperience } from "@/components/auth/SignUpExperience";
 import { BusinessOnboardingForm } from "@/components/auth/BusinessOnboardingForm";
 import { createClient } from "@/lib/supabase/server";
@@ -9,8 +11,8 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 
 export const metadata: Metadata = { title: "Sign up" };
 
-export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ account?: string; next?: string }> }) {
-  const { account, next } = await searchParams;
+export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ account?: string; next?: string; verify?: string }> }) {
+  const { account, next, verify } = await searchParams;
   const returnTo = signInReturnPath(next);
   const initialAccountPath = account === "business" ? "business" : "pleasure";
   const supabase = await createClient();
@@ -48,7 +50,10 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
         </section>
         <section className="bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:p-9 lg:p-12">
           {returnTo ? <HelpLandingScroll target="personal-signup-heading" focusOnArrival /> : null}
-          <SignUpExperience key={initialAccountPath} initialAccountPath={initialAccountPath} returnTo={returnTo} />
+          {verify === "resend" ? <>
+            <AccountSettingsLandingScroll target="resend-verification" initialTarget="resend-verification" focusTarget="resend-email" allScreens />
+            <ResendVerificationRecovery />
+          </> : <SignUpExperience key={initialAccountPath} initialAccountPath={initialAccountPath} returnTo={returnTo} />}
         </section>
       </div>
     </div>

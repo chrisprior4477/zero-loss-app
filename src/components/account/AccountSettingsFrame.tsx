@@ -12,7 +12,7 @@ export function AccountSettingsFrame({ active, overview, children, locale }: {
 }) {
   const t = accountLanguage(locale);
   return <div className={styles.page} data-settings-scroll-scope>
-    <AccountSettingsLandingScroll target="account-settings-sections" visitKey={active} />
+    <AccountSettingsLandingScroll target="account-settings-sections" visitKey={active} allScreens={active === "sharing"} restrictToTargetHash={active === "sharing"} focusTarget={active === "sharing" ? "account-settings-sections" : undefined} />
     <div className={styles.shell}>
       <AccountSettingsStatusStrip overview={overview} />
       <header id="account-settings-intro" className={styles.heading}><h1>{t("Account & Security", "Cuenta y seguridad")}</h1><p>{t("Your account. Your control.", "Tú controlas tu cuenta.")}</p></header>

@@ -18,6 +18,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
+import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import { checkoutReceiptId } from "@/lib/account/checkout-cards";
 
@@ -32,12 +33,13 @@ const accountLinks = [
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
   const query = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : "")));
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" ? "#my-activity-filters" : "")));
   const filter = activityFilter(query.filter);
   if (query.filter !== undefined && query.filter !== filter) {
     redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined }));
   }
   const transactionReturn = transactionOriginHref(query);
+  const noticeReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const completedPrizeRequested = filter === "completed" && query.prize !== undefined;
   const completedPrize = completedPrizeRequested && typeof query.prize === "string"
     && (getDemoProduct(query.prize) || account.activity.activity.some(item => item.slug === query.prize)) ? query.prize : undefined;
@@ -74,6 +76,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const metricsBySlug = activityOfferMetrics(account.activity.activity, await availabilityPromise);
   return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     {transactionReturn ? <Link className="font-bold text-cyan-300 underline" href={transactionReturn}>← Back to this transaction</Link> : null}
+    {noticeReturn ? <Link className="font-bold text-cyan-300 underline" href={noticeReturn}>← Back to this notification</Link> : null}
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     {completedPrizeRequested && !completedPrize ? <p role="status" className="mb-4 text-sm text-amber-100">That prize selection is unavailable. Showing all completed activity. <Link href="/account/entries?filter=completed#my-activity-filters" className="underline">Clear prize selection</Link></p> : null}

@@ -68,7 +68,7 @@ test("the shared account tickets retain their wallet, reward, and purchase desti
   expect(screen.getByRole("link", { name: "Playable Wallet: $17" }).getAttribute("href")).toBe("/account/wallet?view=history");
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=funding#add-funds");
   expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
-  expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
+  expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion#my-activity-filters");
 });
 
 test("shows safe fallbacks when optional account facts are absent", () => {

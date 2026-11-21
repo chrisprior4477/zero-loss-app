@@ -6,9 +6,10 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { useEffect, useRef } from "react";
 import styles from "./claim-identity-intro.module.css";
 
-export function ClaimIdentityIntro({ onContinue, onClose, onSkipDemo, busy = false, error }: { onContinue: () => void; onClose: () => void; onSkipDemo?: () => void; busy?: boolean; error?: string | null }) {
+export function ClaimIdentityIntro({ onContinue, onClose, onSkipDemo, busy = false, error, historyScope }: { historyScope?: string; onContinue: () => void; onClose: () => void; onSkipDemo?: () => void; busy?: boolean; error?: string | null }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useDialogBack(true, onClose, busy, true);
+  const releaseHistory = useDialogBack(true, onClose, busy, true, false, historyScope);
+
 
   useEffect(() => {
     const modal = dialog.current;
@@ -32,7 +33,7 @@ export function ClaimIdentityIntro({ onContinue, onClose, onSkipDemo, busy = fal
       </div>
       <p className={styles.demoNote}>In this MVP preview, the check uses only fictional sample details. Do not provide a real ID or turn on your camera. No actual identity verification takes place.</p>
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} disabled={busy} onClick={onContinue}>Continue to identity check</button>
+        <button type="button" className={styles.primary} disabled={busy} onClick={() => { releaseHistory(true); onContinue(); }}>Continue to identity check</button>
         <button type="button" className={styles.secondary} disabled={busy} onClick={onSkipDemo ?? onClose}>{busy ? "Opening your demo reward…" : onSkipDemo ? "Skip check & claim demo reward" : "Not now"}</button>
         {onSkipDemo ? <button type="button" className={styles.secondary} disabled={busy} onClick={onClose}>Not now</button> : null}
       </div>

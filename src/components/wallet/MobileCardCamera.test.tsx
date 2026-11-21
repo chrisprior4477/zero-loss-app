@@ -43,12 +43,13 @@ async function captureBoth(index = 0) {
   return dialog;
 }
 
-test("browser Back closes the camera, releases its stream, and returns to the trigger", async () => {
+test("Back releases the camera and Forward restores the prompt without restarting it", async () => {
   render(<MobileCardCamera token="demo_card_5556" onSaved={vi.fn()} />);
   const trigger = screen.getByRole("button", { name: "Use camera" });
   fireEvent.click(trigger);
   await screen.findByRole("button", { name: "Take front photo" });
-  expect(window.history.state?.zeroLossDialogNested).toBeTruthy();
+  const cameraHistory = window.history.state;
+  expect(Object.keys(cameraHistory).some(key => key.startsWith("zeroLossDialog-card-camera-"))).toBe(true);
 
   act(() => {
     window.history.replaceState(null, "");
@@ -57,6 +58,12 @@ test("browser Back closes the camera, releases its stream, and returns to the tr
   expect(screen.queryByRole("dialog", { name: "Sample card camera" })).toBeNull();
   expect(stop).toHaveBeenCalledOnce();
   expect(document.activeElement).toBe(trigger);
+  act(() => {
+    window.history.replaceState(cameraHistory, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  expect(screen.getByRole("button", { name: "Start camera" })).toBeTruthy();
+  expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
 });
 
 test.each(["funding-top", "funding-bottom", "methods"])("full sample camera explains the existing card update and preserves defaults from %s", async entry => {

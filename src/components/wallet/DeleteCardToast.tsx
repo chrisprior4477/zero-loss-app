@@ -6,10 +6,11 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./wallet-payments.module.css";
 
-export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mobileCard, parentHistory = false }: {
+export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mobileCard, parentHistory = false, initialDeadline }: {
   busy: boolean; message?: string; onUndo: () => void; onDelete: () => void;
   mobileCard?: string;
   parentHistory?: boolean;
+  initialDeadline?: number;
   onReview?: () => Promise<boolean>;
 }) {
   const description = useId();
@@ -21,10 +22,10 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mob
     const dialog = error?.closest("dialog");
     if (error && (document.activeElement === document.body || document.activeElement === dialog)) error.focus();
   }, [busy, message]);
-  const [deadline, setDeadline] = useState(() => Date.now() + 30_000);
+  const [deadline, setDeadline] = useState(() => initialDeadline ?? Date.now() + 30_000);
   const [reviewedMessage, setReviewedMessage] = useState<string>();
   const needsReview = Boolean(message && message !== reviewedMessage);
-  const [seconds, setSeconds] = useState(30);
+  const [seconds, setSeconds] = useState(() => Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
   useDialogBack(Boolean(mobileCard) && !parentHistory, onUndo, busy, true);
   useEffect(() => {
     if (busy || needsReview) return;

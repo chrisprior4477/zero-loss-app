@@ -22,7 +22,7 @@ test("login preserves the selected entry and filter", async () => {
   mocks.account.mockResolvedValue(null);
   mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
   await expect(MyZeroLossPage({ searchParams: Promise.resolve({ item: "nike-court-shot-shoes", entry: "ent_123", filter: "completion" }) })).rejects.toThrow("NEXT_REDIRECT");
-  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion#my-activity-filters");
 });
 
 test("Declined Offers carries the selected My Activity filter", async () => {

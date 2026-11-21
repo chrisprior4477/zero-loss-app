@@ -30,7 +30,7 @@ export function ClearAllEntriesButton() {
     }
   }, [entryCount, pending]);
 
-  useDialogBack(entryCount !== null, closeDialog, pending, true);
+  useDialogBack(entryCount !== null, closeDialog, pending, true, false, "clear-demo-entries", openConfirmation);
 
   function closeDialog() {
     restoreFocus.current = true;

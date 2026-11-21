@@ -139,7 +139,10 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
       aria-pressed={item.entryId === ticket.entryId} aria-label={`View entry ${item.number} of ${count}`}
       onClick={() => {
         choose(itemIndex);
-        if (fromAll) cardRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
+        if (fromAll) {
+          cardRef.current?.focus({ preventScroll: true });
+          cardRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
+        }
       }}><small>ENTRY</small><strong style={String(item.number).length > 3 ? { fontSize: 13 } : undefined}>{item.number}</strong></button>;
   }
 
@@ -185,7 +188,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
         </div>
       </div>
     </div> : null}
-    <article ref={cardRef} id={`saved-entry-${ticket.number}`} className={`${styles.entryCard} ${count === 1 ? styles.singleCard : ""}`} aria-label={`Entry ${ticket.number} of ${count}`}>
+    <article ref={cardRef} tabIndex={-1} id={`saved-entry-${ticket.number}`} className={`${styles.entryCard} ${count === 1 ? styles.singleCard : ""}`} aria-label={`Entry ${ticket.number} of ${count}`}>
       <div className={styles.image}><Image src={ticket.image} alt={ticket.title} fill sizes="(max-width: 600px) 60px, 80px" /></div>
       <div className={styles.details}>
         <div className={styles.kicker}><span className={styles.number}>{ticket.number}</span><span>ENTRY {ticket.number} OF {count}</span></div>

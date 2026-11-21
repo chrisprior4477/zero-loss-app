@@ -235,7 +235,11 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   const pagingFocus = useRef<string | null>(null);
   const railPosition = useRef<{ step: number; fraction: number } | null>(null);
   const canPage = !selected && lastPage > 0;
-  const endDetailsHistory = useDialogBack(Boolean(selected), closeDetails);
+  const lastDetails = useRef<{ id: string; anchor: HTMLButtonElement } | null>(null);
+  const endDetailsHistory = useDialogBack(Boolean(selected), closeDetails, false, false, false, "order-details", () => {
+    const saved = lastDetails.current;
+    if (saved?.anchor.isConnected && ticketIds.includes(saved.id)) openDetails(saved.id, saved.anchor);
+  });
 
   function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null, position?: number) {
     if (window.location.pathname !== "/account/orders") return;
@@ -293,6 +297,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         if (anchor) {
           if (!hasSaved) rememberPage(anchorId, null);
           detailsOrigin.current = anchor;
+          lastDetails.current = { id: anchorId, anchor };
           setOpened({ id: anchorId, anchor });
         }
       });
@@ -422,6 +427,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
+    lastDetails.current = { id, anchor };
     detailsOrigin.current = anchor;
     setPageAnchor(id);
     setOpened({ id, anchor });
@@ -491,8 +497,8 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
           </article>;
         })}
       </div>
-      {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
-      {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
+      {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={event => changePage(previousPage, event.detail === 0)} /> : null}
+      {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={event => changePage(nextPage, event.detail === 0)} /> : null}
       </div>
       {selected && opened ? <OrderDetails alertContext={fromNotification ? `&from=notifications${alertContext}` : ""} key={opened.id} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>

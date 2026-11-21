@@ -44,7 +44,7 @@ test("browser Back restores the draft for this prize within current availability
       <DemoParticipationPanel {...props} sold={15} isSignedIn />
     </ProductEntrySelection>);
     expect(screen.getByRole("spinbutton", { name: "Number of entries" })).toHaveProperty("value", "5");
-    expect(window.history.state).toEqual({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 5 } });
+    expect(window.history.state).toEqual({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 5, href: "/" } });
     expect(actionMocks.enter).not.toHaveBeenCalled();
   } finally {
     window.history.replaceState(null, "");
@@ -501,7 +501,7 @@ test("signed-out extra entry explanation leads to sign-in instead of an unsavabl
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Sign in to add entries" }).getAttribute("href")).toBe(
-    "/login?next=%2Fitems%2Ftest-product%23enter-entry",
+    "/login?next=%2Fitems%2Ftest-product%3Fquantity%3D2%23enter-entry",
   );
   expect(screen.queryByRole("button", { name: "I understand — save my choice" })).toBeNull();
 });

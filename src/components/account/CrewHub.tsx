@@ -26,6 +26,7 @@ import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountAc
 import { accountRoutes } from "@/lib/account/navigation";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
+import { useDialogBack } from "./useDialogBack";
 import { useCrewTab } from "./useCrewTab";
 import { restoreDialogTrigger } from "./dialog-keyboard";
 import type { CrewTab } from "@/lib/crew/navigation";
@@ -63,6 +64,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const router = useRouter();
   const { tab, selectTab, invalidTab } = useCrewTab(initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
+  const [finderQuery, setFinderQuery] = useState("");
   const [sharing, setSharing] = useState<{ recipientId?: string } | null>(null);
   const shareOpener = useRef<HTMLButtonElement>(null);
   const [message, setMessage] = useState("");
@@ -80,7 +82,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const finderOpener = useRef<HTMLButtonElement>(null);
   const headerFinderButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    const syncFinder = () => setFinding(new URLSearchParams(window.location.search).get("tab") === "add");
+    const syncFinder = () => setFinding(new URLSearchParams(window.location.search).get("tab") === "add" || Boolean(window.history.state?.["zeroLossDialog-crew-quick-finder"]));
     window.addEventListener("popstate", syncFinder);
     return () => window.removeEventListener("popstate", syncFinder);
   }, []);
@@ -116,6 +118,14 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     return { id: isRequester ? item.recipient_id : item.requester_id, name: isRequester ? item.recipient_name : item.requester_name };
   }
 
+  useDialogBack(finding && initialTab !== "add", closeCrewSearch, false, true, false, "crew-quick-finder", () => setFinding(true));
+  const lastSharePicker = useRef<{ recipientId?: string } | null>(null);
+  useDialogBack(Boolean(sharing), () => {
+    lastSharePicker.current = sharing;
+    setSharing(null);
+  }, false, true, false, "crew-find-to-share", () => {
+    if (tab === "crew" && shareOpener.current?.isConnected) setSharing(lastSharePicker.current);
+  });
   function closeCrewSearch() {
     setFinding(false);
     if (new URLSearchParams(window.location.search).get("tab") === "add") selectTab("crew");
@@ -125,6 +135,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
   function openCrewSearch(event: MouseEvent<HTMLButtonElement>, scroll = true) {
     finderOpener.current = event.currentTarget;
+    setFinderQuery("");
     setFinding(true);
     if (scroll) requestAnimationFrame(() => document.getElementById("crew-query")?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
   }
@@ -284,7 +295,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
       {finding ? <div>
-        <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
+        <CrewInlineFinder query={finderQuery} onQueryChange={setFinderQuery} available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
         <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input ref={inviteField} aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
       </div> : null}
 

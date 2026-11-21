@@ -126,16 +126,19 @@ test("View all removes only the selected retailer and stale batch", () => {
     .toBe("/browse?category=electronics&partnerCategory=digital-and-gaming&maxValue=100#search-results");
 });
 
-test("category and retailer views reuse the search typed in the picker", () => {
+test("category and retailer views preserve separate searches", () => {
   render(<BrowseDiscoveryBar {...props} />);
   fireEvent.click(screen.getByRole("button", { name: "Gas" }));
   const picker = within(screen.getByRole("dialog"));
   const input = picker.getByRole("searchbox") as HTMLInputElement;
-  fireEvent.change(input, { target: { value: "AutoZone" } });
+  fireEvent.change(input, { target: { value: "Electronics" } });
   fireEvent.click(picker.getByRole("button", { name: "Retailers" }));
-  expect(input.value).toBe("AutoZone");
+  expect(input.value).toBe("");
+  fireEvent.change(input, { target: { value: "AutoZone" } });
   expect(picker.getByRole("button", { name: /AutoZone.*View current offers/ })).toBeTruthy();
   fireEvent.click(picker.getByRole("button", { name: "Categories" }));
+  expect(input.value).toBe("Electronics");
+  fireEvent.click(picker.getByRole("button", { name: "Retailers" }));
   expect(input.value).toBe("AutoZone");
 });
 

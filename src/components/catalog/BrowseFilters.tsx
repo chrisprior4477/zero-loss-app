@@ -29,14 +29,15 @@ export type BrowseFilterProps = {
   onNavigate?: (destination: string) => void;
 };
 
-export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate }: BrowseFilterProps & { id: string }) {
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate, onSearchDraft }: BrowseFilterProps & { id: string; onSearchDraft?: (draft: string) => void }) {
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const selectingByKeyboard = useRef(false);
   const applyingPreset = useRef(false);
   const session = useBrowseResultsSearch();
-  const [localDraft, setLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
+  const [localDraft, updateLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
+  function setLocalDraft(value: string) { updateLocalDraft(value); onSearchDraft?.(value); }
   const searchDraft = localDraft;
   const searchTooLong = catalogSearchTooLong(searchDraft.trim());
   const invalidSearch = invalidCatalogSearch(searchDraft);

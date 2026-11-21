@@ -77,9 +77,16 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
   const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
   function scopedHistory(href: string) {
-    if (!prize) return href;
+    if (!prize && !transactionReturn) return href;
     const url = new URL(href, "https://zeroloss.local");
-    url.searchParams.set("prize", prize);
+    if (prize) url.searchParams.set("prize", prize);
+    if (transactionReturn) {
+      const source = new URL(transactionReturn, "https://zeroloss.local").searchParams;
+      for (const key of ["transaction", "walletView", "fromOrders", "orderFilter"]) {
+        const value = source.get(key);
+        if (value) url.searchParams.set(key, value);
+      }
+    }
     return url.pathname + url.search + url.hash;
   }
   const prizeQuery = prize ? `&prize=${encodeURIComponent(prize)}` : "";
@@ -124,7 +131,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountReady.length ? scopedHistory(rewardViewHrefs.ready) : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
@@ -157,10 +164,10 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         <aside className={`${overview.ticketPanel} ${overview.summary}`} aria-labelledby="summary-heading">
           <div className={overview.sectionHeading}><h2 id="summary-heading">Reward summary</h2><p>A quick look at your rewards activity.</p></div>
           <div className={overview.summaryRows}>
-            <WalletRewardLink href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>To claim or use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
-            <WalletRewardLink href={rewardViewHrefs.used} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{readyCount === null ? "—" : used.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
-            <WalletRewardLink href={rewardViewHrefs.expired} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{readyCount === null ? "—" : expired.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
-            {other.length > 0 ? <WalletRewardLink href={rewardViewHrefs.other} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
+            <WalletRewardLink href={scopedHistory(rewardViewHrefs.ready)} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>To claim or use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            <WalletRewardLink href={scopedHistory(rewardViewHrefs.used)} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{readyCount === null ? "—" : used.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            <WalletRewardLink href={scopedHistory(rewardViewHrefs.expired)} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{readyCount === null ? "—" : expired.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            {other.length > 0 ? <WalletRewardLink href={scopedHistory(rewardViewHrefs.other)} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
           </div>
         </aside>
       </div> : null}
@@ -175,7 +182,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             <WalletRewardLink href={scopedHistory("/account/wallet?rewards=ready&rewardHistory=1#reward-history")} aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
             <WalletRewardLink href={scopedHistory(rewardViewHrefs.used)} aria-current={view === "used" ? "page" : undefined}>Used</WalletRewardLink>
             {(expired.length > 0 || focusedHistory) && <WalletRewardLink href={scopedHistory(rewardViewHrefs.expired)} aria-current={view === "expired" ? "page" : undefined}>Expired</WalletRewardLink>}
-            {(other.length > 0 || view === "history") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" ? "page" : undefined}>History</WalletRewardLink>}
+            {(other.length > 0 || view === "history" || view === "other") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" || view === "other" ? "page" : undefined}>History</WalletRewardLink>}
           </nav>
         </div>
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
@@ -277,7 +284,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
     <section aria-label="Reward redemption details" className={styles.detailShell}>
       {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : ready.length ? rewardViewHrefs.ready : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section> : null}
       <header className={styles.detailHeading}>

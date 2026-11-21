@@ -14,7 +14,6 @@ import type { CrewPersonCard } from "./CrewPeopleCarousel";
 import styles from "./crew-connected.module.css";
 import { useCrewCarousel } from "./useCrewCarousel";
 import { restoreDialogTrigger } from "./dialog-keyboard";
-import { useDialogBack } from "./useDialogBack";
 import { crewPickHref, crewViewReturnKey, readCrewPickDestination, readCrewViewReturn, type CrewViewReturn } from "@/lib/crew/view-return";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 
@@ -171,7 +170,6 @@ export function CrewSharePicker({ products, onClose, opener, recipientId }: { re
   const hidden = useResolvedCatalogSlugs();
   const choices = products.filter(product => !hidden.has(product.slug));
   const dialog = useRef<HTMLDialogElement>(null);
-  useDialogBack(true, onClose, false, true);
   const handingOff = useRef(false);
   useEffect(() => {
     const element = dialog.current;

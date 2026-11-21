@@ -13,7 +13,7 @@ import { ActivityDetailDialog } from "@/components/account/ActivityDetailDialog"
 import { LegacyWalletFragment } from "@/components/wallet/WalletLandingScroll";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
-import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, isWalletReward, openEntriesAnchorId, openPrizeOptions, walletRewardHref, walletRewards } from "@/lib/account/activity";
+import { walletRewardHref, activityHref, completedActivityHref, findActivityItem, isPurchasedReward, isWalletReward, openEntriesAnchorId, openPrizeOptions, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -150,8 +150,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history" || query.rewards === "other"
     ? query.rewards : "all";
   const rewardPrize = typeof query.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
-  const rewardListHref = rewardView === "all" ? "/account/wallet"
-    : `/account/wallet?rewards=${rewardView}#${rewardView === "ready" ? "ready-rewards" : "reward-history"}`;
+  const rewardScope = new URLSearchParams();
+  if (rewardView !== "all") rewardScope.set("rewards", rewardView);
+  if (rewardPrize) rewardScope.set("prize", rewardPrize);
+  const rewardListHref = rewardScope.size ? `/account/wallet?${rewardScope}#${rewardView === "ready" || rewardView === "all" ? "ready-rewards" : "reward-history"}` : "/account/wallet";
   const demoDb = history && account.wallet?.scope === "demo" ? await createClient() : null;
   const provider = demoDb ? new DemoPaymentProvider(demoDb) : null;
   const [requests, savedCards, transaction, ledgerEntries, visibilityResult, catalog] = await Promise.all([
@@ -180,7 +182,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const ordersBackHref = orderReturn ?? (ordersVisit ? fulfillmentHref(undefined, fulfillmentFilter(query.orderFilter), false, undefined, orderContext) : undefined);
     if (account.activity.source === "unavailable") {
       const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
-      return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={ordersBackHref ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : "Back to your wallet ›"}</Link></div></div></PageContainer>;
+      const sourceTransaction = transactionOriginHref(query);
+      const sourceUpdate = checkedNotice ? notificationHref(notificationFilter(query.alerts), checkedNotice) : undefined;
+      return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={ordersBackHref ?? sourceTransaction ?? sourceUpdate ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : sourceTransaction ? "Back to this transaction" : sourceUpdate ? "Back to this notification" : "Back to your wallet ›"}</Link></div></div></PageContainer>;
     }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] | null = [];
@@ -215,7 +219,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const winFilter = query.via === "won" ? "prize" : query.via === "completed-win" ? "completed" : query.via === "activity-win" ? "all" : null;
       const notice = validNotice(query.notice) ? query.notice : undefined;
       const alerts = query.alerts === undefined ? sourceOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts);
-      const returnLink = transactionId && typeof query.rewardId === "string" && query.via === undefined
+      const returnLink = transactionId && typeof query.rewardId === "string" && (query.via === undefined || query.via === "purchase")
         ? { href: transactionOriginHref(query)!, label: "Back to this transaction" }
         : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.rewardId
           ? { href: reward.entryId ? completedActivityHref(reward.entryId) : "/account/entries?filter=completed&viewedReward=" + encodeURIComponent(reward.rewardId) + "#" + openEntriesAnchorId, label: "Back to this purchase" }
@@ -227,7 +231,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               : { href: fulfillmentHref(undefined, orderFilter, false, reward.rewardId), label: `Return to ${orderFilter === "all" ? "All orders & rewards" : fulfillmentFilterLabel[orderFilter]}` }
             : typeof query.rewardId === "string" && winFilter && !isPurchasedReward(reward) && reward.status === "prize" && reward.entryId
               ? { href: `/account/entries?filter=${winFilter}&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this win in My Activity" }
-              : notice && query.alerts !== undefined && query.via === undefined
+              : notice && query.alerts !== undefined && (query.via === undefined || query.via === "purchase")
                 ? { href: notificationHref(alerts, notice), label: "Back to notifications" }
                 : undefined;
       const fulfillmentReturn = sourceOrder
@@ -267,7 +271,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       <h1 id="reward-unavailable-title" tabIndex={-1} className="text-2xl font-bold">Choose your gift card</h1>
       <p className="mt-2">Your wallet contains more than one card for this prize. Choose its exact reference.</p>
       <ul className="mt-4 space-y-3">{matchingRewards.map(item => item.rewardId ? <li key={item.rewardId}>
-        <Link className="font-bold text-cyan-300 underline" href={walletRewardHref(item)}>{item.title} · Ref. {item.rewardId.slice(-8).toUpperCase()}</Link>
+        <Link className="font-bold text-cyan-300 underline" href={walletRewardHref(item) + (rewardScope.size ? `&${rewardScope}` : "") + (query.rewardHistory === "1" ? "&rewardHistory=1" : "") + "#reward-pass"}>{item.title} · Ref. {item.rewardId.slice(-8).toUpperCase()}</Link>
       </li> : null)}</ul>
       <Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-300">Back to your wallet</Link>
     </PageContainer>;

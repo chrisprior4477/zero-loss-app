@@ -119,9 +119,25 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     } catch { /* The server can still restore a saved hold without tab storage. */ }
   }, [initialReceipt, slug, submissionStorageKey]);
 
+  const reviewControl = useRef<HTMLButtonElement>(null);
+  const reviewOrigin = useRef<string | null>(null);
+  useEffect(() => {
+    function restoreReview() {
+      if (!reviewOrigin.current || window.location.pathname !== reviewOrigin.current || receipt || uncertain || working) return;
+      const reviewingEntry = new URLSearchParams(window.location.search).get("review") === "entry";
+      setCheckoutOpen(reviewingEntry);
+      setApproved(false);
+      if (!reviewingEntry) requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true }));
+    }
+    window.addEventListener("popstate", restoreReview);
+    return () => window.removeEventListener("popstate", restoreReview);
+  }, [receipt, uncertain, working]);
   function openReview() {
     if (invalidQuantity !== null) return;
-    if (entryId) window.history.replaceState(window.history.state, "", entryReviewHref(entryId, quantity, activityFilter, entryContext));
+    if (entryId) {
+      reviewOrigin.current = window.location.pathname;
+      window.history.pushState(window.history.state, "", entryReviewHref(entryId, quantity, activityFilter, entryContext));
+    }
     setCheckoutOpen(true);
   }
   useEntryWalletFunding(entryId && canEnter && quantityAvailable && invalidQuantity === null && reviewing && !busy && !uncertain ? addFundsHref : null);
@@ -366,7 +382,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             {invalidQuantity !== null ? <span id="additional-entry-quantity-error" role="status">Enter a whole number of tickets.</span> : null}
             {typedLimit === quantity && typedLimit === maxQuantity ? <span role="status">Only {typedLimit} more {typedLimit === 1 ? "entry is" : "entries are"} available. Your quantity was adjusted.</span> : null}
           </div> : null}
-          {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview} disabled={invalidQuantity !== null}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
+          {!checkoutOpen && reviewing ? <button ref={reviewControl} type="button" className={styles.primaryLink} onClick={openReview} disabled={invalidQuantity !== null}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
           {checkoutOpen ? <div id="additional-entry-checkout" ref={checkout} tabIndex={-1} className={styles.inlineCheckout} data-phase={receipt?.status ?? result.status} data-landing-align={reviewing ? "center" : "start"} aria-label="Additional entry checkout">
             {reviewing ? <>
             <div className={styles.reviewPrize}>
@@ -392,7 +408,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
               <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
               <button type="button" className={styles.checkoutConfirm} disabled={working || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
-            {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApproved(false); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
+            {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApproved(false); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true })); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
           </div> : null}
         </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
         <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>

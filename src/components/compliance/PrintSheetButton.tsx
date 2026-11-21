@@ -35,6 +35,7 @@ export function PrintSheetButton({ offering, name, account, reference }: {
     try { popup = window.open("", "_blank"); }
     catch { /* The prepared PDF can open through a link instead. */ }
     inFlight.current = { controller, popup };
+    const deadline = window.setTimeout(() => controller.abort("print-deadline"), 20_000);
     try {
       if (popup) {
         popup.opener = null;
@@ -52,7 +53,7 @@ export function PrintSheetButton({ offering, name, account, reference }: {
         throw new Error("PDF unavailable");
       }
       const blob = await response.blob();
-      if (controller.signal.aborted) return;
+      controller.signal.throwIfAborted();
       const url = URL.createObjectURL(blob);
       if (popup && !popup.closed) {
         window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
@@ -62,13 +63,14 @@ export function PrintSheetButton({ offering, name, account, reference }: {
         setPdfLink(url);
       }
     } catch {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted && controller.signal.reason !== "print-deadline") return;
       popup?.close();
       window.focus();
       setError("The printable PDF couldn’t open. Try again or use Open print dialog below.");
     } finally {
+      window.clearTimeout(deadline);
       inFlight.current = null;
-      if (!controller.signal.aborted) setOpening(false);
+      if (!controller.signal.aborted || controller.signal.reason === "print-deadline") setOpening(false);
     }
   }
 

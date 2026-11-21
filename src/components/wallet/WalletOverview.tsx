@@ -74,7 +74,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const landingId = selected ? `transaction-${selected.id}` : selectedTransaction?.requested ? "unavailable-transaction" : "transactions";
   const ready = activity && activity.source !== "unavailable" && !activity.incomplete ? readyWalletRewards(activity) : null;
   const optionCount = activity && activity.source !== "unavailable" && !activity.incomplete ? activity.activity.filter(item => item.status === "completion").length : null;
-  const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
+  const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : ready?.length ? "/account/wallet?rewards=ready#ready-rewards" : accountRoutes.rewards;
+  const sourceDeposit = depositList && selected ? depositsByLedgerId.get(selected.id) : undefined;
 
   return <div className={styles.page}>
     <AccountSettingsLandingScroll target="balance" initialTarget={landOnBalance ? "balance" : undefined} focusTarget="balance" settleAfterNavigation allScreens restrictToTargetHash />
@@ -126,6 +127,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{ordersReturnHref ? <Link className="font-bold text-[#126bbb] hover:underline" href={ordersReturnHref}>← Back to Orders &amp; Fulfillment</Link> : null}</div>
+        {sourceDeposit ? <Link className="font-bold text-[#126bbb] underline" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(sourceDeposit.requestKey)}#payment-deposits`}>← Back to this deposit</Link> : null}
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selected ? <div className={styles.alert}><p id="unavailable-transaction" tabIndex={-1} role="status">{selectedTransaction.failed ? "We couldn’t check this transaction right now. Try again or review the available history below." : "That transaction could not be opened for this account. Your available history is shown below."}</p>{selectedTransaction.failed && transactionRetryHref ? <a href={transactionRetryHref}>Check this transaction again</a> : null}{notificationReturnHref ? <Link href={notificationReturnHref}>← Back to this update</Link> : null}</div> : null}
         {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger ordersFilter={ordersFilter} notificationReturnHref={notificationReturnHref} depositList={depositList} weeklyDeposit={weeklyDeposit} timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}

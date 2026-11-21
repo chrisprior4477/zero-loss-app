@@ -11,7 +11,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
-import { transactionOriginHref } from "@/lib/wallet/ledger-return";
+import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/ledger-return";
 import styles from "@/components/account/purchase-options.module.css";
 import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
@@ -46,6 +46,20 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   if (!returnPath || Array.isArray(selectedEntryId)) notFound();
   if (!invalidOption && (requestedSlug !== slug || optionId && optionId !== selectedEntryId)) redirect(returnPath);
   const walletHref = transactionOriginHref(query);
+  const originLinks = <>
+    {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
+    {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
+  </>;
+  function keepOrigin(href: string) {
+    const destination = new URL(href, "https://navigation.invalid");
+    const origin = transactionOriginParams(query);
+    for (const [name, value] of Object.entries(origin ?? {})) destination.searchParams.set(name, value);
+    if (validNotice(query.notice)) {
+      destination.searchParams.set("notice", query.notice);
+      destination.searchParams.set("alerts", notificationFilter(query.alerts));
+    }
+    return destination.pathname + destination.search + destination.hash;
+  }
   const legacyDeclineSelectors = new URLSearchParams(selectors);
   legacyDeclineSelectors.delete("decline");
   const legacyDeclineReturnHref = legacyDeclineSelectors.size ? `${prizePath}?${legacyDeclineSelectors}` : prizePath;
@@ -59,7 +73,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
     return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
-      <h1 id="purchase-receipt-check">Check this purchase</h1>
+      <AccountSettingsLandingScroll target="purchase-receipt-check" initialTarget="purchase-receipt-check" focusTarget="purchase-receipt-check" allScreens />
+      <h1 id="purchase-receipt-check" tabIndex={-1}>Check this purchase</h1>
       <p>{result.status === "not_found" ? "No saved receipt was found for this purchase." : "We couldn’t verify this purchase yet."}</p>
       <div className={styles.topActions}>
         <a href={returnPath} className={styles.shopping}>Check again</a>
@@ -77,6 +92,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
           <p>Try again to check the current status of your offers.</p></div>
         <div className={styles.topActions}>
           <a href={returnPath} className={styles.shopping}>Try again</a>
+          {originLinks}
           <Link href="/account/entries?filter=completion" className={styles.return}>Go to My Activity</Link>
         </div>
       </div></div>
@@ -114,17 +130,17 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       </div>
     </section>;
     if (isPurchasedReward(ticket)) {
-      redirect(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : "/account/entries?filter=completed");
+      redirect(keepOrigin(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : completedActivityHref(ticket.entryId)));
     }
-    redirect(activityHref(ticket));
+    redirect(keepOrigin(activityHref(ticket)));
   }
   if (options.length === 0) {
-    if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect("/account/declined-offers");
+    if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect(keepOrigin(`/account/declined-offers?prize=${encodeURIComponent(slug)}`));
     const completed = activity.find(ticket => ticket.slug === slug && isPurchasedReward(ticket));
-    if (completed) redirect(completedActivityHref(completed.entryId));
+    if (completed) redirect(keepOrigin(completedActivityHref(completed.entryId)));
     const expired = activity.filter(ticket => ticket.slug === slug && ticket.completionOptionStatus === "expired");
     const lastExpired = expired.sort((a, b) => (b.completionExpiresAt ?? "").localeCompare(a.completionExpiresAt ?? ""))[0];
-    if (lastExpired) redirect(activityHref(lastExpired));
+    if (lastExpired) redirect(keepOrigin(activityHref(lastExpired)));
     const product = getDemoProduct(slug);
     if (!product) notFound();
     return <section className={styles.page} aria-labelledby="selected-offer-missing"><div className={styles.shell}>
@@ -134,6 +150,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       <div className={styles.topActions}>
         <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.shopping}>View your purchase options</Link>
         <Link href="/account/entries?filter=completed#my-activity-filters" className={styles.return}>View completed activity</Link>
+        {originLinks}
       </div>
     </div></section>;
   }

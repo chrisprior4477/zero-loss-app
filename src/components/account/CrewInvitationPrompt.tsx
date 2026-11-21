@@ -24,7 +24,7 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const id = useId();
-  const releasePromptHistory = useDialogBack(open, close, busy, true);
+  const releasePromptHistory = useDialogBack(open, () => setOpen(false), busy, true, false, "crew-invitation-" + (request?.id ?? "unavailable"), () => { if (request && !result?.ok) setOpen(true); });
   useEffect(() => {
     if (!open || !dialog.current) return;
     const element = dialog.current;

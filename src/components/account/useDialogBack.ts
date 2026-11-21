@@ -41,7 +41,7 @@ export function useDialogBack(open: boolean, onClose: () => void | true, blocked
     const back = (event: PopStateEvent) => {
       if (window.location.href !== href || window.history.state?.[key] === id) return;
       const previous = programmaticReturns.get(event);
-      if (previous?.key === key && previous.href === href && previous.id !== id) {
+      if (previous?.href === href && previous.id !== id) {
         // A new dialog can mount before the previous dialog's history step finishes closing.
         window.history.pushState({ ...window.history.state, [key]: id }, "", href);
         return;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./account-settings-pages.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-const profileSectionIds = new Set(["personal-details-heading", "contact-details-heading", "mailing-address-heading", "personalize-menu-heading", "personalize-logo-heading"]);
+const profileSectionIds = new Set(["personal-details-heading", "contact-details-heading", "mailing-address-heading", "profile-preferences-heading", "personalize-menu-heading", "personalize-logo-heading"]);
 
 function ProfileSectionLanding({ unavailable = false }: { unavailable?: boolean }) {
   useLayoutEffect(() => {

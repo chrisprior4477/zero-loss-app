@@ -78,7 +78,7 @@ test("wallet tickets reuse real account counts and direct destinations", () => {
   render(<WalletOverview wallet={empty} activity={storedActivityFixture()} requests={[]} />);
   expect(screen.getByRole("link", { name: "Playable Wallet: $0.00" }).getAttribute("href")).toBe("#balance");
   expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
-  expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
+  expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion#my-activity-filters");
 });
 
 test("funding from a prize has a direct return to its entry controls", () => {

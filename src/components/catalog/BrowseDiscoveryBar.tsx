@@ -66,13 +66,23 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const previewRef = useRef<HTMLElement>(null);
   const previewFocus = useRef<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const lastPanel = useRef<{ panel: BrowsePanel; position: ControlsPosition; trigger: HTMLButtonElement; href: string; query: string; mode: "categories" | "retailers"; preview: string | null } | null>(null);
+  const lastPanel = useRef<{ panel: BrowsePanel; position: ControlsPosition; trigger: HTMLButtonElement; href: string; queries: Record<"categories" | "retailers", string>; mode: "categories" | "retailers"; preview: string | null } | null>(null);
   const topCategories = useRef<HTMLButtonElement>(null);
   const bottomCategories = useRef<HTMLButtonElement>(null);
   const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
   const panel = openPanel?.panel;
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
-  const [query, setQuery] = useState("");
+  const [queries, setQueries] = useState({ categories: "", retailers: "" });
+  const query = queries[mode];
+  const filterDraft = useRef<string | undefined>(undefined);
+  const [initialFilterDraft, setInitialFilterDraft] = useState<string>();
+  function setQuery(value: string) { setQueries(current => ({ ...current, [mode]: value })); }
+  function changeMode(next: typeof mode) {
+    if (next === mode) return;
+    pickerVoice.reset();
+    setMode(next);
+    setPreview(null);
+  }
   const [preview, setPreview] = useState<string | null>(null);
   const [refining, setRefining] = useState<{ category: MarketplaceCategoryId | null; href: string } | null>(null);
   const [localSearch, setLocalSearch] = useState(props.searchTerm);
@@ -189,7 +199,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     session?.voice.cancel();
     setPreview(null);
     setRefining(null);
-    setQuery(""); setMode("categories"); setOpenPanel({ panel: next, position });
+    setQueries({ categories: "", retailers: "" });
+    filterDraft.current = undefined;
+    setInitialFilterDraft(undefined);
+    setMode("categories"); setOpenPanel({ panel: next, position });
   }
   function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
@@ -211,15 +224,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   useLayoutEffect(() => {
     const trigger = opener.current;
-    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger, href: props.browseHref, query, mode, preview };
-  }, [openPanel, props.browseHref, query, mode, preview]);
+    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger, href: props.browseHref, queries, mode, preview };
+  }, [openPanel, props.browseHref, queries, mode, preview]);
   const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true, false, "browse-discovery", () => {
     const last = lastPanel.current;
     if (last?.trigger.isConnected && last.href === props.browseHref) {
       opener.current = last.trigger;
-      setQuery(last.query);
+      setQueries(last.queries);
       setMode(last.mode);
       setPreview(last.preview);
+      setInitialFilterDraft(filterDraft.current);
       setOpenPanel({ panel: last.panel, position: last.position });
     }
   });
@@ -425,7 +439,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       <div className={styles.sheet}>
         <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? wideCategories ? "Choose a category to preview its prizes." : "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label={refining && panel === "filters" ? "Back to category preview" : "Close browse options"} onClick={() => close()}>×</button></header>
         {panel === "categories" ? <>
-          <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => setMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => setMode("retailers")}>Retailers</button></div>
+          <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => changeMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => changeMode("retailers")}>Retailers</button></div>
           <form role="search" aria-label="Find a category or retailer" className={`${styles.search} ${styles.pickerSearch}`} onSubmit={submitPickerSearch}>
             <label className={styles.srOnly} htmlFor={`${id}-picker`}>Find a category or retailer</label>
             <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} maxLength={maxCatalogSearchLength} aria-invalid={(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) || undefined} aria-describedby={(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) ? `${id}-picker-limit` : undefined} enterKeyHint="search" autoComplete="off"
@@ -477,7 +491,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0
               ? <p className={styles.noMatches}>{invalidCatalogSearch(query) || catalogSearchTooLong(query.trim()) ? "" : query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
           </div>
-        </> : <div className={styles.filterBody}><FilterForm {...filterProps} initialSearch={search} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div>}
+        </> : <div className={styles.filterBody}><FilterForm {...filterProps} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div>}
       </div>
     </dialog> : null}
   </div>

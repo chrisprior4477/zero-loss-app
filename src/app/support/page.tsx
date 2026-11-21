@@ -178,12 +178,18 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       </section>
     </PageContainer>;
   if (validCase) {
+    const caseReturn = query.fromUpdates === "1" || notice
+      ? { href: notificationHref(alerts ?? "all", notice), label: "Back to notifications" }
+      : query.from === "contact"
+        ? { href: "/contact#recent-conversations-heading", label: "Back to Contact Us conversations" }
+        : null;
     const lookup = await Promise.resolve(db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle())
       .then(result => ({ result }), () => ({ result: null }));
     if (!lookup.result || lookup.result.error) return <PageContainer>{heading}{navigation}
       <section id="conversation" className={`${card} ${styles.anchor}`} aria-label="Support conversation unavailable">
         <p role="alert">We couldn’t load this support conversation right now.</p>
         <a className={`${button} mt-3`} href={next}>Retry this conversation</a>
+        {caseReturn ? <Link className={button} href={caseReturn.href}>← {caseReturn.label}</Link> : null}
       </section>
     </PageContainer>;
     const result = lookup.result;
@@ -192,7 +198,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         <h2 tabIndex={-1} className="font-bold">This case is unavailable for your account.</h2>
         <p>Return to My support cases to try again.</p>
       </div>
-      {query.fromUpdates === "1" ? <Link className={button} href={notificationHref(alerts ?? "all", notice)}>← Back to notifications</Link> : null}
+      {caseReturn ? <Link className={button} href={caseReturn.href}>← {caseReturn.label}</Link> : null}
     </section></PageContainer>;
     const supportCase = result.data;
     const messagePage = pageIndex(query.messages);
@@ -259,7 +265,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {formatOfferDeadline(event.created_at, account.timezone)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{(origin || rewardOpening) && event.body === openingBody ? openingBody.slice((origin ?? rewardOpening)![0].length) : event.body}</p>
       </li>)}</ol>}
       {!events.error ? pageLinks(pageAnchor && supportMessageAnchor(pageAnchor) ? `${caseHref}&messageAnchor=${encodeURIComponent(pageAnchor)}` : caseHref, messagePage, (events.data?.length ?? 0) > pageSize, true) : null}
-      {events.error ? <a className={button} href={`${caseHref}#conversation`}>Retry loading the conversation</a> : messagePage === 0 && !messageAnchor ? <SupportForm ownerId={account.userId} key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} caseContext={linkedCaseContext} /> : <Link className={button} href={`${caseHref}#conversation`}>Return to the latest messages to reply</Link>}
+      {events.error ? <a className={button} href={next}>Retry loading the conversation</a> : messagePage === 0 && !messageAnchor ? <SupportForm ownerId={account.userId} key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} caseContext={linkedCaseContext} /> : <Link className={button} href={`${caseHref}#conversation`}>Return to the latest messages to reply</Link>}
     </section></PageContainer>;
   }
   // Ledger RLS already selects this customer's current wallet. wallet_scope is
@@ -281,7 +287,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const rewardStatus = linkedReward?.rewardStatus === "ready" ? linkedReward.rewardClaimedAt ? "Ready to use" : "Ready to claim"
     : linkedReward?.rewardStatus ? rewardStatuses[linkedReward.rewardStatus] : undefined;
   const deposit = validDeposit && account.wallet?.scope === "demo"
-    ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => undefined) : undefined;
+    ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => null) : undefined;
   const caseBase = validTransaction ? `/support?transaction=${validTransaction}${walletContext}${walletOrdersContext || orderContext}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}${walletView ? "&walletView=1" : ""}`
     : validReward ? `/support?rewardId=${validReward}${orderContext}${rewardReturnQuery}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}`
     : validDeposit ? depositSupportHref(validDeposit, checkoutReturn, depositList, entryReturn).split("#")[0] : "/support";
@@ -289,11 +295,26 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     .order("updated_at", { ascending: false }).order("id", { ascending: false })
     .range(casePage * pageSize, (casePage + 1) * pageSize) : null;
   const cases = inbox ? null : await loadOwnSupportCases(db, account.userId);
+  const contextUnavailable = validDeposit && !deposit ? "We couldn’t verify that deposit for your account."
+    : validReward && (!reward?.data || reward.error) ? "That reward is unavailable for your account."
+    : validTransaction && (!transaction?.data || transaction.error) ? "That transaction is unavailable for your account." : null;
+  const lookupFailed = validDeposit && deposit === null || validReward && Boolean(reward?.error) || validTransaction && Boolean(transaction?.error);
+  const selectedRecordReturn = !lookupFailed ? null : validDeposit ? depositRecoveryHref(validDeposit, depositList, false, checkoutReturn, entryReturn)
+    : validReward ? rewardReturn ?? `/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`
+    : validTransaction ? walletSupportReturnHref(validTransaction, walletView, false, ordersWalletFilter)
+    : null;
   return <PageContainer>{heading}{navigation}{inbox ? <p className={`${note} mb-5 text-sm`}>Private case review and replies only. This inbox cannot issue refunds, adjust balances, or change prizes.</p> : null}
     {!inbox && !validTransaction && !validReward && !validDeposit ? <HelpShortcuts activity={account.activity} /> : null}
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 tabIndex={-1} className="mb-4 text-xl font-black">Report a problem</h2>
-        {validDeposit && !deposit ? <p role="alert">We couldn’t verify that deposit for your account. Return to Wallet history to try again. <Link href="/support">Get general support</Link></p> : validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again. <Link href="/support#report-problem">Get general support</Link></p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again. <Link href="/support#report-problem">Get general support</Link></p> : <>
+        {contextUnavailable ? <div>
+          <p role="alert">{contextUnavailable}</p>
+          <div className={styles.navigation}>
+            <a className={button} href={next}>Check this record again</a>
+            {selectedRecordReturn ? <Link className={button} href={selectedRecordReturn}>Check {validDeposit ? "deposit status" : validReward ? "reward status" : "transaction status"}</Link> : null}
+            <Link className={button} href="/support#report-problem">Get general support</Link>
+          </div>
+        </div> : <>
           {charge && validTransaction ? <SupportReceipt
             title={linkedOrder?.title ?? entryProduct?.title ?? transactionTitle}
             detail={linkedOrder || entryProduct ? transactionTitle : undefined}

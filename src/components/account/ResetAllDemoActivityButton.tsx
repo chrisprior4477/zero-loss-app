@@ -25,7 +25,7 @@ export function ResetAllDemoActivityButton({ ownerId }: { ownerId?: string } = {
   const requestKey = useRef<string | null>(null);
   const storageKey = ownerId ? `zero-loss-demo-reset:${ownerId}` : null;
   const [savedResetPending, setSavedResetPending] = useState(false);
-  useDialogBack(Boolean(preview), close, pending, true, true);
+  useDialogBack(Boolean(preview), close, pending, true, true, "reset-demo-activity", () => { if (!savedResetPending) open(); });
 
   useEffect(() => {
     if (!storageKey) return;

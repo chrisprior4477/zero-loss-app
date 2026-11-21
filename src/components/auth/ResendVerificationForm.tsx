@@ -17,6 +17,16 @@ async function resendVerification(previous: ResendFeedback, data: FormData): Pro
   catch { return { ok: false, message: "We couldn’t confirm the verification email request. Check your connection, wait a minute, and try again.", submittedEmail }; }
 }
 
+export function ResendVerificationRecovery() {
+  const [email, setEmail] = useState("");
+  return <section id="resend-verification" aria-labelledby="resend-verification-title">
+    <h2 id="resend-verification-title" className="text-2xl font-black">Resend verification email</h2>
+    <label className="mt-4 block text-sm font-bold" htmlFor="resend-email">Account email</label>
+    <input id="resend-email" name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} className="mt-2 w-full rounded-md border border-white/20 bg-[#001b3d] px-3 py-2 text-white" />
+    <ResendVerificationForm email={email} emailFieldId="resend-email" />
+  </section>;
+}
+
 export function ResendVerificationForm({ email, returnTo = null, emailFieldId }: { email: string; returnTo?: string | null; emailFieldId?: string }) {
   const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(

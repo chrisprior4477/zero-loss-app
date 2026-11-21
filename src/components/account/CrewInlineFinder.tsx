@@ -8,9 +8,11 @@ import { addSampleCrewPreview, sampleCrewPeople, type SampleCrewName } from "@/l
 import { ShareIcon } from "@/components/product/ShareIcon";
 import styles from "./crew-connected.module.css";
 
-export function CrewInlineFinder({ available, onSample, onClose }: { available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
+export function CrewInlineFinder({ available, onSample, onClose, query: retainedQuery, onQueryChange }: { query?: string; onQueryChange?: (value: string) => void; available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [localQuery, setLocalQuery] = useState("");
+  const query = retainedQuery ?? localQuery;
+  const setQuery = onQueryChange ?? setLocalQuery;
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   const contactChoice = useRef<HTMLSelectElement>(null);
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);

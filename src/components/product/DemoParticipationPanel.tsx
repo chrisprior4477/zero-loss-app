@@ -4,6 +4,7 @@ import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
 import { useEntrySelection } from "./ProductEntrySelection";
@@ -136,6 +137,22 @@ export function DemoParticipationPanel({
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = canAdjustQuantity && remaining > 0 && !quantityReduced
     && (balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state));
+  function closeBalanceNotice() {
+    setBalanceNoticeOpen(false);
+    setDismissedBalanceError(state);
+  }
+  useDialogBack(showBalanceNotice, closeBalanceNotice, false, true, false, "entry-balance-notice", () => {
+    if (canAdjustQuantity && remaining > 0 && (serverBalanceError || knownBalance !== null && totalCents > knownBalance)) setBalanceNoticeOpen(true);
+  });
+  const explanationQuantity = useRef<number | null>(null);
+  useDialogBack(additionalEntryNoticeOpen, () => {
+    explanationQuantity.current = requestedQuantity.current;
+    closeExplanation();
+  }, preferenceSaving || preferenceResetting, true, false, "extra-entry-explanation", () => {
+    if (!canAdjustQuantity || explanationQuantity.current === null) return;
+    requestedQuantity.current = Math.min(explanationQuantity.current, remaining);
+    setAdditionalEntryNoticeOpen(true);
+  });
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref, shareToken))}`;
   const fundingForEntry = canAdjustQuantity && remaining > 0 && invalidQuantity === null;
   const addFundsHref = fundingForEntry ? fundingHref(productSlug, undefined, quantity, browseReturnHref, undefined, shareToken) : fundingHref();
@@ -173,18 +190,22 @@ export function DemoParticipationPanel({
     if (entryBusy || uncertain || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
       requestedQuantity.current = quantity + 1;
+      if (!isSignedIn) {
+        setQuantity(quantity + 1);
+        rememberEntry(quantity + 1);
+      }
       setAdditionalEntryNoticeOpen(true);
       return;
     }
     addNextEntry();
   };
 
-  const closeExplanation = () => {
+  function closeExplanation() {
     explanationVisit.current += 1;
     requestedQuantity.current = null;
     setAdditionalEntryNoticeOpen(false);
     setPreferenceError(null);
-  };
+  }
 
   const acknowledgeAndAddEntry = async () => {
     if (preferenceSaving || preferenceResetting) return;
@@ -484,10 +505,7 @@ export function DemoParticipationPanel({
         </div>
       ) : null}
 
-      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={rememberFundingEntry} onClose={() => {
-        setBalanceNoticeOpen(false);
-        setDismissedBalanceError(state);
-      }} /> : null}
+      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={rememberFundingEntry} onClose={closeBalanceNotice} /> : null}
 
       {additionalEntryNoticeOpen ? <ExtraEntryExplanation
         productTitle={productTitle} productValue={productValue} retailer={retailer} entryPrice={entryPrice}

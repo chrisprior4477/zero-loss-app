@@ -28,7 +28,7 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
     }
   }, [balanceCents, pending]);
 
-  useDialogBack(balanceCents !== null, closeDialog, pending, true);
+  useDialogBack(balanceCents !== null, closeDialog, pending, true, false, "clear-demo-funds", () => { if (value !== "Unavailable") openConfirmation(); });
 
   function closeDialog() {
     restoreFocus.current = true;

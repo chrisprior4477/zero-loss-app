@@ -146,7 +146,7 @@ test("authorized activity populates the three compact shortcuts", () => {
   const dialog = within(screen.getByRole("dialog"));
   expect(dialog.getByRole("link", { name: "Prize Ready — 1 reward" }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
   const options = dialog.getByRole("link", { name: "Purchase Options — 1 available" });
-  expect(options.getAttribute("href")).toBe("/account/entries?filter=completion");
+  expect(options.getAttribute("href")).toBe("/account/entries?filter=completion#my-activity-filters");
   expect(within(options).getByText("1")).toBeTruthy();
   expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
   expect(dialog.getByRole("link", { name: "My Activity" }).getAttribute("aria-current")).toBe("page");

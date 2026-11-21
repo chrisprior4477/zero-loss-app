@@ -39,7 +39,12 @@ export function SignOutEverywhereControl() {
     });
     setReviewOpen(false);
   }
-  useDialogBack(phone && reviewOpen, closeReview, pending, true);
+  useDialogBack(phone && reviewOpen, closeReview, pending, true, false, "sign-out-everywhere", () => {
+    if (!phone || pending || !review.current) return;
+    review.current.open = true;
+    setReviewOpen(true);
+    review.current.querySelector("summary")?.focus({ preventScroll: true });
+  });
   const feedback = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (!pending && state.status === "error") feedback.current?.focus(); }, [pending, state]);
 

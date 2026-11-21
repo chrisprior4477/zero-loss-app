@@ -56,11 +56,20 @@ export function CrewGroupContacts({ contacts, disabled, onChange, draftKey }: { 
     }
     setInvalid(null);
     if (contacts.length >= 100) { setMessage("This group’s contact list is full."); return; }
-    if (contacts.some(item => contact.email && item.email.toLowerCase() === contact.email.toLowerCase() || contact.phone && contactPhoneKey(item.phone) === contactPhoneKey(contact.phone))) {
-      setMessage("That contact is already in this group."); return;
+    const duplicateEmail = contact.email && contacts.some(item => item.email.toLowerCase() === contact.email.toLowerCase());
+    const duplicatePhone = contact.phone && contacts.some(item => contactPhoneKey(item.phone) === contactPhoneKey(contact.phone));
+    if (duplicateEmail || duplicatePhone) {
+      setInvalid(duplicateEmail ? "email" : "phone");
+      setMessage("That contact is already in this group.");
+      const field = duplicateEmail ? emailField.current : phoneField.current;
+      field?.focus({ preventScroll: true });
+      if (field) revealBelowHeader(field);
+      return;
     }
     onChange([...contacts, { ...contact, phone: normalizeCrewContactPhone(contact.phone) }]); setName(""); setPhone(""); setEmail("");
     remember("", "", "");
+    nameField.current?.focus({ preventScroll: true });
+    if (nameField.current) revealBelowHeader(nameField.current);
     setMessage(`Choose Save group to keep ${contact.name}’s details.`);
   }
   async function invite(contact: CrewGroupContact, method: "email" | "phone") {

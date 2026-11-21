@@ -24,14 +24,22 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [failedReads, setFailedReads] = useState<string[]>([]);
+  const retryControl = useRef<HTMLButtonElement>(null);
   const [retryingRead, setRetryingRead] = useState(false);
   async function retryRead() {
     if (!value || !failedReads.length || retryingRead) return;
     setRetryingRead(true);
     const retried = failedReads;
+    const notice = retryControl.current?.parentElement;
     try {
       await value.markRead(retried);
+      const restoreFocus = notice?.contains(document.activeElement) || document.activeElement === document.body;
       setFailedReads(current => current.filter(id => !retried.includes(id)));
+      if (restoreFocus) requestAnimationFrame(() => {
+        if (document.activeElement !== document.body) return;
+        const destination = retryControl.current ?? trigger.current ?? document.querySelector<HTMLElement>('[aria-label="Open account menu"]');
+        destination?.focus({ preventScroll: true });
+      });
     } catch { /* Keep the original failed reads available for another attempt. */ }
     finally { setRetryingRead(false); }
   }
@@ -52,7 +60,6 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const warmed = useRef(new Map<string, number>());
   const endUpdatesHistory = useDialogBack(Boolean(value?.open), () => { keyboardOpened.current = true; value?.setOpen(false); }, false, false, false, "header-updates", () => {
     keyboardOpened.current = true;
-    setSelected(null);
     value?.setOpen(true);
   });
   function closeUpdates() { endUpdatesHistory(); value?.setOpen(false); }
@@ -144,7 +151,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const currentBanner = bannerVisible ? messages.find(message => message.category === bannerCategory) ?? messages[0] : undefined;
   const failedReadFeedback = failedReads.length > 0 ? <>
     <span role="alert">Your alert could not be marked as read. It is still available in updates.</span>
-    <button type="button" disabled={retryingRead} onClick={() => void retryRead()}>{retryingRead ? "Retrying…" : "Retry marking as read"}</button>
+    <button ref={retryControl} type="button" disabled={retryingRead} onClick={() => void retryRead()}>{retryingRead ? "Retrying…" : "Retry marking as read"}</button>
     <button type="button" aria-label="Dismiss notification message" onClick={() => setFailedReads([])}>×</button>
   </> : null;
   return <>

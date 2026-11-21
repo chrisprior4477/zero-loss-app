@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { claimReward, type RewardClaimActionState } from "@/lib/account/lifecycle-actions";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { DemoVerificationDialog } from "@/components/identity/DemoVerificationDialog";
 import { ClaimIdentityIntro } from "./ClaimIdentityIntro";
 import { beginDemoVerification, skipDemoVerificationForPresentation } from "@/lib/identity/demo-verification-actions";
@@ -28,6 +29,21 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref }
   const form = useRef<HTMLFormElement>(null);
   const claimButton = useRef<HTMLButtonElement>(null);
   const claimStatus = useRef<HTMLParagraphElement>(null);
+  const dismissedVerification = useRef(false);
+  function closeClaimReview() {
+    setIntroOpen(false);
+    setVerificationOpen(false);
+    claimButton.current?.focus({ preventScroll: true });
+  }
+  const introScope = "reward-claim-intro-" + rewardId;
+  const verificationScope = "reward-claim-check-" + rewardId;
+  const canResume = !introOpen && !verificationOpen && !pending && state.status === "verification_required";
+  useDialogBack(false, closeClaimReview, false, false, false, introScope, () => {
+    if (canResume && !dismissedVerification.current) setIntroOpen(true);
+  });
+  useDialogBack(false, closeClaimReview, false, false, false, verificationScope, () => {
+    if (canResume && !dismissedVerification.current) setVerificationOpen(true);
+  });
   useEffect(() => {
     if (state.status !== "succeeded") return;
     if (document.activeElement === document.body || document.activeElement === claimButton.current) {
@@ -39,7 +55,7 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref }
   useEffect(() => {
     // The server, not the client, decides whether this claim needs verification.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (state.status === "verification_required") setIntroOpen(true);
+    if (state.status === "verification_required") { dismissedVerification.current = false; setIntroOpen(true); }
   }, [state]);
   async function skipDemoAndClaim() {
     if (!previewShown || skipInFlight.current || pending) return;
@@ -68,8 +84,9 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref }
     </button>
     {state.status !== "idle" ? <p ref={claimStatus} tabIndex={-1} role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
     {needsCheck ? <a className="mt-3 inline-block text-sm font-bold text-[#0069b3] underline" href={checkHref ?? `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`}>Check this reward →</a> : null}
-  </form>{introOpen ? <ClaimIdentityIntro busy={skipping} error={skipError} onSkipDemo={previewShown ? skipDemoAndClaim : undefined} onClose={() => { setIntroOpen(false); claimButton.current?.focus(); }} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
-  {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} onClose={() => { setVerificationOpen(false); claimButton.current?.focus(); }} onComplete={() => {
+  </form>{introOpen ? <ClaimIdentityIntro historyScope={introScope} busy={skipping} error={skipError} onSkipDemo={previewShown ? skipDemoAndClaim : undefined} onClose={closeClaimReview} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
+  {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} historyScope={verificationScope} onClose={closeClaimReview} onComplete={() => {
+    dismissedVerification.current = true;
     setVerificationOpen(false);
     form.current?.requestSubmit();
   }} /> : null}</>;

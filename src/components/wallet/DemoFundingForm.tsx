@@ -74,6 +74,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [customAmount, setCustomAmount] = useState(() => presetAmounts.includes(initialAmount) ? "" : String(Number(initialAmount) / 100));
   const [showWholeDollarNotice, setShowWholeDollarNotice] = useState(false);
   const wholeDollarAcknowledged = useRef(false);
+  const wholeDollarReviewAmount = useRef("");
   const noticeKey = `${storageKey}:whole-dollar-notice-v1`;
   function closeWholeDollarNotice(save = false) {
     if (save) {
@@ -82,6 +83,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     setShowWholeDollarNotice(false);
   }
+  useDialogBack(showWholeDollarNotice, () => { wholeDollarReviewAmount.current = customAmount; closeWholeDollarNotice(); }, false, true, false, "whole-dollar-funding", () => {
+    if (!wholeDollarAcknowledged.current && customAmount.includes(".") && customAmount === wholeDollarReviewAmount.current) setShowWholeDollarNotice(true);
+  });
   const wholeDollars = /^\s*(?:\d+|\d{1,3}(?:,\d{3})+)\s*$/.test(customAmount) ? Number(customAmount.replaceAll(",", "")) : 0;
   const amountOutsideRange = wholeDollars > 0 && !isFundingAmount(wholeDollars * 100);
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
@@ -108,6 +112,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
   const [deleteToken, setDeleteToken] = useState<DemoCardToken | null>(null);
+  const [deleteDeadline, setDeleteDeadline] = useState(0);
+  const pendingCardRemoval = useRef<{ token: DemoCardToken; deadline: number; revision?: string } | null>(null);
   const deleteRevision = useRef<string | undefined>(undefined);
   const [deletingCard, setDeletingCard] = useState(false);
   const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
@@ -305,6 +311,21 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     window.addEventListener("popstate", syncEditor);
     return () => { window.removeEventListener("hashchange", syncEditor); window.removeEventListener("popstate", syncEditor); };
   }, [fundingEditorHash, ready, recovered, locked, walletId, returnHref, cardUnavailable, cards, visibleTokens]);
+  function reviewCardRemoval(token: DemoCardToken, deadline = Date.now() + 30_000) {
+    setDeleteDeadline(deadline);
+    setCardMessage("");
+    deleteRevision.current = cards.find(card => card.token === token)?.revision;
+    setDeleteToken(token);
+  }
+  useDialogBack(mobile && Boolean(deleteToken), () => {
+    if (deleteToken) pendingCardRemoval.current = { token: deleteToken, deadline: deleteDeadline, revision: deleteRevision.current };
+    closeDeleteDialog();
+  }, deletingCard, true, false, "funding-card-delete", () => {
+    const review = pendingCardRemoval.current;
+    if (mobile && !locked && !cardUnavailable && review && Date.now() < review.deadline && cards.some(card => card.token === review.token && card.revision === review.revision)) {
+      reviewCardRemoval(review.token, review.deadline);
+    }
+  });
   function closeDeleteDialog() {
     setDeleteToken(null);
   }
@@ -428,12 +449,12 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
         const fixture = demoCardFixture(token);
         const cardName = fixture ? fixture.issuer + " ending " + fixture.lastFour : "sample card";
-        return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage}
+        return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage} parentHistory initialDeadline={deleteDeadline || undefined}
           mobileCard={mobile && fixture ? `${fixture.issuer} •••• ${fixture.lastFour}` : undefined}
           onUndo={closeDeleteDialog} onReview={() => refreshDeletion(token)} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
           {allSamplesSaved ? <button type="button" id={"funding-edit-saved-" + token} aria-label={"Edit " + cardName} className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={event => addCard(token, event.currentTarget)}>Edit</button> : null}
-          {saved ? <button type="button" aria-label={"Delete Card " + cardName} className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); deleteRevision.current = cards.find(card => card.token === token)?.revision; setDeleteToken(token); }}>Delete Card</button> : null}
+          {saved ? <button type="button" aria-label={"Delete Card " + cardName} className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => reviewCardRemoval(token)}>Delete Card</button> : null}
         </>}>
           <label className={styles.cardChoice}><input type="radio" name="cardChoice" aria-label={"Use " + cardName + " for this deposit"} checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
@@ -791,18 +812,18 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
           }
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
-          <p>Request {request.id}</p><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
-          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View deposit receipt</Link></p>}
+          <p>Request {request.id}</p><div className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
+          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View deposit receipt</Link></p>}</div>
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
       </li>;
   }
   return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading">
-    {!focusRequest ? <AccountSettingsLandingScroll target="payment-deposits" focusTarget="payment-deposits-heading" allScreens restrictToTargetHash /> : null}
+    {!focusRequest || !focusId ? <AccountSettingsLandingScroll target="payment-deposits" focusTarget={focusRequest && requests && dismissedArchiveReturn !== focusRequest ? "unavailable-deposit-receipt" : "payment-deposits-heading"} allScreens restrictToTargetHash /> : null}
     <div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
-    {focusRequest && requests && !focusId && dismissedArchiveReturn !== focusRequest ? <p role="status" className="mt-3 text-sm text-amber-100">This deposit receipt is unavailable. You can still browse your payment deposits below.</p> : null}
+    {focusRequest && requests && !focusId && dismissedArchiveReturn !== focusRequest ? <p id="unavailable-deposit-receipt" role="status" tabIndex={-1} className="mt-3 text-sm text-amber-100">This deposit receipt is unavailable. You can still browse your payment deposits below.</p> : null}
     {depositsToCheck.length > 0 && <section className={styles.depositsToCheck} aria-labelledby="deposits-to-check-heading">
       <h3 id="deposits-to-check-heading">Deposits to check</h3>
       <ul>{depositsToCheck.map(renderDeposit)}</ul>

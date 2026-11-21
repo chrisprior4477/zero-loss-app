@@ -4,7 +4,7 @@ export const accountRoutes = {
   activity: "/account/entries",
   favorites: "/account/favorites",
   openEntries: "/account/entries?filter=active",
-  purchaseOptions: "/account/entries?filter=completion",
+  purchaseOptions: "/account/entries?filter=completion#my-activity-filters",
   rewards: "/account/wallet",
   walletHistory: "/account/wallet?view=history",
   orders: "/account/orders",

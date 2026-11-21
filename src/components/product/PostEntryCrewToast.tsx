@@ -19,6 +19,7 @@ import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
+const isDelivery = (step: Step) => step === "messages" || step === "email";
 type Step = "home" | "person" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster" | "contactEdit";
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
@@ -48,6 +49,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [recipientLoad, setRecipientLoad] = useState<"loading" | "ready" | "failed">("loading");
   const [recipientRetry, setRecipientRetry] = useState(0);
   const history = useRef<Step[]>([]);
+  const [deliveryHistory, setDeliveryHistory] = useState(false);
   const [origin] = useState(() => typeof window === "undefined" ? "" : window.location.origin);
   const [options, setOptions] = useState<CrewShareOptions | null>(null);
   useEffect(() => {
@@ -135,9 +137,20 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     return () => { cancelled = true; };
   }, [shareSlug, shareGroupId, singleLinkAudience, linkRetry]);
   useDialogBack(true, () => {
+    if (deliveryHistory) return;
     if (history.current.length) { back(); return true; }
     onClose();
   }, busy, true, false, restoreManualHistory ? "manual-product-sharing" : "product-sharing");
+  const previousDelivery = useRef<{ step: "messages" | "email"; from: Step } | null>(null);
+  useDialogBack(deliveryHistory, () => {
+    if (step === "messages" || step === "email") {
+      previousDelivery.current = { step, from: history.current.at(-1) ?? "home" };
+      back();
+    } else { back(); return true; }
+  }, busy, true, true, "share-delivery", () => {
+    const saved = previousDelivery.current;
+    if (saved && saved.from === step) go(saved.step);
+  });
   useDialogBack(groupHistory, () => {
     if (history.current.at(-1) !== "home") { back(); return true; }
     back();
@@ -254,8 +267,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [step]);
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
-  function go(next: Step) { history.current.push(step); setStep(next); setRecipientError(false); feedback(""); }
-  function back() { const previous = history.current.pop() ?? "home"; if (previous === "home") setGroupHistory(false); if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
+  function go(next: Step) { history.current.push(step); if (isDelivery(next)) setDeliveryHistory(true); setStep(next); setRecipientError(false); feedback(""); }
+  function back() { const previous = history.current.pop() ?? "home"; if (previous === "home") setGroupHistory(false); if (!isDelivery(previous) && !history.current.some(isDelivery)) setDeliveryHistory(false); if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -664,7 +677,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (emailRecipientPanel.current) emailRecipientPanel.current.open = true;
     document.getElementById(`${id}-recipient`)?.focus();
   }
-  const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} role="link" tabIndex={0} onKeyDown={activateDraftLink} target="_blank" rel="noopener noreferrer" onClick={event => {
+  const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (${provider === "outlook" && tile ? "Hotmail too, " : ""}opens a new tab)`} href={emailLink(provider)} role="link" tabIndex={0} onKeyDown={activateDraftLink} target="_blank" rel="noopener noreferrer" onClick={event => {
     if (!externalHref) { event.preventDefault(); if (linkReady) invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
@@ -753,7 +766,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <div className={styles.emailTiles}>
             {webmailLink("gmail", "Gmail", true)}
             {webmailLink("outlook", "Outlook", true)}
-            <a className={styles.emailTile} aria-label="Use my default email app" href={externalHref ?? undefined} role="link" tabIndex={0} onKeyDown={activateDraftLink} onClick={event => {
+            <a className={styles.emailTile} aria-label="Email app, Use my default email app" href={externalHref ?? undefined} role="link" tabIndex={0} onKeyDown={activateDraftLink} onClick={event => {
               if (!externalHref) { event.preventDefault(); if (linkReady) invalidEmail(); }
               else feedback("Review and send in your email app. If it doesn’t open, choose Gmail or Outlook, or copy the message below.");
             }}><ShareIcon name="mail" /><span>Email app</span></a>

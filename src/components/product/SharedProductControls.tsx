@@ -48,7 +48,15 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
     url.searchParams.delete("reviewShare");
     window.history.replaceState(window.history.state, "", url);
   }, [signedIn, reviewOnReturn]);
-  useDialogBack(Boolean(dialogKind), () => setDialogKind(null), busy, true);
+  const previousReview = useRef<typeof dialogKind>(null);
+  useDialogBack(Boolean(dialogKind), () => {
+    previousReview.current = dialogKind;
+    setDialogKind(null);
+  }, busy, true, false, "shared-prize-review", () => {
+    if (!signedIn || context?.own) return;
+    const review = previousReview.current;
+    if (review === "options" || review === "leave" && context?.receiving || review === "rejoin" && context && !context.receiving) setDialogKind(review);
+  });
   useEffect(() => {
     if (savingItem || !saveFailed || dialogKind || !saveTrigger.current) return;
     const button = saveTrigger.current;

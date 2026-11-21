@@ -23,7 +23,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
   const revision = useRef<string | undefined>(undefined);
   const requestKey = useRef<string | null>(null);
   const label = kind === "transactions" ? "Clear All Demo Transactions" : "Delete All Demo Deposits";
-  useDialogBack(balanceCents !== null, close, pending, true);
+  useDialogBack(balanceCents !== null, close, pending, true, false, `clear-demo-${kind}`, open);
 
   useEffect(() => {
     if (!pending && balanceCents !== null && !dialog.current?.open) dialog.current?.showModal();

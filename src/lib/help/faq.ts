@@ -17,6 +17,7 @@ export type FaqItem = {
   answer: string;
   keywords: string;
   action: { label: string; href: string };
+  followUpAction?: { label: string; href: string };
 };
 
 // Product guidance for the current MVP, not a substitute for published terms.
@@ -86,7 +87,7 @@ export const faqItems: FaqItem[] = [
     id: "time-zone", category: "account", question: "How do I change my time zone?",
     answer: "Open Profile and update your mailing address. Zero Loss uses the address to determine your time zone. If the address matches more than one zone, choose the correct one before saving.",
     keywords: "timezone time zone local time change clock date deadline address profile",
-    action: { label: "Open mailing address settings", href: "/account/profile#mailing-address-heading" },
+    action: { label: "Open mailing address settings", href: "/account/profile?section=mailing#mailing-address-heading" },
   },
   {
     id: "change-email", category: "account", question: "Can I change my email address?",
@@ -143,12 +144,12 @@ export const faqItems: FaqItem[] = [
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
     answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. Completing the purchase is a separate choice. Completed activity remains in your history.",
-    keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion" },
+    keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion#my-activity-filters" },
   },
   {
     id: "purchase-meaning", category: "entries", question: "Does completing a purchase order the pictured product?",
     answer: "The current purchase-option flow provides a retailer gift card for the advertised value after you pay the remaining amount. It does not reserve or ship the pictured product. Review the option before confirming; product availability, variants, and any cost above the gift-card value are controlled by the retailer.",
-    keywords: "shipping size color exact item inventory retailer", action: { label: "Review my options", href: "/account/entries?filter=completion" },
+    keywords: "shipping size color exact item inventory retailer", action: { label: "Review my options", href: "/account/entries?filter=completion#my-activity-filters" },
   },
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
@@ -224,6 +225,7 @@ export const faqItems: FaqItem[] = [
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
     answer: "Sign in and send a message from Contact or Help Center. Your request is saved as a private case, and you can open that same conversation to add details or read replies. Case updates also appear in Notifications. The current preview does not send support emails, so check your saved conversation for the response.",
     keywords: "contact help service email reply case issue complaint", action: { label: "Contact support", href: "/contact#message" },
+    followUpAction: { label: "Follow up on a case", href: "/support#case-list" },
   },
   {
     id: "request-product", category: "support", question: "Can I suggest a product or retailer?",
@@ -263,7 +265,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "verification-email", category: "account", question: "What if my verification email did not come?",
     answer: "Use Resend verification email from Create account with the address you registered. Check your spam folder for the new message. Use the separate sign-in recovery option if you forgot your sign-in details.",
-    keywords: "missing verification email resend verify confirm signup", action: { label: "Open Create account", href: "/signup" },
+    keywords: "missing verification email resend verify confirm signup", action: { label: "Resend verification email", href: "/signup?verify=resend#resend-verification" },
   },
 ];
 
