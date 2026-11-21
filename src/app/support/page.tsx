@@ -291,6 +291,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const caseBase = validTransaction ? `/support?transaction=${validTransaction}${walletContext}${walletOrdersContext || orderContext}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}${walletView ? "&walletView=1" : ""}`
     : validReward ? `/support?rewardId=${validReward}${orderContext}${rewardReturnQuery}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}`
     : validDeposit ? depositSupportHref(validDeposit, checkoutReturn, depositList, entryReturn).split("#")[0] : "/support";
+  const casesRetryHref = inbox ? caseInboxHref : `${caseBase}${casePage ? `${caseBase.includes("?") ? "&" : "?"}page=${casePage + 1}` : ""}#case-list`;
+  const failedCases = <p role="alert" className="mt-4">We couldn’t load cases. <a className="font-bold text-cyan-300 underline" href={casesRetryHref}>Try again.</a></p>;
   const inboxCases = inbox ? await db.from("support_cases").select(caseColumns)
     .order("updated_at", { ascending: false }).order("id", { ascending: false })
     .range(casePage * pageSize, (casePage + 1) * pageSize) : null;
@@ -340,12 +342,12 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       </section> : null}
       <section id="case-list" tabIndex={-1} className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 tabIndex={-1} className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
       <MissingSupportConversation />
-        {inbox ? inboxCases?.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : <>
+        {inbox ? inboxCases?.error ? failedCases : <>
           {inboxCases?.data?.length ? <SupportCaseList cases={inboxCases.data.slice(0, pageSize).map(item => ({ ...item, label: statusLabel(item.status, true) }))}
             context={inboxContext} timeZone={account.timezone} /> : <p className={`mt-4 ${styles.muted}`}>{casePage ? "No more cases on this page." : "No cases yet."}</p>}
           {pageLinks("/support?view=inbox", casePage, (inboxCases?.data?.length ?? 0) > pageSize)}
         </> : cases ? <SupportCasePages key={`${account.userId}:${caseBase}`} cases={cases} timeZone={account.timezone} initialPage={casePage} pageSize={pageSize} base={caseBase} />
-          : <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p>}
+          : failedCases}
       </section>
     </div>
   </PageContainer>;

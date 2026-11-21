@@ -7,7 +7,7 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { createContext, useCallback, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 
 import { businessFieldIssues, businessIdentityFields, businessSignupPath, defaultBusinessListingCapacity, invalidBusinessCounts, invalidBusinessListings, invalidBusinessOfferFields, demoOf, initialValues, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -264,18 +264,34 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
     });
     return () => cancelAnimationFrame(frame);
   }, [step, listingToReview, focusListingTitle]);
+  const restoreStep = useEffectEvent((validateForward: boolean) => {
+    const trail = businessStepTrail(owner);
+    const saved = trail?.at(-1);
+    if (!trail || saved === undefined) return;
+    const issue = validateForward && saved > step
+      ? issues.find(issue => issue.step === 0) ?? (saved > 2 ? issues.find(issue => issue.step === 2) : undefined)
+      : undefined;
+    if (issue) {
+      const eligibleSteps = trail.slice(0, -1).filter(previous => previous < issue.step);
+      const marker = { ...window.history.state[stepHistoryKey], steps: [...eligibleSteps, issue.step] };
+      window.history.replaceState({ ...window.history.state, [stepHistoryKey]: marker }, "");
+      setErrors([issue.message]);
+      if (issue.listing !== undefined) setListingToReview(issue.listing);
+      else if (issue.field) setFieldToReview({ step: issue.step, field: issue.field });
+    } else setErrors([]);
+    const next = issue?.step ?? saved;
+    setDraft(current => current.step === next ? current : { ...current, step: next });
+  });
   useEffect(() => {
     if (!initialized || submitted || recoveredDraft) return;
-    function restoreStep() {
-      const saved = businessStepTrail(owner)?.at(-1);
-      if (saved === undefined) return;
-      setErrors([]);
-      setDraft(current => current.step === saved ? current : { ...current, step: saved });
-    }
-    restoreStep();
-    window.addEventListener("popstate", restoreStep);
-    return () => window.removeEventListener("popstate", restoreStep);
-  }, [initialized, owner, recoveredDraft, setDraft, submitted]);
+    const onHistory = () => restoreStep(true);
+    const initial = requestAnimationFrame(() => restoreStep(false));
+    window.addEventListener("popstate", onHistory);
+    return () => {
+      cancelAnimationFrame(initial);
+      window.removeEventListener("popstate", onHistory);
+    };
+  }, [initialized, owner, recoveredDraft, submitted]);
 
   function setStep(next: number) {
     if (next === step) return;

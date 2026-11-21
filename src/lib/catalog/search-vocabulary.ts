@@ -5,6 +5,11 @@ import { giftCardPartnerGroups } from "./gift-card-partners";
 // sold by that retailer. Keep additions specific and regression-tested.
 export const productSearchTerms: Readonly<Record<string, string>> = {
   "airpods-pro": "earbuds wireless earbuds earphones",
+  "sony-wh-1000xm5-headphones": "wireless headset",
+  "bissell-little-green-1400b": "portable carpet washer",
+  "kong-classic-dog-toy": "dog chew toy",
+  "blenderbottle-classic-shaker": "cup",
+  "playstation-5-slim": "console",
   "babys-essentials-bundle": "baby infant newborn diaper formula baby supplies",
   "nike-court-shot-shoes": "sneaker trainer tennis shoe footwear",
   "milani-color-fetish-lipstick": "makeup cosmetic cosmetics lip color",

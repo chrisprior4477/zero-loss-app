@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import type { ActivityFilter } from "@/lib/account/activity";
 import { headerCategoryIds, type HeaderCategory } from "@/lib/account/header-notifications";
 import { useNotifications } from "./NotificationProvider";
@@ -20,8 +21,9 @@ export function ActivityNotificationRead({ filter, available, detailOpen = false
   const key = JSON.stringify(ids);
   const attempted = useRef(new Set<string>());
   const mounted = useRef(false);
-  const [failure, setFailure] = useState<ActivityFilter | null>(null);
-  const [retry, setRetry] = useState(0);
+  const [failure, setFailure] = useState<{ filter: ActivityFilter; ids: string[] } | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const retryButton = useRef<HTMLButtonElement>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     // Confirmation opens an individual receipt automatically. Its background
@@ -36,11 +38,34 @@ export function ActivityNotificationRead({ filter, available, detailOpen = false
       const unreadIds = (JSON.parse(key) as string[]).filter(id => !attempted.current.has(id));
       if (!unreadIds.length) return;
       unreadIds.forEach(id => attempted.current.add(id));
-      void markRead(unreadIds).catch(() => { if (mounted.current) setFailure(filter); });
+      void markRead(unreadIds).catch(() => {
+        if (mounted.current) setFailure(current => ({
+          filter, ids: [...new Set([...(current?.filter === filter ? current.ids : []), ...unreadIds])],
+        }));
+      });
     };
     acknowledge();
     document.addEventListener("visibilitychange", acknowledge);
     return () => document.removeEventListener("visibilitychange", acknowledge);
-  }, [available, detailOpen, filter, key, markRead, retry, viewedEntryId]);
-  return failure === filter ? <p role="alert" className={styles.activityReadError}>Your activity is open, but its notification status could not be saved. <button type="button" onClick={() => { attempted.current.clear(); setFailure(null); setRetry(value => value + 1); }}>Try again</button></p> : null;
+  }, [available, detailOpen, filter, key, markRead, viewedEntryId]);
+
+  async function retryRead() {
+    if (retrying || !markRead || failure?.filter !== filter) return;
+    setRetrying(true);
+    try {
+      await markRead(failure.ids);
+      if (!mounted.current) return;
+      if (document.activeElement === retryButton.current) {
+        const activeFilter = document.querySelector<HTMLElement>('#my-activity-filters [aria-current="page"]');
+        activeFilter?.focus({ preventScroll: true });
+        if (activeFilter) revealBelowHeader(activeFilter);
+      }
+      setFailure(current => current?.filter === filter ? {
+        filter, ids: current.ids.filter(id => !failure.ids.includes(id)),
+      } : current);
+    } catch { /* Keep the same retry available. */ }
+    finally { if (mounted.current) setRetrying(false); }
+  }
+
+  return failure?.filter === filter && failure.ids.length ? <p role="alert" className={styles.activityReadError}>Your activity is open, but its notification status could not be saved. <button ref={retryButton} type="button" aria-disabled={retrying || undefined} onClick={() => void retryRead()}>{retrying ? "Trying again…" : "Try again"}</button></p> : null;
 }

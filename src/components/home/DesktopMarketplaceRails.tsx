@@ -57,13 +57,13 @@ const sampleEndingSoon = [
   }))
   .sort((a, b) => a.remaining - b.remaining);
 
-function SideRailButtons({ track, onScroll }: { track: React.RefObject<HTMLDivElement | null>; onScroll: (direction: -1 | 1) => void }) {
+function SideRailButtons({ track, label, onScroll }: { track: React.RefObject<HTMLDivElement | null>; label: string; onScroll: (direction: -1 | 1) => void }) {
   const edges = useHorizontalScrollEdges(track);
   return (
     <>
       <button
         type="button"
-        aria-label="Scroll left"
+        aria-label={`Scroll ${label} left`}
         disabled={!edges.left}
         onClick={() => onScroll(-1)}
         className="absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid"
@@ -72,7 +72,7 @@ function SideRailButtons({ track, onScroll }: { track: React.RefObject<HTMLDivEl
       </button>
       <button
         type="button"
-        aria-label="Scroll right"
+        aria-label={`Scroll ${label} right`}
         disabled={!edges.right}
         onClick={() => onScroll(1)}
         className="absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid"
@@ -335,7 +335,7 @@ export function DesktopMarketplaceRails() {
             </div>
             ))}
           </div>
-          <SideRailButtons track={categoriesRef} onScroll={(direction) => scroll(categoriesRef.current, direction)} />
+          <SideRailButtons label="categories" track={categoriesRef} onScroll={(direction) => scroll(categoriesRef.current, direction)} />
         </div>
       </div>
 
@@ -360,7 +360,7 @@ export function DesktopMarketplaceRails() {
           >
             {endingSoon.map(({ item, remaining }) => <EndingSoonCard key={item.id} item={item} remaining={remaining} />)}
           </div>
-          <SideRailButtons track={endingRef} onScroll={(direction) => scroll(endingRef.current, direction)} />
+          <SideRailButtons label="Ending Soon" track={endingRef} onScroll={(direction) => scroll(endingRef.current, direction)} />
         </div>
       </div>
 
@@ -397,7 +397,7 @@ export function DesktopMarketplaceRails() {
               </Link>
             ))}
           </div>
-          <SideRailButtons track={brandsRef} onScroll={(direction) => scroll(brandsRef.current, direction)} />
+          <SideRailButtons label="popular rewards" track={brandsRef} onScroll={(direction) => scroll(brandsRef.current, direction)} />
         </div>
       </div>
 

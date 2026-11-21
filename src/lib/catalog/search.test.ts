@@ -510,3 +510,19 @@ test("keeps a TV retailer exclusion separate from an electronics brand exclusion
   expect(searchCatalog(demoProducts, "TVs not from Best Buy")).toEqual([]);
   expect(searchCatalog(demoProducts, "TVs except for LG").map(product => product.slug)).toEqual(["samsung-m70h-tv"]);
 });
+
+test.each([
+  ["Wireless headset by Sony", "sony-wh-1000xm5-headphones"],
+  ["Walmart giftcard twenty five", "walmart-25-gift-card"],
+  ["Bissell Little Green portable carpet washer", "bissell-little-green-1400b"],
+  ["Dog chew toy from pet smart", "kong-classic-dog-toy"],
+  ["Blender bottle cup", "blenderbottle-classic-shaker"],
+  ["PS5 console no game bundle", "playstation-5-slim"],
+])("matches the intended item for %s", (query, slug) => {
+  expect(searchCatalog(demoProducts, query)[0]?.slug).toBe(slug);
+});
+
+test("keeps an explicit decimal gift-card value exact in Browse", () => {
+  const cards = searchCatalogMatches(demoProducts, "Amazon 100.00 gift card", undefined, { includeLowerGiftCards: true });
+  expect(cards.map(({ product }) => product.slug)).toEqual(["amazon-100-gift-card"]);
+});

@@ -53,7 +53,7 @@ export function ReviewNotice() {
 export function LegalSection({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-28 border-b border-white/10 py-6 last:border-0 sm:py-8">
-      <h2 id={`${id}-heading`} className="text-xl font-black tracking-tight text-white sm:text-2xl">{title}</h2>
+      <h2 id={`${id}-heading`} tabIndex={-1} className="text-xl font-black tracking-tight text-white sm:text-2xl">{title}</h2>
       <div className="mt-3 space-y-4">{children}</div>
     </section>
   );

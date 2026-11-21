@@ -92,7 +92,7 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
             sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email: email.trim(), destination, expires: Date.now() + 300_000 }));
           }
         } catch { /* The sign-in form also accepts manual entry. */ }
-      }} className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
+      }} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:underline sm:min-h-0">← Back to sign in</Link>
     </form>
   );
 }

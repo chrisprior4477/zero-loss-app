@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import Link from "next/link";
 import { LegalPage, LegalSection, ReviewNotice, legalCopy } from "@/components/legal/LegalPage";
 
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <LegalPage current="/privacy" title="Privacy Policy" description="What the current preview collects and uses, where it is stored, and the choices available to you.">
+      <HelpLandingScroll target="" focusAnchor="choices" focusAnchorPrefix="choices" />
       <ReviewNotice />
       <article className="mt-5 max-w-4xl">
         <LegalSection id="scope" title="1. Scope and operator">

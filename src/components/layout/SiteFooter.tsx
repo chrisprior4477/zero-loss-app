@@ -41,7 +41,7 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
                   <li key={`${link.label}-${link.href}`}>
                     <Link
                       href={link.href === "/contact" ? "/contact#contact-intro" : link.href}
-                      className="text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:text-[11px]"
+                      className="inline-flex min-h-6 items-center text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:min-h-0 sm:text-[11px]"
                     >
                       {link.label}
                     </Link>

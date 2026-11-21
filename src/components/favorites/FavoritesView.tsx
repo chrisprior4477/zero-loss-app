@@ -409,7 +409,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
               ? `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`
               : `${slugs.length} ${slugs.length === 1 ? "favorite" : "favorites"}`}</p>
           </> : null}
-          {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
+          {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. <a href={favoritesHref(favoriteFilter, selection?.slug ?? initialItem)}>Try again.</a></p>
             : !slugs.length ? <div className={styles.empty}><h2>No favorites yet</h2><p>Tap a product’s heart to keep it here.</p><Link href="/browse">Browse products →</Link></div>
             : !visibleFavorites.length ? <div className={styles.empty}><h2>No watched favorites</h2><p>Select All to find a favorite and turn on its 90% email alert.</p></div>
               : <div id="favorite-products" aria-label="Favorite products" className={styles.grid}>{visibleFavorites.map(slug => {
@@ -428,7 +428,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           <p className={styles.note}>{sharedView === "declined" ? "Shares you declined. Reopen a prize while its pool is still available." : "Open prizes shared with you. Declined shares are in the Declined view."}</p>
           {sharesIncomplete ? <p role="status" className={styles.notice}>Some shared prizes or their status could not be verified. <a href={savedShareHref(selection?.shareId, sharedView)}>Check shared prizes again</a></p> : null}
           {requestedShareUnavailable ? <div role="status" className={styles.empty}><h2 ref={unavailableShareHeading} tabIndex={-1} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>This shared prize is no longer available</h2><p>You can browse other prizes or view any other available items shared with you.</p><Link href="/browse">Browse products →</Link></div> : null}
-          {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
+          {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. <a href={savedShareHref(selection?.shareId ?? initialShareId, sharedView)}>Try again.</a></p>
             : !visibleShares.length ? requestedShareUnavailable || sharesIncomplete ? null : <div className={styles.empty}><h2>{!shares.length && sharedView === "available" ? "Nothing shared with you yet" : sharedView === "declined" ? "No declined shares" : "No available shares"}</h2><p>{sharedView === "declined" ? "Shares you decline appear here while their pools remain open." : declinedCount ? "Check Declined to revisit a share." : "Items people send you will appear here."}</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{visibleShares.map(share => {
                 const { product, status } = productState(share.slug);

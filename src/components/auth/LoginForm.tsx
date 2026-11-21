@@ -212,7 +212,7 @@ export function LoginForm({
             sessionStorage.removeItem("zero-loss-recovery-email");
             if (email.trim()) sessionStorage.setItem("zero-loss-recovery-email", JSON.stringify({ email: email.trim(), destination, expires: Date.now() + 300_000 }));
           } catch { /* The recovery form also accepts manual entry. */ }
-        }} className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
+        }} className="inline-flex min-h-8 items-center font-semibold text-cyan-300 underline-offset-4 hover:underline sm:min-h-0">Forgot your password?</Link>
         <p className="text-white/50">
         Need an account?{" "}
         <Link

@@ -78,7 +78,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       <p>{result.status === "not_found" ? "No saved receipt was found for this purchase." : "We couldn’t verify this purchase yet."}</p>
       <div className={styles.topActions}>
         <a href={returnPath} className={styles.shopping}>Check again</a>
-        {result.status === "not_found" ? <Link href={prizePath} className={styles.return}>Review current offers</Link> : null}
+        {result.status === "not_found" ? <Link href={keepOrigin(prizePath)} className={styles.return}>Review current offers</Link> : null}
         {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
         {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
         <Link href="/account/entries?filter=completed" className={styles.return}>Completed purchases</Link>
@@ -124,7 +124,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         <div className={styles.topActions}>
           {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
           {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
-          {options.length ? <Link href={prizePath} className={styles.shopping}>View this prize’s available options</Link> : null}
+          {options.length ? <Link href={keepOrigin(prizePath)} className={styles.shopping}>View this prize’s available options</Link> : null}
           <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.return}>Return to Purchase Options</Link>
         </div>
       </div>

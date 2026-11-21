@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { inviteToCrew, inviteToCrewById, inviteToCrewByPhone, searchCrewByName, type CrewSearchPerson } from "@/lib/crew/actions";
 import { addSampleCrewPreview, sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { ShareIcon } from "@/components/product/ShareIcon";
 import styles from "./crew-connected.module.css";
 
-export function CrewInlineFinder({ available, onSample, onClose, query: retainedQuery, onQueryChange }: { query?: string; onQueryChange?: (value: string) => void; available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
+export function CrewInlineFinder({ available, onSample, onClose }: { available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
   const router = useRouter();
-  const [localQuery, setLocalQuery] = useState("");
-  const query = retainedQuery ?? localQuery;
-  const setQuery = onQueryChange ?? setLocalQuery;
+  const [query, setQuery] = useState("");
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   const contactChoice = useRef<HTMLSelectElement>(null);
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
@@ -26,10 +25,16 @@ export function CrewInlineFinder({ available, onSample, onClose, query: retained
   const queryField = useRef<HTMLInputElement>(null);
   const findButton = useRef<HTMLButtonElement>(null);
   const focusRetry = useRef(false);
+  const focusResult = useRef(false);
+  const results = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (busy || !focusRetry.current) return;
-    focusRetry.current = false;
-    if (document.activeElement === document.body) findButton.current?.focus();
+    if (busy || (!focusRetry.current && !focusResult.current)) return;
+    const retry = focusRetry.current;
+    focusRetry.current = focusResult.current = false;
+    if (document.activeElement !== document.body && document.activeElement !== findButton.current) return;
+    const target = retry ? findButton.current : results.current;
+    target?.focus({ preventScroll: true });
+    if (target) revealBelowHeader(target);
   }, [busy]);
   const connectionFeedback = useRef<HTMLParagraphElement>(null);
   const focusConnectionFeedback = useRef(false);
@@ -43,6 +48,7 @@ export function CrewInlineFinder({ available, onSample, onClose, query: retained
 
   async function find(event: React.FormEvent) {
     event.preventDefault();
+    if (!available || busy) return;
     const value = query.trim();
     const turn = ++request.current;
     setPeople([]); setSamples([]); setTarget(null); setMessage(""); setInvalid(false);
@@ -61,6 +67,7 @@ export function CrewInlineFinder({ available, onSample, onClose, query: retained
       queryField.current?.focus();
       return;
     }
+    focusResult.current = document.activeElement === findButton.current;
     setBusy(true);
     try {
       const result = await searchCrewByName(value);
@@ -130,9 +137,9 @@ export function CrewInlineFinder({ available, onSample, onClose, query: retained
     </label> : null}
     <form onSubmit={find}>
       <label htmlFor="crew-query">Name, email, or phone</label>
-      <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); setQuery(event.target.value); setContactMethods([]); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || busy}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
+      <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); focusResult.current = focusRetry.current = false; setQuery(event.target.value); setContactMethods([]); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || sending} aria-disabled={busy || undefined}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
     </form>
-    <div className={styles.findResults} aria-live="polite">
+    <div ref={results} className={styles.findResults} tabIndex={-1} aria-label="People search results" aria-live="polite">
       {target ? <article className={styles.findResult}><span className={styles.contactSymbol}><ShareIcon name={target.kind === "email" ? "mail" : "message"} /></span><div><strong>{target.value}</strong><small>Private contact lookup</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(target.value)} onClick={() => void add(target.value, () => target.kind === "email" ? inviteToCrew(target.value) : inviteToCrewByPhone(target.value))}>{sent.includes(target.value) ? "Saved" : "Add to Crew"}</button></article> : null}
       {people.map(person => <article className={styles.findResult} key={person.memberId}><span className={styles.smallAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="44px" unoptimized /> : person.name[0]}</span><div><strong>{person.name}</strong><small>Discoverable member</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(person.memberId)} onClick={() => void add(person.memberId, () => inviteToCrewById(person.memberId))}>{sent.includes(person.memberId) ? "Added" : "Add to Crew"}</button></article>)}
       {samples.map(person => <article className={styles.findResult} key={person.name}><span className={styles.smallAvatar}><Image src={person.photo} alt="" fill sizes="44px" /></span><div><strong>{person.name}</strong><small>Fictional sample profile</small></div><button type="button" className={styles.greenButton} onClick={() => { addSampleCrewPreview(person.name); onSample(person.name); }}>Add sample</button></article>)}

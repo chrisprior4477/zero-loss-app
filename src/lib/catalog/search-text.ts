@@ -11,6 +11,7 @@ export function normalizeSearch(value: string) {
     .replace(/\bpack[\s-]+out\b/g, "packout").replace(/\b10\s+1\s*\/\s*4\b/g, "10.25")
     .replace(/\bair[\s-]+pods\b/g, "airpods")
     .replace(/\blittle[\s-]*green\b/g, "little green").replace(/\blip[\s-]*stick\b/g, "lipstick")
+    .replace(/\bblender[\s-]*bottle\b/g, "blenderbottle")
     .replace(/\bwh[\s-]*1000[\s-]*xm[\s-]*5\b/g, "wh1000xm5")
     .replace(/\bo[.\s]+l[.\s]+e[.\s]+d\b/g, "oled")
     .replace(/\b(?:play[\s-]*station|p[.\s-]*s)[.\s-]*5\b/g, "playstation 5")

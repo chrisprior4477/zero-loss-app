@@ -44,13 +44,13 @@ export default async function RewardBrandPage({ params }: Props) {
     <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
       <HelpLandingScroll target="" visitKey={brand.slug} focusAnchorPrefix="prize-" focusAnchor="reward-values" missingAnchorTarget="reward-values" />
       <div className="mx-auto max-w-6xl">
-        <Link href={popularRewardsReturnHref(brand.slug)} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Popular Rewards</Link>
+        <Link href={popularRewardsReturnHref(brand.slug)} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to Popular Rewards</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Popular Reward · Digital fulfillment</p>
         <h1 className="mt-2 text-4xl font-black sm:text-6xl">Choose your {brand.name} reward</h1>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to go to its $1 entry area. You can review the complete demo offering before you enter.</p>
 
         <section id="reward-values" tabIndex={-1} className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
-          {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded. Refresh to check again." : "There are no open gift-card offers for this retailer right now."} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
+          {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded." : "There are no open gift-card offers for this retailer right now."} {unavailable && <a className="font-bold text-cyan-300 underline" href={`/rewards/${brand.slug}#reward-values`}>Try again.</a>} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
           {offers.map(({ amount, slug, title }) => {
             const open = !hidden.has(slug);
             const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";

@@ -134,6 +134,7 @@
 .ledgerDescription strong { flex: 0 0 auto; font-size: 15px; font-weight: 850; }
 .ledgerDescription span, .productTitle { min-width: 0; max-width: 100%; color: #536d8b; font-size: 12px; }
 .productTitle { color: #075fae; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 640px) { .productTitle { display: inline-flex; align-items: center; min-height: 24px; } }
 .ledger li time { grid-area: date; min-width: 0; color: #425f7f; font-size: 13px; font-weight: 750; }
 .transactionValue { grid-area: amount; display: flex; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; overflow-wrap: anywhere; text-align: right; }
 .amount, .positive { justify-self: center; font-size: 19px; font-weight: 850; font-variant-numeric: tabular-nums; }

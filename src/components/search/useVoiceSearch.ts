@@ -39,6 +39,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     const recognition = recognitionRef.current;
     if (recognition && listening) {
       // Stop captures the final words; browsers may return them after stop().
+      release();
       setPhase("finishing");
       finishTimer.current = setTimeout(() => {
         cancel();
@@ -49,7 +50,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
         setError("Voice search couldn’t finish. Try again or type your search.");
       }
     }
-  }, [cancel, listening]);
+  }, [cancel, listening, release]);
   function reset() {
     cancel();
     setError("");
@@ -76,7 +77,11 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     const Constructor = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
     if (!Constructor) { setError("Voice search isn’t available in this browser. Try Chrome or Edge, or type your search."); return; }
     cancelActiveVoice?.();
-    const recognition = new Constructor();
+    let recognition: Recognition;
+    try { recognition = new Constructor(); } catch {
+      setError("Voice search couldn’t start. Try again or type your search.");
+      return;
+    }
     cancelActiveVoice = cancel;
     recognitionRef.current = recognition;
     recognition.lang = "en-US";
@@ -103,6 +108,10 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
       cancel();
     };
     setPhase("listening");
+    finishTimer.current = setTimeout(() => {
+      cancel();
+      setError("Voice search timed out. Try the microphone again or type your search.");
+    }, 20000);
     try { recognition.start(); } catch { cancel(); setError("Voice search couldn’t start. Try again or type your search."); }
   }
   return { listening, finishing: phase === "finishing", busy: phase !== "idle", error, toggle, stop, cancel, reset };

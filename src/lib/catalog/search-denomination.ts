@@ -104,6 +104,17 @@ function extractValues(query: string, products: readonly { retailer: string }[])
       return { text, values };
     }
   }
+  if (/\bgift card\b/i.test(query)) {
+    const spoken = new RegExp("(?:^|\\s)(" + words + ")(?=\\s|$)", "gi");
+    for (const match of query.matchAll(spoken)) {
+      const text = query.replace(match[0], " ").trim();
+      const qualifier = normalizeSearch(text).replace(/\b(?:gift card|for|from|at)\b/g, " ").trim().replace(/\s+/g, " ");
+      if (qualifier && products.some(product => retailerName(product.retailer) === retailerName(qualifier))) {
+        values.add(spokenValue(match[1]));
+        return { text, values };
+      }
+    }
+  }
   return { text: query, values };
 }
 
@@ -272,6 +283,8 @@ export function searchDenominations(query: string, products: readonly { retailer
   const { text: amountText, values } = range
     ? rangeValues ?? { text: range.text, values: new Set<number>() }
     : exact?.values.size && exactOnly ? exact : extractValues(exactPhrase, products);
+  const decimalDenomination = !budget && values.size > 0 && /\bgift card\b/i.test(normalized)
+    && [...normalized.matchAll(/\b(\d+(?:,\d{3})*\.\d+)\b/g)].some(([, amount]) => values.has(Number(amount.replaceAll(",", ""))));
   const text = amountText
     .replace(budget ? /\s+\b(?:price\s+range|range|each)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:with values?|ranging|in the range of|worth|priced|in(?: the)?|within(?: the)?|costing)\s*$/i : /$^/, "")
@@ -280,5 +293,5 @@ export function searchDenominations(query: string, products: readonly { retailer
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   const conflictingBudget = Boolean(budget?.minimum !== undefined && budget.maximum !== null
     && (budget.minimum > budget.maximum || (budget.minimum === budget.maximum && (budget.exclusiveMinimum || !budget.inclusive))));
-  return { text: keywords, values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, excludedValues, merchant: merchant ? normalizeSearch(merchant) : null, ...(unsupportedCurrency ? { unsupportedCurrency } : {}) };
+  return { text: keywords, values, budget, exactOnly: exactOnly || decimalDenomination, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, excludedValues, merchant: merchant ? normalizeSearch(merchant) : null, ...(unsupportedCurrency ? { unsupportedCurrency } : {}) };
 }

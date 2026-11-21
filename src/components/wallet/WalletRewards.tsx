@@ -71,8 +71,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", prize, invalidView = false, focusCard, focusHistoryCard, expiredSelection, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; prize?: string; invalidView?: boolean; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", prize, invalidView = false, focusCard, focusHistoryCard, expiredSelection, expiredRetryHref, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; prize?: string; invalidView?: boolean; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; expiredRetryHref?: string; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
   const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
@@ -89,7 +89,6 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     }
     return url.pathname + url.search + url.hash;
   }
-  const prizeQuery = prize ? `&prize=${encodeURIComponent(prize)}` : "";
   const cardCounts = new Map<string, number>();
   for (const item of allRewards) {
     if (!item.rewardId) continue;
@@ -102,7 +101,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   // Expired purchase options may never have issued a digital reward. Keep their
   // authorized records visible too, with their existing activity destination.
   const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => (!prize || item.slug === prize) && item.completionOptionStatus === "expired" && !allRewards.includes(item))];
-  const rewardInView = (item: ActivityItem) => `${walletRewardHref(item)}${view === "all" ? "" : `&rewards=${view}`}${prizeQuery}`;
+  const rewardInView = (item: ActivityItem) => scopedHistory(`${walletRewardHref(item)}${view === "all" ? "" : `&rewards=${view}`}`);
   const history = records.filter(item => !ready.includes(item));
   const used = allRewards.filter(item => rewardState(item) === "redeemed");
   const expired = records.filter(item => rewardState(item) === "expired");
@@ -131,7 +130,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountReady.length ? scopedHistory(rewardViewHrefs.ready) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? rewardInView(singleReady) : accountReady.length ? scopedHistory(rewardViewHrefs.ready) : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
@@ -175,7 +174,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
         {invalidView && <p role="status" className={overview.message}>That reward filter is unavailable. Showing all rewards. <Link className="underline" href={prize ? `/account/wallet?prize=${encodeURIComponent(prize)}#reward-history` : "/account/wallet#reward-history"}>Clear the outdated filter</Link></p>}
         {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
-        {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
+        {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? <>We couldn’t check that expired entry right now.{expiredRetryHref && <> <a className="underline" href={expiredRetryHref}>Try again.</a></>}</> : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : view === "other" ? "Other reward updates" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
             <WalletRewardLink href={scopedHistory("/account/wallet#reward-history")} aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>

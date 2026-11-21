@@ -23,7 +23,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
     if (owner) {
       const { data, error } = await supabase.from("business_applications").select("document,revision,status").eq("owner_id", owner).maybeSingle();
       if (error || (data && !isBusinessDraft(data.document))) {
-        return <div className="mx-auto max-w-lg p-8 text-white"><h1 className="text-2xl font-bold">Business application</h1><p role="alert" className="my-4">Your saved application could not be loaded.</p><a className="text-cyan-200 underline" href={businessSignupPath}>Try again</a></div>;
+        return <div className="mx-auto max-w-lg p-8 text-white"><h1 className="text-2xl font-bold">Business application</h1><p role="alert" className="my-4">Your saved application could not be loaded.</p><a className="text-cyan-200 underline" href={returnTo && returnTo !== businessSignupPath ? `${businessSignupPath}&next=${encodeURIComponent(returnTo)}` : businessSignupPath}>Try again</a></div>;
       }
       record = data as BusinessRecord | null;
     }
@@ -52,7 +52,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
           {returnTo ? <HelpLandingScroll target="personal-signup-heading" focusOnArrival /> : null}
           {verify === "resend" ? <>
             <AccountSettingsLandingScroll target="resend-verification" initialTarget="resend-verification" focusTarget="resend-email" allScreens />
-            <ResendVerificationRecovery />
+            <ResendVerificationRecovery returnTo={returnTo} />
           </> : <SignUpExperience key={initialAccountPath} initialAccountPath={initialAccountPath} returnTo={returnTo} />}
         </section>
       </div>

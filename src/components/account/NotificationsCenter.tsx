@@ -110,6 +110,25 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
+  const alertSettingsLink = useRef<HTMLAnchorElement>(null);
+  const atAlertSettings = useRef(false);
+  useEffect(() => {
+    atAlertSettings.current = window.location.hash === "#alert-settings";
+    function restoreAlertFocus() {
+      const isSettings = window.location.hash === "#alert-settings";
+      const returning = atAlertSettings.current && !isSettings;
+      atAlertSettings.current = isSettings;
+      if (!returning || window.location.pathname !== "/account/notifications") return;
+      requestAnimationFrame(() => {
+        const link = alertSettingsLink.current;
+        if (!link || window.location.hash === "#alert-settings") return;
+        link.focus({ preventScroll: true });
+        revealBelowHeader(link);
+      });
+    }
+    window.addEventListener("popstate", restoreAlertFocus);
+    return () => window.removeEventListener("popstate", restoreAlertFocus);
+  }, []);
   useEffect(() => {
     let interrupted = false;
     function focusIntro() {
@@ -311,7 +330,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     setFocusedNotice(undefined);
   }
 
-  function selectFilter(nextFilter: FilterKey) {
+  function selectFilter(nextFilter: FilterKey, focusFilter = false) {
     const url = new URL(window.location.href);
     if (nextFilter === "all") url.searchParams.delete("filter");
     else url.searchParams.set("filter", nextFilter);
@@ -321,13 +340,20 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
     if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };
     if (url.href !== window.location.href) window.history.pushState(state, "", url);
+    atAlertSettings.current = false;
     setFilter(nextFilter);
     setFocusedNotice(undefined);
     batches.reset();
-    if (!window.matchMedia?.("(max-width: 620px)").matches) return;
+    if (!focusFilter && !window.matchMedia?.("(max-width: 620px)").matches) return;
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
     scrollFrame.current = window.requestAnimationFrame(() => {
       scrollFrame.current = null;
+      if (focusFilter) {
+        const selected = document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]');
+        selected?.focus({ preventScroll: true });
+        if (selected) revealBelowHeader(selected);
+        return;
+      }
       const heading = headingRef.current;
       if (!heading) return;
       const stickyHeaderBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
@@ -341,21 +367,40 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     catch { return { ok: false, message: "We couldn’t save your notification status. Please try again." }; }
   }
 
+  const [queuedReadError, setQueuedReadError] = useState("");
+  const [queuedReadAttempt, setQueuedReadAttempt] = useState(0);
+  const [retryingQueuedReads, setRetryingQueuedReads] = useState(false);
+  const queuedReadButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!failedReadKey || !readAvailable) return;
-    let ids: string[];
-    try { ids = pendingReadIds(failedReadKey); } catch { return; }
-    if (!ids.length) return;
     let active = true;
-    void markNotificationsRead(ids).then(result => {
-      if (!active) return;
-      if (!result.ok) { setReadMessage(result.message); return; }
-      updatePendingReads(failedReadKey, ids, true);
-      setLocallyRead(previous => new Set([...previous, ...ids]));
-      window.dispatchEvent(new Event("zero-loss-notifications-read"));
-    }).catch(() => { if (active) setReadMessage("We couldn’t save that notification’s read status. Refresh to try again."); });
+    async function retryQueuedReads(key: string) {
+      try {
+        const ids = pendingReadIds(key);
+        if (ids.length) {
+          const result = await markNotificationsRead(ids);
+          if (!active) return;
+          if (!result.ok) { setQueuedReadError(result.message); return; }
+          updatePendingReads(key, ids, true);
+          setLocallyRead(previous => new Set([...previous, ...ids]));
+          window.dispatchEvent(new Event("zero-loss-notifications-read"));
+        }
+        if (!active) return;
+        if (queuedReadButton.current && document.activeElement === queuedReadButton.current) {
+          const heading = headingRef.current?.querySelector("h1");
+          heading?.focus({ preventScroll: true });
+          if (heading) revealBelowHeader(heading);
+        }
+        setQueuedReadError("");
+      } catch {
+        if (active) setQueuedReadError("We couldn’t save that notification’s read status.");
+      } finally {
+        if (active) setRetryingQueuedReads(false);
+      }
+    }
+    void retryQueuedReads(failedReadKey);
     return () => { active = false; };
-  }, [failedReadKey, readAvailable]);
+  }, [failedReadKey, readAvailable, queuedReadAttempt]);
 
   function updateCrewRequest(id: string, trigger: HTMLButtonElement, accept?: boolean) {
     crewTrigger.current = trigger;
@@ -471,12 +516,13 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
           <button type="button" onClick={event => markAllRead(event.currentTarget, "top")} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read
           </button>
-          <a href="#alert-settings" onClick={event => {
+          <a ref={alertSettingsLink} href="#alert-settings" onClick={event => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const heading = document.getElementById("in-app-alert-heading");
             if (!heading) return;
             event.preventDefault();
             if (window.location.hash !== "#alert-settings") window.history.pushState(window.history.state, "", "#alert-settings");
+            atAlertSettings.current = true;
             heading.focus({ preventScroll: true });
             revealBelowHeader(heading);
           }}><AccountIcon name="settings" /> Alert settings</a>
@@ -489,7 +535,12 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
       </div> : null}
       {crewMessage ? <p ref={crewNotice} tabIndex={-1} role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage && readMessageLocation === "top" ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
-      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
+      {queuedReadError ? <p role="status" className={styles.sourceWarning}>{queuedReadError} <button className="font-bold underline" ref={queuedReadButton} type="button" aria-disabled={retryingQueuedReads || !readAvailable || undefined} onClick={() => {
+        if (retryingQueuedReads || !readAvailable) return;
+        setRetryingQueuedReads(true);
+        setQueuedReadAttempt(attempt => attempt + 1);
+      }}>{retryingQueuedReads ? "Trying again…" : "Try again"}</button></p> : null}
+      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action", true)}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
         <nav id="notification-tickets-filters" aria-label="Notification filters" className={styles.filters}>

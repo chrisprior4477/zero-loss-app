@@ -33,7 +33,7 @@ const accountLinks = [
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
   const query = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" ? "#my-activity-filters" : "")));
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" || query.filter === "active" ? "#my-activity-filters" : "")));
   const filter = activityFilter(query.filter);
   if (query.filter !== undefined && query.filter !== filter) {
     redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined }));
@@ -81,7 +81,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     {completedPrizeRequested && !completedPrize ? <p role="status" className="mb-4 text-sm text-amber-100">That prize selection is unavailable. Showing all completed activity. <Link href="/account/entries?filter=completed#my-activity-filters" className="underline">Clear prize selection</Link></p> : null}
     {query.legacyEntry === "1" && filter === "active" ? <p role="status" className="mb-4 text-sm text-amber-100">This older ticket can’t be opened by number. Your open entries remain below.</p> : null}
-    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} viewedRewardId={viewedRewardId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} missingViewedEntry={typeof query.viewed === "string" && !viewedEntryId && account.activity.source !== "unavailable"} viewedRewardId={viewedRewardId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>

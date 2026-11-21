@@ -105,6 +105,7 @@
 .lowerTicket h2 { font-size: 19px; font-weight: 850; }
 .lowerTicket header a { display: inline-flex; align-items: center; gap: 5px; color: #005dcb; font-size: 11px; font-weight: 850; text-decoration: underline; text-underline-offset: 2px; }
 .lowerTicket header a svg { width: 16px; height: 16px; }
+@media (max-width: 640px) { .lowerTicket header a { min-height: 28px; } }
 .lowerTicket > p, .signInFacts { margin-top: 10px; color: #506b8e; font-size: 12px; line-height: 1.4; }
 .signInFacts { display: grid; gap: 5px; }
 .signInFacts time { color: #102a55; font-weight: 800; }

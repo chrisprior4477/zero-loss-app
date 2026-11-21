@@ -59,7 +59,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
           : !request ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
             : "This deposit is not confirmed yet. Check its status before adding more funds."}>
         <button type="button" className={paymentStyles.primary} disabled={checking} onClick={() => startChecking(() => router.refresh())}>{checking ? "Checking…" : "Check this deposit"}</button>
-        <Link href={supportHref} className={paymentStyles.secondary}>Contact Support about this deposit</Link>
+        <Link href={!request && requests !== null && wallet ? "/support#report-problem" : supportHref} className={paymentStyles.secondary}>{!request && requests !== null && wallet ? "Get general support" : "Contact Support about this deposit"}</Link>
       </DepositReceipt>}
       {fromDeposits && <Link href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(requestKey)}#payment-deposits`} className={paymentStyles.secondary}>Back to Payment deposits</Link>}
     </div>
