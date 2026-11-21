@@ -169,9 +169,10 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
       const onReturn = () => requestAnimationFrame(restore);
       window.addEventListener("popstate", onReturn, { once: true });
       window.setTimeout(() => window.removeEventListener("popstate", onReturn), 650);
-      requestAnimationFrame(() => {
+      if (direction) requestAnimationFrame(() => {
         if (window.location.href === href) restoreDialogTrigger(destination, true);
       });
+      else restoreDialogTrigger(destination, true);
     }
   }
   return <div className={styles.picker}>
