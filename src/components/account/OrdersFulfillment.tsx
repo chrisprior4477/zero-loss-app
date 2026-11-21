@@ -17,7 +17,7 @@ import styles from "./orders-fulfillment.module.css";
 
 type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function OrdersFulfillment({ state, overview, filter = "all", focusRewardId, selectedRewardId, selectedOrderNumber, fromNotification = false, alerts, notice, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; focusRewardId?: string; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; alerts?: NotificationFilter; notice?: string; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
+export function OrdersFulfillment({ state, overview, filter = "all", filterReset = false, focusRewardId, selectedRewardId, selectedOrderNumber, fromNotification = false, alerts, notice, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; filterReset?: boolean; focusRewardId?: string; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; alerts?: NotificationFilter; notice?: string; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const transactionHelp = walletTransactionHelpHref.replace("#transactions", `&fromOrders=1${filter === "all" ? "" : `&orderFilter=${filter}`}#transactions`);
   const reportHref = chooseTransaction ? transactionHelp : supportHref;
@@ -81,6 +81,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           <AccountIcon name={item.icon} /><span>{item.label}</span><strong>{countLabel(item.count)}</strong>
         </a>)}
       </section>
+      {filterReset ? <p role="status" className={styles.warning}>That saved order filter is unavailable. {hasSelection ? "Showing the selected record." : "Showing all orders and rewards."}</p> : null}
 
       {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation skipForHash="order-status-filters" /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!hasSelection} focusSelected={hasSelection && !openSelectionDetails} />}
       <AccountSettingsLandingScroll target="order-status-filters" focusTarget="order-status-filters" settleAfterNavigation allScreens restrictToTargetHash />

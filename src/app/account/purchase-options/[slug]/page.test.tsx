@@ -85,9 +85,15 @@ test("an old group link opens the exact expired offer in My Activity", async () 
   for (const option of [undefined, open.entryId]) await expect(visit(option)).rejects.toThrow(`/account/entries?item=${slug}&entry=${open.entryId}`);
 });
 
-test("an unknown prize with no offers still reports not found", async () => {
+test("an unknown prize with no offers keeps the Wallet return and opens recovery", async () => {
   getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [] } });
-  await expect(visit()).rejects.toThrow("NOT_FOUND");
+  const transaction = "11111111-1111-4111-8111-111111111111";
+  render(await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ transaction, walletView: "1" }) }));
+  expect(screen.getByRole("heading", { name: "This purchase option is unavailable" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&transaction=${transaction}&walletView=1#transaction-${transaction}`);
+  expect(screen.getByRole("link", { name: "Return to Purchase Options" }).getAttribute("href")).toBe("/account/entries?filter=completion#my-activity-filters");
+  cleanup();
 });
 
 test("saved decline links render the modern checkout with the compact confirmation", async () => {

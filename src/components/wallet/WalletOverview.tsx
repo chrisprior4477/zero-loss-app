@@ -24,7 +24,7 @@ import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, weeklyDeposit, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, transactionRetryHref, hiddenProducts, notificationReturnHref, ordersReturnHref, ordersFilter, landOnBalance = false }:   {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, weeklyDeposit, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, transactionRetryHref, hiddenProducts, notificationReturnHref, ordersReturnHref, ordersFilter, landOnBalance = false, unavailablePanel = false }:   {
   timeZone?: string;
   restoreLedgerView?: boolean;
   hiddenProducts?: ReadonlySet<string>;
@@ -45,6 +45,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   ordersReturnHref?: string;
   ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter;
   landOnBalance?: boolean;
+  unavailablePanel?: boolean;
   fromDeposits?: boolean;
   depositList?: boolean;
   requests?: DemoFundingRequest[] | null;
@@ -96,10 +97,11 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
       {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={canFund} timeZone={timeZone} fromDeposits={fromDeposits} restoreLedgerView={restoreLedgerView} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
-        <article id="balance" tabIndex={-1} className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
+        <article id="balance" tabIndex={-1} className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance" aria-describedby={unavailablePanel ? "unavailable-wallet-panel" : undefined}>
           <div className={styles.balanceArt}><Image src="/account/drawer/wallet-transactions-324x180.png" alt="Zero Loss leather wallet" width={324} height={180} priority sizes="324px" /></div>
           <div className={styles.balanceCopy}>
             <h2>Current balance</h2>
+            {unavailablePanel ? <p id="unavailable-wallet-panel" role="status" className={styles.balanceNote}>That saved Wallet section is unavailable. Use the links below to open the current sections.</p> : null}
             <div className={styles.balanceAmountRow}>
               <p data-testid="wallet-balance" className={styles.balance}>{balance}</p>
               {canFund ? <DeleteAllFundsButton value={balance} /> : null}

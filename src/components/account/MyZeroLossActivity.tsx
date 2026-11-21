@@ -6,6 +6,7 @@ import { ActivitySelection } from "./ActivitySelection";
 import { AccountIcon } from "./AccountIcon";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { MyActivityLandingScroll } from "./MyActivityLandingScroll";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { ActivityNotificationRead } from "@/components/notifications/ActivityNotificationRead";
 import { buildAccountNotifications } from "@/lib/account/notifications";
 import styles from "./my-activity.module.css";
@@ -33,7 +34,7 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries: pendingEntriesResult = [], outcomeEmailPreference = null, completedPrize, selectedSlug, selectedEntryId, viewedEntryId, missingViewedEntry, viewedRewardId, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[] | null; outcomeEmailPreference?: boolean | null; completedPrize?: string; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; missingViewedEntry?: boolean; viewedRewardId?: string; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries: pendingEntriesResult = [], outcomeEmailPreference = null, completedPrize, selectedSlug, selectedEntryId, viewedEntryId, missingViewedEntry, viewedRewardId, selectionMessage, filterReset = false, checkout, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[] | null; outcomeEmailPreference?: boolean | null; completedPrize?: string; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; missingViewedEntry?: boolean; viewedRewardId?: string; selectionMessage?: string; filterReset?: boolean; checkout?: { receipt: string; rewardIds: string[] }; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
   const filtered = filterActivity(verifiedState.activity, filter);
@@ -46,10 +47,13 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
   const hasWins = emptyPurchaseOptions && filterActivity(verifiedState.activity, "prize").length > 0;
   return <section data-activity-source={state.source}>
     <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} viewedEntryId={viewedEntryId} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).filter(notification => !viewedEntryId || notification.entryId === viewedEntryId).map(notification => notification.id)} />
-    <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !viewedRewardId && !returnToOptions && !resumePurchase} />
-    <nav id={openEntriesAnchorId} aria-label="Filter My Activity" className={styles.filters}>
+    <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!filterReset && !selectionMessage && !selectedSlug && !selectedEntryId && !viewedEntryId && !viewedRewardId && !returnToOptions && !resumePurchase} />
+    {filterReset || selectionMessage ? <AccountSettingsLandingScroll target={openEntriesAnchorId} initialTarget={openEntriesAnchorId} focusTarget={selectionMessage ? "activity-selection-message" : openEntriesAnchorId} allScreens /> : null}
+    <nav id={openEntriesAnchorId} tabIndex={-1} aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "active" ? openEntriesHref : key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={key === "active"} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" || state.incomplete ? "—" : filterActivity(state.activity, key).length}</span></Link>)}
     </nav>
+    {filterReset ? <p role="status" className="mb-4 text-sm text-amber-100">That saved activity filter is unavailable. Showing all activity.</p> : null}
+    {selectionMessage ? <p id="activity-selection-message" tabIndex={-1} role="status" className="mb-4 text-sm text-amber-100">{selectionMessage}</p> : null}
     {missingViewedEntry ? <p role="status" className="mb-4 text-sm text-amber-100">This saved entry could not be highlighted. Your current activity is shown below.</p> : null}
     {state.incomplete ? <p className="mb-5 text-sm text-amber-100" role="status">Some activity could not be verified. Showing the records that loaded. <a className="underline" href={`/account/entries?filter=${filter}#my-activity-filters`}>Check again</a></p> : null}
     {completedPrize && <p className="mb-5 text-sm text-[#b5cce4]"><Link className="underline" href="/account/entries?filter=completed#my-activity-filters">See all completed activity</Link></p>}

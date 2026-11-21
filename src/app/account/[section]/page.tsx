@@ -61,17 +61,22 @@ export default async function LiveAccountSection({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams?: Promise<{ filter?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[]; alerts?: string | string[]; notice?: string | string[] }>;
+  searchParams?: Promise<{ filter?: string | string[]; filterReset?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[]; alerts?: string | string[]; notice?: string | string[] }>;
 }) {
   const { section } = await params;
   if (!Object.hasOwn(liveSections, section)) notFound();
   if (section === "results") redirect("/account/entries?filter=completed");
 
   const query = await searchParams;
+  const filter = fulfillmentFilter(query?.filter);
+  if (section === "orders" && query?.filter !== undefined && query.filter !== filter) {
+    const anchor = typeof query.order === "string" ? `#order-${query.order}` : query.rewardId ? "#fulfillment-records" : "#order-status-filters";
+    redirect(accountPageReturnPath("/account/orders", { ...query, filter: undefined, filterReset: "1" }, anchor));
+  }
   const account = await getAccountContext();
   if (!account) {
     const anchor = section === "orders" && query && (query.order || query.rewardId || query.filter)
-      ? typeof query.order === "string" ? `#order-${query.order}` : "#fulfillment-records" : "";
+      ? typeof query.order === "string" ? `#order-${query.order}` : "#fulfillment-records" : query?.filterReset === "1" ? "#order-status-filters" : "";
     redirect(authNavigationHref("/login", accountPageReturnPath(`/account/${section}`, query, anchor)));
   }
 
@@ -107,18 +112,13 @@ export default async function LiveAccountSection({
       ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
       : verifiedReward ? rewardSupportHref(verifiedReward.rewardId).replace("#report-problem", "&from=order&details=1#report-problem")
         : walletTransactionHelpHref;
-    const filter = fulfillmentFilter(query?.filter);
-    if (query?.filter !== undefined && query.filter !== filter) {
-      const anchor = selectedOrderNumber ? `#order-${selectedOrderNumber}` : selectedRewardId ? "#fulfillment-records" : "";
-      redirect(accountPageReturnPath("/account/orders", { ...query, filter: undefined }, anchor));
-    }
     const fromNotification = Boolean((selectedOrderNumber || selectedRewardId) && query?.from === "notifications");
     const alerts = fromNotification ? query?.alerts === undefined ? selectedOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts) : undefined;
     const notice = fromNotification && validNotice(query?.notice) ? query.notice : undefined;
     const reportContext = `${filter === "all" ? "" : `&orderFilter=${filter}`}${alerts ? `&alerts=${alerts}` : ""}${notice ? `&notice=${encodeURIComponent(notice)}` : ""}`;
     const reportHref = supportHref.replace("#report-problem", `${reportContext}#report-problem`);
     if (query?.support === "report" && selectedOrder && supportHref !== walletTransactionHelpHref) redirect(query.details === "1" ? reportHref.replace("#report-problem", "&from=order&details=1#report-problem") : reportHref);
-    return <OrdersFulfillment state={account.orders} filter={filter} focusRewardId={focusRewardId} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={fromNotification} alerts={alerts} notice={notice} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+    return <OrdersFulfillment state={account.orders} filter={filter} filterReset={query?.filterReset === "1"} focusRewardId={focusRewardId} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={fromNotification} alerts={alerts} notice={notice} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
   }
 
   return (

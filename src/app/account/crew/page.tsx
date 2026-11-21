@@ -10,6 +10,7 @@ import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { readOwnCrewEntries, readOwnCrewShares } from "@/lib/crew/own-entries";
 import { parseCrewTab } from "@/lib/crew/navigation";
+import { entryReviewContext } from "@/lib/wallet/funding-navigation";
 
 export const metadata: Metadata = { title: "Your Crew" };
 
@@ -26,7 +27,9 @@ export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; r
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
-export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; pick?: string; tab?: string; request?: string; invite?: string; design?: string; entry?: string; filter?: string }> }) {
+type CrewQuery = Partial<Record<"member" | "pick" | "tab" | "request" | "invite" | "design" | "entry" | "filter" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string>>;
+
+export default async function CrewPage({ searchParams }: { searchParams: Promise<CrewQuery> }) {
   const { account, hidden, availability } = await getShoppingCatalog();
   const params = await searchParams;
   if (!account) {
@@ -85,6 +88,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   // requests there too, while an exact request link must never reveal another's.
   const incoming = invitations.find(invitation => invitation.recipient_id === account.userId
     && (params.request ? invitation.id === params.request : invitation.status === "pending"));
+  const entryParams = new URLSearchParams({ ...(params.filter === "active" ? { filter: "active" } : {}), ...entryReviewContext(params) });
   return <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={[...hidden]}><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
     invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
     unavailable={Boolean(params.request) && (!incoming || Boolean(invitationsResult.error))} />
@@ -109,7 +113,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     available={available}
     selectedPicksUnavailable={Boolean(picksResult?.error)}
     initialTab={parseCrewTab(params.tab)}
-    entryReturn={params.entry && /^ent_[a-f0-9]{32}$/i.test(params.entry) ? `/account/entries/${params.entry}${params.filter === "active" ? "?filter=active" : ""}#entry-crew-share` : undefined}
+    entryReturn={typeof params.entry === "string" && /^ent_[a-f0-9]{32}$/i.test(params.entry) ? `/account/entries/${params.entry}${entryParams.size ? `?${entryParams}` : ""}#entry-crew-share` : undefined}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}

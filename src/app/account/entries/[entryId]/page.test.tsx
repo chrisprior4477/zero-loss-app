@@ -39,12 +39,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("closing an entry opened from Wallet returns to its transaction without replacing My Activity", async () => {
+test("the primary return actions on an entry opened from Wallet preserve the exact transaction", async () => {
   const transaction = "11111111-1111-4111-8111-111111111111";
+  const destination = `/account/wallet?view=history&transaction=${transaction}&walletView=1#transaction-${transaction}`;
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }), searchParams: Promise.resolve({ entries: "open", transaction, walletView: "1" }) }));
   expect(screen.getByRole("link", { name: "Close entry details and return to this transaction" }).getAttribute("href"))
-    .toBe(`/account/wallet?view=history&transaction=${transaction}&walletView=1#transaction-${transaction}`);
-  expect(screen.getByRole("link", { name: "Go to My Activity" }).getAttribute("href")).toContain("/account/entries?viewed=");
+    .toBe(destination);
+  expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href")).toBe(destination);
+  expect(mocks.actions).toHaveBeenCalledWith(expect.objectContaining({ transactionReturnHref: destination, returnHref: `/account/entries?viewed=${ids[0]}` }));
 });
 
 test("a saved entry recovers only its prize's owner-scoped pending hold on reload", async () => {

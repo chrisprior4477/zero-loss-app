@@ -54,6 +54,20 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
     {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
   </>;
+  function unavailableOffer(hasOptions: boolean) {
+    return <section className={styles.page} aria-labelledby="selected-offer-missing">
+      <div className={styles.shell}>
+        <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
+        <h1 id="selected-offer-missing" tabIndex={-1}>This purchase option is unavailable</h1>
+        <p>The selected option could not be opened for your account.</p>
+        <div className={styles.topActions}>
+          {originLinks}
+          {hasOptions ? <Link href={keepOrigin(prizePath)} className={styles.shopping}>View this prize’s available options</Link> : null}
+          <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.return}>Return to Purchase Options</Link>
+        </div>
+      </div>
+    </section>;
+  }
   function keepOrigin(href: string) {
     const destination = new URL(href, "https://navigation.invalid");
     const origin = transactionOriginParams(query);
@@ -120,19 +134,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   }
   if (invalidOption || optionId !== undefined && !options.some(option => option.entryId === optionId)) {
     const ticket = optionId ? findActivityItem(activity, slug, optionId) : undefined;
-    if (!ticket) return <section className={styles.page} aria-labelledby="selected-offer-missing">
-      <div className={styles.shell}>
-        <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
-        <h1 id="selected-offer-missing" tabIndex={-1}>This purchase option is unavailable</h1>
-        <p>The selected option could not be opened for your account.</p>
-        <div className={styles.topActions}>
-          {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
-          {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
-          {options.length ? <Link href={keepOrigin(prizePath)} className={styles.shopping}>View this prize’s available options</Link> : null}
-          <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.return}>Return to Purchase Options</Link>
-        </div>
-      </div>
-    </section>;
+    if (!ticket) return unavailableOffer(options.length > 0);
     if (isPurchasedReward(ticket)) {
       redirect(keepOrigin(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : completedActivityHref(ticket.entryId)));
     }
@@ -146,7 +148,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const lastExpired = expired.sort((a, b) => (b.completionExpiresAt ?? "").localeCompare(a.completionExpiresAt ?? ""))[0];
     if (lastExpired) redirect(keepOrigin(activityHref(lastExpired)));
     const product = getDemoProduct(slug);
-    if (!product) notFound();
+    if (!product) return unavailableOffer(false);
     return <section className={styles.page} aria-labelledby="selected-offer-missing"><div className={styles.shell}>
       <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
       <h1 id="selected-offer-missing" tabIndex={-1}>No purchase options are available</h1>

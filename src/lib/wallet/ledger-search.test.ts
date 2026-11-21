@@ -77,6 +77,34 @@ test("searches the printed transaction date in the account's time zone", () => {
   expect(search("November 5")).toEqual([entry]);
   expect(search("Nov 5, 2026")).toEqual([entry]);
   expect(search("Nov 6")).toEqual([]);
+  expect(search("2026-11-05")).toEqual([entry]);
+  expect(search("2026-11-06")).toEqual([]);
+  expect(search("Nov 2026")).toEqual([entry]);
+  expect(search("Nov 2025")).toEqual([]);
+  expect(search("between November 1 and November 5")).toEqual([entry]);
+  expect(search("between November 6 and November 10")).toEqual([]);
+});
+
+test("searches natural posted-amount and entry date wording", () => {
+  const created_at = "2026-11-06T02:00:00Z";
+  const product = { title: "PlayStation 5 Slim Model", slug: "playstation-5-slim", retailer: "Best Buy", image: "/item.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "order", entry_type: "PURCHASE_DEBIT", amount: -2500, created_at },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product },
+    { id: "refund", entry_type: "REFUND", amount: 100, created_at },
+  ];
+  const search = (q: string) => searchLedger(entries, q, row => ledgerDescription(row.entry_type, row.product?.title),
+    entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
+  expect(search("$(1.00)")).toEqual(["entry"]);
+  expect(search("entry purchases on November 5")).toEqual(["entry"]);
+  expect(search("amount equals $1")).toEqual(["entry", "refund"]);
+  expect(search("-$1 to -$0.50")).toEqual(["entry"]);
+  expect(search("refunds or purchases $1")).toEqual(["entry", "refund"]);
+  expect(search("$1.00 or less")).toEqual(["entry", "refund"]);
+  expect(search("orders for $25")).toEqual(["order"]);
+  expect(search("deposit greater than $10")).toEqual(["deposit"]);
+  expect(search("PlayStation 5 and $1.00")).toEqual(["entry"]);
 });
 
 test("keeps an amount alternative scoped to the transaction type and recognizes signed speech", () => {

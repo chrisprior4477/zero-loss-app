@@ -58,7 +58,8 @@ export function searchCatalogMatches(
     const suffix = retailerExclusion[1].replace(/^from\s+/i, "");
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
     const names = qualified ? suffix.replace(/\s+gift\s*cards?$/i, "") : suffix;
-    const positive = query.slice(0, retailerExclusion.index).trim();
+    const positive = query.slice(0, retailerExclusion.index).trim()
+      .replace(/(\bgift\s*cards?)\s+(?:(?:from\s+)?all\s+retailers)$/i, "$1");
     if (!retailerSpecified && /\b(?:tvs?|televisions?)\b/i.test(positive) && !/\bgift\s*cards?\b/i.test(positive)) {
       const brand = normalizeSearch(names);
       if (products.some(product => normalizeSearch(product.brand) === brand)) {
@@ -113,7 +114,8 @@ export function searchCatalogMatches(
     && (!branded || isBrand(product))
     && (!screenSize || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
       && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
-        screenSize.upper ? Number(size) < screenSize.size : screenSize.inclusive ? Number(size) >= screenSize.size : Number(size) > screenSize.size)))
+        screenSize.upper ? (screenSize.inclusive ? Number(size) <= screenSize.size : Number(size) < screenSize.size)
+          : (screenSize.inclusive ? Number(size) >= screenSize.size : Number(size) > screenSize.size))))
     && (!screenRange || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
       && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
         Number(size) >= Math.min(Number(screenRange[1]), Number(screenRange[2])) && Number(size) <= Math.max(Number(screenRange[1]), Number(screenRange[2])))))

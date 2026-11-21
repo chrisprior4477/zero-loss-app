@@ -45,13 +45,15 @@ const batchSize = 24;
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const incoming = await searchParams;
   const query = Object.fromEntries(Object.entries(incoming).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]));
+  const searchChoices = Array.isArray(incoming.q) ? [...new Set(incoming.q.map(value => value.trim()))] : [];
+  const conflictingSearch = searchChoices.length > 1;
   const [{ availability, account, hidden, unavailable, availabilityIncomplete, unverifiedSlugs }, partnerGroups] = await Promise.all([getShoppingCatalog(), getGiftCardPartnerGroups()]);
   const resolved = new Set(resolvedCatalogSlugs(account?.activity));
   const availableProducts = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
   });
-  const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
+  const searchTerm = conflictingSearch ? "" : query.q?.trim() ?? "";
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
   const selectedCategory = marketplaceCategoryId(query.category ?? "") ?? (query.sort === "ending-soon" ? "ending-soon" : null);
@@ -329,6 +331,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {obsoleteBatch && query.batch !== "1" ? <p role="status" className="mb-3 text-sm text-amber-200">That batch is no longer available. Showing the available results for this search.</p> : null}
           {invalidSubcategory ? <p role="status" className="mb-3 text-sm text-amber-200">That subcategory is unavailable. Showing your other filters in {selectedLabel ?? "Browse"}.</p> : null}
           {invalidGroceryIdea ? <p id="unavailable-grocery-idea" tabIndex={-1} role="status" className="mb-3 scroll-mt-[calc(var(--site-header-height,149px)+12px)] text-sm text-amber-200">That grocery idea is unavailable. {selectedCategory === "groceries" ? <Link href={showGroceryInspiration ? "#grocery-inspiration" : "#search-results"} className="underline">Back to groceries</Link> : null}</p> : null}
+          {conflictingSearch ? <div className="mb-3 text-sm text-amber-200">
+            <p role="alert">This link contains different search terms. Choose one below or enter a new search. Your filters still apply.</p>
+            <ul className="mt-1 flex flex-wrap gap-x-4">
+              {searchChoices.filter(term => term && /\p{L}|\p{N}/u.test(term) && !catalogSearchTooLong(term)).map(term => {
+                const params = new URLSearchParams(searchParamsForView);
+                params.set("q", term);
+                if (!invalidGroceryIdea && query.groceryIdea) params.set("groceryIdea", query.groceryIdea);
+                return <li key={term}><BrowseResultsLink target="heading" href={`/browse?${params}#search-results`} className="inline-flex min-h-11 items-center break-all underline">Search for “{term}”</BrowseResultsLink></li>;
+              })}
+            </ul>
+          </div> : null}
           {unknownCategory ? <p role="status" className="mb-3 text-sm text-amber-200">That category is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove category filter</Link></p> : null}
           {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             That retailer is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove retailer filter</Link>
@@ -340,7 +353,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {query.partnerCategory && !selectedRetailerGroup ? <p role="status" className="mb-3 text-sm text-amber-200">That retailer group is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Update this link</Link></p> : null}
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} scopedOfferRetailers={scopedOfferRetailers} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} ticketsLeft={ticketsLeft} searchTerm={searchTerm} subcategory={subcategory} clearHref={clearHref} previews={categoryPreviews}
             searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
-          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} obsoleteBatch={obsoleteBatch} focusObsoleteBatch={obsoleteBatch && query.batch !== "1"} normalizedBatch={normalizedBatch} invalidTicketRange={invalidTicketRange} invalidType={invalidType} normalizeAvailability={normalizeAvailability} availableOnly={filters.availableOnly} invalidSubcategory={invalidSubcategory} invalidGroceryIdea={invalidGroceryIdea} duplicateSelectors={Object.values(incoming).some(Array.isArray)} oldTailPrizes={oversizedTail ? products.map(product => product.slug) : undefined} batchSize={batchSize} />
+          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} invalidSearch={invalidSearch} obsoleteBatch={obsoleteBatch} focusObsoleteBatch={obsoleteBatch && query.batch !== "1"} normalizedBatch={normalizedBatch} invalidTicketRange={invalidTicketRange} invalidType={invalidType} normalizeAvailability={normalizeAvailability} availableOnly={filters.availableOnly} invalidSubcategory={invalidSubcategory} invalidGroceryIdea={invalidGroceryIdea} duplicateSelectors={Object.values(incoming).some(Array.isArray)} conflictingSearch={conflictingSearch} oldTailPrizes={oversizedTail ? products.map(product => product.slug) : undefined} batchSize={batchSize} />
           {showGroceryInspiration || (selectedCategory === "groceries" && typeof query.groceryIdea === "string") ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} showShelf={showGroceryInspiration} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">

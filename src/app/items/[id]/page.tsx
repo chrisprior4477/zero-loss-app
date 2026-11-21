@@ -2,6 +2,7 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { SharedProductControls } from "@/components/product/SharedProductControls";
 import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 import Link from "next/link";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
@@ -42,18 +43,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const query = await searchParams;
-  const requestedQuantity = parseEntryQuantity(query.quantity);
+  const quantity = matchingQueryValue(query.quantity);
+  const requestedQuantity = parseEntryQuantity(quantity);
   const transactionReturn = transactionOriginHref(query);
   const browseReturnHref = productBrowseReturnHref(transactionReturn ?? query.from);
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const product = getDemoProduct(id.toLowerCase());
   if (!product) notFound();
-  if (id !== product.slug) {
+  const repeatedQuantity = Array.isArray(query.quantity) && requestedQuantity !== null;
+  if (id !== product.slug || repeatedQuantity) {
     const params = new URLSearchParams();
     for (const [name, value] of Object.entries(query)) {
+      if (name === "quantity" && repeatedQuantity && quantity) {
+        params.set(name, quantity);
+        continue;
+      }
       for (const part of typeof value === "string" ? [value] : value ?? []) params.append(name, part);
     }
-    permanentRedirect(`/items/${product.slug}${params.size ? `?${params}` : ""}`);
+    permanentRedirect(`/items/${product.slug}${params.size ? `?${params}` : ""}${repeatedQuantity ? "#enter-entry" : ""}`);
   }
   const { account, availability, hidden, unavailable, unverifiedSlugs } = await getShoppingCatalog();
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
@@ -67,7 +74,9 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const selectionKey = `${product.slug}:${initialQuantity}:${invalidBookmark ?? "valid"}`;
   const bookmarkedQuantityMessage = invalidBookmark === null ? undefined : savedQuantityTooHigh
     ? `You requested ${requestedQuantity?.toLocaleString("en-US")} entries. ${remaining.toLocaleString("en-US")} are available. Choose a quantity to continue.`
-    : "This link contains an invalid quantity. Enter a whole number of tickets to continue.";
+    : Array.isArray(query.quantity) && quantity === undefined
+      ? "This link contains different ticket quantities. Choose one quantity to continue."
+      : "This link contains an invalid quantity. Enter a whole number of tickets to continue.";
   const requestHead: EntryRequestHead = account && (hiddenPool || account.wallet?.scope === "demo") && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };

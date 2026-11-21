@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
-import { activityFilter, declinedOfferHref, findActivityItem, openEntriesAnchorId } from "@/lib/account/activity";
+import { activityFilter, declinedOfferHref, filterActivity, findActivityItem, openEntriesAnchorId } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -33,11 +33,11 @@ const accountLinks = [
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
   const query = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" || query.filter === "active" ? "#my-activity-filters" : "")));
   const filter = activityFilter(query.filter);
   if (query.filter !== undefined && query.filter !== filter) {
-    redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined }));
+    redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined, filterReset: "1" }, `#${openEntriesAnchorId}`));
   }
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.filterReset === "1" || query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" || query.filter === "active" ? "#my-activity-filters" : "")));
   const transactionReturn = transactionOriginHref(query);
   const noticeReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const completedPrizeRequested = filter === "completed" && query.prize !== undefined;
@@ -46,8 +46,14 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const viewedEntryId = typeof query.viewed === "string" && account.activity.activity.some(item => item.entryId === query.viewed) ? query.viewed : undefined;
-  const viewedRewardId = filter === "completed" && typeof query.viewedReward === "string" && account.activity.activity.some(item => item.rewardId === query.viewedReward)
-    ? query.viewedReward : undefined;
+  const requestedRewardId = typeof query.viewedReward === "string" ? query.viewedReward.toLowerCase() : undefined;
+  const viewedRewardId = filter === "completed" && requestedRewardId && filterActivity(account.activity.activity, "completed")
+    .some(item => item.rewardId === requestedRewardId && (!completedPrize || item.slug === completedPrize)) ? requestedRewardId : undefined;
+  const selectedItem = findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter);
+  const missingSelection = query.entry !== undefined && (!selectedEntryId || !selectedItem) ? "entry"
+    : filter === "completed" && query.viewedReward !== undefined && !viewedRewardId ? "reward" : null;
+  const selectionMessage = missingSelection ? account.activity.source === "unavailable" || account.activity.incomplete
+    ? `We couldn’t check the selected ${missingSelection} right now.` : `The selected ${missingSelection} could not be opened. The available records are shown below.` : undefined;
   const checkoutItem = filter === "completed" && viewedEntryId
     ? account.activity.activity.find(item => item.entryId === viewedEntryId && item.rewardId && item.slug === query.checkout)
     : undefined;
@@ -66,7 +72,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     } catch { /* Confirmed activity remains usable while pending requests are unavailable. */ }
   }
   let outcomeEmailPreference: boolean | null = null;
-  if (findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter)?.status === "active") {
+  if (selectedItem?.status === "active" && !missingSelection) {
     try {
       const db = await createClient();
       const { data, error } = await db.rpc("get_entry_outcome_email_enabled");
@@ -81,7 +87,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     {completedPrizeRequested && !completedPrize ? <p role="status" className="mb-4 text-sm text-amber-100">That prize selection is unavailable. Showing all completed activity. <Link href="/account/entries?filter=completed#my-activity-filters" className="underline">Clear prize selection</Link></p> : null}
     {query.legacyEntry === "1" && filter === "active" ? <p role="status" className="mb-4 text-sm text-amber-100">This older ticket can’t be opened by number. Your open entries remain below.</p> : null}
-    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} missingViewedEntry={typeof query.viewed === "string" && !viewedEntryId && account.activity.source !== "unavailable"} viewedRewardId={viewedRewardId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={missingSelection === "entry" ? undefined : selectedSlug} selectedEntryId={missingSelection === "entry" ? undefined : selectedEntryId} viewedEntryId={viewedEntryId} missingViewedEntry={typeof query.viewed === "string" && !viewedEntryId && account.activity.source !== "unavailable"} viewedRewardId={viewedRewardId} selectionMessage={selectionMessage} filterReset={query.filterReset === "1"} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>

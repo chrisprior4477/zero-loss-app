@@ -167,10 +167,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const ordersWalletFilter = query.fromOrders === "1" && walletContext && (validTransaction || validCase) ? orderFilter : undefined;
   const walletOrdersContext = ordersWalletFilter ? `&fromOrders=1&orderFilter=${ordersWalletFilter}` : "";
   const caseInboxHref = `/support?view=inbox${casePage ? `&page=${casePage + 1}` : ""}#case-list`;
-  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><a className={button} data-tone="support" href={`/support${!inbox && casePage ? `?page=${casePage + 1}` : ""}#case-list`}>My support cases</a><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
-  if ((query.case !== undefined && !validCase) || (query.transaction !== undefined && !validTransaction) || (query.rewardId !== undefined && !validReward) || (query.deposit !== undefined && !validDeposit) ||
+  const invalidSelection = (query.case !== undefined && !validCase) || (query.transaction !== undefined && !validTransaction) || (query.rewardId !== undefined && !validReward) || (query.deposit !== undefined && !validDeposit) ||
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
-    (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}
+    (query.view === "inbox" && !staff);
+  const caseListHref = validCase ? `/support${!inbox && casePage ? `?page=${casePage + 1}` : ""}#case-list`
+    : !inbox && !invalidSelection && (casePage || validTransaction || validReward || validDeposit) ? "#case-list" : "/support#case-list";
+  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><a className={button} data-tone="support" href={caseListHref}>My support cases</a><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
+  if (invalidSelection) return <PageContainer>{heading}{navigation}
       <AccountSettingsLandingScroll target={query.case !== undefined ? "conversation" : "report-problem"} initialTarget={query.case !== undefined ? "conversation" : "report-problem"} focusTarget="support-view-unavailable" allScreens />
       <section id={query.case !== undefined ? "conversation" : "report-problem"} className={`${card} ${styles.anchor}`}>
         <h2 id="support-view-unavailable" tabIndex={-1}><span role="alert">That support view is not available for your account.</span></h2>

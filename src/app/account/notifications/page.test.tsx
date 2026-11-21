@@ -31,8 +31,13 @@ test("signed-out visitors return to Notifications after login", async () => {
   mocks.account.mockResolvedValue(null);
   mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
   await expect(NotificationsPage({})).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fnotifications");
+  expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fnotifications%23notification-tickets-filters&focus=email#login-form");
   expect(mocks.from).not.toHaveBeenCalled();
+});
+test("repeated identical notification filters keep the selected category", async () => {
+  mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(NotificationsPage({ searchParams: Promise.resolve({ filter: ["orders", "orders"] }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(mocks.redirect).toHaveBeenCalledWith("/account/notifications?filter=orders#notification-tickets-filters");
 });
 test("Crew, support and persisted read receipts are scoped to the signed-in owner", async () => {
   const crew = query([{ id, requester_name: "Sam" }]);

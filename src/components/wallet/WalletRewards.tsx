@@ -119,9 +119,10 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const missingHistoryCard = Boolean(focusHistoryCard && historyTarget === "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
+    {invalidView ? <AccountSettingsLandingScroll target="ready-rewards" landingAlias="reward-history" initialTarget="ready-rewards" focusTarget="outdated-reward-filter" allScreens />
+      : landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
       : prize || view === "ready" ? <AccountSettingsLandingScroll target="ready-rewards" initialTarget="ready-rewards" focusTarget="ready-heading" allScreens restrictToTargetHash /> : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all"} />}
-    {!expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
+    {!invalidView && !expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
     <div className={overview.shell}>
       {prize && <p className={overview.message}>Showing rewards for this prize. <Link className="underline" href="/account/wallet">View all rewards</Link></p>}
       <header className={overview.heading}>
@@ -135,6 +136,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
         <section id="ready-rewards" className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
+          {invalidView && <p id="outdated-reward-filter" tabIndex={-1} role="status" className={overview.message}>That reward filter is unavailable. Showing all rewards. <Link className="underline" href={prize ? `/account/wallet?prize=${encodeURIComponent(prize)}#ready-rewards` : "/account/wallet#ready-rewards"}>Clear the outdated filter</Link></p>}
           <div className={overview.sectionHeading}><h2 id="ready-heading" tabIndex={-1}>Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p>{readyCount !== null && ready.length > 0 ? <p><strong>{readyToUseCount} ready to use · {toClaimCount} to claim</strong></p> : null}</div>
           {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
             <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
@@ -172,7 +174,6 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </div> : null}
       {expiredSelection ? <AccountSettingsLandingScroll target="reward-history" initialTarget="reward-history" focusTarget="expired-selection-message" allScreens settleAfterNavigation /> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
-        {invalidView && <p role="status" className={overview.message}>That reward filter is unavailable. Showing all rewards. <Link className="underline" href={prize ? `/account/wallet?prize=${encodeURIComponent(prize)}#reward-history` : "/account/wallet#reward-history"}>Clear the outdated filter</Link></p>}
         {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
         {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? <>We couldn’t check that expired entry right now.{expiredRetryHref && <> <a className="underline" href={expiredRetryHref}>Try again.</a></>}</> : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : view === "other" ? "Other reward updates" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>

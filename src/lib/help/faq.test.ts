@@ -111,6 +111,20 @@ test.each([
 });
 
 test.each([
+  ["when do they announce who got picked", "pool-completion"],
+  ["where do I upload a new avatar", "profile-photo"],
+  ["stop notifications coming to my inbox", "email-alert-preferences"],
+  ["erase my personal information", "privacy-requests"],
+  ["can I find a friend by their cell number", "crew-phone"],
+  ["my balance looks incorrect", "balance-discrepancy"],
+  ["revoke a shared link", "stop-sharing"],
+  ["postal method of entry", "free-entry"],
+  ["can I put in several tickets together", "multiple-entries"],
+  ["check whether my entry posted", "entry-status"],
+  ["top up my playable wallet", "add-funds"],
+  ["get unused funds back to my bank", "withdrawals"],
+  ["can I buy something else with the reward", "reward-restrictions"],
+  ["my voucher has expired", "reward-unavailable"],
   ["can I use the website without an account", "enter-a-prize"],
   ["never got the confirmation message", "verification-email"],
   ["send me a new reset link", "password"],

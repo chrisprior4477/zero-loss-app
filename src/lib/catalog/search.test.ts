@@ -528,6 +528,48 @@ test("keeps an explicit decimal gift-card value exact in Browse", () => {
 });
 
 test.each([
+  ["Penn Battle 4 fishing reel", "penn-battle-iv-2500"],
+  ["Kobalt battery powered garden blower", "kobalt-24v-leaf-blower"],
+  ["JBL Flip seven Bluetooth speaker", "jbl-flip-7-speaker"],
+  ["Fujifilm mini twelve instant camera", "instax-mini-12-camera"],
+  ["Lodge ten and a quarter inch skillet", "lodge-classic-10-inch-skillet"],
+  ["Bissell upholstery spot remover", "bissell-little-green-1400b"],
+  ["BlenderBottle protein shaker", "blenderbottle-classic-shaker"],
+  ["OOLY air dry modelling clay car kit", "ooly-turbo-tabby-clay-kit"],
+  ["Dyson V 8 stick hoover", "dyson-v8-cordless-vacuum"],
+  ["Sony WH1000-XM5 over ear ANC", "sony-wh-1000xm5-headphones"],
+  ["YETI 30 fl oz tumbler", "yeti-rambler-30-tumbler"],
+  ["RYOBI 18 volt cordless inflator", "ryobi-one-plus-inflator"],
+  ["Amazon twenty five dollar voucher", "amazon-25-gift-card"],
+  ["Publix $100 grocery voucher", "publix-100-gift-card"],
+  ["Sheetz $75 fuel voucher", "sheetz-75-gift-card"],
+  ["Home Goods 75 dollar card", "homegoods-75-gift-card"],
+])("uses the shopper's wording for %s", (query, slug) => {
+  expect(searchCatalog(demoProducts, query).map(item => item.slug)).toContain(slug);
+});
+
+test.each([
+  ["gift cards cheaper than $75", "gift cards under $75"],
+  ["gift cards with a value of $50", "$50 gift cards"],
+  ["gift cards costing $1 to enter", "gift cards $1 per entry"],
+  ["gift cards with $1 tickets", "gift cards $1 per entry"],
+  ["Nintendo eShop giftcard", "Nintendo gift card"],
+  ["gift cards all retailers except Amazon and Walmart", "gift cards except Amazon and Walmart"],
+  ["gift cards other than $25", "gift cards excluding $25"],
+])("parses %s like the equivalent search", (query, standard) => {
+  const slugs = (phrase: string) => searchCatalog(demoProducts, phrase).map(item => item.slug).sort();
+  const expected = slugs(standard);
+  expect(expected.length).toBeGreaterThan(0);
+  expect(slugs(query)).toEqual(expected);
+});
+
+test("includes the stated TV size at an inclusive upper limit", () => {
+  const tv = demoProducts.find(item => item.slug === "lg-oled-c6-65-tv")!;
+  expect(searchCatalog([tv], "TVs no larger than 65 inches")).toEqual([tv]);
+  expect(searchCatalog([tv], "TVs no larger than 64 inches")).toEqual([]);
+});
+
+test.each([
   ["Roku streaming dongle", "roku-streaming-stick-plus"],
   ["Logitech wireless ergonomic mouse", "logitech-mx-master-3s"],
   ["Yeti insulated travel cup", "yeti-rambler-30-tumbler"],

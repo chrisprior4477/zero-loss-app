@@ -44,10 +44,10 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, notificationReturnHref, entryContext }: {
+export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref, transactionReturnHref, notificationReturnHref, entryContext }: {
   entryId?: string; ownerId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
   itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
-  requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string; notificationReturnHref?: string;
+  requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string; transactionReturnHref?: string; notificationReturnHref?: string;
   entryContext?: { transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string };
 }) {
   const router = useRouter();
@@ -428,7 +428,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
                 <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
-            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry } : {}), ...(activityFilter === "active" ? { filter: "active" } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
         </div>
@@ -438,7 +438,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>
       <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
-      <Link href={notificationReturnHref ?? returnHref} className={styles.returnButton}>{notificationReturnHref ? "Back to this notification" : "Return to My Activity"} →</Link>
+      <Link href={transactionReturnHref ?? notificationReturnHref ?? returnHref} className={styles.returnButton}>{transactionReturnHref ? "Back to this transaction" : notificationReturnHref ? "Back to this notification" : "Return to My Activity"} →</Link>
     </nav>
+    {transactionReturnHref ? <Link href={returnHref} className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-cyan-200 underline">Go to My Activity</Link> : null}
   </>;
 }

@@ -7,16 +7,25 @@ import { getNotificationSnapshot } from "@/lib/account/notification-snapshot";
 import { createClient } from "@/lib/supabase/server";
 import { notificationFilter, notificationHref, validNotice } from "@/lib/account/notification-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { matchingQueryValue } from "@/lib/navigation/query-value";
 
 export const metadata: Metadata = { title: "Notifications" };
 
 export default async function NotificationsPage({ searchParams }: { searchParams?: Promise<{ filter?: string | string[]; notice?: string | string[]; section?: string | string[] }> }) {
   const query = await searchParams;
-  const filter = notificationFilter(query?.filter);
-  const obsoleteFilter = query?.filter !== undefined && query.filter !== filter;
+  const requestedFilter = matchingQueryValue(query?.filter);
+  const filter = notificationFilter(requestedFilter);
+  const obsoleteFilter = query?.filter !== undefined && requestedFilter !== filter;
   const notice = validNotice(query?.notice) ? query.notice : undefined;
+  const [listPath] = notificationHref(filter, notice).split("#");
+  const notificationDestination = listPath + (query?.section === "email" ? "#email-choices" : "#notification-tickets-filters");
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", query?.section === "email" ? "/account/notifications#email-choices" : notificationHref(filter, notice)));
+  if (!account) {
+    redirect(authNavigationHref("/login", notificationDestination) + "&focus=email#login-form");
+  }
+  if (Array.isArray(query?.filter) && !obsoleteFilter) {
+    redirect(notificationDestination);
+  }
   const db = await createClient();
   const snapshot = (await getNotificationSnapshot())!;
   const { data: outcomeEmailEnabled, error: outcomeEmailError } = await db.rpc("get_entry_outcome_email_enabled");
