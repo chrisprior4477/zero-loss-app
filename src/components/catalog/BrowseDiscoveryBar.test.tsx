@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "./BrowseDiscoveryBar";
 import type { BrowseFilterProps } from "./BrowseFilters";
+import { SearchResultsAutoScroll } from "./SearchResultsAutoScroll";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
@@ -283,6 +284,26 @@ test("clearing an applied query restores the unsearched list on the same page", 
   render(<BrowseDiscoveryBar {...props} searchTerm="auto" browseHref="/browse?q=auto&sort=price-low" />);
   fireEvent.click(within(searchForm()).getByRole("button", { name: "Clear search" }));
   expect(navigation.push).toHaveBeenCalledWith("/browse?sort=price-low#search-results", { scroll: false });
+});
+
+test("submitting a cleared Browse search keeps the category and focuses the replacement field", () => {
+  const previous = window.location.href;
+  const destination = "/browse?category=electronics&sort=price-low#search-results";
+  try {
+    window.history.replaceState(null, "", "/browse?category=electronics&sort=price-low&q=Sony");
+    const view = render(<BrowseDiscoveryBar {...props} selectedCategory="electronics" searchTerm="Sony"
+      browseHref="/browse?category=electronics&sort=price-low&q=Sony" />);
+    fireEvent.change(within(searchForm()).getByRole("searchbox"), { target: { value: "" } });
+    fireEvent.submit(searchForm());
+    expect(navigation.push).toHaveBeenCalledWith(destination, { scroll: false });
+    view.unmount();
+    window.history.replaceState(null, "", destination);
+    render(<><section id="search-results"><BrowseDiscoveryBar {...props} selectedCategory="electronics" browseHref={destination} /></section>
+      <SearchResultsAutoScroll searchKey="" mobileBrowseKey={destination} /></>);
+    expect(document.activeElement).toBe(within(searchForm()).getByRole("searchbox"));
+  } finally {
+    window.history.replaceState(null, "", previous);
+  }
 });
 
 test("voice search can replace an existing query and remains available after a transcript", () => {

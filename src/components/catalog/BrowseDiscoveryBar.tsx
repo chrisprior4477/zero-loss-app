@@ -280,7 +280,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (voice.busy) return;
     if (catalogSearchTooLong(search.trim()) || invalidSearch) { searchInput.current?.focus(); return; }
     voice.cancel();
-    applySearch(search);
+    applySearch(search, Boolean(props.searchTerm && !search.trim()));
   }
   function clearSearch() {
     voice.reset();
