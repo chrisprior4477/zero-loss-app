@@ -10,8 +10,9 @@ const WINDOW_SPAN = 200;
 const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const windowStart = (amount: number) => Math.max(-1, Math.min(MAX_PRIZE_VALUE - WINDOW_SPAN, amount - WINDOW_SPAN / 2));
 
-function DollarWheel({ label, unsetLabel, initial, retainedValue, onSave, onCancel }: {
-  label: string; unsetLabel: string; initial: number; retainedValue?: string; onSave: (value: string) => void; onCancel: () => void;
+function DollarWheel({ label, unsetLabel, initial, retainedValue, onPosition, onSave, onCancel }: {
+  label: string; unsetLabel: string; initial: number; retainedValue?: string; onPosition: (value: number) => void;
+  onSave: (value: string) => void; onCancel: () => void;
 }) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -36,6 +37,7 @@ function DollarWheel({ label, unsetLabel, initial, retainedValue, onSave, onCanc
     touched.current = true;
     const value = Math.max(-1, Math.min(MAX_PRIZE_VALUE, next));
     position.current = value;
+    onPosition(value);
     setAmount(value);
     // Shift a small window of rows as needed, including at the two endpoints.
     if (value < start + 10 || value > start + WINDOW_SPAN - 10) {
@@ -65,6 +67,7 @@ function DollarWheel({ label, unsetLabel, initial, retainedValue, onSave, onCanc
           onScroll={event => {
             const next = visibleAmount(event.currentTarget);
             position.current = next;
+            if (next !== initial) onPosition(next);
             setAmount(next);
             if (next < start + 10 || next > start + WINDOW_SPAN - 10) setStart(windowStart(next));
           }}
@@ -96,29 +99,72 @@ export function PrizeDollarField({ name, value, issueId, onActivate, onChange }:
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  const [restoredPosition, setRestoredPosition] = useState<number | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const desktopInput = useRef<HTMLInputElement>(null);
+  const browsing = useRef<number | null>(null);
   const isMinimum = name === "minValue";
   const title = isMinimum ? "Minimum prize value" : "Maximum prize value";
   const unsetLabel = isMinimum ? "No minimum" : "No maximum";
-  useDialogBack(open, close, false, true, true);
+  useDialogBack(open, close, false, true, true, `browse-dollar-${name}`, () => {
+    if (trigger.current?.getClientRects().length) {
+      setRestoredPosition(browsing.current);
+      setOpen(true);
+    }
+  });
   const amount = Number(value);
   const usable = Number.isInteger(amount) && amount >= 0 && amount <= MAX_PRIZE_VALUE;
   function close() {
     setOpen(false);
     requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }));
   }
+  useLayoutEffect(() => {
+    if (!open) return;
+    const responsive = window.matchMedia?.("(max-width: 767px), (hover: none) and (pointer: coarse)");
+    let frame = 0;
+    function moveToDesktopInput() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (responsive?.matches || !desktopInput.current?.getClientRects().length) return;
+        if (browsing.current !== null) {
+          onActivate();
+          onChange(browsing.current < 0 ? "" : String(browsing.current));
+        }
+        const href = window.location.href;
+        const focus = () => {
+          const input = desktopInput.current;
+          if (window.location.href === href && input?.getClientRects().length
+            && (document.activeElement === document.body || document.activeElement === trigger.current)) input.focus();
+        };
+        const onReturn = () => requestAnimationFrame(focus);
+        window.addEventListener("popstate", onReturn, { once: true });
+        window.setTimeout(() => window.removeEventListener("popstate", onReturn), 650);
+        setOpen(false);
+        requestAnimationFrame(focus);
+        window.setTimeout(focus, 150);
+      });
+    }
+    responsive?.addEventListener?.("change", moveToDesktopInput);
+    window.addEventListener("resize", moveToDesktopInput);
+    moveToDesktopInput();
+    return () => {
+      cancelAnimationFrame(frame);
+      responsive?.removeEventListener?.("change", moveToDesktopInput);
+      window.removeEventListener("resize", moveToDesktopInput);
+    };
+  }, [open, onActivate, onChange]);
   return <div className={styles.field}>
     <label id={`${id}-label`} htmlFor={id}>{isMinimum ? "From ($)" : "To ($)"}</label>
-    <input id={id} type="number" name={name} min={0} max={MAX_PRIZE_VALUE} step={1} inputMode="numeric"
+    <input ref={desktopInput} id={id} type="number" name={name} min={0} max={MAX_PRIZE_VALUE} step={1} inputMode="numeric"
       value={value} aria-invalid={issueId ? true : undefined} aria-describedby={issueId}
       onFocus={event => { onActivate(); event.currentTarget.select(); }}
       onChange={event => onChange(event.currentTarget.value)} />
     <button ref={trigger} type="button" data-bound={name} aria-haspopup="dialog" aria-expanded={open}
-      aria-labelledby={`${id}-label ${id}-value`} aria-describedby={issueId} onClick={() => setOpen(true)}>
+      aria-labelledby={`${id}-label ${id}-value`} aria-describedby={issueId} onClick={() => { browsing.current = null; setRestoredPosition(null); setOpen(true); }}>
       <span id={`${id}-value`}>{value && Number.isFinite(amount) ? usable ? formatter.format(amount) : `$${value}` : unsetLabel}</span>
       <span aria-hidden="true">⌄</span>
     </button>
-    {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={value && usable ? amount : -1} retainedValue={value && !usable && Number.isFinite(amount) ? value : undefined} onCancel={close}
+    {open ? <DollarWheel label={title} unsetLabel={unsetLabel} initial={restoredPosition ?? (value && usable ? amount : -1)} retainedValue={restoredPosition === null && value && !usable && Number.isFinite(amount) ? value : undefined} onPosition={next => { browsing.current = next; }} onCancel={close}
       onSave={next => { onActivate(); onChange(next); close(); }} /> : null}
   </div>;
 }

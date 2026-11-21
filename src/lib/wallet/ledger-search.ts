@@ -7,11 +7,11 @@ const typeAliases = new Map([["refund", "REFUND"], ["deposit", "DEPOSIT"], ["fun
 const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:dollars?|USD))?$`, "i");
 const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?:\s+(?:dollars?|USD)\b)?(?=\s|$)`, "gi");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
-const markedAmount = String.raw`[+−-]?\s*\$\s*${dollars}`;
-const amountSeparator = /\s+or\s+|\s*,\s*(?=[+−-]?\s*\$)/i;
-const labeledAlternatives = new RegExp(String.raw`(${markedAmount}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
+const markedAmount = String.raw`[+−-]?\s*\$?\s*${dollars}`;
+const amountSeparator = /\s+or\s+|\s*,\s+(?:(?:and|or)\s+)?|\s*,\s*(?=[+−-]?\s*\$)|\s+and\s+(?=[+−-]?\s*\$)/i;
+const labeledAlternatives = new RegExp(String.raw`([+−-]?\s*\$\s*${dollars}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
 const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|transactions?)\s+(?:of\s+|for\s+)?(?=\d|[$+−-]|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|cents?)\b)/gi;
-const centsValue = String.raw`(\d{1,2}|${smallNumberWords})\s+cents?\b`;
+const centsValue = String.raw`(\d+|${smallNumberWords})\s+cents?\b`;
 const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
 const spokenCentsPattern = new RegExp(String.raw`(\b(?:dollars?|bucks?))\s+(?:and\s+)?${centsValue}`, "i");
 
@@ -48,8 +48,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const open = entries.filter(row => row.entry_type === "ENTRY_HOLD" && (!row.entryRequestId || !closed.has(row.entryRequestId)));
     return searchLedger(open, query.slice(pendingEntry[0].length).trim(), describe);
   }
-  if (/^paid\s+(?=\$|\d|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|bucks?|cents?)\b)/i.test(query)) {
-    return searchLedger(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.replace(/^paid\s+/i, ""), describe);
+  if (/^(?:paid|spent)\s+/i.test(query)) {
+    return searchLedger(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.replace(/^(?:paid|spent)\s+/i, ""), describe, fullLedger);
   }
   const typeAlternative = /^([a-z]+(?:\s+or\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
   const typeOptions = typeAlternative?.[1].toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
@@ -58,7 +58,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const remaining = typeAlternative[2].trim();
     return searchLedger(matched, remaining ? (explicitPostedAmount ? "amount: " : "") + remaining : "", describe);
   }
-  if (/\b(?:between|from|at least|at most|no more than|under|over|above|below|up to)\b|[<>≤≥]\s*=?\s*\$?\s*\d|\$[\d,.]+\s*[-–—]\s*\$[\d,.]+/i.test(query)) {
+  if (/\b(?:between|from|at least|at most|no (?:more|higher|greater|less) than|not exceeding|under|over|above|below|up to)\b|[<>≤≥]\s*=?\s*\$?\s*\d|\$[\d,.]+\s*[-–—]\s*\$[\d,.]+/i.test(query)) {
     const { budget, text } = searchDenominations(query.replace(new RegExp(centsValue, "gi"), (_, amount: string) => {
       const [cents] = searchDenominations(amount + " dollars", []).values;
       return Number.isFinite(cents) ? "$" + (cents / 100).toFixed(2) : amount + " cents";
@@ -70,12 +70,19 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     }), text.replace(/^transactions?\s*/i, ""), describe);
   }
 
+  const spokenAlternatives = query.split(/\s+or\s+/i);
+  if (spokenAlternatives.length > 1 && spokenAlternatives.every(part => amountOnly.test(part) || /^(?:minus |negative |plus |positive )?[\w -]+\s+(?:dollars?|bucks?|cents?)$/i.test(part))) {
+    const unit = spokenAlternatives.at(-1)?.match(/\b(cents?|dollars?|bucks?)$/i)?.[1];
+    const matched = new Set(spokenAlternatives.flatMap(part =>
+      searchLedger(entries, unit && /^\d+$/.test(part) ? `${part} ${unit}` : part, describe, fullLedger)));
+    return entries.filter(entry => matched.has(entry));
+  }
   const centsOnly = signedCents.exec(query);
   if (centsOnly) {
     const { values } = searchDenominations(centsOnly[2] + " dollars", []);
     const [cents] = values;
     const remainder = query.replace(centsOnly[0], " ").trim();
-    if (values.size === 1 && cents < 100 && !/\b(?:dollars?|bucks?|USD)\b/i.test(remainder)) {
+    if (values.size === 1 && Number.isSafeInteger(cents) && !/\b(?:dollars?|bucks?|USD)\b/i.test(remainder)) {
       const sign = centsOnly[1] ? /^(?:minus|negative|[-−])$/i.test(centsOnly[1]) ? -1 : 1 : 0;
       return searchLedger(entries.filter(entry => Math.abs(entry.amount) === cents && (!sign || Math.sign(entry.amount) === sign)), remainder, describe);
     }
@@ -134,12 +141,13 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const normalizedText = wordsOnly
     .replace(/\b(refunds?|deposits?|adjustments?|corrections?) from\b/g, "$1")
     .replace(/\bpurchase options?\b/g, "gift card purchase");
-  const giftCardCharge = !explicitPostedAmount && /\bgift card\b/.test(normalizedText) && amountTokens.length === 2
+  const giftCardCharge = /\bgift card\b/.test(normalizedText) && amountTokens.length === 2
     && amountTokens.filter(token => /^[+−-]/.test(token)).length === 1;
   const denomination = giftCardCharge ? amountTokens.find(token => !/^[+−-]/.test(token)) : undefined;
   const amounts = amountTokens.filter(token => token !== denomination).map(amountMatch);
   const entryPurchasesOnly = /\bposted entries\b/.test(normalizedText);
   const terms = normalizedText.replace(/\bposted entries\b/g, "posted entry purchase")
+    .replace(/\b(refunds?\b.*)\s+of\s*$/i, "$1")
     .replace(/\bfunding\b/g, "deposit")
     .replace(/\b(refund|purchase|deposit|adjustment|correction)s\b/g, "$1").replace(/\bcorrection\b/g, "adjustment").replace(/\bentries\b/g, "entry").split(" ").filter(Boolean);
   const normalizedQuery = normalizeSearch(query);

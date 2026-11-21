@@ -33,7 +33,7 @@
 .sender small { display:block;margin-top:3px;color:#61778b;font-size:11px;font-weight:400; }
 .badge { align-self:start;display:inline-block;margin-bottom:10px;background:#d8efff;color:#00649e;padding:4px 7px;border-radius:5px;font-size:11px;font-weight:800; }
 .declined { background:#edf1f5;color:#526a7e; }
-.viewButton { display:flex;justify-content:space-between;align-items:center;width:100%;min-height:38px;margin-top:auto;padding:9px 10px;border-radius:8px;background:#087fff;color:white;font-size:13px;font-weight:800; }
+.viewButton { display:flex;justify-content:space-between;align-items:center;width:100%;min-height:38px;margin-top:auto;padding:9px 10px;border-radius:8px;background:#0066c9;color:white;font-size:13px;font-weight:800; }
 .back { display:inline-flex;align-items:center;min-height:36px;margin-bottom:8px;color:#c3efff;font-size:14px;font-weight:700; }
 .detail { max-width:700px;border-radius:18px;background:white;color:#102947;padding:16px; }
 .detail > .sender { margin-bottom:12px;font-size:14px; }

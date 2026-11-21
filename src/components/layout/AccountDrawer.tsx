@@ -89,7 +89,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
-  const endDrawerHistory = useDialogBack(open, () => setOpen(false), false, false, false, "account-drawer");
+  const endDrawerHistory = useDialogBack(open, () => setOpen(false), false, false, false, "account-drawer", () => setOpen(true));
   const [replaceDrawerStep, setReplaceDrawerStep] = useState(false);
   useLayoutEffect(() => {
     // The drawer's marked history entry is installed by useDialogBack first.

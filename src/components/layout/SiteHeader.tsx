@@ -36,7 +36,7 @@ export async function SiteHeader() {
     .slice(0, 12)
     .map(({ product, status }) => ({
       title: product.title,
-      href: productHrefWithBrowseReturn(product.slug, "/browse?sort=ending-soon"),
+      href: productHrefWithBrowseReturn(product.slug, `/browse?sort=ending-soon#prize-${product.slug}`),
       remaining: status.remaining,
     }));
 

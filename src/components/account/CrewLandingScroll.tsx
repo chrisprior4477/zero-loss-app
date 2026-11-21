@@ -14,7 +14,7 @@ export function CrewLandingScroll({ enabled, ownerId, groups = false }: { enable
       window.cancelAnimationFrame(secondFrame);
     };
     const hash = groups ? "#crew-groups" : "#crew-intro";
-    const target = groups ? "groups-title" : "crew-intro";
+    const target = groups && !window.matchMedia?.("(max-width: 767px)").matches ? "groups-title" : groups ? "crew-tabs" : "crew-intro";
     const canScroll = () => (groups || window.matchMedia?.("(max-width: 767px)").matches)
       && (!window.location.hash || window.location.hash === hash);
     const revealCrew = () => {

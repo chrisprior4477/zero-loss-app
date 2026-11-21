@@ -145,7 +145,7 @@ export function SearchResultsAutoScroll({
         && window.location.search !== renderedSearch) {
         requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
       }
-      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {

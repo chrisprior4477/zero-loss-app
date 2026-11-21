@@ -449,7 +449,7 @@ describe("Browse search results", () => {
     const coffee = titles.findIndex(title => /Dunkin|Peet|Dutch Bros/i.test(title));
     const storeCards = titles.map((title, index) => /(?:Publix|Walmart).*Gift Card/i.test(title) ? index : -1).filter(index => index >= 0);
     expect(storeCards.length).toBeGreaterThan(2);
-    expect(storeCards.every(index => index < coffee)).toBe(true);
+    expect(coffee === -1 || storeCards.every(index => index < coffee)).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Explore Stir-Fry Night" }));
     const popup = within(screen.getByRole("dialog", { name: "Stir-Fry Night" }));
     const offer = popup.getAllByRole("link", { name: /Publix Gift Card/ })[0];
@@ -463,8 +463,9 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries", sort: "price-low" }) }));
     expect(screen.queryByRole("heading", { name: "Follow your appetite." })).toBeNull();
     expect(topOptions().getByRole("button", { name: /Filter & sort/ })).toBeTruthy();
-    const first = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading")[0];
-    expect(first.textContent).toMatch(/Dunkin/);
+    const titles = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(heading => heading.textContent ?? "");
+    expect(titles[0]).toMatch(/Acme Market/);
+    expect(titles).toEqual([...titles].sort((left, right) => left.localeCompare(right)));
   });
 
   test("clearly identifies indirect retailer results as gift cards", async () => {

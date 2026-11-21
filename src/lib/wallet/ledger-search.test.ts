@@ -26,6 +26,12 @@ test("keeps natural amount phrases scoped to posted values and transaction type"
   expect(search("deposit >= $25")).toEqual(["fund", "larger", "max"]);
   expect(search("deposits above $25")).toEqual(["larger", "max"]);
   expect(search("paid $25")).toEqual(["debit"]);
+  expect(search("paid -$25")).toEqual(["debit"]);
+  expect(search("paid ($25)")).toEqual(["debit"]);
+  expect(search("spent $25")).toEqual(["debit"]);
+  expect(search("paid between $25 and $50")).toEqual(["debit", "more"]);
+  expect(search("deposits $25 or 50")).toEqual(["fund", "larger"]);
+  expect(search("deposits $25, $50 and $75")).toEqual(["fund", "larger", "max"]);
 });
 
 test("keeps posted amounts, card denominations and transaction alternatives independent", () => {
@@ -52,6 +58,10 @@ test("keeps posted amounts, card denominations and transaction alternatives inde
   expect(search("$75 Amazon gift card -$28")).toEqual(["purchase"]);
   expect(search("$50 Amazon gift card -$28")).toEqual([]);
   expect(search("purchase option")).toEqual(["purchase"]);
+  expect(search("100 cents")).toEqual(["entry"]);
+  expect(search("50 cents or one dollar")).toEqual(["small", "entry"]);
+  expect(search("$75 Amazon gift card amount: -$28")).toEqual(["purchase"]);
+  expect(search("refund from Amazon of $25")).toEqual(["refund"]);
 });
 
 test("keeps an amount alternative scoped to the transaction type and recognizes signed speech", () => {

@@ -54,6 +54,18 @@ export const faqItems: FaqItem[] = [
     keywords: "unshare remove cleanup stop sharing privacy", action: { label: "Open Shared Picks & Cleanup", href: "/account/crew?tab=picks#sharing" },
   },
   {
+    id: "free-entry", category: "entries", question: "How do I enter without a purchase?",
+    answer: "Open the mail-in instructions for the prize you want to enter. The instructions explain how to prepare and print the sample insert.",
+    keywords: "free entry mail in mail-in postcard print insert without purchase",
+    action: { label: "Read the free-entry instructions", href: "/free-entry#free-entry-intro" },
+  },
+  {
+    id: "remove-crew-member", category: "account", question: "How do I remove someone from Crew?",
+    answer: "Open Your Crew and choose the connection you want to manage. Use the remove action for that connection.",
+    keywords: "remove someone disconnect person people crew management friends",
+    action: { label: "Open Your Crew", href: "/account/crew#crew-intro" },
+  },
+  {
     id: "enter-a-prize", category: "entries", question: "What is the quickest way to enter a prize?",
     answer: "Open a prize in the marketplace and use its entry controls. Choose your quantity, check the displayed total, and submit. If you need to sign in or create an account, the selected prize is kept so you can return to it afterward.",
     keywords: "ticket tickets enter one dollar signup sign up", action: { label: "Browse prizes", href: "/browse" },
@@ -106,12 +118,12 @@ export const faqItems: FaqItem[] = [
   {
     id: "withdrawals", category: "wallet", question: "Can I withdraw a deposit or request a refund?",
     answer: "Deposits are intended to stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit rights for unauthorized charges or payment errors. An entry undone within its pending window returns to your playable balance, not your payment card. To report an issue, use Report a problem on the relevant wallet transaction.",
-    keywords: "cash out child kid stolen chargeback refund accidental", action: { label: "Find the transaction", href: walletTransactionsHref },
+    keywords: "cash out money child kid stolen chargeback refund accidental", action: { label: "Find the transaction", href: walletTransactionsHref },
   },
   {
     id: "open-reward", category: "rewards", question: "Where is my prize or gift-card number?",
     answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and the available presentation tools. A reward notification also opens that specific reward directly.",
-    keywords: "barcode code pin won winner redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
+    keywords: "barcode code pin won winner winnings check redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
   },
   {
     id: "reward-restrictions", category: "rewards", question: "Do I have to use the gift card on the pictured item?",
@@ -146,7 +158,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "notifications", category: "account", question: "Where do I see updates that need my attention?",
     answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Read status is saved to your account.",
-    keywords: "alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
+    keywords: "email alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
   },
   {
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
@@ -165,13 +177,15 @@ export const faqItems: FaqItem[] = [
   },
 ];
 
-const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
+const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 
 export function faqSearchWords(query: string) {
   const normalized = normalizeFaq(query)
     .replace(/\be-mail\b/g, "email")
+    .replace(/\bchang(?:ing|ed)\b/g, "change")
+    .replace(/\b(?:mail[ -]in|free[ -]entr(?:y|ies))\b/g, "mail-in free entry")
     .replace(/\b(where|what|how|when|who|there)'s\b/g, "$1 is")
     .replace(/\bopt out of sharing\b/g, "stop sharing")
     .replace(/[^a-z0-9\s-]/g, " ")

@@ -86,6 +86,7 @@ const includesAny = (value: string, needles: readonly string[]) =>
   needles.some((needle) => value.includes(needle));
 
 export function productMatchesMarketplaceCategory(product: DemoProduct, category: MarketplaceCategoryId): boolean {
+  if ((category === "groceries" || category === "pets") && marketplaceCategoryId(product.category) === category && isGiftCardListing(product)) return true;
   if (category !== "ending-soon" && product.collections) return product.collections.includes(category);
   if (isRetailerCollection(category)) return isGiftCardListing(product) && collectionRetailers[category].includes(product.retailer);
   const haystack = `${product.category} ${product.title} ${product.brand} ${product.retailer}`.toLowerCase();

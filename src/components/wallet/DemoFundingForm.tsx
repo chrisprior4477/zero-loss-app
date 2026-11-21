@@ -165,7 +165,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const confirmationTrigger = useRef<HTMLButtonElement>(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const settled = state.status === "succeeded" || state.status === "already_credited";
-  useDialogBack(confirmationOpen && !settled, dismissConfirmation, pending, true);
+  useDialogBack(confirmationOpen && !settled, dismissConfirmation, pending, true, false, "funding-review", () => {
+    if (!settled && state.status === "idle") openConfirmation();
+  });
   const showConfirmation = useCallback(() => {
     if (!confirmation.current || confirmation.current.open) return;
     confirmation.current.showModal();

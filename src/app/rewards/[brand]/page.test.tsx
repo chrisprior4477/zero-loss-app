@@ -26,12 +26,14 @@ test.each(popularRewardBrands)("$name cards offer a mobile-sized $1 entry action
   render(await RewardBrandPage({ params: Promise.resolve({ brand: brand.slug }) }));
 
   const actions = screen.getAllByText("Enter for $1");
-  expect(actions).toHaveLength(popularRewardAmounts.length);
+  const slugs = popularRewardAmounts.map(amount => popularRewardProductSlug(brand.slug, amount));
+  if (brand.slug === "lowes") slugs.unshift("lowes-150-gift-card");
+  expect(actions).toHaveLength(slugs.length);
 
   actions.forEach((action, index) => {
     expect(action.className).toContain("rounded-lg bg-[#31e800]");
     expect(action.className).toContain("whitespace-nowrap");
-    const slug = popularRewardProductSlug(brand.slug, popularRewardAmounts[index]);
+    const slug = slugs[index];
     expect(action.closest("a")?.id).toBe(`prize-${slug}`);
     expect(action.closest("a")?.getAttribute("href")).toBe(
       `/items/${slug}?from=${encodeURIComponent(`/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`,

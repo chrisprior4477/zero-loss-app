@@ -39,14 +39,20 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const offering = params.offering.toLowerCase();
   const product = await freeEntryProduct(offering);
   if (product === undefined) {
-    const instructions = freeEntryHref(offering, params.from, parseEntryQuantity(params.quantity), params.share);
+    const parsed = parseEntryQuantity(params.quantity);
+    const instructions = freeEntryHref(offering, params.from, parsed, params.share)
+      + (params.quantity !== undefined && parsed === null ? "&quantity=invalid" : "");
     return <div className="mx-auto max-w-3xl p-6 text-white">
       <h1 className="text-2xl font-black">Availability temporarily unavailable</h1>
       <p className="mt-3">We couldn’t check this prize. Try again to open its print preview.</p>
       <Link className="mt-4 inline-block text-cyan-300 underline" prefetch={false} href={instructions.replace("/free-entry?", "/free-entry/print?")}>Try again</Link>
     </div>;
   }
-  if (!product) redirect(freeEntryHref(offering, params.from, parseEntryQuantity(params.quantity), params.share));
+  if (!product) {
+    const parsed = parseEntryQuantity(params.quantity);
+    redirect(freeEntryHref(offering, params.from, parsed, params.share)
+      + (params.quantity !== undefined && parsed === null ? "&quantity=invalid" : ""));
+  }
   const quantity = parseEntryQuantity(params.quantity);
   const instructions = freeEntryHref(product.slug, params.from, quantity, params.share);
   if (params.quantity !== undefined && quantity === null) redirect(`${instructions}&quantity=invalid#free-entry-intro`);

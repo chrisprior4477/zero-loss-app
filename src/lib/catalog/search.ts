@@ -14,16 +14,27 @@ export function searchCatalogMatches(
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, excludedValues } = denomination;
-  const qualifier = /\s+(?:from|at)\s+(.+)$/.exec(denomination.text);
+  const qualifier = /\s+(?:from|at|sold by)\s+(.+)$/i.exec(denomination.text);
   const qualifiedMerchant = qualifier && !catalogMerchant(denomination.text, products) ? catalogMerchant(qualifier[1], products) : null;
-  const text = qualifiedMerchant && qualifier ? denomination.text.slice(0, qualifier.index) : denomination.text;
+  const qualifiedText = qualifiedMerchant && qualifier ? denomination.text.slice(0, qualifier.index) : denomination.text;
+  const brandQualifier = /\s+by\s+(.+)$/i.exec(qualifiedText);
+  const brandName = brandQualifier ? normalizeSearch(brandQualifier[1]) : "";
+  const isBrand = (product: DemoProduct) => {
+    const actual = normalizeSearch(product.brand);
+    return actual === brandName || actual.startsWith(brandName + " ");
+  };
+  const branded = Boolean(brandName) && products.some(isBrand);
+  const brandedText = branded && brandQualifier ? qualifiedText.slice(0, brandQualifier.index) : qualifiedText;
+  const dimensions = /\b(\d+)\s*(?:inch(?:es)?|")?\s*(?:to|[-–—])\s*(\d+)\s*(?:inch(?:es)?\b|")/i.exec(brandedText);
+  const screenRange = dimensions && /\b(?:tvs?|televisions?)\b/i.test(brandedText) ? dimensions : null;
+  const text = screenRange ? brandedText.replace(screenRange[0], " ") : brandedText;
   const merchant = denomination.merchant ?? qualifiedMerchant;
-  if (conflictingBudget) return [];
-  const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  if (conflictingBudget || denomination.unsupportedCurrency) return [];
+  const withoutGiftCards = query.replace(/\s*,?\s+(?:no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
-  const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(query);
+  const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|(?:everywhere\s+)?except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
     const suffix = retailerExclusion[1];
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
@@ -41,8 +52,10 @@ export function searchCatalogMatches(
   const alternatives = catalogAlternatives(query, products, denomination);
   if (alternatives) {
     const matches = new Map<string, CatalogSearchMatch>();
+    const options = /^\d+ inch(?: or \d+ inch)+ (?:tvs?|televisions?)$/i.test(normalizeSearch(query))
+      ? products.filter(product => !isGiftCardListing(product)) : products;
     for (const part of alternatives) {
-      for (const match of searchCatalogMatches(products, part.text, part, { includeLowerGiftCards: !values.size && includeLowerGiftCards })) {
+      for (const match of searchCatalogMatches(options, part.text, part, { includeLowerGiftCards: !values.size && includeLowerGiftCards })) {
         if (!matches.has(match.product.slug) || match.kind === "product") matches.set(match.product.slug, match);
       }
     }
@@ -69,6 +82,10 @@ export function searchCatalogMatches(
     && (!giftCards || isGiftCardListing(product))
     && (!appStoreGiftCard || /\b(?:app store|itunes)\b/.test(normalizeSearch(`${product.title} ${product.retailer}`)))
     && (!merchant || matchesCatalogMerchant(product.retailer, merchant))
+    && (!branded || isBrand(product))
+    && (!screenRange || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
+      && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
+        Number(size) >= Math.min(Number(screenRange[1]), Number(screenRange[2])) && Number(size) <= Math.max(Number(screenRange[1]), Number(screenRange[2])))))
     && (!exactScreenSize || televisionAccessory || isGiftCardListing(product) || exactScreenSize.test(normalizeSearch(product.title)))
     && (!televisionAccessory || searchWords(product.title).includes(televisionAccessory)));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
@@ -114,7 +131,7 @@ export function searchCatalogMatches(
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
-  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher|up)\b)/i;
+  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up)\b)/i;
   const hasOr = orSeparator.test(query);
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
@@ -124,6 +141,10 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(parsed.text, products) };
   });
   const last = parts.at(-1);
+  const sharedScreenType = last && /^\d+ inch (tvs?|televisions?)$/i.exec(normalizeSearch(last.text));
+  if (hasOr && sharedScreenType && parts.slice(0, -1).every(part => /^\d+ inch$/i.test(normalizeSearch(part.text)))) {
+    return parts.map((part, index) => ({ ...part, text: index === parts.length - 1 ? part.text : `${part.text} ${sharedScreenType[1]}` }));
+  }
   const retailerSuffix = /\s+(?:at|from)\s+(.+)$/i.exec(clauses.at(-1) ?? "");
   const scopedRetailer = retailerSuffix && catalogMerchant(retailerSuffix[1], products);
   if (hasOr && giftCards && scopedRetailer && parts.every(part => part.budget)

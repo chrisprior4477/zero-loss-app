@@ -719,8 +719,10 @@ function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
     };
   }, [openProof]);
   const [editorOpen, setEditorOpen] = useState<"postcard" | "flyer" | null>(null);
-  useDialogBack(Boolean(openProof), () => setOpenProof(null), false, true, false, "business-print-proof");
-  useDialogBack(Boolean(editorOpen), () => setEditorOpen(null), false, true, false, "business-print-editor");
+  const lastProof = useRef<"postcard" | "flyer" | null>(null);
+  const lastEditor = useRef<"postcard" | "flyer" | null>(null);
+  useDialogBack(Boolean(openProof), () => { lastProof.current = openProof; setOpenProof(null); }, false, true, false, "business-print-proof", () => setOpenProof(lastProof.current));
+  useDialogBack(Boolean(editorOpen), () => { lastEditor.current = editorOpen; setEditorOpen(null); }, false, true, false, "business-print-editor", () => setEditorOpen(lastEditor.current));
   const editorTrigger = useRef<HTMLButtonElement>(null);
   const feedbackField = useRef<HTMLTextAreaElement>(null);
   const [feedback, setFeedback] = useState("");
@@ -751,6 +753,7 @@ function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
     if (redos < 1 || !editorOpen) return;
     const designKey = editorOpen === "flyer" ? "flyer_proof_generated" : "postcard_proof_generated";
     setDraft(d => ({ ...d, values: { ...d.values, [feedbackKey]: feedback, [designKey]: true, proof_redos: String(redos - 1) } }));
+    lastEditor.current = null;
     setEditorOpen(null);
   };
   const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={event => {

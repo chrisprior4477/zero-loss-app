@@ -16,10 +16,46 @@ describe("catalog search", () => {
     ["Gift cards under $50 or over $75 at Amazon", "Amazon gift cards under $50 or over $75"],
     ["Sony or Samsung TVs", "Sony TVs or Samsung TVs"],
     ["PlayStation 5 Slim Model from Best Buy", "PlayStation 5 Slim Model"],
+    ["Amazon gift cards valued at $100", "$100 Amazon gift card"],
+    ["Amazon gift cards costing $100", "$100 Amazon gift card"],
+    ["Amazon gift cards no greater than $100", "Amazon gift cards at most $100"],
+    ["Amazon gift cards not exceeding $100", "Amazon gift cards at most $100"],
+    ["Amazon gift cards $100 or lower", "Amazon gift cards at most $100"],
+    ["Amazon gift cards $50 minimum", "Amazon gift cards at least $50"],
+    ["Amazon gift cards at or above $75", "Amazon gift cards at least $75"],
+    ["Amazon gift cards at or below $75", "Amazon gift cards at most $75"],
+    ["PS5 Slim from Best Buy only", "PS5 Slim from Best Buy"],
+    ["PlayStation 5 Slim by Sony", "PlayStation 5 Slim"],
+    ["PS5, no gift cards", "PS5 without gift cards"],
+    ["Gift cards sold by Amazon", "Amazon gift cards"],
+    ["Gift cards not sold by Amazon", "Gift cards except Amazon"],
+    ["Gift cards everywhere except Amazon", "Gift cards except Amazon"],
+    ["Gift cards between $25 & $50", "Gift cards between $25 and $50"],
+    ["Gift cards with values from $25 to $50", "Gift cards from $25 to $50"],
+    ["Gift cards $25, 50, 75", "Gift cards $25, $50, $75"],
+    ["Gift cards $25.00, $50.00 or $75.00", "Gift cards $25, $50, $75"],
+    ["Gift cards $25 to $50 for an entry fee of $1", "Gift cards $25 to $50 for $1 per entry"],
+    ["Gift cards $1 a ticket", "Gift cards $1 per entry"],
+    ["Gift cards $1 each entry", "Gift cards $1 per entry"],
+    ["Gift cards $1 or less per ticket", "Gift cards up to $1 per ticket"],
+    ["Gift cards at $1 per entry only", "Gift cards $1 per entry"],
   ])("keeps the intended qualifiers for %s", (query, equivalent) => {
     const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
     expect(slugs(query)).toEqual(slugs(equivalent));
     expect(slugs(query).length).toBeGreaterThan(0);
+  });
+  test("keeps currency, retailer aliases and television sizes distinct", () => {
+    expect(searchCatalog(demoProducts, "Amazon $100 CAD gift card")).toEqual([]);
+    for (const [query, retailer] of [["Wal-Mart gift card", /^Walmart/], ["Door Dash gift card", /^DoorDash$/], ["X Box gift card", /^Xbox$/i]] as const) {
+      const results = searchCatalog(demoProducts, query);
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.every(product => retailer.test(product.retailer))).toBe(true);
+    }
+    const tvs = ["lg-oled-c6-65-tv", "samsung-m70h-tv"];
+    for (const query of ["50 inch or 65 inch TV", "TV 50 to 65 inches"]) {
+      expect(searchCatalog(demoProducts, query).map(product => product.slug).sort()).toEqual(tvs);
+    }
+    expect(searchCatalog(demoProducts, "Samsung TV 45–55 inch").map(product => product.slug)).toEqual(["samsung-m70h-tv"]);
   });
   test("matches compact storage units, leading price ceilings, and retailer exclusions", () => {
     expect(searchCatalog(demoProducts, "Sony PS5 Slim 1TB").some(item => item.slug === "playstation-5-slim")).toBe(true);

@@ -259,8 +259,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     return `${url.pathname}${url.search}#search-results`;
   }
   function choosePrizeCategory(value: string) {
-    if (desktop && props.previews) setPreview(current => current === value ? null : value);
-    else navigateFromPanel(prizeCategoryHref(value));
+    if (desktop && props.previews) {
+      const term = search.trim();
+      if (openPanel && term !== props.searchTerm && !invalidCatalogSearch(term) && !catalogSearchTooLong(term)) {
+        const href = prizeCategoryHref(value, term);
+        rememberPreview(comparableBrowseHref(href), value, openPanel.position);
+        navigateFromPanel(href);
+      } else setPreview(current => current === value ? null : value);
+    } else navigateFromPanel(prizeCategoryHref(value));
   }
   function searchDestination(value: string, allCategories = false) {
     const url = new URL(props.browseHref, "https://zeroloss.local");
@@ -326,7 +332,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function previewSection(category: PrizeCategoryChoice) {
     const products = props.previews?.[category.id] ?? [];
     // The preview was matched on the server using the applied search.
-    const href = prizeCategoryHref(category.id, props.searchTerm);
+    const href = prizeCategoryHref(category.id);
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>
       <div className={styles.previewHeader}><h3>{category.label}{search.trim() !== props.searchTerm && props.searchTerm ? <> · “{props.searchTerm}”</> : null}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
@@ -408,7 +414,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       {!props.filters.retailer && props.selectedRetailerGroup ? <BrowseResultsLink target="heading" href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</BrowseResultsLink> : null}
       {activeCount > 0 || props.filters.retailer || props.subcategory ? <BrowseResultsLink target="heading" href={`${props.clearHref}#search-results`}>Clear filters</BrowseResultsLink> : null}
     </div> : null}
-    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog} ${wideCategories && mode === "categories" ? styles.wideDialog : ""}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
+    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog} ${wideCategories && mode === "categories" ? styles.wideDialog : ""}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onKeyDownCapture={event => {
+      if (event.key === "Escape" && event.target instanceof HTMLInputElement && event.target.type === "search") {
+        event.preventDefault(); event.stopPropagation(); close();
+      }
+    }} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>
         <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? wideCategories ? "Choose a category to preview its prizes." : "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label={refining && panel === "filters" ? "Back to category preview" : "Close browse options"} onClick={() => close()}>×</button></header>
         {panel === "categories" ? <>

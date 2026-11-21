@@ -318,6 +318,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
           {denomination.conflictingBudget ? <p role="status" className="mb-3 text-sm text-amber-200">These price limits do not overlap. Adjust the minimum or maximum in your search.</p> : null}
+          {denomination.unsupportedCurrency ? <p role="status" className="mb-3 text-sm text-amber-200">This catalog lists prizes in U.S. dollars. Search using a USD amount to see matching prizes.</p> : null}
           {invalidTicketRange || invalidType || invalidAvailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidTicketRange ? "That tickets-left range is unavailable. " : ""}{invalidType ? "That product type is unavailable. " : ""}{invalidAvailable ? "That availability filter is unavailable. " : ""}Your other filters still apply. <Link href={browseReturnHref + "#search-results"} className="underline">Update this link</Link>
           </p> : null}

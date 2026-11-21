@@ -264,7 +264,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       field?.focus({ preventScroll: true });
       if (field) revealBelowHeader(field);
       groupToFocus.current = null;
-    } else groupRow?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    } else groupRow?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
     groupToReveal.current = null;
   }, [groups, expandedGroupId]);
 
@@ -287,7 +287,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   function focusNewGroupName() {
     const field = document.getElementById("new-crew-group");
     field?.focus({ preventScroll: true });
-    if (field) revealBelowHeader(field);
+    if (field) requestAnimationFrame(() => { if (document.activeElement === field) revealBelowHeader(field); });
   }
 
   useEffect(() => {

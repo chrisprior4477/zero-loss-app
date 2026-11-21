@@ -7,6 +7,9 @@ import { getPopularRewardBrand, popularRewardAmounts, popularRewardBrands, popul
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
+import { demoProducts } from "@/lib/catalog/demo-products";
+import { matchesCatalogMerchant } from "@/lib/catalog/search-denomination";
+import { isGiftCardListing } from "@/lib/catalog/navigation";
 
 type Props = { params: Promise<{ brand: string }> };
 
@@ -25,8 +28,17 @@ export default async function RewardBrandPage({ params }: Props) {
   if (!brand) notFound();
   if (requestedBrand !== brand.slug) permanentRedirect(`/rewards/${brand.slug}`);
   const { hidden, unavailable } = await getShoppingCatalog();
-  const amounts = popularRewardAmounts.filter(amount =>
-    !hidden.has(popularRewardProductSlug(brand.slug, amount)) || (amount === 100 && !unavailable));
+  const offers: { amount: number; slug: string; title?: string }[] = popularRewardAmounts.map(amount => ({ amount, slug: popularRewardProductSlug(brand.slug, amount) }))
+    .filter(({ amount, slug }) => !hidden.has(slug) || (amount === 100 && !unavailable));
+  const values = new Set<number>(popularRewardAmounts);
+  for (const product of demoProducts) {
+    if (hidden.has(product.slug) || values.has(product.value) || !isGiftCardListing(product)
+      || popularRewardProductSlug(brand.slug, product.value) !== product.slug
+      || !matchesCatalogMerchant(product.retailer, brand.name)) continue;
+    offers.push({ amount: product.value, slug: product.slug, title: product.title });
+    values.add(product.value);
+  }
+  offers.sort((left, right) => right.amount - left.amount);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
@@ -38,9 +50,8 @@ export default async function RewardBrandPage({ params }: Props) {
         <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to go to its $1 entry area. You can review the complete demo offering before you enter.</p>
 
         <section id="reward-values" tabIndex={-1} className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
-          {!amounts.length && <p role="status">{unavailable ? "Prize availability could not be loaded. Refresh to check again." : "There are no open gift-card offers for this retailer right now."} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
-          {amounts.map((amount) => {
-            const slug = popularRewardProductSlug(brand.slug, amount);
+          {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded. Refresh to check again." : "There are no open gift-card offers for this retailer right now."} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
+          {offers.map(({ amount, slug, title }) => {
             const open = !hidden.has(slug);
             const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";
             const card = <>
@@ -50,7 +61,7 @@ export default async function RewardBrandPage({ params }: Props) {
                 <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-[#00132e] shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
               </div>
               <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-4 sm:gap-4">
-                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">${amount} {brand.name} Gift Card</h2><p className="mt-1 text-sm text-white/65">{open ? "$1 per entry · Investor demo" : "No open entries"}</p></div>
+                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">{title ?? `$${amount} ${brand.name} Gift Card`}</h2><p className="mt-1 text-sm text-white/65">{open ? "$1 per entry · Investor demo" : "No open entries"}</p></div>
                 {open && <span className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#31e800] px-3 text-xs font-extrabold text-[#00132e] transition-colors group-hover:bg-[#72ff4e] sm:px-4 sm:text-sm">Enter for $1</span>}
               </div>
             </>;

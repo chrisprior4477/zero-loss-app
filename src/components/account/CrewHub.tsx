@@ -293,7 +293,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       {!available ? <p role="alert" className="mt-5 rounded-xl border border-amber-400/45 bg-amber-500/10 p-4 text-sm">Crew sharing is temporarily unavailable. No picks were exposed or changed.</p> : null}
       {message ? <p role="status" className="mt-5 rounded-xl border border-cyan-300/45 bg-[#0c3657] p-4 text-sm">{message}</p> : null}
 
-      <nav className={connectedStyles.navigation} aria-label="Your Crew sections">
+      <nav id="crew-tabs" tabIndex={-1} className={connectedStyles.navigation} aria-label="Your Crew sections">
         <div className={connectedStyles.mainButtons}>
           <button type="button" data-crew-tab="crew" aria-pressed={tab === "crew"} onClick={() => selectTab("crew")}>Your Crew</button>
           <button type="button" data-crew-tab="groups" aria-pressed={tab === "groups"} onClick={() => selectTab("groups")}>Groups</button>

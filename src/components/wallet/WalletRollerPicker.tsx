@@ -20,18 +20,20 @@ type PickerProps = {
 const ROW_HEIGHT = 48;
 const WHEEL_HEIGHT = ROW_HEIGHT * 3;
 
-function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }: {
+function RollerOverlay({ anchor, id, label, options, value, initialChoice, onBrowse, onChange, onClose }: {
   anchor: RefObject<HTMLButtonElement | null>;
   id: string;
   label: string;
   options: Choice[];
   value: string;
+  initialChoice: string | null;
+  onBrowse: (choice: string) => void;
   onChange: (value: string) => void;
-  onClose: (restoreFocus?: boolean, direction?: -1 | 1, desktop?: boolean) => void;
+  onClose: (restoreFocus?: boolean, direction?: -1 | 1, desktop?: boolean, focusAfterReturn?: HTMLElement) => void;
 }) {
   const popup = useRef<HTMLDivElement>(null);
   const wheel = useRef<HTMLDivElement>(null);
-  const [initialIndex] = useState(() => Math.max(0, options.findIndex(option => option.value === value)));
+  const [initialIndex] = useState(() => Math.max(0, options.findIndex(option => option.value === (initialChoice ?? value))));
   const [offset, setOffset] = useState(initialIndex * ROW_HEIGHT);
   const [committing, setCommitting] = useState<string | null>(null);
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,7 +62,9 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
       wheel.current.focus({ preventScroll: true });
     }
     function outside(event: Event) {
-      if (event.target instanceof Node && !popup.current?.contains(event.target) && !anchor.current?.contains(event.target)) onCloseRef.current();
+      if (!(event.target instanceof HTMLElement) || popup.current?.contains(event.target) || anchor.current?.contains(event.target)) return;
+      const control = event.target.closest<HTMLElement>("a[href],button,input,select,textarea,[tabindex]");
+      onCloseRef.current(false, undefined, false, control?.tabIndex === -1 ? undefined : control ?? undefined);
     }
     function resized() {
       if (window.innerWidth >= 768) onCloseRef.current(true, undefined, true);
@@ -97,13 +101,14 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
     commitTimer.current = setTimeout(() => onCloseRef.current(true), reducedMotion ? 0 : 180);
   }
 
-  return createPortal(<div ref={popup} className={styles.overlay}>
+  return createPortal(<div ref={popup} role="region" aria-label={`${label} choices`} className={styles.overlay}>
     <div className={styles.centerBand} aria-hidden="true" />
     <div ref={wheel} id={`${id}-wheel`} role="radiogroup" aria-label={label} tabIndex={0}
       aria-activedescendant={`${id}-choice-${Math.round(offset / ROW_HEIGHT)}`} className={styles.wheel}
       onScroll={event => {
         const top = Math.max(0, Math.min((options.length - 1) * ROW_HEIGHT, event.currentTarget.scrollTop));
         browseIndex.current = Math.max(0, Math.min(options.length - 1, Math.round(top / ROW_HEIGHT)));
+        if (options[browseIndex.current]) onBrowse(options[browseIndex.current].value);
         cancelAnimationFrame(frame.current);
         frame.current = requestAnimationFrame(() => setOffset(top));
       }}
@@ -118,6 +123,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
         const next = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1
           : Math.max(0, Math.min(options.length - 1, browseIndex.current + (event.key === "ArrowDown" ? 1 : -1)));
         browseIndex.current = next;
+        if (options[next]) onBrowse(options[next].value);
         setOffset(next * ROW_HEIGHT);
         wheel.current?.scrollTo({ top: next * ROW_HEIGHT, behavior: "instant" });
       }}>
@@ -142,14 +148,31 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   const uniqueId = useId();
   const id = providedId ?? uniqueId;
   const [open, setOpen] = useState(false);
+  const [restoredChoice, setRestoredChoice] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const lastChoice = useRef<string | null>(null);
   const desktopSelect = useRef<HTMLSelectElement>(null);
   const selected = options.find(option => option.value === value);
   const unavailable = disabled || options.length === 0;
-  useDialogBack(open && !unavailable, () => close(true), false, true, nestedHistory);
+  useDialogBack(open && !unavailable, () => close(true), false, true, nestedHistory, `wallet-picker-${id}`, () => {
+    if (!unavailable && trigger.current?.getClientRects().length) {
+      setRestoredChoice(lastChoice.current);
+      setOpen(true);
+    }
+  });
   if (unavailable && open) setOpen(false);
-  function close(restoreFocus = false, direction?: -1 | 1, desktop = false) {
+  function close(restoreFocus = false, direction?: -1 | 1, desktop = false, focusAfterReturn?: HTMLElement) {
     setOpen(false);
+    if (focusAfterReturn) {
+      const href = window.location.href;
+      const restore = () => requestAnimationFrame(() => {
+        if (window.location.href === href && focusAfterReturn.isConnected && document.activeElement === document.body) {
+          focusAfterReturn.focus({ preventScroll: true });
+        }
+      });
+      window.addEventListener("popstate", restore, { once: true });
+      window.setTimeout(() => window.removeEventListener("popstate", restore), 650);
+    }
     if (restoreFocus) {
       const opener = desktop ? desktopSelect.current : trigger.current;
       if (!opener) return;
@@ -184,11 +207,13 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
     </select>
     <button ref={trigger} type="button" className={styles.trigger} disabled={unavailable}
       aria-labelledby={`${id}-label ${id}-value`} aria-expanded={open && !unavailable} aria-controls={open ? `${id}-wheel` : undefined}
-      onClick={() => setOpen(current => !current)}>
+      onClick={() => { if (!open) { lastChoice.current = null; setRestoredChoice(null); } setOpen(!open); }}>
       <span id={`${id}-value`}>{selected ? <><strong>{selected.label}</strong>{selected.detail ? <small>{selected.detail}</small> : null}</> : placeholder}</span>
       <span className={styles.chevron} aria-hidden="true">{open ? "⌃" : "⌄"}</span>
     </button>
     {/* Refresh the wheel's position and pending animation only when the available choices change. */}
-    {open && !unavailable ? <RollerOverlay key={JSON.stringify(options.map(option => option.value))} anchor={trigger} id={id} label={label} options={options} value={value} onChange={onChange} onClose={close} /> : null}
+    {open && !unavailable ? <RollerOverlay key={JSON.stringify(options.map(option => option.value))} anchor={trigger} id={id} label={label} options={options} value={value}
+      initialChoice={options.some(option => option.value === restoredChoice) ? restoredChoice : null} onBrowse={choice => { lastChoice.current = choice; }}
+      onChange={onChange} onClose={close} /> : null}
   </div>;
 }
