@@ -27,7 +27,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
   options: Choice[];
   value: string;
   onChange: (value: string) => void;
-  onClose: (restoreFocus?: boolean, direction?: -1 | 1) => void;
+  onClose: (restoreFocus?: boolean, direction?: -1 | 1, desktop?: boolean) => void;
 }) {
   const popup = useRef<HTMLDivElement>(null);
   const wheel = useRef<HTMLDivElement>(null);
@@ -63,7 +63,7 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
       if (event.target instanceof Node && !popup.current?.contains(event.target) && !anchor.current?.contains(event.target)) onCloseRef.current();
     }
     function resized() {
-      if (window.innerWidth >= 768) onCloseRef.current();
+      if (window.innerWidth >= 768) onCloseRef.current(true, undefined, true);
       else position();
     }
     function scrolled(event: Event) { if (event.target !== wheel.current) position(); }
@@ -143,14 +143,15 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   const id = providedId ?? uniqueId;
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const desktopSelect = useRef<HTMLSelectElement>(null);
   const selected = options.find(option => option.value === value);
   const unavailable = disabled || options.length === 0;
   useDialogBack(open && !unavailable, () => close(true), false, true, nestedHistory);
   if (unavailable && open) setOpen(false);
-  function close(restoreFocus = false, direction?: -1 | 1) {
+  function close(restoreFocus = false, direction?: -1 | 1, desktop = false) {
     setOpen(false);
     if (restoreFocus) {
-      const opener = trigger.current;
+      const opener = desktop ? desktopSelect.current : trigger.current;
       if (!opener) return;
       const modal = opener.closest("dialog[open], [role=dialog][aria-modal=true]");
       const controls = direction ? tabbableControls(modal ?? document) : [];
@@ -177,7 +178,7 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
   }
   return <div className={styles.picker}>
     <span id={`${id}-label`} className={styles.label}>{label}</span>
-    <select id={id} aria-labelledby={`${id}-label`} className={styles.desktop} value={value} disabled={unavailable} onChange={event => onChange(event.target.value)}>
+    <select ref={desktopSelect} id={id} aria-labelledby={`${id}-label`} className={styles.desktop} value={value} disabled={unavailable} onChange={event => onChange(event.target.value)}>
       <option value="" disabled>{placeholder}</option>
       {options.map(option => <option key={option.value} value={option.value}>{option.label}{option.detail ? ` · ${option.detail}` : ""}</option>)}
     </select>

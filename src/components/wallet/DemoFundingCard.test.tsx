@@ -7,13 +7,13 @@ test("See card flips to the sample artwork and back without removing saved actio
   render(<DemoFundingCard token="demo_card_4242" selected saved actions={<button>Delete Card</button>}><label><input type="radio" />Use for this deposit</label></DemoFundingCard>);
   expect(screen.getByText("SAVED")).toBeTruthy();
   expect(screen.queryByRole("img", { name: /Sample card front/ })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "See card" }));
+  fireEvent.click(screen.getByRole("button", { name: "See card: Bank of America ending 4242" }));
   expect(screen.getByRole("img", { name: /Sample card front/ })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "Use for this deposit" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Delete Card" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See back" }));
   expect(screen.getByRole("img", { name: /Sample card back/ })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Hide card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Hide card: Bank of America ending 4242" }));
   expect(screen.queryByRole("img", { name: /Sample card back/ })).toBeNull();
   expect(screen.getByRole("radio", { name: "Use for this deposit" })).toBeTruthy();
 });

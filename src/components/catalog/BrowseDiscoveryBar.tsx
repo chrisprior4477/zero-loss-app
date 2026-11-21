@@ -60,6 +60,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const previewRef = useRef<HTMLElement>(null);
   const previewFocus = useRef<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
+  const lastPanel = useRef<{ panel: BrowsePanel; position: ControlsPosition; trigger: HTMLButtonElement } | null>(null);
   const topCategories = useRef<HTMLButtonElement>(null);
   const bottomCategories = useRef<HTMLButtonElement>(null);
   const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
@@ -177,13 +178,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     return () => window.removeEventListener("popstate", restorePreview);
   }, [desktop, props.browseHref, props.previews]);
 
-  function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
-    opener.current = button;
+  function resetPicker(next: BrowsePanel, position: ControlsPosition) {
     voice.cancel();
     session?.voice.cancel();
     setPreview(null);
     setRefining(null);
     setQuery(""); setMode("categories"); setOpenPanel({ panel: next, position });
+  }
+  function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
+    opener.current = button;
+    resetPicker(next, position);
   }
   function close(returnToPreview = true) {
     pickerVoice.cancel();
@@ -199,7 +203,17 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     }
     setOpenPanel(null);
   }
-  const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true);
+  useLayoutEffect(() => {
+    const trigger = opener.current;
+    if (openPanel && trigger) lastPanel.current = { ...openPanel, trigger };
+  }, [openPanel]);
+  const endPanelHistory = useDialogBack(Boolean(panel), () => close(), false, true, false, "browse-discovery", () => {
+    const last = lastPanel.current;
+    if (last?.trigger.isConnected) {
+      opener.current = last.trigger;
+      resetPicker(last.panel, last.position);
+    }
+  });
   function navigateFromPanel(destination: string) {
     if (panel === "filters" && refining && openPanel) {
       const target = comparableBrowseHref(destination);
@@ -392,15 +406,15 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
           <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => setMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => setMode("retailers")}>Retailers</button></div>
           <form role="search" aria-label="Find a category or retailer" className={`${styles.search} ${styles.pickerSearch}`} onSubmit={submitPickerSearch}>
             <label className={styles.srOnly} htmlFor={`${id}-picker`}>Find a category or retailer</label>
-            <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(query.trim()) || undefined} aria-describedby={catalogSearchTooLong(query.trim()) ? `${id}-picker-limit` : undefined} enterKeyHint="search" autoComplete="off"
+            <input id={`${id}-picker`} ref={pickerInput} type="search" value={query} maxLength={maxCatalogSearchLength} aria-invalid={(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) || undefined} aria-describedby={(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) ? `${id}-picker-limit` : undefined} enterKeyHint="search" autoComplete="off"
               onChange={event => { pickerVoice.reset(); setQuery(event.target.value); setPreview(null); }} placeholder="Search categories, retailers, or prizes" />
             {query ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={() => {
               pickerVoice.reset(); setQuery(""); setPreview(null); pickerInput.current?.focus();
             }}>×</button> : null}
-            {query.trim() && !pickerVoice.busy && !invalidCatalogSearch(query) && !catalogSearchTooLong(query.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+            {query.trim() && !pickerVoice.busy && !invalidCatalogSearch(query) && !(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
             <VoiceSearchControl {...pickerVoice} />
           </form>
-          {catalogSearchTooLong(query.trim()) ? <p id={`${id}-picker-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}
+          {(invalidCatalogSearch(query) || catalogSearchTooLong(query.trim())) ? <p id={`${id}-picker-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{invalidCatalogSearch(query) ? invalidCatalogSearchMessage : catalogSearchLimitMessage}</p> : null}
           <div ref={categoryList} className={wideCategories && mode === "categories" ? styles.wideChoices : styles.wheel}
             role="region" aria-label={mode === "categories" ? wideCategories ? "Prize categories" : "Scrollable categories" : "Scrollable retailers"} tabIndex={0}>
             {mode === "categories" ? <>
@@ -439,7 +453,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
                 </div>;
               })}</>}
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0
-              ? <p className={styles.noMatches}>{query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
+              ? <p className={styles.noMatches}>{invalidCatalogSearch(query) || catalogSearchTooLong(query.trim()) ? "" : query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
           </div>
         </> : <div className={styles.filterBody}><FilterForm {...filterProps} initialSearch={search} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div>}
       </div>

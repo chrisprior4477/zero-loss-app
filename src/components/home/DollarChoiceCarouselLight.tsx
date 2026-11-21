@@ -52,7 +52,7 @@ export function DollarChoiceCarouselLight() {
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const scroll = (direction: -1 | 1) => {
-    trackRef.current?.scrollBy({ left: direction * 760, behavior: "smooth" });
+    trackRef.current?.scrollBy({ left: direction * 760, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -140,7 +140,7 @@ export function DollarChoiceCarouselLight() {
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.color }}>{status.label}</p> : null}
+                      {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.almostFull ? "#b71b39" : status.color }}>{status.label}</p> : null}
                       <h3 className="line-clamp-2 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:text-[15px]">{item.title}</h3>
                       <p className="mt-1 text-[9px] font-semibold leading-tight text-slate-500 sm:text-[11px]">
                         ${item.prizeValue.toLocaleString()} value<br />{entryCapacity.toLocaleString()} entries
@@ -152,7 +152,7 @@ export function DollarChoiceCarouselLight() {
                 <Link
                   href={prizeHref}
                   draggable={false}
-                  style={{ backgroundColor: "#087ff5", margin: "0 10px 10px", borderRadius: 10 }}
+                  style={{ backgroundColor: "#006aca", margin: "0 10px 10px", borderRadius: 10 }}
                   className="mt-auto grid h-9 shrink-0 place-items-center text-[14px] font-extrabold text-white shadow-[0_6px_14px_rgba(8,127,245,0.24)] transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
                 >
                   Enter $1

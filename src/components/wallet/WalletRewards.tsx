@@ -76,6 +76,12 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
 }) {
   const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
   const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
+  function scopedHistory(href: string) {
+    if (!prize) return href;
+    const url = new URL(href, "https://zeroloss.local");
+    url.searchParams.set("prize", prize);
+    return url.pathname + url.search + url.hash;
+  }
   const prizeQuery = prize ? `&prize=${encodeURIComponent(prize)}` : "";
   const cardCounts = new Map<string, number>();
   for (const item of allRewards) {
@@ -165,11 +171,11 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : view === "other" ? "Other reward updates" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
-            <WalletRewardLink href="/account/wallet#reward-history" aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
-            <WalletRewardLink href="/account/wallet?rewards=ready&rewardHistory=1#reward-history" aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
-            <WalletRewardLink href={rewardViewHrefs.used} aria-current={view === "used" ? "page" : undefined}>Used</WalletRewardLink>
-            {(expired.length > 0 || focusedHistory) && <WalletRewardLink href={rewardViewHrefs.expired} aria-current={view === "expired" ? "page" : undefined}>Expired</WalletRewardLink>}
-            {(other.length > 0 || view === "history") && <WalletRewardLink href={rewardViewHrefs.history} aria-current={view === "history" ? "page" : undefined}>History</WalletRewardLink>}
+            <WalletRewardLink href={scopedHistory("/account/wallet#reward-history")} aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
+            <WalletRewardLink href={scopedHistory("/account/wallet?rewards=ready&rewardHistory=1#reward-history")} aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
+            <WalletRewardLink href={scopedHistory(rewardViewHrefs.used)} aria-current={view === "used" ? "page" : undefined}>Used</WalletRewardLink>
+            {(expired.length > 0 || focusedHistory) && <WalletRewardLink href={scopedHistory(rewardViewHrefs.expired)} aria-current={view === "expired" ? "page" : undefined}>Expired</WalletRewardLink>}
+            {(other.length > 0 || view === "history") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" ? "page" : undefined}>History</WalletRewardLink>}
           </nav>
         </div>
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>

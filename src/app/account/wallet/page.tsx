@@ -41,7 +41,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; entryFromOrders?: string | string[]; entryOrderFilter?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
   const rawQuery = await searchParams;
   const query = {
     ...rawQuery,
@@ -71,7 +71,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
   const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
-  const entryOrigin = { transaction: query.entryTransaction, walletView: query.entryWalletView, alerts: query.alerts, notice: query.notice };
+  const entryOrigin = { transaction: query.entryTransaction, walletView: query.entryWalletView, fromOrders: query.entryFromOrders, orderFilter: query.entryOrderFilter, alerts: query.alerts, notice: query.notice };
   const account = await getAccountContext();
   if (!account) {
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";

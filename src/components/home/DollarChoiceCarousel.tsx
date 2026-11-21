@@ -22,7 +22,7 @@ export function DollarChoiceCarousel() {
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const scroll = (direction: -1 | 1) => {
-    trackRef.current?.scrollBy({ left: direction * 760, behavior: "smooth" });
+    trackRef.current?.scrollBy({ left: direction * 760, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -130,7 +130,7 @@ export function DollarChoiceCarousel() {
                     <span aria-hidden="true" className="absolute inset-[18%] rounded-full blur-2xl" style={{ backgroundColor: item.accentSoft, boxShadow: `0 0 42px ${item.accent}` }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="230px" className="relative z-10 object-contain p-1 drop-shadow-[0_18px_18px_rgba(0,0,0,0.42)] transition-transform duration-300 group-hover:scale-105" />
                   </div>
-                  {status.almostFull || current?.remaining === 0 ? <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.1em]" style={{ color: status.color }}>{status.label}</p> : null}
+                  {status.almostFull || current?.remaining === 0 ? <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.1em]" style={{ color: status.almostFull ? "#ff7f8d" : status.color }}>{status.label}</p> : null}
                   <h3 className={`${status.almostFull || current?.remaining === 0 ? "mt-0.5" : "mt-2"} min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white`}>{item.title}</h3>
                   <p className="mt-1 text-center text-[10px] font-semibold text-white/70 sm:text-[11px]">
                     ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries

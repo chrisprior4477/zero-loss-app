@@ -115,6 +115,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
     remember(tickets[next].entryId);
   }
 
+  const fallback = useRef<HTMLInputElement | null>(null);
   const latestCopy = useRef(0);
   async function copyEntryId(entryId: string) {
     const attempt = ++latestCopy.current;
@@ -125,6 +126,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
       setCopyErrorEntryId(null);
     } catch {
       if (attempt !== latestCopy.current) return;
+      if (fallback.current?.value === entryId) { fallback.current.focus(); fallback.current.select(); }
       setCopiedEntryId(null);
       setCopyErrorEntryId(entryId);
     }
@@ -197,7 +199,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
         {copyErrorEntryId === ticket.entryId ? <label className="block w-full min-w-0 text-sm">
           <span role="status">Copy this entry number manually.</span>
           <input className="mt-1 block w-full min-w-0 rounded border border-[#89b8ce] bg-white px-2 py-1 text-sm" aria-label="Full entry number" value={ticket.entryId} readOnly
-            ref={element => { if (element) { element.focus(); element.select(); } }} />
+            ref={element => { fallback.current = element; if (element) { element.focus(); element.select(); } }} />
         </label> : null}
         {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}${walletOrigin ? `&${new URLSearchParams(walletOrigin)}` : ""}${notice ? `&alerts=${encodeURIComponent(alerts ?? "all")}&notice=${encodeURIComponent(notice)}` : ""}#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
       </div>

@@ -41,6 +41,8 @@ test("keeps posted amounts, card denominations and transaction alternatives inde
     { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product },
   ];
   const search = (query: string) => searchLedger(entries, query, entry => ledgerDescription(entry.entry_type, entry.product?.title)).map(entry => entry.id);
+  expect(search("paid one dollar")).toEqual(["entry"]);
+  expect(search("transactions between 50 cents and $1")).toEqual(["small", "entry"]);
   expect(search(".50")).toEqual(["small"]);
   expect(search("50 cents")).toEqual(["small"]);
   expect(search("deposit or refund $25")).toEqual(["deposit", "refund"]);

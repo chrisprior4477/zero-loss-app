@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import styles from "./entry-page.module.css";
 
 export function PrizeNumberCopy({ number, children }: { number: string; children?: ReactNode }) {
+  const fallback = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
 
   async function copyNumber() {
@@ -12,6 +13,8 @@ export function PrizeNumberCopy({ number, children }: { number: string; children
       setStatus("copied");
     } catch {
       setStatus("error");
+      fallback.current?.focus();
+      fallback.current?.select();
     }
   }
 
@@ -36,7 +39,7 @@ export function PrizeNumberCopy({ number, children }: { number: string; children
       <span role="status">Copy the prize number manually.</span>
       <input aria-label="Prize number to copy" readOnly value={number}
         className="mt-1 block w-full rounded-md border border-[#1878d5] bg-white p-2 text-[#061630]"
-        ref={input => { if (input) { input.focus(); input.select(); } }} />
+        ref={input => { fallback.current = input; if (input) { input.focus(); input.select(); } }} />
     </label> : null}
   </dd>;
 }

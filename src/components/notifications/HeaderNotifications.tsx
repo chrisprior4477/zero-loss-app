@@ -50,7 +50,11 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<HeaderCategory | null>(null);
   const [bannerCategory, setBannerCategory] = useState<HeaderCategory | null>(null);
   const warmed = useRef(new Map<string, number>());
-  const endUpdatesHistory = useDialogBack(Boolean(value?.open), () => { keyboardOpened.current = true; value?.setOpen(false); });
+  const endUpdatesHistory = useDialogBack(Boolean(value?.open), () => { keyboardOpened.current = true; value?.setOpen(false); }, false, false, false, "header-updates", () => {
+    keyboardOpened.current = true;
+    setSelected(null);
+    value?.setOpen(true);
+  });
   function closeUpdates() { endUpdatesHistory(); value?.setOpen(false); }
   useEffect(() => {
     const openSupport = () => setSelected("support");

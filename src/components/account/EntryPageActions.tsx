@@ -48,7 +48,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   entryId?: string; ownerId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
   itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
-  entryContext?: { transaction?: string; walletView?: string; alerts?: string; notice?: string };
+  entryContext?: { transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string };
 }) {
   const router = useRouter();
   const crewReturnEntry = useSelectedEntryTicket()?.selected ?? entryId;
@@ -401,7 +401,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
         <h3 id="crew-title">Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Only the connected Crew members you select can receive email. Sample profiles are for the demo.</p>
         <div className={styles.crewRailWrap}>
-          <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: "smooth" })}>‹</button>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>‹</button>
           <div className={styles.crewRail} ref={crewRail} aria-label="Crew members" onPointerDown={startRailDrag} onPointerMove={moveRailDrag} onPointerUp={endRailDrag} onPointerCancel={endRailDrag}>
             {displayCrew.map(member => {
               const selected = selectedCrew.includes(member.id);
@@ -414,7 +414,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             })}
             <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry } : {}), ...(activityFilter === "active" ? { filter: "active" } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
-          <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: "smooth" })}>›</button>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
         </div>
         <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared || crewSharePending} onClick={() => void sendCrewShare()}>{crewSharePending ? "Saving…" : demoAlertPrepared ? selectedCrew.every(id => id.startsWith("sample:")) ? "Crew preview prepared" : "Share request saved" : "Send to My Crew"}</button>
         {crewShareMessage ? <div role={crewShareError ? "alert" : "status"} className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>{crewShareMessage}</p></div> : null}

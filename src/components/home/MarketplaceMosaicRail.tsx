@@ -63,7 +63,7 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
         </div>
         <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
-            {status.almostFull || ticketsLeft === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.color }}>{ticketsLeft === 0 ? "Pool full" : status.label}</p> : null}
+            {status.almostFull || ticketsLeft === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.almostFull ? "#ff7f8d" : status.color }}>{ticketsLeft === 0 ? "Pool full" : status.label}</p> : null}
             <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
             <p className="mt-1 text-[8px] font-semibold leading-tight text-white/60 sm:text-[10px]">
               ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
@@ -90,7 +90,7 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />
         </div>
         <div className="min-w-0 flex-1">
-          {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] sm:text-[8px]" style={{ color: status.color }}>{status.label}</p> : null}
+          {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] sm:text-[8px]" style={{ color: status.almostFull ? "#ff7f8d" : status.color }}>{status.label}</p> : null}
           <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
           <p className="mt-1 text-[7px] font-semibold leading-tight text-white/60 sm:text-[9px]">
             ${item.prizeValue.toLocaleString()} · {entryCapacity.toLocaleString()} entries
@@ -140,7 +140,7 @@ export function MarketplaceMosaicRail() {
     if (trackRef.current?.hasPointerCapture(event.pointerId)) trackRef.current.releasePointerCapture(event.pointerId);
   };
 
-  const scroll = (direction: -1 | 1) => trackRef.current?.scrollBy({ left: direction * 760, behavior: "smooth" });
+  const scroll = (direction: -1 | 1) => trackRef.current?.scrollBy({ left: direction * 760, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
 
   return (
     <section aria-labelledby="marketplace-mosaic-title" className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:mt-8 sm:py-8 md:mt-0 md:py-4">

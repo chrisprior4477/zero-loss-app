@@ -31,7 +31,7 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
       : item.status === "active"
       ? `${activityHref(item)}?entries=open${origin}#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
-      ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}&transaction=${encodeURIComponent(entry.id)}${restoreView ? "&walletView=1" : ""}#purchase-option-rail`
+      ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}${origin}#purchase-option-rail`
       : isWalletReward(item) && item.rewardId
       ? `${activityHref(item)}${origin}`
       : item.completionOptionStatus === "declined" && item.completionOptionId

@@ -435,7 +435,7 @@ body {
     background: white;
   }
 
-  .amo-free-entry-page {
+  .amo-free-entry-page:has(.amo-print-sheet) {
     width: 8.5in !important;
     height: 11in !important;
     min-height: 0 !important;
@@ -444,35 +444,13 @@ body {
     background: white !important;
   }
 
-  .amo-free-entry-page * {
-    visibility: hidden;
-  }
-
-  .amo-print-sheet,
-  .amo-print-sheet * {
-    visibility: visible;
+  .amo-free-entry-page > :has(> .amo-print-sheet) > :not(.amo-print-sheet) {
+    display: none !important;
   }
 
   .amo-print-sheet {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    width: 8.5in;
-    height: 11in;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 1in;
+    display: block;
     color: #00132e;
-    background: white;
-  }
-
-  .amo-print-insert {
-    box-sizing: border-box;
-    width: 5.75in;
-    min-height: 3.25in;
-    padding: 0.28in;
-    border: 2px dashed #64748b;
-    background: #fffdf7;
   }
 
   .amo-print-document-page {
@@ -485,7 +463,8 @@ body {
   }
 
   /* Only the letter sheet belongs on paper, even when the site header is sticky. */
-  :has(> #main-content > .amo-print-document-page) > :not(#main-content) {
+  :has(> #main-content > .amo-print-document-page) > :not(#main-content),
+  :has(> #main-content > .amo-free-entry-page .amo-print-sheet) > :not(#main-content) {
     display: none !important;
   }
 

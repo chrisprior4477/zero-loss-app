@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
 import { clearEntryIntent } from "@/lib/entries/return-intent";
 import { PRODUCT_SHARE_EVENT, isProductShareItem, shareDismissalKey, type ProductShareItem } from "@/lib/sharing/product-share";
@@ -21,6 +22,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const [shareRequest, setShareRequest] = useState<EntryRequest | null>(null);
   const [manualProduct, setManualProduct] = useState<ProductShareItem | null>(null);
   const shareDestination = useRef<string | null>(null);
+  const lastManualShare = useRef<{ href: string; product: ProductShareItem; trigger: HTMLElement | null } | null>(null);
   const manualShareLocation = useRef<string | null>(null);
   const dismissed = useRef(new Set<string>());
   const shareTrigger = useRef<HTMLElement | null>(null);
@@ -107,6 +109,15 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     setShareRequest(null);
   }, [pathname, search]);
 
+  useDialogBack(false, () => {}, false, false, false, "manual-product-sharing", () => {
+    const previous = lastManualShare.current;
+    if (manualProduct || shareRequest || previous?.href !== window.location.href) return;
+    manualShareLocation.current = pathname + (search ? "?" + search : "");
+    shareTrigger.current = previous.trigger;
+    const { slug, title, image, retailer, value, win } = previous.product;
+    setManualProduct({ slug, title, image, retailer, value, win });
+  });
+
   useEffect(() => {
     const openSharing = (event: Event) => {
       const product: unknown = (event as CustomEvent).detail;
@@ -114,6 +125,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
       const query = new URLSearchParams(window.location.search).toString();
       manualShareLocation.current = `${window.location.pathname}${query ? `?${query}` : ""}`;
       shareTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      lastManualShare.current = { href: window.location.href, product, trigger: shareTrigger.current };
       setShareRequest(null); setManualProduct(product);
     };
     window.addEventListener(PRODUCT_SHARE_EVENT, openSharing);
@@ -227,5 +239,5 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
 
   const entryScreen = pathname?.startsWith("/items/") || pathname?.startsWith("/account/entries");
   return shareRequest && entryScreen ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={closeSharing} />
-    : manualProduct ? <PostEntryCrewToast key={manualProduct.win ? `manual-win-${manualProduct.win.rewardId}` : `manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen /> : null;
+    : manualProduct ? <PostEntryCrewToast key={manualProduct.win ? `manual-win-${manualProduct.win.rewardId}` : `manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen restoreManualHistory /> : null;
 }

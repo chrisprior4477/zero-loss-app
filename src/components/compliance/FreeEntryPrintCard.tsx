@@ -221,16 +221,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       });
     }} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
 
-    <div className="amo-print-sheet" aria-hidden="true">
-      <section className="amo-print-insert">
-        <p className="text-center text-[10pt] font-black uppercase tracking-[0.18em] text-[#067abb]">Zero Loss AMOE entry insert</p>
-        <h2 className="mt-1 text-center text-[17pt] font-black text-[#00132e]">Mail-in entry request</h2>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[10pt] leading-5 text-slate-700"><strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Account:</strong><span>{cleanAccountReference}</span><span aria-hidden="true">•</span><strong className="text-[#00132e]">Offering:</strong><span>{offeringTitle}</span></div>
-        <div className="mt-4 flex flex-col items-center"><Barcode value={reference} /><span className="mt-1 font-mono text-[9pt] font-bold text-[#00132e]">{reference}</span></div>
-        <p className="mt-3 text-center text-[8pt] leading-4 text-slate-600">Attach this insert securely to a standard postcard. Keep the barcode flat, uncovered, and readable. Mailing eligibility, dates, limits, and the processing address are controlled by the Official Rules.</p>
-        <p className="mt-2 text-center text-[8pt] font-black uppercase tracking-[0.12em] text-[#b43d00]">Prototype — do not mail</p>
-      </section>
-    </div>
+    <div className="amo-print-sheet" aria-hidden="true"><PrintableEntryInsert title={offeringTitle} name={name} account={cleanAccountReference} reference={reference} /></div>
     {footer}
     </div>
   </div>;
@@ -249,24 +240,28 @@ export function FreeEntryPrintSheet({ offering, title, name, account, reference,
       </div>
       <PrintSheetButton offering={offering} name={name} account={account} reference={reference} />
     </div>
-    <section className="amo-paper-preview" aria-label="Letter-size print preview">
-      <article className="amo-postcard-cutout">
-        <div className="amo-postcard-inner">
-          <p className="text-center text-[8pt] font-black uppercase tracking-[0.18em] text-[#067abb]">Zero Loss AMOE entry insert</p>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-center text-[8pt] leading-4 text-slate-700">
-            <strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span>
-            <strong className="text-[#00132e]">Account:</strong><span>{account}</span><span aria-hidden="true">•</span>
-            <strong className="text-[#00132e]">Offering:</strong><span>{title}</span>
-          </div>
-          <div className="mt-2 flex flex-col items-center">
-            <Barcode value={reference} />
-            <span className="mt-0.5 font-mono text-[8pt] font-bold">{reference}</span>
-          </div>
-          <p className="mt-1 text-center text-[6.5pt] leading-3 text-slate-600">Attach securely to a standard postcard. Keep the barcode flat, uncovered, and readable.</p>
-          <p className="mt-1 text-center text-[6.5pt] font-black uppercase tracking-[0.1em] text-[#b43d00]">Prototype — do not mail</p>
-        </div>
-        <span className="amo-cut-label">Cut along dotted line</span>
-      </article>
-    </section>
+    <PrintableEntryInsert title={title} name={name} account={account} reference={reference} />
   </div>;
+}
+
+function PrintableEntryInsert({ title, name, account, reference }: { title: string; name: string; account: string; reference: string }) {
+  return <section className="amo-paper-preview" aria-label="Letter-size print preview">
+    <article className="amo-postcard-cutout">
+      <div className="amo-postcard-inner">
+        <p className="text-center text-[8pt] font-black uppercase tracking-[0.18em] text-[#067abb]">Zero Loss AMOE entry insert</p>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-center text-[8pt] leading-4 text-slate-700">
+          <strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span>
+          <strong className="text-[#00132e]">Account:</strong><span>{account}</span><span aria-hidden="true">•</span>
+          <strong className="text-[#00132e]">Offering:</strong><span>{title}</span>
+        </div>
+        <div className="mt-2 flex flex-col items-center">
+          <Barcode value={reference} />
+          <span className="mt-0.5 font-mono text-[8pt] font-bold">{reference}</span>
+        </div>
+        <p className="mt-1 text-center text-[6.5pt] leading-3 text-slate-600">Attach securely to a standard postcard. Keep the barcode flat, uncovered, and readable.</p>
+        <p className="mt-1 text-center text-[6.5pt] font-black uppercase tracking-[0.1em] text-[#b43d00]">Prototype — do not mail</p>
+      </div>
+      <span className="amo-cut-label">Cut along dotted line</span>
+    </article>
+  </section>;
 }

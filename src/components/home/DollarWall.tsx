@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type Category = "travel" | "gaming" | "theater" | "kitchen" | "outdoors";
@@ -48,12 +49,13 @@ export function DollarWall() {
   const [items, setItems] = useState(starters);
   const [picks, setPicks] = useState<Item[]>([]);
   const [created, setCreated] = useState(false);
+  const [showEntryOptions, setShowEntryOptions] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
   const mobileCreatedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!created || !window.matchMedia("(max-width: 767px)").matches) return;
-    mobileCreatedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    mobileCreatedRef.current?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
   }, [created]);
 
   function pick(item: Item) {
@@ -63,15 +65,15 @@ export function DollarWall() {
     const replacements = (item.id === "kayak" ? kayakItems() : related(item.category)).filter((candidate) => !next.some((chosen) => chosen.id === candidate.id));
     let replacementIndex = 0;
     setItems((current) => current.map((candidate) => next.some((chosen) => chosen.id === candidate.id) ? candidate : replacements[replacementIndex++ % replacements.length]));
-    setCreated(false);
+    setCreated(false); setShowEntryOptions(false);
     setRevealed(null);
   }
   function remove(item: Item) {
     setPicks((current) => current.filter((chosen) => chosen.id !== item.id));
-    setCreated(false);
+    setCreated(false); setShowEntryOptions(false);
     setRevealed(null);
   }
-  function reset() { setPicks([]); setItems(starters); setCreated(false); setRevealed(null); }
+  function reset() { setPicks([]); setItems(starters); setCreated(false); setShowEntryOptions(false); setRevealed(null); }
 
   function tap(item: Item) {
     if (picks.some((chosen) => chosen.id === item.id)) { remove(item); return; }
@@ -79,6 +81,7 @@ export function DollarWall() {
     pick(item);
   }
 
+  const bundleEntryHelp = <p role="status" className="mt-3 text-sm text-white">This is a sample bundle. <Link href="/browse#search-results" className="font-bold text-cyan-200 underline">Browse prizes</Link> to enter each prize individually.</p>;
   const bundleControls = (mobile = false) => <>
     <div className={`${mobile ? "order-2 mt-3" : ""} min-h-[100px] rounded-xl border border-cyan-300/20 bg-[#00132e]/65 p-3 shadow-[inset_0_0_22px_rgba(0,185,255,.06)]`}>
       <div className="flex justify-between"><h3 className="text-[11px] font-extrabold uppercase tracking-[.1em] text-cyan-300">Your bundle</h3><span className="text-[10px] text-white/45">{picks.length}/5</span></div>
@@ -86,7 +89,7 @@ export function DollarWall() {
     </div>
     <button type="button" disabled={picks.length < 2} onClick={() => setCreated(true)} className={`${mobile ? "order-1 mt-0 text-[16px]" : "mt-3 text-[11px]"} w-full rounded-lg bg-[#74e72d] px-3 py-2.5 font-extrabold text-[#00132e] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35`}>Create bundle</button>
     {picks.length > 0 && <button type="button" onClick={reset} className={`${mobile ? "order-3 text-[16px]" : "text-[10px]"} mt-3 w-full rounded-md border border-cyan-200/45 bg-[#0759c9]/65 px-2 py-2 font-bold text-cyan-50 shadow-[inset_0_1px_0_rgba(174,242,255,.18)] transition-colors hover:bg-[#087fe0]/75`}>Clear all</button>}
-    {mobile && created && <div ref={mobileCreatedRef} className="order-4 mt-4 rounded-xl border border-[#74e72d]/35 bg-[#74e72d]/10 px-5 py-5 text-center"><strong className="block text-[28px] font-extrabold leading-tight text-[#9cf45c]" style={{ textShadow: "-3px -2px 1px #032a68, 0 -3px 1px #032a68, 3px -2px 1px #032a68, 3px 0 1px #032a68, 3px 2px 1px #032a68, 0 3px 1px #032a68, -3px 2px 1px #032a68, -3px 0 1px #032a68, 0 0 6px rgba(0,20,60,.9)" }}>Your bundle is ready.</strong><p className="mx-auto mt-2 max-w-sm text-center text-[12px] font-bold leading-relaxed text-white/90" style={{ textShadow: "0 0 3px #032a68, 0 0 7px #032a68, 0 0 12px rgba(0,20,60,.95)" }}>{picks.map((item) => item.name).join(" + ")}</p><div className="mx-auto mt-4 flex max-w-md items-center justify-between rounded-lg bg-[#00132e]/70 px-4 py-3"><span className="text-xs text-white/65">{picks.length} items × $1</span><strong className="text-lg text-white">${picks.length} total</strong></div><button type="button" className="mt-3 rounded-lg bg-[#74e72d] px-6 py-2.5 text-xs font-extrabold text-[#00132e]">Enter ${picks.length}</button></div>}
+    {mobile && created && <div ref={mobileCreatedRef} className="order-4 mt-4 rounded-xl border border-[#74e72d]/35 bg-[#74e72d]/10 px-5 py-5 text-center"><strong className="block text-[28px] font-extrabold leading-tight text-[#9cf45c]" style={{ textShadow: "-3px -2px 1px #032a68, 0 -3px 1px #032a68, 3px -2px 1px #032a68, 3px 0 1px #032a68, 3px 2px 1px #032a68, 0 3px 1px #032a68, -3px 2px 1px #032a68, -3px 0 1px #032a68, 0 0 6px rgba(0,20,60,.9)" }}>Your bundle is ready.</strong><p className="mx-auto mt-2 max-w-sm text-center text-[12px] font-bold leading-relaxed text-white/90" style={{ textShadow: "0 0 3px #032a68, 0 0 7px #032a68, 0 0 12px rgba(0,20,60,.95)" }}>{picks.map((item) => item.name).join(" + ")}</p><div className="mx-auto mt-4 flex max-w-md items-center justify-between rounded-lg bg-[#00132e]/70 px-4 py-3"><span className="text-xs text-white/65">{picks.length} items × $1</span><strong className="text-lg text-white">${picks.length} total</strong></div><button type="button" aria-expanded={showEntryOptions} onClick={() => setShowEntryOptions(true)} className="mt-3 rounded-lg bg-[#74e72d] px-6 py-2.5 text-xs font-extrabold text-[#00132e]">Enter ${picks.length}</button>{showEntryOptions && bundleEntryHelp}</div>}
   </>;
 
   return <section aria-labelledby="dollar-wall-title" className="relative overflow-hidden rounded-[22px] border-0 bg-[radial-gradient(ellipse_at_center,rgba(83,226,255,1)_0%,rgba(0,185,255,.96)_30%,rgba(7,135,232,.82)_58%,rgba(3,27,68,.18)_86%,transparent_100%),linear-gradient(180deg,#031b44_0%,#0759c9_15%,#15c9ff_50%,#0787e8_84%,#031b44_100%)] px-5 py-6 shadow-[0_18px_44px_rgba(0,0,0,.3),inset_0_1px_0_rgba(125,230,255,.1)] max-md:left-1/2 max-md:w-screen max-md:-translate-x-1/2 max-md:rounded-none max-md:shadow-none sm:px-7 lg:left-1/2 lg:w-screen lg:-translate-x-1/2 lg:rounded-none lg:px-[clamp(3rem,6vw,7rem)] lg:pb-[55px] lg:pt-[42px] lg:shadow-none">
@@ -182,8 +185,9 @@ export function DollarWall() {
           </button>;
           })}
         </div>
-        {created && <div className="mt-3 hidden min-h-12 items-center gap-4 rounded-xl border border-white/25 bg-[#071426]/75 px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.15)] backdrop-blur-sm md:flex"><strong className="shrink-0 text-[13px] font-extrabold text-[#9cf45c]">Bundle is ready</strong><span className="min-w-0 flex-1 truncate text-[11px] text-white/70">{picks.length} items × $1</span><strong className="shrink-0 text-[14px] text-white">${picks.length} total</strong><button type="button" className="shrink-0 rounded-lg bg-[#74e72d] px-5 py-2 text-[11px] font-extrabold text-[#00132e] hover:brightness-110">Enter ${picks.length}</button></div>}
+        {created && <div className="mt-3 hidden min-h-12 items-center gap-4 rounded-xl border border-white/25 bg-[#071426]/75 px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.15)] backdrop-blur-sm md:flex"><strong className="shrink-0 text-[13px] font-extrabold text-[#9cf45c]">Bundle is ready</strong><span className="min-w-0 flex-1 truncate text-[11px] text-white/70">{picks.length} items × $1</span><strong className="shrink-0 text-[14px] text-white">${picks.length} total</strong><button type="button" aria-expanded={showEntryOptions} onClick={() => setShowEntryOptions(true)} className="shrink-0 rounded-lg bg-[#74e72d] px-5 py-2 text-[11px] font-extrabold text-[#00132e] hover:brightness-110">Enter ${picks.length}</button></div>}
       </div>
+      {created && showEntryOptions && <div className="hidden px-4 md:block">{bundleEntryHelp}</div>}
       <div className="flex flex-col md:hidden">{bundleControls(true)}</div>
     </div>
   </section>;

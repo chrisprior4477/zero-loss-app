@@ -3,6 +3,24 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test.each([
+    ["Amazon gift cards worth more than $50 and $1 per entry", "Amazon gift cards more than $50"],
+    ["Amazon gift cards $25–$50 for $1 entry", "Amazon gift cards $25–$50"],
+    ["Amazon gift cards with an entry price of $1", "Amazon gift cards"],
+    ["Amazon gift cards not under $75", "Amazon gift cards at least $75"],
+    ["Amazon gift cards with $25, $50, $75", "Amazon gift cards $25, $50, $75"],
+    ["Amazon gift cards $100 but not $75", "Amazon gift cards $100 excluding $75"],
+    ["Amazon gift cards $75 or up", "Amazon gift cards at least $75"],
+    ["Amazon gift cards in the $25 to $50 range", "Amazon gift cards $25 to $50"],
+    ["Amazon gift cards up to $1 per ticket", "Amazon gift cards"],
+    ["Gift cards under $50 or over $75 at Amazon", "Amazon gift cards under $50 or over $75"],
+    ["Sony or Samsung TVs", "Sony TVs or Samsung TVs"],
+    ["PlayStation 5 Slim Model from Best Buy", "PlayStation 5 Slim Model"],
+  ])("keeps the intended qualifiers for %s", (query, equivalent) => {
+    const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+    expect(slugs(query)).toEqual(slugs(equivalent));
+    expect(slugs(query).length).toBeGreaterThan(0);
+  });
   test("matches compact storage units, leading price ceilings, and retailer exclusions", () => {
     expect(searchCatalog(demoProducts, "Sony PS5 Slim 1TB").some(item => item.slug === "playstation-5-slim")).toBe(true);
     expect(searchCatalog(demoProducts, "Amazon max $75")).toEqual(searchCatalog(demoProducts, "Amazon up to $75"));

@@ -122,7 +122,16 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     reset();
     dialog.current?.close();
     setOpen(false);
-    trigger.current?.focus({ preventScroll: true });
+    const opener = trigger.current;
+    const page = window.location.href;
+    const restore = () => {
+      if (opener?.isConnected && window.location.href === page && document.activeElement === document.body) opener.focus({ preventScroll: true });
+    };
+    const onReturn = () => requestAnimationFrame(restore);
+    window.addEventListener("popstate", onReturn, { once: true });
+    window.setTimeout(() => window.removeEventListener("popstate", onReturn), 650);
+    opener?.focus({ preventScroll: true });
+    requestAnimationFrame(restore);
   }
   useDialogBack(open, close, saving, true, true);
   useEffect(() => {

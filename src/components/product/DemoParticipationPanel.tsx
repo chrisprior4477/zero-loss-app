@@ -122,6 +122,12 @@ export function DemoParticipationPanel({
   const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
   const entryFormRef = useRef<HTMLFormElement>(null);
   const pendingReceiptRef = useRef<HTMLDivElement>(null);
+  const recoveryAction = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!pending && uncertain && (document.activeElement === document.body || entryFormRef.current?.contains(document.activeElement))) {
+      recoveryAction.current?.focus();
+    }
+  }, [pending, uncertain]);
   const totalCents = quantity * Math.round(entryPrice * 100);
   const total = totalCents / 100;
   const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
@@ -350,7 +356,7 @@ export function DemoParticipationPanel({
         <div className={compactStyles.price}><strong>${entryPrice.toFixed(2)}</strong><span>per entry</span></div>
         <div className={compactStyles.progress}>
           {availabilityConfirmed ? <>
-            <div className={compactStyles.progressLabels}><strong style={{ color: availability.percentFilled >= 75 ? availability.percentFilled >= 90 ? "#ff7a8d" : "#ffa06a" : availability.color }}>{remaining ? `${remaining.toLocaleString()} left` : "No entries left"}</strong><span>{availability.label}</span></div>
+            <div className={compactStyles.progressLabels}><strong style={{ color: availability.percentFilled >= 75 ? availability.percentFilled >= 90 ? "#ff7a8d" : "#ffa06a" : availability.color === "#0787e8" ? "#65cbff" : availability.color }}>{remaining ? `${remaining.toLocaleString()} left` : "No entries left"}</strong><span>{availability.label}</span></div>
             <PoolProgress ticketsSold={sold} ticketCapacity={capacity} showRemainingLabel={false} />
             <small>{sold.toLocaleString()} entries · Proposed model: one selected when the pool fills.</small>
           </> : <small>Availability unverified</small>}
@@ -454,7 +460,7 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input type="hidden" name="shareWithCrew" value="no" />
-          <button id="entry-action" type="submit" disabled={entryBusy || !requestHead.ready || (!uncertain && invalidQuantity !== null)} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
+          <button ref={recoveryAction} id="entry-action" type="submit" disabled={entryBusy || !requestHead.ready || (!uncertain && invalidQuantity !== null)} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>

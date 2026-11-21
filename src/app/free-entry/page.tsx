@@ -50,7 +50,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <h1 id="free-entry-choices" tabIndex={-1} className="text-2xl font-black">{choices.length ? "Choose one prize for free entry" : "The selected prizes are unavailable"}</h1>
     <p className="mt-3">{choices.length ? "This link includes more than one prize selection." : "Return to prize selection to choose an open offering."}</p>
     {choices.length > 0 && choices.length < new Set(offering.map(value => value.toLowerCase())).size ? <p role="status" className="mt-3">Some of the selected prizes are unavailable. Choose an open prize below.</p> : null}
-    {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, from, parseEntryQuantity(rawQuantity), share)}>{product.title}</Link></li>)}</ul>}
+    {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, from, parseEntryQuantity(rawQuantity), share) + (rawQuantity !== undefined && parseEntryQuantity(rawQuantity) === null ? "&quantity=invalid" : "")}>{product.title}</Link></li>)}</ul>}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse#search-results"}>Back to prize selection</Link>
     </div>;
   }

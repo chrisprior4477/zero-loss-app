@@ -95,6 +95,12 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       return result;
     } catch { return { status: "error" as const, message: "The card could not be saved. Please try again." }; }
   }, { status: "idle" });
+  const saveError = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    if (showSaveResult && !pending && state.status === "error" && document.activeElement === document.body) {
+      saveError.current?.focus();
+    }
+  }, [pending, showSaveResult, state]);
   const updated = showSaveResult && !pending && state.status === "succeeded" && Boolean(savedCard);
 
   return <section id={depositLabel ? fundingCardEditorId : "wallet-card-editor"} className={styles.editor} aria-labelledby="wallet-card-editor-title" onKeyDown={event => {
@@ -172,7 +178,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       </div>
       <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setDefaultChoice({ checked: event.target.checked, original: savedDefault })} disabled={disabled || pending} />Use this card for future transactions</label>
       <label className={styles.choice}><input type="checkbox" checked={makeDepositDefault} onChange={event => setDepositChoice({ checked: event.target.checked, original: savedDepositDefault })} disabled={disabled || pending} />Use this card for deposits</label>
-      {error || (showSaveResult && !pending && state.status === "error") ? <p id={validationId} role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
+      {error || (showSaveResult && !pending && state.status === "error") ? <p ref={saveError} tabIndex={-1} id={validationId} role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
       {updated ? <p role="status" className={styles.notice}>Card updated.</p> : null}
       <div className={`${styles.actions} ${styles.editorActions}`}>
         <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>

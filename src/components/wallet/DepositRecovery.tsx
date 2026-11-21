@@ -17,8 +17,8 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, readOnly = false, supportHref, onCredit, onReview, onBack }: {
-  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean; readOnly?: boolean; supportHref?: string;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, focusRecoveryAction = false, fromCheckout = false, readOnly = false, supportHref, onCredit, onReview, onBack }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; focusRecoveryAction?: boolean; fromCheckout?: boolean; readOnly?: boolean; supportHref?: string;
   onCredit: (amount: number, balance: number) => void; onReview?: () => void; onBack?: () => void;
 }) {
   const sectionId = onBack ? "funding-deposit-recovery" : "add-funds";
@@ -48,9 +48,17 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
 
   useEffect(() => {
     if (embedded) return;
-    title.current?.focus({ preventScroll: true });
+    const active = document.activeElement;
+    if (!focusRecoveryAction) title.current?.focus({ preventScroll: true });
     revealWalletSection(sectionId);
-  }, [embedded, sectionId]);
+    if (!focusRecoveryAction) return;
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === document.body || document.activeElement === active) {
+        (actionButton.current ?? supportLink.current ?? title.current)?.focus({ preventScroll: true });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [embedded, sectionId, focusRecoveryAction]);
   useEffect(() => {
     if (!pending && result && result.status !== "credited" && restoreAction.current) {
       restoreAction.current = false;

@@ -3,18 +3,20 @@ import { maxNestedBrowseReturnLength, productBrowseReturnPath } from "@/lib/cata
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { purchaseChoicePattern } from "./purchase-selection-handoff";
 import { shareUuid } from "@/lib/sharing/saved-shares";
+import { fulfillmentFilter } from "@/lib/account/fulfillment";
 import { notificationFilter, validNotice } from "@/lib/account/notification-return";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const entryPattern = /^ent_[a-f0-9]{32}$/;
 const transactionPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-type EntryReviewContext = { transaction?: unknown; walletView?: unknown; alerts?: unknown; notice?: unknown };
+type EntryReviewContext = { transaction?: unknown; walletView?: unknown; fromOrders?: unknown; orderFilter?: unknown; alerts?: unknown; notice?: unknown };
 
 export function entryReviewContext(query: EntryReviewContext = {}) {
   const transaction = typeof query.transaction === "string" && transactionPattern.test(query.transaction) ? query.transaction : undefined;
   const notice = validNotice(query.notice) ? query.notice : undefined;
   return {
-    ...(transaction ? { transaction, ...(query.walletView === "1" ? { walletView: "1" } : {}) } : {}),
+    ...(transaction ? { transaction, ...(query.walletView === "1" ? { walletView: "1" } : {}),
+      ...(query.fromOrders === "1" ? { fromOrders: "1", orderFilter: fulfillmentFilter(query.orderFilter) } : {}) } : {}),
     ...(notice ? { alerts: notificationFilter(query.alerts), notice } : {}),
   };
 }
@@ -45,6 +47,7 @@ export function entryReviewFundingHref(slug: string, entryId: string | undefined
   const origin = entryReviewContext(context);
   if (origin.transaction) params.set("entryTransaction", origin.transaction);
   if (origin.walletView) params.set("entryWalletView", origin.walletView);
+  if (origin.fromOrders && origin.orderFilter) { params.set("entryFromOrders", origin.fromOrders); params.set("entryOrderFilter", origin.orderFilter); }
   if (origin.notice) { params.set("alerts", origin.alerts ?? "all"); params.set("notice", origin.notice); }
   return `/account/wallet?${params}#add-funds`;
 }
@@ -101,7 +104,7 @@ export function entryFundingReturnPath(value: unknown): string | null {
 /** Exact allowlist for the funding destination used after sign-in. */
 export function fundingReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > maxNestedBrowseReturnLength || /[\\\s\u0000-\u001f]/.test(value)) return null;
-  if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry(?:&filter=active)?(?:&entryTransaction=[^&#]+(?:&entryWalletView=1)?)?(?:&alerts=[^&#]+&notice=[^&#]+)?#add-funds$/.test(value)) {
+  if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry(?:&filter=active)?(?:&entryTransaction=[^&#]+(?:&entryWalletView=1)?(?:&entryFromOrders=1&entryOrderFilter=(?:all|processing|fulfilled|exceptions|payment))?)?(?:&alerts=[^&#]+&notice=[^&#]+)?#add-funds$/.test(value)) {
     const params = new URL(value, "https://navigation.invalid").searchParams;
     if (params.has("entryTransaction") && !transactionPattern.test(params.get("entryTransaction")!)) return null;
     if (params.has("notice") && (!validNotice(params.get("notice")) || params.get("alerts") !== notificationFilter(params.get("alerts")))) return null;

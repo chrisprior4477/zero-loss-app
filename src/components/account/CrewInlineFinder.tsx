@@ -29,6 +29,13 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
     focusRetry.current = false;
     if (document.activeElement === document.body) findButton.current?.focus();
   }, [busy]);
+  const connectionFeedback = useRef<HTMLParagraphElement>(null);
+  const focusConnectionFeedback = useRef(false);
+  useEffect(() => {
+    if (sending || !focusConnectionFeedback.current) return;
+    focusConnectionFeedback.current = false;
+    if (document.activeElement === document.body) connectionFeedback.current?.focus();
+  }, [sending]);
   const validationId = useId();
   const [invalid, setInvalid] = useState(false);
 
@@ -69,7 +76,10 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
   async function add(id: string, action: () => Promise<{ ok: boolean; message: string }>) {
     setBusy(true); setSending(true);
     try { const result = await action(); setMessage(result.message); if (result.ok) { setSent(current => [...current, id]); router.refresh(); } }
-    catch { setMessage("We couldn’t confirm that change. Refresh your Crew before trying again."); }
+    catch {
+      focusConnectionFeedback.current = true;
+      setMessage("We couldn’t confirm that change. Refresh your Crew before trying again.");
+    }
     finally { setBusy(false); setSending(false); }
   }
 
@@ -124,7 +134,7 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
       {target ? <article className={styles.findResult}><span className={styles.contactSymbol}><ShareIcon name={target.kind === "email" ? "mail" : "message"} /></span><div><strong>{target.value}</strong><small>Private contact lookup</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(target.value)} onClick={() => void add(target.value, () => target.kind === "email" ? inviteToCrew(target.value) : inviteToCrewByPhone(target.value))}>{sent.includes(target.value) ? "Saved" : "Add to Crew"}</button></article> : null}
       {people.map(person => <article className={styles.findResult} key={person.memberId}><span className={styles.smallAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="44px" unoptimized /> : person.name[0]}</span><div><strong>{person.name}</strong><small>Discoverable member</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(person.memberId)} onClick={() => void add(person.memberId, () => inviteToCrewById(person.memberId))}>{sent.includes(person.memberId) ? "Added" : "Add to Crew"}</button></article>)}
       {samples.map(person => <article className={styles.findResult} key={person.name}><span className={styles.smallAvatar}><Image src={person.photo} alt="" fill sizes="44px" /></span><div><strong>{person.name}</strong><small>Fictional sample profile</small></div><button type="button" className={styles.greenButton} onClick={() => { addSampleCrewPreview(person.name); onSample(person.name); }}>Add sample</button></article>)}
-      {message ? <p id={validationId} role="status" className={styles.findMessage}>{message}</p> : null}
+      {message ? <p ref={connectionFeedback} tabIndex={-1} id={validationId} role="status" className={styles.findMessage}>{message}</p> : null}
     </div>
     <button type="button" className={styles.contactsButton} disabled={!available || busy} onClick={() => void chooseContact()}>Choose from phone contacts</button>
     <p className={styles.findHint}>{target ? "We don’t reveal whether that contact has an account. Matching members are connected automatically and can leave at any time." : "Name results respect each person’s search settings. Connections are made only when you press Add to Crew."}</p>

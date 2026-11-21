@@ -96,7 +96,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, appliedDates.from, appliedDates.through, timeZone), [displayEntries, appliedDates, compact, timeZone]);
-  const searched = useMemo(() => searchLedger(dated, query, description), [dated, query]);
+  const searched = useMemo(() => searchLedger(dated, query, description, entries), [dated, query, entries]);
   const matching = useMemo(() => filter === "all" ? searched : searched.filter(entry => category(entry) === filter), [searched, filter]);
   const groups = useMemo(() => ledgerGroups(matching, !compact), [matching, compact]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(groups.length, desktop ? 6 : 5, groups.findIndex(group => group.rows.some(row => row.id === selectedId)), "pages");
@@ -193,7 +193,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setAppliedDates({ from: saved.from, through: saved.through });
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
-      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description);
+      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description, savedEntries);
       const savedGroups = ledgerGroups(savedMatches);
       const rowIndex = savedGroups.findIndex(group => stackId(group.rows[0]) === saved.rowId || group.rows.some(entry => `transaction-${entry.id}` === saved.rowId));
       const savedOffset = savedGroups.findLastIndex(group => group.offset <= saved.offset);
@@ -372,7 +372,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch}
         onSubmit={event => {
           event.preventDefault();
-          if (!draft.trim() || voice.busy) return;
+          if (voice.busy || (!draft.trim() && !query)) return;
           if (invalidSearchDraft) { searchInput.current?.focus(); return; }
           searchInput.current?.blur();
           setEditing(false);
@@ -385,8 +385,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft} aria-invalid={invalidSearchDraft || undefined} aria-describedby={invalidSearchDraft ? `${dateErrorId}-search-error` : undefined}
             onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { voice.reset(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
-          {draft.trim() && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
-          <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
+          {draft.trim() && !invalidSearchDraft && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
+          <VoiceSearchControl listening={voice.listening} finishing={voice.finishing} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
           {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={event => closeSearch(event.detail === 0)}>×</button> : null}
         </div>
         {invalidSearchDraft ? <p id={`${dateErrorId}-search-error`} role="status">Enter a product, retailer, or amount to search your transactions.</p> : null}

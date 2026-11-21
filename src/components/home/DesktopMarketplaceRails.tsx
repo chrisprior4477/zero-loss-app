@@ -232,7 +232,7 @@ export function DesktopMarketplaceRails() {
   const brandsDrag = useDragRail(brandsRef);
 
   const scroll = (track: HTMLDivElement | null, direction: -1 | 1) => {
-    track?.scrollBy({ left: direction * 720, behavior: "smooth" });
+    track?.scrollBy({ left: direction * 720, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   };
 
   return (

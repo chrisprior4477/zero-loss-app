@@ -87,6 +87,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const [copyStatus, setCopyStatus] = useState("");
+  const fallback = useRef<HTMLTextAreaElement | null>(null);
   const [manualCopy, setManualCopy] = useState<string | null>(null);
   const latestCopy = useRef(0);
   const detail = orderPresentation(order);
@@ -159,6 +160,8 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
     } catch {
       if (attempt !== latestCopy.current) return;
       setManualCopy(value);
+      fallback.current?.focus();
+      fallback.current?.select();
       setCopyStatus("Copy the selected text below.");
     }
   }
@@ -186,6 +189,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order, timeZone, locale))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => {
+        fallback.current = element;
         if (!element) return;
         element.focus({ preventScroll: true });
         element.select();

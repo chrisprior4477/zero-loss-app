@@ -12,6 +12,14 @@ test("additional-entry funding preserves the exact review and quantity through s
   expect(signInReturnPath(funding)).toBe(funding);
   const back = entryReviewHref(id, 23);
   expect(signInReturnPath(back)).toBe(back);
+  const origin = { transaction: "11111111-1111-1111-1111-111111111111", walletView: "1", fromOrders: "1", orderFilter: "fulfilled" };
+  const fromOrders = entryReviewFundingHref("playstation-5-slim", id, 23, "active", origin);
+  expect(fromOrders).toContain("&entryFromOrders=1&entryOrderFilter=fulfilled");
+  expect(fundingReturnPath(fromOrders)).toBe(fromOrders);
+  expect(signInReturnPath(fromOrders)).toBe(fromOrders);
+  const review = entryReviewHref(id, 23, "active", origin);
+  expect(review).toContain("&fromOrders=1&orderFilter=fulfilled");
+  expect(signInReturnPath(review)).toBe(review);
   expect(signInReturnPath(back.replace("quantity=23", "quantity=2147483648"))).toBeNull();
   expect(fundingReturnPath(funding.replace("&review=entry", "&review=entry&next=https://evil.test"))).toBeNull();
 });

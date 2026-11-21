@@ -108,7 +108,9 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
       return movieNightSlugs.has(product.slug);
     case "tools-diy":
       return product.slug === "dewalt-20v-drill-kit";
-    case "outdoors": case "kitchen": case "sports-fitness": case "pets": case "fishing":
+    case "sports-fitness":
+      return product.slug === "nike-court-shot-shoes";
+    case "outdoors": case "kitchen": case "pets": case "fishing":
       return false;
   }
 }

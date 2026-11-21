@@ -13,7 +13,11 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
-  const { text, values, budget, exactOnly, merchant, conflictingBudget, entryPrice, excludedValues } = denomination;
+  const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, excludedValues } = denomination;
+  const qualifier = /\s+(?:from|at)\s+(.+)$/.exec(denomination.text);
+  const qualifiedMerchant = qualifier && !catalogMerchant(denomination.text, products) ? catalogMerchant(qualifier[1], products) : null;
+  const text = qualifiedMerchant && qualifier ? denomination.text.slice(0, qualifier.index) : denomination.text;
+  const merchant = denomination.merchant ?? qualifiedMerchant;
   if (conflictingBudget) return [];
   const withoutGiftCards = query.replace(/\s*,?\s+(?:not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
@@ -56,7 +60,7 @@ export function searchCatalogMatches(
   const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
-  const candidates = products.filter(product => (entryPrice === null || product.entryPrice === entryPrice)
+  const candidates = products.filter(product => (entryPrice === null || (entryPriceIsMaximum ? product.entryPrice <= entryPrice : product.entryPrice === entryPrice))
     && !excludedValues.has(product.value)
     && (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
@@ -110,14 +114,29 @@ export function searchCatalogMatches(
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
-  const hasOr = /\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher)\b)/i.test(query);
+  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher|up)\b)/i;
+  const hasOr = orSeparator.test(query);
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
-  const clauses = query.split(hasOr ? /\s*,(?!\d)\s*(?:or\s+)?|\s+or\s+(?!(?:equal\s+to|less|more|below|above|under|higher)\b)/i : /\s+(?:and|&)\s+/i);
+  const clauses = query.split(hasOr ? new RegExp(/\s*,(?!\d)\s*(?:or\s+)?/.source + "|" + orSeparator.source, "i") : /\s+(?:and|&)\s+/i);
   const parts = clauses.map(clause => {
     const parsed = searchDenominations(clause.trim(), products);
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(parsed.text, products) };
   });
+  const last = parts.at(-1);
+  const retailerSuffix = /\s+(?:at|from)\s+(.+)$/i.exec(clauses.at(-1) ?? "");
+  const scopedRetailer = retailerSuffix && catalogMerchant(retailerSuffix[1], products);
+  if (hasOr && giftCards && scopedRetailer && parts.every(part => part.budget)
+    && parts.slice(0, -1).every(part => !part.merchant)) {
+    return parts.map(part => ({ ...part, text: "gift card", merchant: scopedRetailer }));
+  }
+  const televisionSuffix = last && /^\S+\s+(tvs?|televisions?)$/i.exec(last.text);
+  if (hasOr && televisionSuffix && parts.slice(0, -1).every(part =>
+    /^\S+$/.test(part.text) && products.some(product => normalizeSearch(product.brand) === normalizeSearch(part.text)))) {
+    return parts.map((part, index) => ({
+      ...part, text: index === parts.length - 1 ? part.text : part.text + " " + televisionSuffix[1],
+    }));
+  }
   if (hasOr && parts.every(part => part.budget) && parts[0].text && parts.slice(1).every(part => !part.text)) {
     return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant }));
   }

@@ -81,6 +81,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     setShowWholeDollarNotice(false);
   }
+  const wholeDollars = /^\s*(?:\d+|\d{1,3}(?:,\d{3})+)\s*$/.test(customAmount) ? Number(customAmount.replaceAll(",", "")) : 0;
+  const amountOutsideRange = wholeDollars > 0 && !isFundingAmount(wholeDollars * 100);
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
   const amountIsValid = isFundingAmount(Number(amount)) && (recoveryOnly || Number(amount) % 100 === 0);
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
@@ -114,6 +116,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const mobile = viewport === "mobile";
   const amountSection = continueTo ? "add-funds" : "funding-amount";
   const [manageCards, setManageCards] = useState(false);
+  const cardEditorOpener = useRef<string | null>(null);
   const manageCardsOpener = useRef<HTMLElement | null>(null);
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
@@ -147,6 +150,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   function addCard(token?: DemoCardToken, trigger?: HTMLButtonElement) {
     if (!ready || locked || cardUnavailable) return;
     if (!token && allSamplesSaved) { openSavedCards(trigger); return; }
+    cardEditorOpener.current = token && trigger?.id ? trigger.id : null;
     const editorToken = token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
     // Only store the funding choice and fixture reference in this tab's editor history entry.
     openWalletPanel(fundingEditorHash, { fundingCardDraft: {
@@ -420,14 +424,15 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
         const fixture = demoCardFixture(token);
+        const cardName = fixture ? fixture.issuer + " ending " + fixture.lastFour : "sample card";
         return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage}
           mobileCard={mobile && fixture ? `${fixture.issuer} •••• ${fixture.lastFour}` : undefined}
           onUndo={closeDeleteDialog} onReview={() => refreshDeletion(token)} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
-          {allSamplesSaved ? <button type="button" className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => addCard(token)}>Edit</button> : null}
-          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); deleteRevision.current = cards.find(card => card.token === token)?.revision; setDeleteToken(token); }}>Delete Card</button> : null}
+          {allSamplesSaved ? <button type="button" id={"funding-edit-saved-" + token} aria-label={"Edit " + cardName} className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={event => addCard(token, event.currentTarget)}>Edit</button> : null}
+          {saved ? <button type="button" aria-label={"Delete Card " + cardName} className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); deleteRevision.current = cards.find(card => card.token === token)?.revision; setDeleteToken(token); }}>Delete Card</button> : null}
         </>}>
-          <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
+          <label className={styles.cardChoice}><input type="radio" name="cardChoice" aria-label={"Use " + cardName + " for this deposit"} checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
             if (defaultToken === token) { if (saved) void persistCard(token, false); else setDefaultToken(null); }
             else { if (saved) void persistCard(token, true); else setDefaultToken(token); }
@@ -441,9 +446,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   if (editingCard) return <WalletCardEditor key={editingCard} token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onAddCard={nextCard && cards.some(card => card.token === editingCard) ? () => addCard() : undefined} onCancel={() => {
     openWalletPanel("#add-funds", null, true);
     requestAnimationFrame(() => {
-      const trigger = document.getElementById("funding-add-card-trigger");
-      trigger?.focus({ preventScroll: true });
-      if (trigger) revealWalletSection(trigger.id);
+      focusFundingControl(document.getElementById(cardEditorOpener.current ?? "funding-add-card-trigger"));
     });
   }} onSaved={card => acceptSavedCard(card)} />;
   if (settled) return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
@@ -495,7 +498,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       </label>
       </div>
     </div>
-    {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
+    {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>{amountOutsideRange ? "This amount is too large to record. Enter a smaller whole-dollar amount." : "Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted."}</p> : null}
     {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
     <button ref={confirmationTrigger} type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || blocked} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={() => { if (confirmationOpen) discardReview(); }} onCancel={event => { event.preventDefault(); if (!pending) dismissConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
@@ -643,7 +646,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
       onBack={() => { setSelectedDeposit(undefined); revealWalletSection("funding-payment"); }}
       onCredit={(amount, balance) => onSuccess("Deposit credited to your wallet.", formatUsdFromCents(balance), { key: request.idempotencyKey, amount, destination: continueTo?.href })} />;
   }
-  if (attempt.awaitingReceipt) return <DepositRecovery requestKey={attempt.key} walletId={walletId} amount={Number(attempt.amount)}
+  if (attempt.awaitingReceipt) return <DepositRecovery focusRecoveryAction requestKey={attempt.key} walletId={walletId} amount={Number(attempt.amount)}
     date={recoveryDate} initialStatus={recoveryRequest?.reconciliation === "credit_pending" || recoveryRequest?.reconciliation === "not_processed" ? recoveryRequest.reconciliation : undefined}
     onCredit={(credited, balance) => onSuccess(`Your ${formatUsdFromCents(credited)} demo deposit was credited to your wallet.`, formatUsdFromCents(balance), { key: attempt.key, amount: credited, date: attempt.createdAt, destination: attempt.destination })}
     onReview={() => setAttempt(current => ({ ...current, awaitingReceipt: false, reviewOnMount: true }))} />;

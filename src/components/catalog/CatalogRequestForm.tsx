@@ -193,7 +193,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
         {pending ? awaitingCheck ? "Checking request…" : "Sending request…" : awaitingCheck ? "Check original request" : "Send product request →"}
       </button>
       {dirty && !awaitingCheck ? <button type="button" disabled={pending} className="block min-h-11 text-sm font-bold text-cyan-200 underline disabled:opacity-50" onClick={() => {
-        setDraft(initialDraft()); setShowFeedback(false); writeCatalogRequestDraft(draftKey, null);
+        setDraft(initialDraft()); setInvalidItem(false); setShowFeedback(false); writeCatalogRequestDraft(draftKey, null);
         requestedItem.current?.focus();
       }}>Clear draft</button> : null}
     </form>

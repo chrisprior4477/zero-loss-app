@@ -141,7 +141,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
                 attachedPage.current = { id: item.id, kind: item.kind, page };
                 onChange(item);
                 dialog.current?.close();
-              }}><RecordDetails record={item} timeZone={timeZone} />{item.attachable === false ? <span className={styles.recordMeta}>{item.verifyAgain ? "Payment verification is temporarily unavailable." : "No verified payment was found for this order. You can send your request without attaching it."}</span> : null}</button>
+              }}><RecordDetails record={item} timeZone={timeZone} />{record?.id === item.id && record.kind === item.kind ? <span className={styles.recordMeta}>Currently attached</span> : null}{item.attachable === false ? <span className={styles.recordMeta}>{item.verifyAgain ? "Payment verification is temporarily unavailable." : "No verified payment was found for this order. You can send your request without attaching it."}</span> : null}</button>
             </li>)}
           </ul> : <p role="status">No {kind === "order" ? "orders" : "wallet transactions"} on this page.</p>}
         </div>

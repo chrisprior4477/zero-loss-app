@@ -134,7 +134,12 @@ export function ProfilePhotoCard({
     setEditing(false);
   }, []);
   const [saving, setSaving] = useState(false);
-  useDialogBack(editing, closeEditor, saving, true);
+  const restoreCrop = useRef(false);
+  useDialogBack(editing, () => { restoreCrop.current = true; closeEditor(); }, saving, true, false, "profile-crop", () => {
+    if (!restoreCrop.current || !draftPhoto) return;
+    restoreCrop.current = false;
+    setEditing(true);
+  });
   const [error, setError] = useState<string | null>(null);
   const [savedVisibility, setSavedVisibility] = useState({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
   if (savedVisibility.source !== initialVisibility) {

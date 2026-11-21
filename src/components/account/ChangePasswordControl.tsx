@@ -21,6 +21,7 @@ function ChangePasswordForm({ onCancel, onPending }: {
 }) {
   const [state, action, pending] = useActionState(changePassword, initialState);
   const confirmation = useRef<HTMLParagraphElement>(null);
+  const error = useRef<HTMLParagraphElement>(null);
   const currentPassword = useRef<HTMLInputElement>(null);
   const confirmPassword = useRef<HTMLInputElement>(null);
   const [mismatch, setMismatch] = useState(false);
@@ -32,7 +33,11 @@ function ChangePasswordForm({ onCancel, onPending }: {
   useEffect(() => { onPending(pending); }, [onPending, pending]);
   useEffect(() => {
     if (state.status === "updated") confirmation.current?.focus();
-  }, [state.status]);
+    if (!pending && state.status === "error") {
+      error.current?.focus({ preventScroll: true });
+      if (error.current) revealBelowHeader(error.current);
+    }
+  }, [pending, state]);
 
   if (state.status === "updated") {
     return <p id="change-account-password-form" ref={confirmation} tabIndex={-1} role="status" className={styles.passwordSuccess}>{state.message}</p>;
@@ -50,7 +55,7 @@ function ChangePasswordForm({ onCancel, onPending }: {
     <label>Confirm new password<input ref={confirmPassword} name="confirm_password" aria-invalid={mismatch || undefined} aria-describedby={mismatch ? "change-password-mismatch" : undefined} type="password" autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required /></label>
     {mismatch ? <p id="change-password-mismatch" role="alert" className={styles.passwordError}>The two passwords don’t match.</p> : null}
     <p>Use at least {MIN_PASSWORD_LENGTH} characters.</p>
-    {state.message ? <p role="alert" className={styles.passwordError}>{state.message}</p> : null}
+    {state.message ? <p ref={error} tabIndex={-1} role="alert" className={styles.passwordError}>{state.message}</p> : null}
     <div className={styles.passwordActions}>
       <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save new password"}</button>
       <button type="button" onClick={onCancel} disabled={pending}>Cancel</button>

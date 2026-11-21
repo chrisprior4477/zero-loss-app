@@ -41,7 +41,7 @@ function validListing(value: unknown): value is PartnerListing {
     && strings(value.highlights) && strings(value.included) && Array.isArray(value.specifications)
     && value.specifications.every(pair => strings(pair) && pair.length === 2);
 }
-const checkboxFields = new Set(["auto_relist", "card_billing", "asset_rights", "submit_authority", "capacity_ack", "creator_notice", "proof_generated"]);
+const checkboxFields = new Set(["auto_relist", "card_billing", "asset_rights", "submit_authority", "capacity_ack", "creator_notice", "proof_generated", "postcard_proof_generated", "flyer_proof_generated"]);
 const validValues = (v: unknown): v is FormValues => object(v)
   && Object.entries(v).every(([key, item]) => typeof item === (checkboxFields.has(key) ? "boolean" : "string"))
   && ["products","fulfillment","campaign","other"].includes(String(v.partnership));
@@ -67,7 +67,8 @@ export function readDeviceDraft(json: string): BusinessDraft | null {
 }
 
 export function businessIdentityFields(values: FormValues) {
-  const rules = addressRequirements(String(values.country ?? "").trim());
+  const country = String(values.country ?? "").trim();
+  const rules = addressRequirements(/^(?:U\.?K\.?|GB)$/i.test(country) ? "United Kingdom" : country);
   const addressKeys = { city: "C", region: "S", postal_code: "Z" } as Record<string, string>;
   const required: [string, string][] = [["business_name","Business name"],["address_line_1","Street address"],["city","City"],["region","State or region"],["postal_code","ZIP or postal code"],["country","Country"],["contact_name","Authorized contact"],["work_email","Work email"],["business_type","Business type"],["service_area","Service area"]];
   return required.filter(([key]) => !addressKeys[key] || !rules || rules.required.includes(addressKeys[key]));

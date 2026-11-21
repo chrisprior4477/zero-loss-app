@@ -490,7 +490,7 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
     { token: "demo_card_5556", lastFour: "5556", isDefault: false },
   ]} />);
   openMobileCards();
-  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Delete Card .+ ending \d{4}$/ })[0]);
   const confirmation = screen.getByRole("dialog", { name: "Delete saved card" });
   expect(within(confirmation).getByText("Bank of America •••• 4242")).toBeTruthy();
   expect(confirmation.closest("article")).toBeNull();
@@ -500,7 +500,7 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(deleteDemoPaymentMethod).not.toHaveBeenCalled();
   expect(document.documentElement.style.overflow).toBe("");
-  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Delete Card .+ ending \d{4}$/ })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242"));
   await waitFor(() => expect(container.querySelectorAll("article")).toHaveLength(1));
@@ -515,7 +515,7 @@ test("removing the only saved card blocks funding until another card is chosen",
   vi.mocked(deleteDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Test card removed." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
   openMobileCards();
-  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: /^Delete Card .+ ending \d{4}$/ })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(screen.getByText("No card selected. Add a sample card above to continue.")).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);

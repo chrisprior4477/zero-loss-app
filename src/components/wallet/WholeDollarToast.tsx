@@ -1,11 +1,13 @@
 "use client";
 
+import { useDialogBack } from "@/components/account/useDialogBack";
 import { useId } from "react";
 import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./whole-dollar-toast.module.css";
 
 export function WholeDollarToast({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
   const description = useId();
+  useDialogBack(true, onClose, false, true, false, "whole-dollar-funding");
 
   return <FundingNoticeDialog label="Whole-dollar deposit notice" description={description}
     closeLabel="Close whole-dollar notice" onClose={onClose}>

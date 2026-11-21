@@ -35,12 +35,12 @@ const samplePortraits = ["andre", "nora", "mateo", "sofia", "owen", "tessa", "sa
 function CrewPortrait({ index }: { index: number }) {
   return <span className={styles.memberAvatar}><Image src={`/images/home/crew/person-${samplePortraits[index % samplePortraits.length]}.webp`} alt="" title="Sample portrait" width={34} height={34} className={styles.portrait} /></span>;
 }
-type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
+type Props = { onClose: () => void; focusOnOpen?: boolean; restoreManualHistory?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
 const emptyOptions: CrewShareOptions = { ok: true, message: "", memberCount: 0, members: [], groups: [] };
 type CrewDelivery = { ok: boolean; message: string; groupCount?: number };
 const recentDeliveries = new Map<string, Promise<CrewDelivery>>();
 
-export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false }: Props) {
+export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = false, restoreManualHistory = false }: Props) {
   const initialItem = product ?? { slug: request!.slug, title: request!.title };
   const [item, setItem] = useState<ProductShareItem>(initialItem);
   const recipientId = !request && !product?.win ? product?.recipientId : undefined;
@@ -136,7 +136,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   useDialogBack(true, () => {
     if (history.current.length) { back(); return true; }
     onClose();
-  }, busy, true, false, "product-sharing");
+  }, busy, true, false, restoreManualHistory ? "manual-product-sharing" : "product-sharing");
   const url = origin && linkReady ? productShareUrl(origin, item.slug, shareToken) : "";
   const text = productShareText(item.title, item);
   const body = url ? `${text}\n${url}` : "";
