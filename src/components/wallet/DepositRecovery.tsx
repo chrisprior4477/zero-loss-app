@@ -52,12 +52,27 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
     if (!focusRecoveryAction) title.current?.focus({ preventScroll: true });
     revealWalletSection(sectionId);
     if (!focusRecoveryAction) return;
-    const frame = requestAnimationFrame(() => {
-      if (document.activeElement === document.body || document.activeElement === active) {
+    const href = window.location.href;
+    let frame = 0;
+    function focusAction() {
+      if (window.location.href !== href) return;
+      if (document.activeElement === document.body || document.activeElement === active || document.activeElement === title.current) {
         (actionButton.current ?? supportLink.current ?? title.current)?.focus({ preventScroll: true });
       }
-    });
-    return () => cancelAnimationFrame(frame);
+    }
+    function afterHistory() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(focusAction);
+    }
+    // Consuming the confirmation dialog history can restore the browser focus again.
+    window.addEventListener("popstate", afterHistory, { once: true });
+    frame = requestAnimationFrame(afterHistory);
+    const timeout = window.setTimeout(() => window.removeEventListener("popstate", afterHistory), 650);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+      window.removeEventListener("popstate", afterHistory);
+    };
   }, [embedded, sectionId, focusRecoveryAction]);
   useEffect(() => {
     if (!pending && result && result.status !== "credited" && restoreAction.current) {

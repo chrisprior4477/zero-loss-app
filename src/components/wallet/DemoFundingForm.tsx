@@ -60,6 +60,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       result = { status: "pending", message: "Check whether this deposit reached your wallet." };
     }
     if (result.status === "pending") {
+      confirmation.current?.close();
       onInterrupted({ key: requestKey, amount: String(form.get("amountCents")), recovered: true, ready: true,
         canRetry: false, awaitingReceipt: true, destination: continueTo?.href, initialToken: demoCardFixture(form.get("paymentMethod"))?.token,
         initialDefault: form.get("makeDefault") === "true", recoveryOnly: form.get("recoveryOnly") === "true" });
