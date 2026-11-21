@@ -505,3 +505,8 @@ test("strict entry-price comparisons stay in the fee field and exclude the limit
     expect(searchCatalog(products, query).map(product => product.slug)).toEqual(["reduced-gift-card"]);
   }
 });
+
+test("keeps a TV retailer exclusion separate from an electronics brand exclusion", () => {
+  expect(searchCatalog(demoProducts, "TVs not from Best Buy")).toEqual([]);
+  expect(searchCatalog(demoProducts, "TVs except for LG").map(product => product.slug)).toEqual(["samsung-m70h-tv"]);
+});

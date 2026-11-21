@@ -157,7 +157,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. PayPal is unavailable; do not enter real payment-card details.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. PayPal is unavailable. Do not enter real payment-card details.",
     keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {

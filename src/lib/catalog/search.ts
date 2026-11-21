@@ -43,11 +43,12 @@ export function searchCatalogMatches(
   }
   const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+no|excluding|(?:everywhere\s+)?except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(query);
   if (retailerExclusion) {
+    const retailerSpecified = /^from\s+/i.test(retailerExclusion[1]);
     const suffix = retailerExclusion[1].replace(/^from\s+/i, "");
     const qualified = retailerExclusion.index === 0 && /\s+gift\s*cards?$/i.test(suffix);
     const names = qualified ? suffix.replace(/\s+gift\s*cards?$/i, "") : suffix;
     const positive = query.slice(0, retailerExclusion.index).trim();
-    if (/\b(?:tvs?|televisions?)\b/i.test(positive) && !/\bgift\s*cards?\b/i.test(positive)) {
+    if (!retailerSpecified && /\b(?:tvs?|televisions?)\b/i.test(positive) && !/\bgift\s*cards?\b/i.test(positive)) {
       const brand = normalizeSearch(names);
       if (products.some(product => normalizeSearch(product.brand) === brand)) {
         const eligible = products.filter(product => !isGiftCardListing(product) && normalizeSearch(product.brand) !== brand);
