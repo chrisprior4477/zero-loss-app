@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import type { DemoProduct } from "@/lib/catalog/demo-products";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { ProductInfoDialog } from "./ProductInfoDialog";
 import styles from "./product-entry-layout.module.css";
 
@@ -30,6 +31,7 @@ export function ProductGallery({ gallery, title, slug, signedOutCompact = false,
           <Image src={image.src} alt={image.alt} width={1000} height={700} className={styles.enlargedImage} />
           {gallery.length > 1 ? <div className={styles.enlargedThumbs}>{gallery.map((picture, index) => <button key={`${picture.src}-${index}`} type="button" aria-label={`Show enlarged image ${index + 1} of ${gallery.length}`} aria-pressed={selected === index} onClick={() => setSelected(index)}><Image src={picture.src} alt="" fill sizes="70px" className="object-contain p-1" /></button>)}</div> : null}
         </ProductInfoDialog> : null}
+        <DemoOutcomeLetter product={slug} />
         <FavoriteButton itemName={title} itemHref={`/items/${slug}`} size="large" className={`absolute right-3 top-3 z-10 sm:right-5 sm:top-5 ${compact ? styles.favorite : ""}`} />
       </div>
       {gallery.length > 1 ? <div className={compact ? styles.thumbs : signedOutCompact ? "mt-2 flex gap-2 overflow-x-auto pb-1 lg:mt-3 lg:gap-3" : "mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3"} aria-label={`${title} image gallery`}>

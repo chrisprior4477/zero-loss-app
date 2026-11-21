@@ -6,6 +6,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { getPopularRewardBrand, popularRewardAmounts, popularRewardBrands, popularRewardProductSlug, popularRewardsReturnHref } from "@/lib/catalog/popular-rewards";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 
 type Props = { params: Promise<{ brand: string }> };
 
@@ -44,6 +45,7 @@ export default async function RewardBrandPage({ params }: Props) {
             const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";
             const card = <>
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
+                {open && <DemoOutcomeLetter product={slug} />}
                 <Image src={brand.imagePath} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />
                 <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-[#00132e] shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
               </div>

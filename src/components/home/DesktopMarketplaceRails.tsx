@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useRef } from "react";
+import type { ProductCardMarkers } from "@/components/catalog/BrowseProductCard";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { DollarChoiceCarousel } from "@/components/home/DollarChoiceCarousel";
 import { DollarChoiceCarouselLight } from "@/components/home/DollarChoiceCarouselLight";
@@ -213,6 +215,64 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
   };
 }
 
+export function EndingSoonCard({ item, remaining, markers }: { item: (typeof sampleEndingSoon)[number]["item"]; remaining: number; markers?: ProductCardMarkers }) {
+  const status = availabilityStatus(item.ticketCapacity, item.ticketCapacity - remaining);
+  return (
+    <article
+      className="relative w-[150px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
+    >
+      <Link
+        href={item.href?.startsWith("/items/")
+          ? productHrefWithBrowseReturn(item.href.slice("/items/".length), `/?ending-prize=${encodeURIComponent(item.href.slice("/items/".length))}#ending-soon`)
+          : item.href ?? "/browse"}
+        draggable={false}
+        className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
+      >
+        <div className="relative h-[72px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
+          <EndingSoonArtwork item={item} />
+          {markers?.artwork}
+          {remaining > 0 && <DemoOutcomeLetter product={item.href} position="left-1.5 top-1.5" />}
+        </div>
+        <div className={markers?.title ? "mt-2.5 flex items-start gap-1.5" : "contents"}>
+          <h3 className={`h-8 min-w-0 overflow-hidden text-[13px] font-bold leading-[1.2] ${markers?.title ? "" : "mt-2.5"}`}>{item.title}</h3>
+          {markers?.title}
+        </div>
+        <p className="mt-1 whitespace-nowrap text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+          <span className="text-[#00132e]">{item.faceValueLabel} value</span>
+          <span aria-hidden="true"> · </span>
+          <span>{item.ticketCapacity.toLocaleString()} entries</span>
+        </p>
+        <div className="mt-2 flex gap-1" aria-label={`${status.percentFilled}% filled`}>
+        {Array.from({ length: 10 }, (_, segment) => {
+          const segmentFill = Math.min(100, Math.max(0, status.percentFilled - segment * 10) * 10);
+          return <span
+            key={segment}
+            aria-hidden="true"
+            className="h-2 flex-1 rounded-[3px]"
+            style={{ background: `linear-gradient(90deg, ${status.color} ${segmentFill}%, #e5e7eb ${segmentFill}%)` }}
+          />;
+        })}
+        </div>
+        <div className="mt-1.5 flex items-center gap-2.5">
+        <span
+          aria-hidden="true"
+          className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
+          style={{ backgroundColor: status.color }}
+        >
+          {remaining}
+        </span>
+        <span className="leading-tight">
+          <span className="block text-[14px] font-bold" style={{ color: lightSurfaceAvailabilityColor(status.percentFilled) }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</span>
+          <span className="mt-1 block text-[12px] font-semibold text-slate-500">{status.label}</span>
+        </span>
+        </div>
+      </Link>
+      <FavoriteButton itemName={item.title} itemHref={item.href ?? ""} returnTo={`/?ending-prize=${item.href?.split("?")[0].slice("/items/".length)}#ending-soon`} className="absolute right-1.5 top-1.5 z-10" />
+      {markers?.corner}
+    </article>
+  );
+}
+
 export function DesktopMarketplaceRails() {
   const availability = useOfferingAvailability();
   const resolved = useResolvedCatalogSlugs();
@@ -298,59 +358,7 @@ export function DesktopMarketplaceRails() {
             onDragStart={(event) => event.preventDefault()}
             {...endingDrag}
           >
-            {endingSoon.map(({ item, remaining }) => {
-            const status = availabilityStatus(item.ticketCapacity, item.ticketCapacity - remaining);
-
-            return (
-              <article
-                key={item.id}
-                className="relative w-[150px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
-              >
-                <Link
-                  href={item.href?.startsWith("/items/")
-                    ? productHrefWithBrowseReturn(item.href.slice("/items/".length), `/?ending-prize=${encodeURIComponent(item.href.slice("/items/".length))}#ending-soon`)
-                    : item.href ?? "/browse"}
-                  draggable={false}
-                  className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
-                >
-                  <div className="relative h-[72px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
-                    <EndingSoonArtwork item={item} />
-                  </div>
-                  <h3 className="mt-2.5 h-8 overflow-hidden text-[13px] font-bold leading-[1.2]">{item.title}</h3>
-                  <p className="mt-1 whitespace-nowrap text-[10px] font-semibold text-slate-500 sm:text-[11px]">
-                    <span className="text-[#00132e]">{item.faceValueLabel} value</span>
-                    <span aria-hidden="true"> · </span>
-                    <span>{item.ticketCapacity.toLocaleString()} entries</span>
-                  </p>
-                  <div className="mt-2 flex gap-1" aria-label={`${status.percentFilled}% filled`}>
-                  {Array.from({ length: 10 }, (_, segment) => {
-                    const segmentFill = Math.min(100, Math.max(0, status.percentFilled - segment * 10) * 10);
-                    return <span
-                      key={segment}
-                      aria-hidden="true"
-                      className="h-2 flex-1 rounded-[3px]"
-                      style={{ background: `linear-gradient(90deg, ${status.color} ${segmentFill}%, #e5e7eb ${segmentFill}%)` }}
-                    />;
-                  })}
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
-                    style={{ backgroundColor: status.color }}
-                  >
-                    {remaining}
-                  </span>
-                  <span className="leading-tight">
-                    <span className="block text-[14px] font-bold" style={{ color: lightSurfaceAvailabilityColor(status.percentFilled) }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</span>
-                    <span className="mt-1 block text-[12px] font-semibold text-slate-500">{status.label}</span>
-                  </span>
-                  </div>
-                </Link>
-                <FavoriteButton itemName={item.title} itemHref={item.href ?? ""} returnTo={`/?ending-prize=${item.href?.split("?")[0].slice("/items/".length)}#ending-soon`} className="absolute right-1.5 top-1.5 z-10" />
-              </article>
-            );
-            })}
+            {endingSoon.map(({ item, remaining }) => <EndingSoonCard key={item.id} item={item} remaining={remaining} />)}
           </div>
           <SideRailButtons track={endingRef} onScroll={(direction) => scroll(endingRef.current, direction)} />
         </div>

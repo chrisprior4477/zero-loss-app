@@ -18,6 +18,10 @@ import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { TimeZoneProvider } from "@/components/account/TimeZoneProvider";
 import { AccountStateSync } from "@/components/account/AccountStateSync";
+import { DemoOutcomeMarksProvider } from "@/components/catalog/DemoOutcomeLetter";
+import { getDemoOutcomeMarks } from "@/lib/catalog/demo-outcome-markers";
+import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 type AppShellProps = {
   children: ReactNode;
@@ -25,11 +29,15 @@ type AppShellProps = {
 
 export async function AppShell({ children }: AppShellProps) {
   const account = await getAccountContext();
-  const [favorites, notifications] = await Promise.all([
+  const [favorites, notifications, availability] = await Promise.all([
     account ? getFavoriteSnapshot(account.userId) : Promise.resolve({ slugs: [], available: true }),
     account ? getNotificationSnapshot() : Promise.resolve(null),
+    getOfferingAvailability(),
   ]);
+  const demoOutcomeMarks = getDemoOutcomeMarks(availability);
+  for (const slug of resolvedCatalogSlugs(account?.activity)) delete demoOutcomeMarks[slug];
   return (
+    <DemoOutcomeMarksProvider value={demoOutcomeMarks}>
     <TimeZoneProvider value={account?.timezone ?? "America/New_York"} locale={account?.preferredLocale}>
     <NotificationProvider key={account?.userId ?? "guest"} initial={notifications} initialPopupStyle={account?.notificationPopupStyle ?? "rounded"} initialSpeed={account?.notificationBannerSpeed ?? 5} initialDisplaySeconds={account?.notificationBannerDisplaySeconds ?? 6} initialEnabled={account?.headerNotificationsEnabled ?? true} initialStyle={account?.notificationBannerStyle ?? "capsule"}>
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
@@ -62,5 +70,6 @@ export async function AppShell({ children }: AppShellProps) {
     </MobileLogoSizeProvider>
     </NotificationProvider>
     </TimeZoneProvider>
+    </DemoOutcomeMarksProvider>
   );
 }

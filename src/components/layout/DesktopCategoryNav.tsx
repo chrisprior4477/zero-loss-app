@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { Suspense, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -258,9 +259,10 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], unavai
                   href={item.href}
                   role="menuitem"
                   onClick={() => setOpenCategory(null)}
-                  className="flex min-h-11 items-center justify-between gap-2 border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"
+                  className="relative flex min-h-11 items-center justify-between gap-2 border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"
                 >
                   <span>{item.label}</span>
+                  <DemoOutcomeLetter product={item.href} dark position="right-1 top-0" />
                   {item.remaining !== null ? <span className="shrink-0 text-xs text-cyan-300">{item.remaining} left</span> : null}
                   {emptyTopics.has(item.href) ? <span className="text-right text-xs text-cyan-100/75">No current offers</span> : null}
                 </Link>

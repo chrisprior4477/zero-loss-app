@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import styles from "./shopping-reminder-preview.module.css";
 
 export type ReminderProduct = { slug: string; title: string; image: string };
@@ -16,7 +17,7 @@ export function ShoppingReminder({ product, quantity, href, onDismiss }: {
   return <div className={styles.dock}>
     <aside className={styles.ticket} aria-label={hasEntry ? "Unfinished entry reminder" : "Recently viewed reminder"}
       onKeyDown={event => { if (event.key === "Escape") onDismiss(); }}>
-      <div className={styles.picture}><Image src={product.image} alt="" width={64} height={64} /></div>
+      <div className={`relative ${styles.picture}`}><Image src={product.image} alt="" width={64} height={64} /><DemoOutcomeLetter product={product.slug} position="left-1 top-1" /></div>
       <div className={styles.copy}>
         <p className={styles.eyebrow}>{hasEntry ? "You started an entry" : "You were looking at"}</p>
         <p className={styles.title}>{product.title}</p>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { DemoOutcomeLetter } from "./DemoOutcomeLetter";
 import { BrowseResultsLink } from "./BrowsePrizeLink";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -27,7 +28,12 @@ const BrowseControlsContext = createContext<ReactNode>(null);
 type BrowsePanel = "categories" | "filters";
 type ControlsPosition = "top" | "bottom";
 type PrizeCategoryChoice = { id: MarketplaceCategoryId | ""; label: string };
-export type BrowsePreviewProduct = { slug: string; title: string; image: string; remaining: number };
+export type BrowsePreviewProduct = {
+  slug: string;
+  title: string;
+  image: string;
+  remaining: number;
+};
 type PreviewResume = { destination: string; category: string; position: ControlsPosition; expires: number };
 const previewHistoryKey = "zeroLossCategoryPreviewReturn";
 let pendingPreview: PreviewResume | null = null;
@@ -332,7 +338,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
               destination: comparableBrowseHref(props.browseHref), category: category.id, position: openPanel?.position ?? "top", slug: product.slug,
             } }, "");
           }}>
-          <div className={styles.previewImage}><Image src={product.image} alt="" fill sizes="190px" /></div>
+          <div className={styles.previewImage}>
+            <Image src={product.image} alt="" fill sizes="190px" />
+            {product.remaining > 0 && <DemoOutcomeLetter product={product.slug} />}
+          </div>
           <strong>{product.title}</strong>
           <small>{product.remaining ? `${product.remaining.toLocaleString()} left` : "No open entries"}</small>
         </Link>;

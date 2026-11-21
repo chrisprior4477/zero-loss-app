@@ -8,6 +8,7 @@ import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
 import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
@@ -137,6 +138,7 @@ export function DollarChoiceCarouselLight() {
                   <div className="relative h-[102px] overflow-hidden rounded-[13px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)] sm:h-[150px] sm:rounded-[15px]">
                     <span aria-hidden="true" className="absolute inset-x-5 bottom-2 h-7 rounded-full opacity-20 blur-lg" style={{ backgroundColor: item.accent }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="244px" className="relative z-10 object-contain p-3 drop-shadow-[0_10px_9px_rgba(0,19,46,0.2)] transition-transform duration-300 group-hover:scale-[1.04]" />
+                    <DemoOutcomeLetter product={item.href} />
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">

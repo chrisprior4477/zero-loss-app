@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useFavorites } from "./FavoritesProvider";
 import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
@@ -328,6 +329,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     const artwork = product ? <Image src={product.gallery[0].src} alt={product.title} fill sizes={large ? "(max-width: 640px) 90vw, 420px" : "(max-width: 640px) 50vw, 25vw"} className="object-contain p-2" /> : <span>Product unavailable</span>;
     return <div className={`${styles.art} ${large ? styles.largeArt : ""}`}>
       {large ? artwork : <button type="button" className={styles.artButton} aria-label={`View ${product?.title ?? "shared product"}`} data-saved-artwork={shareId ?? slug} onClick={() => openItem(slug, shareId, true)}>{artwork}</button>}
+      <DemoOutcomeLetter product={product?.slug} />
       <FavoriteButton itemName={product?.title ?? "this product"} itemHref={`/items/${slug}`} size="large" className={styles.heart} />
     </div>;
   }

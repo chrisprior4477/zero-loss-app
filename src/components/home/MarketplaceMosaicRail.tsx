@@ -7,6 +7,8 @@ import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
+import type { ProductCardMarkers } from "@/components/catalog/BrowseProductCard";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { CircularProgress } from "@/components/home/DollarChoiceCarouselLight";
 import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
@@ -30,7 +32,7 @@ function EntryButton({ compact = false }: { compact?: boolean }) {
     : "grid h-7 min-w-[58px] shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-1.5 text-[9px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)] sm:h-9 sm:min-w-[78px] sm:px-3 sm:text-[12px]"}>{compact ? "$1" : "$1 Entry"}</span>;
 }
 
-function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
+export function MarketplaceFeatureCard({ item: sample, markers }: { item: (typeof products)[number]; markers?: ProductCardMarkers }) {
   const current = availabilityForHref(useOfferingAvailability(), sample.href);
   const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
   const item = { ...sample, percentFilled: status.percentFilled };
@@ -53,6 +55,7 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
             style={{ objectPosition: "left center" }}
             className="object-contain p-3 pr-[68px] drop-shadow-[0_15px_14px_rgba(0,19,46,0.22)] transition-transform duration-300 group-hover:scale-[1.035] sm:p-4 sm:pr-[92px]"
           />
+          {markers?.artwork}
           {ticketsLeft !== undefined ? <span style={{ position: "absolute", right: 10, top: 48 }} className="z-10 text-right text-[8px] font-extrabold uppercase leading-tight tracking-[0.04em] text-slate-500 sm:right-[14px] sm:top-[76px] sm:text-[10px]">
             <span className="block text-[15px] leading-none text-[#00132e]">{ticketsLeft.toLocaleString()}</span>
             {ticketsLeft === 0 ? "pool full" : "tickets left"}
@@ -64,7 +67,7 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
         <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
             {status.almostFull || ticketsLeft === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.almostFull ? "#ff7f8d" : status.color }}>{ticketsLeft === 0 ? "Pool full" : status.label}</p> : null}
-            <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
+            <div className={markers?.title ? "flex items-start gap-1" : "contents"}><h3 className="min-w-0 text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>{markers?.title}</div>
             <p className="mt-1 text-[8px] font-semibold leading-tight text-white/60 sm:text-[10px]">
               ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
             </p>
@@ -73,11 +76,13 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
         </div>
       </Link>
       <FavoriteButton itemName={item.title} itemHref={item.href} returnTo={`/?marketplace-prize=${item.href.split("?")[0].slice("/items/".length)}#marketplace-mosaic-title`} className="absolute right-3 top-3 z-20" />
+      <DemoOutcomeLetter product={item.href} position="right-10 top-[46px]" />
+      {markers?.corner}
     </article>
   );
 }
 
-function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
+export function MarketplaceCompactCard({ item: sample, markers }: { item: (typeof products)[number]; markers?: ProductCardMarkers }) {
   const current = availabilityForHref(useOfferingAvailability(), sample.href);
   const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
   const item = { ...sample, percentFilled: status.percentFilled };
@@ -88,10 +93,11 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
         <div className="relative h-[78px] w-[62px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[106px] sm:w-[110px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />
+          {markers?.artwork}
         </div>
         <div className="min-w-0 flex-1">
           {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] sm:text-[8px]" style={{ color: status.almostFull ? "#ff7f8d" : status.color }}>{status.label}</p> : null}
-          <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
+          <div className={markers?.title ? "flex items-start gap-1" : "contents"}><h3 className="line-clamp-2 min-w-0 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>{markers?.title}</div>
           <p className="mt-1 text-[7px] font-semibold leading-tight text-white/60 sm:text-[9px]">
             ${item.prizeValue.toLocaleString()} · {entryCapacity.toLocaleString()} entries
           </p>
@@ -100,6 +106,8 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
         </div>
       </Link>
       <FavoriteButton itemName={item.title} itemHref={item.href} returnTo={`/?marketplace-prize=${item.href.split("?")[0].slice("/items/".length)}#marketplace-mosaic-title`} className="absolute left-2 top-2 z-20" />
+      <DemoOutcomeLetter product={item.href} position="left-[19px] top-[44px]" />
+      {markers?.corner}
     </article>
   );
 }
@@ -171,9 +179,9 @@ export function MarketplaceMosaicRail() {
           onDragStart={(event) => event.preventDefault()}
         >
           {columns.map(column => column.length === 1
-            ? <FeatureCard key={column[0].href} item={column[0]} />
+            ? <MarketplaceFeatureCard key={column[0].href} item={column[0]} />
             : <div key={column[0].href} className="flex shrink-0 flex-col gap-[7px] self-stretch">
-                {column.map(item => <CompactCard key={item.href} item={item} />)}
+                {column.map(item => <MarketplaceCompactCard key={item.href} item={item} />)}
               </div>)}
         </div>
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[8vw] bg-gradient-to-r from-[#031b44] to-transparent" />

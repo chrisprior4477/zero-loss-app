@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { groceryThemes, groceryThemeImage, type GroceryTheme } from "@/lib/catalog/grocery-themes";
@@ -115,10 +116,10 @@ export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf 
           <span className={styles.eyebrow}>Your next grocery run, reimagined</span>
           <h2 id="grocery-theme-title">{selected.title}</h2><p>{selected.ingredients}</p>
           <h3>Make it happen with a grocery gift card</h3>
-          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} data-grocery-offer={offer.slug}
+          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} data-grocery-offer={offer.slug} className="relative"
             href={productHrefWithBrowseReturn(offer.slug, ideaHref(selected))}
             onNavigate={() => window.history.replaceState({ ...window.history.state, zeroLossGroceryOffer: offer.slug }, "")}>
-            <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span>
+            <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span><DemoOutcomeLetter product={offer.slug} position="right-2 top-1" />
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>
           <p className={styles.disclaimer}>Choose your groceries at the retailer. Pictures are inspiration; the reward is a gift card.</p>
           <button type="button" className={styles.back} onClick={dismissIdea}>{showShelf ? "Keep exploring ideas" : "Back to grocery results"}</button>
