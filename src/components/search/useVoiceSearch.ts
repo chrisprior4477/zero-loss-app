@@ -66,7 +66,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
 
   function toggle() {
     if (listening) { stop(); return; }
-    // A new session supersedes any final result still pending from the last one.
+    if (phase === "finishing") return;
     cancel();
     setError("");
     const browser = window as typeof window & {
@@ -105,5 +105,5 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     setPhase("listening");
     try { recognition.start(); } catch { cancel(); setError("Voice search couldn’t start. Try again or type your search."); }
   }
-  return { listening, busy: phase !== "idle", error, toggle, stop, cancel, reset };
+  return { listening, finishing: phase === "finishing", busy: phase !== "idle", error, toggle, stop, cancel, reset };
 }

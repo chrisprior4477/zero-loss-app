@@ -27,7 +27,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
       return;
     }
     flushSync(() => setAccountPath(nextPath));
-    setupRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setupRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     const firstField = setupRef.current?.querySelector<HTMLInputElement>("#legal_first_name");
     firstField?.focus({ preventScroll: true });
   }

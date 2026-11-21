@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Notifications" };
 export default async function NotificationsPage({ searchParams }: { searchParams?: Promise<{ filter?: string | string[]; notice?: string | string[] }> }) {
   const query = await searchParams;
   const filter = notificationFilter(query?.filter);
+  const obsoleteFilter = query?.filter !== undefined && query.filter !== filter;
   const notice = validNotice(query?.notice) ? query.notice : undefined;
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", notificationHref(filter, notice)));
@@ -25,6 +26,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   return <PreferenceSnapshot><>{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     key={`${filter}:${notice ?? ""}`}
     initialFilter={filter}
+    obsoleteFilter={obsoleteFilter}
     initialNotice={notice}
     userId={account.userId}
     supportEnabled={snapshot.supportEnabled}

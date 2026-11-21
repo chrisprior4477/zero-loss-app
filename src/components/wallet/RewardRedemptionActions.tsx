@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 type RewardRedemptionActionsProps = {
   displayCode: string | null;
@@ -27,11 +27,7 @@ export function RewardRedemptionActions({
   const [manualCopy, setManualCopy] = useState(false);
   const manualField = useRef<HTMLInputElement>(null);
   const latestCopy = useRef(0);
-  useEffect(() => {
-    if (!manualCopy) return;
-    manualField.current?.focus();
-    manualField.current?.select();
-  }, [manualCopy]);
+
 
   async function copyCode() {
     if (!displayCode) return;
@@ -45,6 +41,7 @@ export function RewardRedemptionActions({
       if (attempt !== latestCopy.current) return;
       setMessage("Automatic copying is unavailable. Copy the number from the field below.");
       setManualCopy(true);
+      requestAnimationFrame(() => { manualField.current?.focus(); manualField.current?.select(); });
     }
   }
   const walletButton = "flex min-h-12 min-w-0 items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-bold min-[380px]:text-xs sm:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] disabled:cursor-not-allowed";

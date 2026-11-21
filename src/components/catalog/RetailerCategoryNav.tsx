@@ -27,7 +27,7 @@ function retailerHref(groupId: string, props: Props, retailer = "") {
   if (props.filters.minValue !== null) params.set("minValue", String(props.filters.minValue));
   if (props.filters.maxValue !== null) params.set("maxValue", String(props.filters.maxValue));
   if (props.selectedCategory === "ending-soon") {
-    if (props.filters.sort !== "fewest-left") params.set("sort", props.filters.sort);
+    if (props.filters.sort !== "featured") params.set("sort", props.filters.sort);
   } else if (props.filters.sort !== "featured") params.set("sort", props.filters.sort);
   if (groupId) params.set("partnerCategory", groupId);
   if (retailer) params.set("retailer", retailer);

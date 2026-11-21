@@ -9,7 +9,7 @@ import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { browsePrizeValueLabel, parseBrowseFilterState } from "@/lib/catalog/browse-filters";
-import { catalogSearchLimitMessage, catalogSearchTooLong, maxCatalogSearchLength, searchTextMatches } from "@/lib/catalog/search-text";
+import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength, searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
@@ -73,7 +73,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const search = session?.draft ?? localSearch;
   const setSearch = session?.setDraft ?? setLocalSearch;
   const voice = useVoiceSearch(value => { session?.setEditor(null); setSearch(value); });
-  const showSearchLimit = catalogSearchTooLong(search.trim()) && (!session?.editor || session.editor === "top");
+  const invalidSearch = invalidCatalogSearch(search);
+  const showSearchLimit = (catalogSearchTooLong(search.trim()) || invalidSearch) && (!session?.editor || session.editor === "top");
   const pickerVoice = useVoiceSearch(value => { setQuery(value); setPreview(null); });
   const id = useId();
   const categoryLabel = props.subcategory || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
@@ -94,7 +95,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const budgetLabel = browsePrizeValueLabel(props.filters);
   const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly) + Number(Boolean(props.ticketsLeft))
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
-    + Number(props.filters.sort !== (props.selectedCategory === "ending-soon" ? "fewest-left" : "featured"));
+    + Number(props.filters.sort !== "featured");
   const prizeCategories = marketplaceCategories.filter(category => !query.trim() || searchTextMatches(category.label, query));
   const prizeCategoryLabels = new Set(prizeCategories.map(category => category.label.toLowerCase()));
   const groups = query.trim().length > 1
@@ -131,7 +132,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
-      restoreDialogTrigger(opener.current);
+      const trigger = opener.current;
+      if (trigger) requestAnimationFrame(() => {
+        const modal = document.querySelector("dialog[open]");
+        if (!modal && document.activeElement === document.body) restoreDialogTrigger(trigger);
+      });
     };
   }, [panel]);
 
@@ -219,7 +224,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     const destination = `${url.pathname}${url.search}#search-results`;
     navigateFromPanel(destination);
   }
-  function prizeCategoryHref(value: string) {
+  function prizeCategoryHref(value: string, term = search) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
     if (props.filters.type !== "all") url.searchParams.set("type", props.filters.type);
     if (props.filters.availableOnly) url.searchParams.set("available", "1");
@@ -227,16 +232,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
     const endingSoon = url.searchParams.get("sort") === "ending-soon";
     if (endingSoon && props.ticketsLeft) url.searchParams.set("ticketsLeft", props.ticketsLeft);
-    const currentSort = new URL(props.browseHref, url).searchParams.get("sort");
-    const implicitEndingSort = props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left" && currentSort !== "fewest-left";
-    if (!endingSoon && props.filters.sort !== "featured" && !implicitEndingSort) {
+    if (!endingSoon && props.filters.sort !== "featured") {
       url.searchParams.set("sort", props.filters.sort);
     }
-    if (endingSoon && props.selectedCategory === "ending-soon" && props.filters.sort !== "fewest-left") {
+    if (endingSoon && props.selectedCategory === "ending-soon" && props.filters.sort !== "featured") {
       url.searchParams.set("category", "ending-soon");
       url.searchParams.set("sort", props.filters.sort);
     }
-    if (search.trim()) url.searchParams.set("q", search.trim());
+    if (term.trim() && !invalidCatalogSearch(term) && !catalogSearchTooLong(term.trim())) url.searchParams.set("q", term.trim());
     return `${url.pathname}${url.search}#search-results`;
   }
   function choosePrizeCategory(value: string) {
@@ -265,7 +268,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (voice.busy) return;
-    if (catalogSearchTooLong(search.trim())) { searchInput.current?.focus(); return; }
+    if (catalogSearchTooLong(search.trim()) || invalidSearch) { searchInput.current?.focus(); return; }
     voice.cancel();
     applySearch(search);
   }
@@ -278,7 +281,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function submitPickerSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!query.trim() || pickerVoice.busy) return;
-    if (catalogSearchTooLong(query.trim())) { pickerInput.current?.focus(); return; }
+    if (catalogSearchTooLong(query.trim()) || invalidCatalogSearch(query)) { pickerInput.current?.focus(); return; }
     navigateFromPanel(searchDestination(query, true));
   }
 
@@ -306,9 +309,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function previewSection(category: PrizeCategoryChoice) {
     const products = props.previews?.[category.id] ?? [];
-    const href = prizeCategoryHref(category.id);
+    // The preview was matched on the server using the applied search.
+    const href = prizeCategoryHref(category.id, props.searchTerm);
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>
-      <div className={styles.previewHeader}><h3>{category.label}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
+      <div className={styles.previewHeader}><h3>{category.label}{search.trim() !== props.searchTerm && props.searchTerm ? <> · “{props.searchTerm}”</> : null}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
         const back = `${props.browseHref.split("#")[0]}#category-preview~${openPanel?.position ?? "top"}~${category.id}~${product.slug}`;
         const destination = productHrefWithBrowseReturn(product.slug, back);
@@ -356,7 +360,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     <button ref={position === "top" ? topCategories : bottomCategories} type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
       <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
     </button>
-    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters" && openPanel?.position === position} onClick={event => open("filters", position, event.currentTarget)}>
+    <button type="button" data-browse-filter={position} className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters" && openPanel?.position === position} onClick={event => open("filters", position, event.currentTarget)}>
       Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
     </button>
   </>;
@@ -368,15 +372,15 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       onKeyDown={event => {
         if (event.key !== "Escape") return;
         event.preventDefault();
-        voice.cancel();
+        voice.reset();
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || invalidSearch || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
-      {search.trim() && !voice.busy && !catalogSearchTooLong(search.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+      {search.trim() && !voice.busy && !invalidSearch && !catalogSearchTooLong(search.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
-    </form>{showSearchLimit ? <p id={`${id}-search-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</div>}
+    </form>{showSearchLimit ? <p id={`${id}-search-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{invalidSearch ? invalidCatalogSearchMessage : catalogSearchLimitMessage}</p> : null}</div>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link scroll={false} href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} onNavigate={() => requestBrowseResultsFocus(`${withoutBudget.pathname}${withoutBudget.search}#search-results`)} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
@@ -397,7 +401,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
             {query ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={() => {
               pickerVoice.reset(); setQuery(""); setPreview(null); pickerInput.current?.focus();
             }}>×</button> : null}
-            {query.trim() && !pickerVoice.busy && !catalogSearchTooLong(query.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+            {query.trim() && !pickerVoice.busy && !invalidCatalogSearch(query) && !catalogSearchTooLong(query.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
             <VoiceSearchControl {...pickerVoice} />
           </form>
           {catalogSearchTooLong(query.trim()) ? <p id={`${id}-picker-limit`} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}

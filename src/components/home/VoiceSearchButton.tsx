@@ -7,11 +7,11 @@ export function VoiceSearchButton({ onTranscript }: { onTranscript: (text: strin
   return <VoiceSearchControl {...voice} />;
 }
 
-export function VoiceSearchControl(voice: Pick<ReturnType<typeof useVoiceSearch>, "listening" | "error" | "toggle">) {
+export function VoiceSearchControl(voice: Pick<ReturnType<typeof useVoiceSearch>, "listening" | "error" | "toggle"> & { finishing?: boolean }) {
   return <span className="relative flex shrink-0 items-center">
-    <button type="button" onClick={voice.toggle} aria-pressed={voice.listening}
-      aria-label={voice.listening ? "Stop voice search" : "Start voice search"}
-      title={voice.listening ? "Listening — tap to stop" : "Search with your voice"}
+    <button type="button" onClick={voice.toggle} aria-pressed={voice.listening} aria-disabled={voice.finishing || undefined}
+      aria-label={voice.finishing ? "Finishing voice search" : voice.listening ? "Stop voice search" : "Start voice search"}
+      title={voice.finishing ? "Finishing voice search…" : voice.listening ? "Listening — tap to stop" : "Search with your voice"}
       className={`flex h-11 w-9 shrink-0 items-center justify-center rounded-md text-[#087feb] hover:bg-[#087feb]/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb] ${voice.listening ? "zl-pulse-live" : ""}`}>
       <svg aria-hidden="true" viewBox="0 0 32 32" className="h-6 w-6" fill="none">
         <rect x="10" y="2" width="12" height="18" rx="6" fill="currentColor" />

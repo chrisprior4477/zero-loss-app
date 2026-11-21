@@ -11,7 +11,8 @@ export function normalizeSearch(value: string) {
     .replace(/\bwh[\s-]*1000[\s-]*xm[\s-]*5\b/g, "wh1000xm5")
     .replace(/\bo[.\s]+l[.\s]+e[.\s]+d\b/g, "oled")
     .replace(/\b(?:play[\s-]*station|p[.\s-]*s)[.\s-]*5\b/g, "playstation 5")
-    .replace(/(\d)\s*(?:["”″]|[- ]+inches?\b|-in\b)(?:\s+class\b)?/g, "$1 inch")
+    .replace(/\bplay[\s-]+station\b/g, "playstation").replace(/\bm\s+70\s+h\b/g, "m70h")
+    .replace(/(\d)\s*(?:["”″]|[- ]+inches?\b|[- ]?in\b)(?:\s+class\b)?/g, "$1 inch")
     .replace(/(\d)\s*(tb|gb|terabytes?|gigabytes?)\b/g, (_, size: string, unit: string) => `${size} ${unit.startsWith("t") ? "tb" : "gb"}`)
     .replace(/\bsparkplugs?\b/g, "spark plug").replace(/\bautoparts\b/g, "auto parts")
     .replace(/\bauto\s+zone\b/g, "autozone").replace(/\bpet\s+smart\b/g, "petsmart").replace(/[^a-z0-9]+/g, " ").trim();
@@ -33,6 +34,9 @@ export const queryWords = (value: string) => [...new Set(searchWords(value
   || (word === "buy" && normalizeSearch(value).includes("best buy"))))];
 export const maxCatalogSearchLength = 512;
 export const maxCatalogSearchTerms = 32;
+
+export const invalidCatalogSearch = (query: string) => Boolean(query.trim()) && !/[\p{L}\p{N}]/u.test(query);
+export const invalidCatalogSearchMessage = "Enter a product or retailer name to search.";
 
 export const catalogSearchLimitMessage = `Shorten your search to ${maxCatalogSearchLength} characters and ${maxCatalogSearchTerms} words or fewer.`;
 

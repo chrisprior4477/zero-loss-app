@@ -95,13 +95,14 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
         requestAnimationFrame(() => returnFromContacts(contactChoice.current));
       } else {
         setQuery(methods[0] || contact.name?.[0] || "");
-        setMessage("Contact selected. Press Find, then Add to Crew. Your address book was not uploaded.");
+        setMessage(methods.length ? "Contact selected. Press Find, then Add to Crew. Your address book was not uploaded."
+          : "This contact has no email or phone number. Search their name with Find, or enter an email or phone for a private lookup.");
         returnFromContacts(findButton.current);
       }
     } catch { setMessage("No contact was selected. You can type their details instead."); returnFromContacts(queryField.current); }
   }
 
-  return <section className={styles.finder} aria-label="Find someone for your Crew" onKeyDown={event => {
+  return <section id="crew-search" className={styles.finder} aria-label="Find someone for your Crew" onKeyDown={event => {
     if (event.key !== "Escape" || event.defaultPrevented) return;
     event.preventDefault();
     onClose();

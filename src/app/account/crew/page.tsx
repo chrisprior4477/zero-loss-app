@@ -31,7 +31,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   const params = await searchParams;
   if (!account) {
     let section = params.pick ? "#crew-intro" : "";
-    if (params.tab === "add") section = "#crew-intro";
+    if (params.tab === "add") section = "#crew-search";
     if (params.tab === "groups") section = "#crew-groups";
     if (params.tab === "picks") section = "#sharing";
     if (params.tab === "privacy") section = "#crew-privacy";

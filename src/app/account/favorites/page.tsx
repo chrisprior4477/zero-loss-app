@@ -5,7 +5,7 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountRoutes } from "@/lib/account/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { parseSavedProductShareList } from "@/lib/sharing/saved-shares";
+import { parseSavedProductShareList, shareUuid } from "@/lib/sharing/saved-shares";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 
 export const metadata: Metadata = { title: "Favorites & Sent to You" };
@@ -14,10 +14,15 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const item = typeof params.item === "string" ? params.item.toLowerCase() : undefined;
   const invalidSharedView = params.tab === "shared" && params.view !== undefined && params.view !== "available" && params.view !== "declined";
-  const returnPath = accountPageReturnPath(accountRoutes.favorites, invalidSharedView ? { ...params, view: undefined } : params);
+  const invalidTab = params.tab !== undefined && params.tab !== "favorites" && params.tab !== "shared";
+  const invalidWatch = params.watch !== undefined && params.watch !== "1";
+  const safeShare = typeof params.share === "string" && shareUuid.test(params.share) ? params.share : undefined;
+  const returnPath = accountPageReturnPath(accountRoutes.favorites, { ...params,
+    tab: invalidTab ? undefined : params.tab, view: invalidSharedView ? undefined : params.view,
+    watch: invalidWatch ? undefined : params.watch, item: item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item) ? item : undefined, share: safeShare,
+  });
   const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", returnPath));
-  if (invalidSharedView) redirect(returnPath);
   const db = await createClient();
   const [alerts, preference, shares] = await Promise.all([
     db.from("customer_favorites").select("product_slug,email_almost_full_enabled").eq("customer_id", account.userId),
@@ -29,6 +34,7 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   const selectedShare = params.tab === "shared" ? savedShares?.find(share => share.id === params.share) : null;
   const sharedView = selectedShare ? (selectedShare.declinedAt ? "declined" : "available") : params.view === "declined" ? "declined" : "available";
   return <FavoritesView key={`${params.tab ?? "favorites"}:${params.share ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
+    obsoleteFilter={invalidSharedView || invalidTab || invalidWatch ? returnPath : undefined}
     initialSharedView={sharedView}
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}
     initialTab={params.tab === "shared" ? "shared" : "favorites"} initialShareId={params.share} initialItem={item}

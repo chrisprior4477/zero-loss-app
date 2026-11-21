@@ -3,6 +3,7 @@
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { DepositCreditLink, DepositReceiptDate } from "./WeeklyDeposits";
@@ -113,13 +114,15 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const mobile = viewport === "mobile";
   const amountSection = continueTo ? "add-funds" : "funding-amount";
   const [manageCards, setManageCards] = useState(false);
+  const manageCardsOpener = useRef<HTMLElement | null>(null);
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
   const cameraCard = cards.find(card => card.token === cameraToken);
-  function openSavedCards() {
+  function openSavedCards(trigger?: HTMLElement) {
+    manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
     revealWalletSection("add-card", "add-card", true);
   }
@@ -129,11 +132,18 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       openWalletPanel(`#${amountSection}`, null, true);
     }
     revealWalletSection(amountSection, amountSection);
-    document.getElementById("funding-manage-cards")?.focus({ preventScroll: true });
+    const trigger = manageCardsOpener.current;
+    if (trigger?.isConnected) focusFundingControl(trigger);
+    else document.getElementById("funding-manage-cards")?.focus({ preventScroll: true });
   }
-  function addCard(token?: DemoCardToken) {
+  function focusFundingControl(control: HTMLElement | null) {
+    if (!control?.isConnected || document.querySelector("dialog[open]")) return;
+    control.focus({ preventScroll: true });
+    revealBelowHeader(control);
+  }
+  function addCard(token?: DemoCardToken, trigger?: HTMLButtonElement) {
     if (!ready || locked || cardUnavailable) return;
-    if (!token && allSamplesSaved) { openSavedCards(); return; }
+    if (!token && allSamplesSaved) { openSavedCards(trigger); return; }
     const editorToken = token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
     // Only store the funding choice and fixture reference in this tab's editor history entry.
     openWalletPanel(fundingEditorHash, { fundingCardDraft: {
@@ -149,7 +159,6 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const settled = state.status === "succeeded" || state.status === "already_credited";
   useDialogBack(confirmationOpen && !settled, () => {
     confirmation.current?.close();
-    discardReview();
   }, pending, true);
   const showConfirmation = useCallback(() => {
     if (!confirmation.current || confirmation.current.open) return;
@@ -226,7 +235,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   }, [pending]);
   function discardReview() {
     setConfirmationOpen(false);
-    if (!pending) confirmationTrigger.current?.focus({ preventScroll: true });
+    if (!pending) requestAnimationFrame(() => focusFundingControl(confirmationTrigger.current));
     try { sessionStorage.removeItem(reviewStorageKey); } catch { /* The dialog still closes. */ }
     clearConfirmation();
   }
@@ -394,9 +403,14 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     router.refresh();
   }
   const cameraSaved = (card: DemoCard) => acceptSavedCard(card, true);
-  const cardPanel = <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel} data-collapsed={!manageCards} hidden={mobile && !manageCards}>
+  const cardPanel = <section id="add-card" aria-label="Add Credit Card" onKeyDown={event => {
+    if (mobile && manageCards && event.key === "Escape" && !event.defaultPrevented && !document.querySelector("dialog[open]")) {
+      event.preventDefault();
+      closeSavedCards();
+    }
+  }} className={styles.demoCardsPanel} data-collapsed={!manageCards} hidden={mobile && !manageCards}>
       <div className={styles.demoCardsHeading}><div><h3 id="funding-saved-cards-title" tabIndex={-1}>{mobile || allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
-        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
+        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={event => addCard(undefined, event.currentTarget)}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
@@ -479,7 +493,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
     {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
     <button ref={confirmationTrigger} type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || blocked} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
-    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={discardReview} onCancel={event => { if (pending) event.preventDefault(); else discardReview(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={discardReview} onCancel={event => { if (pending) event.preventDefault(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
       <div className={styles.confirmationContent}>
         <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
@@ -490,7 +504,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
       </div>
-      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={() => { discardReview(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || blocked || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={() => confirmation.current?.close()} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || blocked || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : null}
@@ -511,7 +525,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       <div hidden={!manageCards}>{cardPanel}</div>
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
-      {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={manageCards ? closeSavedCards : openSavedCards}>Manage saved cards</button>}
+      {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
       <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href="/account/wallet?view=history&landing=balance#balance" scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;

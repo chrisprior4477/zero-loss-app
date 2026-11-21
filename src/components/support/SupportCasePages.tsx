@@ -47,7 +47,7 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
   cases: SupportCaseListItem[]; timeZone: string; initialPage: number; pageSize: number; base: string;
 }) {
   // Keep the current ordering even when a background account refresh brings in a reply.
-  const [snapshot] = useState(() => cases.map(({ id, status }) => ({ id, waiting: status === "awaiting_customer" })));
+  const [snapshot] = useState(() => cases.map(({ id }) => id));
   const latest = new Map(cases.map(item => [item.id, item]));
   const last = Math.max(0, Math.ceil(snapshot.length / pageSize) - 1);
   const [page, setPage] = useState(Math.min(initialPage, last));
@@ -84,9 +84,9 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
     target?.scrollIntoView?.({ block: "start" });
   }
   const current = snapshot.slice(page * pageSize, (page + 1) * pageSize);
-  const casesFor = (waiting: boolean) => current.flatMap(item => {
-    const entry = latest.get(item.id);
-    return entry && item.waiting === waiting ? [entry] : [];
+  const casesFor = (waiting: boolean) => current.flatMap(id => {
+    const entry = latest.get(id);
+    return entry && (entry.status === "awaiting_customer") === waiting ? [entry] : [];
   });
   const waiting = casesFor(true);
   const other = casesFor(false);
@@ -94,7 +94,7 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
   return <div ref={heading}>
     {!waiting.length && !other.length ? <p className={`mt-4 ${styles.muted}`}>{snapshot.length ? "No cases on this page." : "No cases yet."}</p> : null}
     {waiting.length > 0 ? <section aria-labelledby="support-waiting-heading" className="mt-4">
-      {waiting.every(item => item.status === "awaiting_customer") ? <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3> : <h3 id="support-waiting-heading" className="font-bold">Recent cases</h3>}
+      <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3>
       <SupportCaseList cases={waiting} context={context} timeZone={timeZone} />
     </section> : null}
     {other.length > 0 ? <div className="mt-4">

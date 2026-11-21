@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { readLedgerReturn, readLedgerSupportReturn } from "@/lib/wallet/ledger-return";
 
@@ -23,11 +24,35 @@ export function WalletHistoryLandingScroll({ walletId, selectedId, selectedReque
     () => Boolean(walletId && (readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)
       || readLedgerSupportReturn(walletId, window.location.href, selectedId))),
     () => false);
+  useEffect(() => {
+    if (!selectedRequested || selectedId || !/^#transaction-[0-9a-f-]+$/i.test(window.location.hash)) return;
+    window.history.replaceState(window.history.state, "", "#unavailable-transaction");
+  }, [selectedRequested, selectedId]);
   return <>
     <WalletLandingScroll enabled={enabled && !returning} />
     {!selectedRequested && !returning && <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash />}
     {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} initialTarget={target} focusTarget={selectedId ? undefined : "unavailable-transaction"} visitKey={target} settleAfterNavigation allScreens />}
   </>;
+}
+
+export function LegacyWalletFragment() {
+  const router = useRouter();
+  useEffect(() => {
+    const recover = () => {
+      const url = new URL(window.location.href);
+      if (url.pathname !== "/account/wallet" || url.searchParams.has("reward") || url.searchParams.has("rewardId")) return;
+      const panel = { "#transactions": "transactions", "#add-funds": "funding", "#payment-methods": "methods",
+        "#wallet-add-card": "card", "#payment-deposits": "deposits" }[url.hash];
+      if (!panel || url.searchParams.get("view") === "history") return;
+      url.searchParams.set("view", "history");
+      url.searchParams.set("panel", panel);
+      router.replace(url.pathname + url.search + url.hash, { scroll: false });
+    };
+    recover();
+    window.addEventListener("hashchange", recover);
+    return () => window.removeEventListener("hashchange", recover);
+  }, [router]);
+  return null;
 }
 
 /** Ordinary mobile wallet visits start at the relevant section, below the fixed header. */

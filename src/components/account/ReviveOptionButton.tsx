@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { readDeclineForRevival, revivePurchaseOption, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
+import { restoreDialogTrigger } from "./dialog-keyboard";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
 import styles from "./my-activity.module.css";
 import dialogStyles from "./decline-purchase-offers.module.css";
@@ -24,6 +25,10 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
   const [reading, setReading] = useState(false);
   const [declineEventId, setDeclineEventId] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState("");
+  const reviveButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (reviewError && !reading && document.activeElement === document.body) restoreDialogTrigger(reviveButton.current, true);
+  }, [reviewError, reading]);
   async function openReview() {
     if (reading) return;
     setReading(true);
@@ -75,7 +80,7 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
     }} className="text-right text-sm font-bold text-[#0069b3] underline">Check this offer →</a> : null}
   </>;
   return <div className={`${styles.declinedRevive} flex flex-col items-end gap-2`}>
-    <button type="button" aria-haspopup="dialog" onClick={() => void openReview()} disabled={disabled || reading}
+    <button ref={reviveButton} type="button" aria-haspopup="dialog" onClick={() => void openReview()} disabled={disabled || reading}
       className="min-h-11 min-w-24 rounded-lg bg-[#31e800] px-5 font-extrabold text-[#052515] disabled:cursor-not-allowed disabled:opacity-50">
       {!hasDeadline ? "Deadline unavailable" : expired === null || reading ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
     </button>

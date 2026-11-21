@@ -84,7 +84,11 @@ export function CrewGroupContacts({ contacts, disabled, onChange, draftKey }: { 
         requestAnimationFrame(() => { if (addButton.current) revealBelowHeader(addButton.current); });
       }} aria-label={`Remove contact ${contact.name}`}>Remove contact</button></div>
     </div>)}
-    <div className={styles.contactFields}>
+    <div className={styles.contactFields} onKeyDown={event => {
+      if (disabled || event.key !== "Enter" || event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      add();
+    }}>
       <label>Name<input ref={nameField} aria-invalid={invalid === "name" || undefined} aria-describedby={invalid === "name" ? validationId : undefined} value={name} onChange={event => { setName(event.target.value); remember(event.target.value, phone, email); if (invalid === "name") { setInvalid(null); setMessage(""); } }} disabled={disabled} maxLength={80} autoComplete="off" placeholder="Contact name" /></label>
       <label>Phone number<input ref={phoneField} aria-invalid={invalid === "phone" || undefined} aria-describedby={invalid === "phone" ? validationId : undefined} type="tel" value={phone} onChange={event => { setPhone(event.target.value); remember(name, event.target.value, email); if (invalid === "phone") { setInvalid(null); setMessage(""); } }} disabled={disabled} maxLength={32} autoComplete="off" placeholder="Phone with country code" /></label>
       <label>Email address<input ref={emailField} aria-invalid={invalid === "email" || undefined} aria-describedby={invalid === "email" ? validationId : undefined} type="email" value={email} onChange={event => { setEmail(event.target.value); remember(name, phone, event.target.value); if (invalid === "email" || (invalid === "phone" && !phone.trim())) { setInvalid(null); setMessage(""); } }} disabled={disabled} maxLength={254} autoComplete="off" placeholder="Email address" /></label>

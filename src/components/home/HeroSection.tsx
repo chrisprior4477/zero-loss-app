@@ -290,7 +290,7 @@ function DesktopHeroCarousel() {
       </button>
 
       <div
-        className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-2"
+        className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2"
         aria-label="Choose hero slide"
       >
         {HERO_SLIDES.map((slide, index) => (
@@ -300,12 +300,10 @@ function DesktopHeroCarousel() {
             aria-label={`Show slide ${index + 1}`}
             aria-current={activeSlide === index ? "true" : undefined}
             onClick={() => showSlide(index)}
-            className={`h-2 rounded-full transition-all ${
-              activeSlide === index
-                ? "w-8 bg-[var(--live)]"
-                : "w-2 bg-white/45 hover:bg-white/75"
-            }`}
-          />
+            className="group grid h-6 min-w-6 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-white"
+          >
+            <span aria-hidden="true" className={`h-2 rounded-full transition-all ${activeSlide === index ? "mx-2 w-8 bg-[var(--live)]" : "w-2 bg-white/45 group-hover:bg-white/75"}`} />
+          </button>
         ))}
       </div>
     </section>

@@ -39,6 +39,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
     : "Try again";
   // A notification identifies an exact order, even if its status has since changed.
   const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : selectedRewardId || matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
+  const missingFocusReward = Boolean(focusRewardId && !visibleOrders.some(order => order.rewardId === focusRewardId));
   const selectionAnchor = selectedOrderNumber ? `order-${selectedOrderNumber}` : "fulfillment-records";
   const countLabel = (count: number) => complete ? String(count) : count ? `${count}+` : "—";
   const filterLanding = visibleOrders.length ? "your-orders-heading" : "order-status-empty";
@@ -86,6 +87,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
       {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash /> : null}
       {filter !== "all" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
         target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens skipForHash="order-status-filters" /> : null}
+      {missingFocusReward ? <AccountSettingsLandingScroll target="missing-order-reward" initialTarget="missing-order-reward" focusTarget="your-orders-heading" allScreens /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
           <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading" tabIndex={-1}>Retailer gift-card fulfillment</h2></div>
@@ -95,6 +97,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
             {showAllLink ? <a href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</a> : null}
           </div>
         </header>
+        {missingFocusReward ? <p id="missing-order-reward" className={styles.warning} role="status">{complete ? "That reward is no longer in this list. Your other records are below." : "We couldn’t check that reward. Your available records are below."}</p> : null}
         <section className={styles.orders} aria-labelledby="your-orders-heading">
           {hasSelection && filter !== "all" ? <a href={fulfillmentHref(undefined, filter, false, visibleOrders[0]?.rewardId)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</a> : null}
           {showingPayments ? <p className={styles.filterNote}>This view shows paid orders only. To see prize wins too, select Show all orders &amp; rewards.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
@@ -103,7 +106,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
               <OrdersRetryButton label={retryLabel} />
             </div> : null}
-            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} fromNotification={fromNotification} alerts={alerts} notice={notice} exactSelection={hasSelection} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} fromNotification={fromNotification} alerts={alerts} notice={notice} exactSelection={hasSelection} initialAnchorId={missingFocusReward ? undefined : focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3 id="order-status-empty" tabIndex={-1}>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>

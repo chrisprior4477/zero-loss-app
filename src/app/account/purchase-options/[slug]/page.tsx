@@ -26,19 +26,25 @@ export const metadata: Metadata = { title: "Your Purchase Options" };
 type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
-  const { slug } = await params;
+  const { slug: requestedSlug } = await params;
+  const slug = requestedSlug.toLowerCase();
   const query = await searchParams;
   const { option: selectedEntryId, decline, receipt } = query;
+  const invalidOption = typeof selectedEntryId === "string" && !/^ent_[a-f0-9]{32}$/i.test(selectedEntryId);
+  const optionId = typeof selectedEntryId === "string" && !invalidOption ? selectedEntryId.toLowerCase() : undefined;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   const notificationReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const selectors = new URLSearchParams();
   for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
     const value = query[key];
     if (Array.isArray(value)) notFound();
-    if (value !== undefined) selectors.set(key, value);
+    if (key === "option") {
+      if (optionId) selectors.set(key, optionId);
+    } else if (value !== undefined) selectors.set(key, value);
   }
   const returnPath = accountReturnPath(selectors.size ? `${prizePath}?${selectors}` : prizePath);
   if (!returnPath || Array.isArray(selectedEntryId)) notFound();
+  if (!invalidOption && (requestedSlug !== slug || optionId && optionId !== selectedEntryId)) redirect(returnPath);
   const walletHref = transactionOriginHref(query);
   const legacyDeclineSelectors = new URLSearchParams(selectors);
   legacyDeclineSelectors.delete("decline");
@@ -49,7 +55,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const result = await checkDemoPurchaseReceipt(receipt, slug);
     if (result.status === "succeeded") {
       const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
-      return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} count={result.purchasedCount}
+      return <CompletedPurchaseReceipt key={receipt} title={title} totalCents={result.totalCents} count={result.purchasedCount}
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
     return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
@@ -58,6 +64,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       <div className={styles.topActions}>
         <a href={returnPath} className={styles.shopping}>Check again</a>
         {result.status === "not_found" ? <Link href={prizePath} className={styles.return}>Review current offers</Link> : null}
+        {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
+        {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
         <Link href="/account/entries?filter=completed" className={styles.return}>Completed purchases</Link>
       </div>
     </section></div>;
@@ -90,15 +98,16 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         ticketLabels={offerTicketLabels(activity.filter(ticket => ticket.slug === slug), activity)} />
     </section></div>;
   }
-  if (selectedEntryId !== undefined && !options.some(option => option.entryId === selectedEntryId)) {
-    if (typeof selectedEntryId !== "string" || !selectedEntryId) notFound();
-    const ticket = findActivityItem(activity, slug, selectedEntryId);
+  if (invalidOption || optionId !== undefined && !options.some(option => option.entryId === optionId)) {
+    const ticket = optionId ? findActivityItem(activity, slug, optionId) : undefined;
     if (!ticket) return <section className={styles.page} aria-labelledby="selected-offer-missing">
       <div className={styles.shell}>
         <AccountSettingsLandingScroll target="selected-offer-missing" initialTarget="selected-offer-missing" focusTarget="selected-offer-missing" allScreens />
         <h1 id="selected-offer-missing" tabIndex={-1}>This purchase option is unavailable</h1>
         <p>The selected option could not be opened for your account.</p>
         <div className={styles.topActions}>
+          {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
+          {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
           {options.length ? <Link href={prizePath} className={styles.shopping}>View this prize’s available options</Link> : null}
           <Link href="/account/entries?filter=completion#my-activity-filters" className={styles.return}>Return to Purchase Options</Link>
         </div>

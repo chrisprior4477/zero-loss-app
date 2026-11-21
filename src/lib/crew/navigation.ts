@@ -12,6 +12,6 @@ export function crewTabHref(currentHref: string, tab: CrewTab): string {
   const url = new URL(currentHref);
   url.searchParams.set("tab", tab);
   // Replace the previous section's anchor while retaining invitation/member context.
-  url.hash = ({ crew: "crew-intro", groups: "crew-groups", picks: "sharing", privacy: "crew-privacy", requests: "", add: "crew-intro" })[tab];
+  url.hash = ({ crew: "crew-intro", groups: "crew-groups", picks: "sharing", privacy: "crew-privacy", requests: "", add: "crew-search" })[tab];
   return `${url.pathname}${url.search}${url.hash}`;
 }

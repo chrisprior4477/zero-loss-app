@@ -58,7 +58,7 @@ function updatePendingReads(key: string, ids: string[], remove = false) {
   } catch { /* Saving a read receipt still works without storage. */ }
 }
 
-export function NotificationsCenter({ userId, initialFilter = "all", initialNotice, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; initialNotice?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const live = useNotifications()?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
   // counts, rows and read controls without remounting the customer's view.
@@ -67,6 +67,12 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
   const initialAlertPreferences = live ? live.preferences : serverAlertPreferences;
   const readAvailable = live ? live.readAvailable : serverReadAvailable;
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  useEffect(() => {
+    if (!obsoleteFilter) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("filter");
+    window.history.replaceState(window.history.state, "", url);
+  }, [obsoleteFilter]);
   const [focusedNotice, setFocusedNotice] = useState(initialNotice);
   const focusedReturn = useRef<string | undefined>(undefined);
   const noticeFallback = useRef<HTMLDivElement>(null);
@@ -458,6 +464,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", initialNoti
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
+      {obsoleteFilter && filter === "all" ? <p role="status" className="mb-3 text-sm font-semibold text-amber-200">That notification filter is unavailable. Showing all updates.</p> : null}
       <header id="notifications-intro" ref={headingRef} className={styles.header}>
         <div><h1 tabIndex={-1}>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>

@@ -104,7 +104,7 @@ export function SearchResultsAutoScroll({
     let first = 0;
     let second = 0;
     let settle: ReturnType<typeof setTimeout>;
-    const start = () => {
+    const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
       // A prefetched Browse URL can point to the results and the exact prize in one fragment.
@@ -139,18 +139,26 @@ export function SearchResultsAutoScroll({
       cancelled = false;
       let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
-      const focusTarget = footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+      const groceryNotice = invalidGroceryIdea ? document.getElementById("unavailable-grocery-idea") : null;
+      if (event?.type === "popstate" && window.location.pathname === "/browse" && window.location.hash === "#search-results"
+        && document.activeElement === document.body) {
+        requestBrowseResultsFocus(window.location.href);
+      }
+      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
         if (!focused) focusResults = takeBrowseFocus() ?? focusResults;
-        if (!focused || (focusResults !== "first-prize" && focusResults !== "product-request")) {
+        if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request"))) {
           document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }
         if ((focusTarget || focusResults) && !focused) {
           focused = true;
-          if (focusTarget) focusTarget.focus({ preventScroll: true });
+          if (focusTarget) {
+            if (groceryNotice) groceryNotice.scrollIntoView({ block: "start", behavior: "instant" });
+            focusTarget.focus({ preventScroll: true });
+          }
           else if (focusResults) focusBrowseResults(focusResults);
         }
       };
@@ -173,6 +181,6 @@ export function SearchResultsAutoScroll({
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch, focusObsoleteBatch, oldTailPrizes]);
+  }, [searchKey, mobileBrowseKey, groceryKey, invalidSearch, focusObsoleteBatch, invalidGroceryIdea, oldTailPrizes]);
   return null;
 }

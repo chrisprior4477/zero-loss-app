@@ -6,19 +6,32 @@ import { getOwnWinShareRecipients, shareWinWithCrew } from "@/lib/crew/actions";
 
 export type WinShareCrewMember = { id: string; name: string };
 
-export function ShareWinWithCrew({ rewardId, members, initialShared = [] }: { rewardId: string; members: WinShareCrewMember[]; initialShared?: string[] | null }) {
+const noRecipients: string[] = [];
+
+export function ShareWinWithCrew({ rewardId, members, initialShared = noRecipients }: { rewardId: string; members: WinShareCrewMember[]; initialShared?: string[] | null }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
   const [shared, setShared] = useState<Set<string>>(() => new Set(initialShared ?? []));
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [needsCheck, setNeedsCheck] = useState(initialShared === null);
+  const snapshot = initialShared === null ? null : JSON.stringify([...initialShared].sort());
+  const [previousSnapshot, setPreviousSnapshot] = useState(snapshot);
+  if (snapshot !== previousSnapshot) {
+    setPreviousSnapshot(snapshot);
+    setNeedsCheck(initialShared === null);
+    if (initialShared) {
+      const recipients = new Set(initialShared);
+      setShared(recipients);
+      setSelected(current => current.filter(id => !recipients.has(id)));
+    }
+  }
 
   async function checkSharedRecipients() {
     try {
       const ids = await getOwnWinShareRecipients(rewardId);
       if (ids) {
-        setShared(current => new Set([...current, ...ids]));
+        setShared(new Set(ids));
         setSelected(current => current.filter(id => !ids.includes(id)));
         setNeedsCheck(false);
         return true;

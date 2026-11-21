@@ -25,15 +25,19 @@ test.each(["bad", [id, id], null])("invalid selector cannot query the Ledger: %s
   expect(mocks.from).not.toHaveBeenCalled();
 });
 test("missing wallet and absent selection never perform a private lookup", async () => {
-  expect(await selectedTransaction(id, "owner", null)).toEqual({ requested: true, entry: null });
+  expect(await selectedTransaction(id, "owner", null)).toEqual({ requested: true, entry: null, failed: true });
   expect(await selectedTransaction(undefined, "owner", wallet)).toEqual({ requested: false, entry: null });
   expect(mocks.from).not.toHaveBeenCalled();
 });
 test.each([
-  { data: null, error: null }, { data: entry, error: { message: "unavailable" } },
+  { data: null, error: null },
   { data: { ...entry, id: "another" }, error: null }, { data: { ...entry, amount: "100" }, error: null },
   { data: { ...entry, created_at: "invalid" }, error: null },
-])("unauthorized, failed or invalid responses cannot display a selected transaction", async result => {
+])("unauthorized or invalid responses cannot display a selected transaction", async result => {
   mocks.maybeSingle.mockResolvedValue(result);
   expect(await selectedTransaction(id, "owner", wallet)).toEqual({ requested: true, entry: null });
+});
+test("temporarily failing to read a known transaction offers retry without displaying a row", async () => {
+  mocks.maybeSingle.mockResolvedValue({ data: entry, error: { message: "unavailable" } });
+  expect(await selectedTransaction(id, "owner", wallet)).toEqual({ requested: true, entry: null, failed: true });
 });

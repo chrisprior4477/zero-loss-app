@@ -19,7 +19,7 @@ function categoryHref(category: MarketplaceCategoryId | null, selectedCategory: 
   if (filters.availableOnly) url.searchParams.set("available", "1");
   if (filters.minValue !== null) url.searchParams.set("minValue", String(filters.minValue));
   if (filters.maxValue !== null) url.searchParams.set("maxValue", String(filters.maxValue));
-  if (category === "ending-soon" && category === selectedCategory && filters.sort !== "fewest-left") {
+  if (category === "ending-soon" && category === selectedCategory && filters.sort !== "featured") {
     url.searchParams.set("category", "ending-soon");
     url.searchParams.set("sort", filters.sort);
   }

@@ -31,6 +31,7 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
     <AccountSettingsLandingScroll target="free-entry-choices" initialTarget="free-entry-choices" focusTarget="free-entry-choices" allScreens />
     <h1 id="free-entry-choices" tabIndex={-1} className="text-2xl font-black">{choices.length ? "Choose one prize to print" : "The selected prizes are unavailable"}</h1>
     <p className="mt-3">{choices.length ? "This link includes more than one prize selection." : "Return to prize selection to choose an open offering."}</p>
+    {choices.length > 0 && choices.length < new Set(params.offering.map(value => value.toLowerCase())).size ? <p role="status" className="mt-3">Some of the selected prizes are unavailable. Choose an open prize below.</p> : null}
     {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, params.from, parseEntryQuantity(params.quantity), share).replace("/free-entry?", "/free-entry/print?")}>{product.title}</Link></li>)}</ul>}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(params.from) ?? "/browse#search-results"}>Back to prize selection</Link>
     </div>;

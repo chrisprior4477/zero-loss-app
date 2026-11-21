@@ -23,6 +23,12 @@ export type FaqItem = {
 // Keep these answers aligned with the server-enforced flows, not planned features.
 export const faqItems: FaqItem[] = [
   {
+    id: "time-zone", category: "account", question: "How do I change my time zone?",
+    answer: "Open Profile and update your mailing address. Zero Loss uses the address to determine your time zone. If the address matches more than one zone, choose the correct one before saving.",
+    keywords: "timezone time zone local time change clock date deadline address profile",
+    action: { label: "Open mailing address settings", href: "/account/profile#mailing-address-heading" },
+  },
+  {
     id: "change-email", category: "account", question: "Can I change my email address?",
     answer: "Profile displays your current sign-in email. To request an address change in this MVP, contact Support from your signed-in account.",
     keywords: "update replace edit login email", action: { label: "Ask Support about my email", href: "/support#report-problem" },

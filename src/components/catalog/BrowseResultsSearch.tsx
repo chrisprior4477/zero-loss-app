@@ -4,7 +4,7 @@ import { createContext, useContext, useId, useRef, useState, type ReactNode } fr
 import { useRouter } from "next/navigation";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
-import { catalogSearchTooLong, catalogSearchLimitMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
+import { catalogSearchTooLong, catalogSearchLimitMessage, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import styles from "./browse-discovery.module.css";
@@ -28,7 +28,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results", restoreTop = false) {
     const term = value.trim();
-    if (catalogSearchTooLong(term)) return;
+    if (catalogSearchTooLong(term) || invalidCatalogSearch(term)) return;
     voice.cancel();
     setDraft(term);
     const url = new URL(browseHref, "https://zeroloss.local");
@@ -51,7 +51,8 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
   const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
   const editing = editor === position;
   const tooLong = catalogSearchTooLong(draft.trim());
-  const showLimit = tooLong && (editing || editor === null && position === "top");
+  const invalid = invalidCatalogSearch(draft);
+  const showLimit = (tooLong || invalid) && (editing || editor === null && position === "top");
   const limitId = `${id}-limit`;
   const label = retailerScope ? `Search ${retailerScope}${endingSoon ? " in Ending Soon" : ""}`
     : endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
@@ -60,7 +61,7 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     if (!editing && !restoringFocus.current) { voice.cancel(); setEditor(position); }
   }
   function close(keepKeyboardFocus: boolean) {
-    voice.cancel();
+    voice.reset();
     setDraft(applied);
     setEditor(null);
     if (keepKeyboardFocus) {
@@ -72,24 +73,24 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     }
   }
   return <><form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
-    onSubmit={event => { event.preventDefault(); if (voice.busy || !draft.trim()) return; if (tooLong) { field.current?.focus(); return; } field.current?.blur(); setEditor(null); search(draft); }}
+    onSubmit={event => { event.preventDefault(); if (voice.busy || (!draft.trim() && !applied)) return; if (tooLong || invalid) { field.current?.focus(); return; } if (!draft.trim()) { search("", position === "bottom" ? inputId : undefined, position === "top"); return; } field.current?.blur(); setEditor(null); search(draft); }}
     onKeyDown={event => {
       if (event.key !== "Escape" || (!editing && event.target !== field.current)) return;
       event.preventDefault();
       close(true);
     }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
-    <input id={inputId} ref={field} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
+    <input id={inputId} ref={field} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || invalid || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.reset(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined, position === "top"); }}>×</button> : null}
-    {draft.trim() && !voice.busy && !tooLong ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
-    <VoiceSearchControl listening={editing && voice.listening} error={editing ? voice.error : ""}
+    {draft.trim() && !voice.busy && !tooLong && !invalid ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+    <VoiceSearchControl listening={editing && voice.listening} finishing={editing && voice.finishing} error={editing ? voice.error : ""}
       toggle={() => {
         if (!editing && voice.listening) { edit(); return; }
         setEditor(position);
         voice.toggle();
       }} />
     {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={event => close(event.detail === 0)}>×</button> : null}
-  </form>{showLimit ? <p id={limitId} role="status" className="mb-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}</>;
+  </form>{showLimit ? <p id={limitId} role="status" className="mb-2 text-sm font-bold text-amber-100">{invalid ? invalidCatalogSearchMessage : catalogSearchLimitMessage}</p> : null}</>;
 }

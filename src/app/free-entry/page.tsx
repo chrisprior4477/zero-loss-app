@@ -49,6 +49,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <AccountSettingsLandingScroll target="free-entry-choices" initialTarget="free-entry-choices" focusTarget="free-entry-choices" allScreens />
     <h1 id="free-entry-choices" tabIndex={-1} className="text-2xl font-black">{choices.length ? "Choose one prize for free entry" : "The selected prizes are unavailable"}</h1>
     <p className="mt-3">{choices.length ? "This link includes more than one prize selection." : "Return to prize selection to choose an open offering."}</p>
+    {choices.length > 0 && choices.length < new Set(offering.map(value => value.toLowerCase())).size ? <p role="status" className="mt-3">Some of the selected prizes are unavailable. Choose an open prize below.</p> : null}
     {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, from, parseEntryQuantity(rawQuantity), share)}>{product.title}</Link></li>)}</ul>}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse#search-results"}>Back to prize selection</Link>
     </div>;
@@ -72,7 +73,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const sharedToken = typeof share === "string" && shareUuid.test(share) ? share : undefined;
   if (rawQuantity !== undefined && quantity === null) return <div className="mx-auto max-w-3xl p-6 text-white">
     <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Check your free-entry quantity</h1>
-    <HelpLandingScroll target="free-entry-intro" focusAnchor="free-entry-intro" />
+    <HelpLandingScroll target="free-entry-intro" focusOnArrival />
     <p role="status" className="mt-3">This link does not contain a valid whole-number entry quantity.</p>
     <Link href={freeEntryHref(product.slug, browseReturn, 1, sharedToken) + "#free-entry-intro"} className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Continue with one entry</Link>
     <Link href={productEntryHref(product.slug, 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action")} className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Back to {product.title}</Link>

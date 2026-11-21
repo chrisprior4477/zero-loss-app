@@ -40,6 +40,11 @@ export function FaqExplorer() {
     function cancel() { cancelAnimationFrame(first); cancelAnimationFrame(second); timers.splice(0).forEach(clearTimeout); }
     function interrupt() { interrupted = true; cancel(); }
     function restore() {
+      const fragment = window.location.hash;
+      const answerId = faqItems.find(item => fragment.toLowerCase() === `#faq-${item.id}`);
+      if (answerId && fragment !== `#faq-${answerId.id}`) {
+        window.history.replaceState(window.history.state, "", `#faq-${answerId.id}`);
+      }
       let saved = readFaqReturn(window.history.state, window.location.href);
       if (!saved && window.location.hash === productRequestAnchor) {
         try {

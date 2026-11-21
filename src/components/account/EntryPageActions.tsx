@@ -359,11 +359,11 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
           {reviewing ? <div className={styles.quantityControls} aria-label="Choose additional entries">
             <div className={styles.quantityStepper}>
               <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
-              <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} invalidDraft={invalidQuantity} onInvalidDraft={draft => { setInvalidQuantity(draft); if (draft !== null) setApproved(false); }} />
+              <EntryQuantityInput errorId="additional-entry-quantity-error" value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} invalidDraft={invalidQuantity} onInvalidDraft={draft => { setInvalidQuantity(draft); if (draft !== null) setApproved(false); }} />
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
-            {invalidQuantity !== null ? <span role="status">Enter a whole number of tickets.</span> : null}
+            {invalidQuantity !== null ? <span id="additional-entry-quantity-error" role="status">Enter a whole number of tickets.</span> : null}
             {typedLimit === quantity && typedLimit === maxQuantity ? <span role="status">Only {typedLimit} more {typedLimit === 1 ? "entry is" : "entries are"} available. Your quantity was adjusted.</span> : null}
           </div> : null}
           {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview} disabled={invalidQuantity !== null}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}

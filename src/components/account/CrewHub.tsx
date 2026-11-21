@@ -77,15 +77,21 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const [incomingRequestSent, setIncomingRequestSent] = useState(false);
   const pickRequest = useRef(0);
   const finderOpener = useRef<HTMLButtonElement>(null);
+  const headerFinderButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const syncFinder = () => setFinding(new URLSearchParams(window.location.search).get("tab") === "add");
+    window.addEventListener("popstate", syncFinder);
+    return () => window.removeEventListener("popstate", syncFinder);
+  }, []);
   const initialSampleSelected = useRef(false);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
   useEffect(() => { initializeSampleCrewPreview(); }, []);
   useEffect(() => {
-    if (initialSampleSelected.current || selectedMemberId || !samples.length) return;
+    if (initialSampleSelected.current || selectedMemberId || bookmarkedMember || !samples.length) return;
     initialSampleSelected.current = true;
     setSamplePerson(samples.includes("Maya") ? "Maya" : samples[0]);
-  }, [samples, selectedMemberId]);
+  }, [samples, selectedMemberId, bookmarkedMember]);
   const received = invitations.filter((item) => item.status === "pending" && item.recipient_id === currentUserId);
   const sent = invitations.filter((item) => item.status === "pending" && item.requester_id === currentUserId);
   const connected = invitations.filter((item) => item.status === "accepted");
@@ -111,7 +117,12 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
   function closeCrewSearch() {
     setFinding(false);
-    finderOpener.current?.focus({ preventScroll: true });
+    if (new URLSearchParams(window.location.search).get("tab") === "add") selectTab("crew");
+    const trigger = finderOpener.current ?? headerFinderButton.current;
+    if (trigger) requestAnimationFrame(() => {
+      trigger.focus({ preventScroll: true });
+      revealBelowHeader(trigger);
+    });
   }
 
   function openCrewSearch(event: MouseEvent<HTMLButtonElement>, scroll = true) {
@@ -267,9 +278,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     <CrewLandingScroll ownerId={currentUserId} groups={initialTab === "groups" && tab === "groups"}
       enabled={initialTab === "groups" && tab === "groups" || initialTab === "crew" && tab === "crew" && !selectedMemberId && !incomingInviteToken} />
     {invalidTab ? <p role="status">That Crew section is unavailable. Showing Your Crew.</p> : null}
+    {missingBookmarkedMember ? <AccountSettingsLandingScroll target="crew-member-unavailable" initialTarget="crew-member-unavailable" focusTarget="crew-member-unavailable" allScreens /> : null}
     <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
-        <button type="button" aria-expanded={finding} onClick={event => finding ? closeCrewSearch() : openCrewSearch(event, false)}>Add people</button>
+        <button ref={headerFinderButton} type="button" aria-expanded={finding} onClick={event => finding ? closeCrewSearch() : openCrewSearch(event, false)}>Add people</button>
       </header>
 
       {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
@@ -292,7 +304,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <button type="button" className={connectedStyles.sharingButton} data-crew-tab="picks" aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
-        {missingBookmarkedMember ? <p role="status">This Crew member is unavailable. <Link href="/account/crew#crew-intro" className="underline">Back to your Crew list</Link></p> : null}
+        {missingBookmarkedMember ? <p id="crew-member-unavailable" tabIndex={-1} role="status">This Crew member is unavailable. <Link href="/account/crew#crew-intro" className="underline">Back to your Crew list</Link></p> : null}
         <CrewConnectedGallery bookmarkedPick={activeKey && bookmarkedMember === activeKey ? bookmarkedPick : undefined} ownerId={currentUserId} people={people} samples={samples} selectedKey={activeKey}
           picks={visibleMemberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}

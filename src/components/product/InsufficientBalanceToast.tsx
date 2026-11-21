@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./insufficient-balance-toast.module.css";
 
 type Props = {
@@ -19,25 +20,26 @@ const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, fundingHref, onAddFunds, onClose }: Props) {
   const fundingLink = useRef<HTMLAnchorElement>(null);
 
-  useEffect(() => {
-    const previousFocus = document.activeElement;
+  const dialog = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const element = dialog.current;
+    const overflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    element?.showModal();
     fundingLink.current?.focus({ preventScroll: true });
     return () => {
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+      element?.close();
+      document.documentElement.style.overflow = overflow;
+      restoreDialogTrigger(previousFocus, true);
     };
   }, []);
 
-  useEffect(() => {
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", dismiss);
-    return () => document.removeEventListener("keydown", dismiss);
-  }, [onClose]);
-
   return createPortal(
-    <div className={styles.overlay}>
-      <section aria-label="Insufficient playable balance" className={styles.ticket}>
+    <dialog ref={dialog} className={styles.overlay} aria-label="Insufficient playable balance" onKeyDown={containDialogTab}
+      onCancel={event => { event.preventDefault(); onClose(); }}
+      onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className={styles.ticket}>
         <button type="button" onClick={onClose} aria-label="Dismiss balance notice" className={styles.close}>×</button>
         <InsufficientFundsNotice href={fundingHref} onAddFunds={onAddFunds} linkRef={fundingLink} onTicket>
           <p>
@@ -49,7 +51,7 @@ export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, f
         </InsufficientFundsNotice>
         <button type="button" onClick={onClose} className={styles.keepBrowsing}>Keep browsing</button>
       </section>
-    </div>,
+    </dialog>,
     document.body,
   );
 }

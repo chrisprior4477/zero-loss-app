@@ -1,5 +1,5 @@
 import type { DemoProduct } from "./demo-products";
-import { isGiftCardListing, marketplaceCategoryId } from "./navigation";
+import { isGiftCardListing } from "./navigation";
 import type { GiftCardPartnerGroup } from "./gift-card-partners";
 import { partnerDisplayName } from "./partner-display-name";
 
@@ -55,7 +55,7 @@ export function parseBrowseFilterState(query: Record<string, string | string[] |
     retailer: retailers.find(name => retailerKey(name) === retailerKey(retailer)) ?? "",
     availableOnly: ["1", "true"].includes(first(query.available) ?? ""),
     sort: sortOptions.includes(sort as BrowseSort) ? sort as BrowseSort
-      : sort === "ending-soon" || marketplaceCategoryId(first(query.category) ?? "") === "ending-soon" ? "fewest-left" : "featured",
+      : "featured",
     minValue: parsePrizeValue(first(query.minValue)),
     maxValue: parsePrizeValue(first(query.maxValue)),
   };
@@ -144,7 +144,9 @@ export function filterBrowseProducts(products: readonly DemoProduct[], filters: 
       case "value-high":
         return right.value - left.value || left.title.localeCompare(right.title);
       default:
-        return searchTerm ? 0 : picturedFirst(left, right) || left.title.localeCompare(right.title);
+        return picturedFirstInFewest && !searchTerm ? picturedFirst(left, right) || availableFirst(left, right)
+          || remaining(left) - remaining(right) || left.title.localeCompare(right.title)
+          : searchTerm ? 0 : picturedFirst(left, right) || left.title.localeCompare(right.title);
     }
   });
 }

@@ -20,7 +20,7 @@ import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } f
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
-import { availabilityForHref, availabilityStatus } from "@/lib/catalog/availability";
+import { availabilityForHref, availabilityStatus, lightSurfaceAvailabilityColor } from "@/lib/catalog/availability";
 import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 import { placeEndingSoonShowcases } from "@/lib/catalog/ending-soon-order";
 
@@ -342,7 +342,7 @@ export function DesktopMarketplaceRails() {
                     {remaining}
                   </span>
                   <span className="leading-tight">
-                    <span className="block text-[14px] font-bold" style={{ color: status.color }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</span>
+                    <span className="block text-[14px] font-bold" style={{ color: lightSurfaceAvailabilityColor(status.percentFilled) }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</span>
                     <span className="mt-1 block text-[12px] font-semibold text-slate-500">{status.label}</span>
                   </span>
                   </div>

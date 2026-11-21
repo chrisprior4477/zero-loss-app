@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
-import { activityHref } from "@/lib/account/activity";
+import { activityHref, openPrizeOptions } from "@/lib/account/activity";
 import { compareSavedEntries } from "@/lib/account/entry-order";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
@@ -35,6 +35,9 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const entryId = (await params).entryId.toLowerCase();
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
+  const entryContext = entryReviewContext(query);
+  const missingTransaction = transactionOriginHref(query ?? {});
+  const missingNotification = entryContext.notice ? notificationHref(notificationFilter(entryContext.alerts), entryContext.notice) : undefined;
   const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", destination));
@@ -58,14 +61,19 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     <section className={styles.playTicket} aria-labelledby="entry-unavailable-title">
       <h1 id="entry-unavailable-title" tabIndex={-1}>This saved entry is unavailable</h1>
       <p>Open My Activity to see the entries available for this account.</p>
+      {missingTransaction ? <Link href={missingTransaction} className={styles.returnButton}>Back to this transaction</Link> : null}
+      {missingNotification ? <Link href={missingNotification} className={styles.returnButton}>Back to this notification</Link> : null}
       <Link href={query?.filter === "active" ? "/account/entries?filter=active#my-activity-filters" : "/account/entries#my-activity-filters"} className={styles.returnButton}>Go to My Activity</Link>
     </section>
   </div></div>;
-  const entryContext = entryReviewContext(query);
   if (item.status !== "active") {
     if (item.rewardId && (entryContext.transaction || entryContext.notice)) {
       const reward = new URLSearchParams({ reward: item.slug, rewardId: item.rewardId, ...entryContext, ...transactionOriginParams(query ?? {}) });
       redirect(`/account/wallet?${reward}#reward-pass`);
+    }
+    if (openPrizeOptions([item], item.slug).length && (entryContext.transaction || entryContext.notice)) {
+      const option = new URLSearchParams({ option: entryId, ...entryContext, ...transactionOriginParams(query ?? {}) });
+      redirect(`/account/purchase-options/${item.slug}?${option}`);
     }
     redirect(activityHref(item));
   }

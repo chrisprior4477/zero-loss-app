@@ -150,7 +150,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           {searchDraft.trim() && !voice.busy && !searchTooLong ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#0067cb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
           ) : null}
-          <VoiceSearchControl listening={voice.listening} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
+          <VoiceSearchControl listening={voice.listening} finishing={voice.finishing} error={voice.error} toggle={() => { session?.voice.cancel(); voice.toggle(); }} />
         </div>
         {searchTooLong ? <p id={`${id}-search-limit`} role="status" className="mt-2 text-sm font-bold text-amber-100">{catalogSearchLimitMessage}</p> : null}
         {directoryMatches.length ? (
@@ -231,7 +231,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
 }
 
 export function BrowseFilters(props: BrowseFilterProps) {
-  const sortActive = props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left");
+  const sortActive = props.filters.sort !== "featured";
   const activeCount = Number(props.filters.type !== "all") + Number(Boolean(props.selectedRetailerGroup))
     + Number(Boolean(props.filters.retailer)) + Number(props.filters.availableOnly) + Number(sortActive)
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null);

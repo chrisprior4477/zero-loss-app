@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { PasswordResetFlash } from "@/components/auth/PasswordResetFlash";
 import { passwordResetFlashName } from "@/lib/auth/password-reset-flash";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
@@ -21,7 +22,8 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
   return <div className="min-h-[calc(100vh-163px)] bg-[radial-gradient(circle_at_12%_12%,rgba(0,185,255,.2),transparent_27%),linear-gradient(145deg,#00132e_0%,#031b44_52%,#001a3a_100%)] px-4 py-10 text-white sm:px-6">
     <section className="mx-auto max-w-lg rounded-[28px] border border-cyan-200/20 bg-[#001b3d]/95 p-6 shadow-[0_32px_90px_rgba(0,0,0,.4)] sm:p-10">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Account recovery</p>
-      <h1 className="mt-3 text-3xl font-black sm:text-4xl">{saved ? "Password updated" : "Choose a new password"}</h1>
+      {!saved && !user ? <HelpLandingScroll target="password-reset-heading" focusOnArrival /> : null}
+      <h1 id="password-reset-heading" tabIndex={-1} className="mt-3 text-3xl font-black sm:text-4xl">{saved ? "Password updated" : user ? "Choose a new password" : "Request a new password reset link"}</h1>
       {saved ? <>
         <PasswordResetFlash />
         <p role="status" className="mt-5 rounded-xl border border-[#31e800]/35 bg-[#31e800]/10 p-4 text-sm leading-6">Your password has been changed. Sign in with your new password to continue.</p>
@@ -31,8 +33,8 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
         <ResetPasswordForm returnTo={returnTo} />
       </> : <>
         <p role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">This page needs a valid password-reset session. If you already saved a new password, try signing in with it. Otherwise, request a new reset link.</p>
-        <Link href={signInHref} className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in</Link>
-        <Link href={authNavigationHref("/forgot-password", returnTo)} className="mt-4 block text-center text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Request a new reset link</Link>
+        <Link href={authNavigationHref("/forgot-password", returnTo)} className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Request a new reset link</Link>
+        <Link href={signInHref} className="mt-4 block text-center text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Sign in</Link>
       </>}
     </section>
   </div>;

@@ -140,9 +140,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const rewardReturn = validReward ? supportRewardReturn(query.rewardReturn, validReward) : null;
   const rewardReturnQuery = rewardReturn ? `&rewardReturn=${encodeURIComponent(rewardReturn)}` : "";
   const validDeposit = typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : null;
-  const returnQuery = validCase && query.view !== "inbox" ? { ...query, view: undefined } : query;
+  const obsoleteView = query.view !== undefined && query.view !== "inbox";
+  const returnQuery = obsoleteView ? { ...query, view: undefined } : query;
   const next = accountPageReturnPath("/support", returnQuery, validCase ? "#conversation" : query.page || query.view === "inbox" ? "#case-list" : validTransaction || validReward || validDeposit ? "#report-problem" : "");
-  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor={validCase ? "conversation" : "case-list"} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
+  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor={validCase ? "conversation" : "case-list"} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header>{obsoleteView ? <p role="status" className={`${note} mb-4`}>That saved Support view is unavailable. The current Support view is shown below.</p> : null}</>;
   if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><AuthDestinationLink page="/forgot-password" returnTo={next} className={button}>Reset your password →</AuthDestinationLink></div><div id="report-problem" tabIndex={-1} className={`${card} ${styles.anchor}`}><div id="case-list" tabIndex={-1} className={styles.anchor}>{!validCase && <MissingSupportConversation signedOut />}<div id={validCase ? "conversation" : undefined} tabIndex={validCase ? -1 : undefined} className={styles.anchor}><p>{validCase ? "Sign in to view this private support conversation." : "Sign in to report a problem or view your private support cases."}</p><AuthDestinationLink page="/login" returnTo={next} className={`${button} mt-4`}>Sign in to get help</AuthDestinationLink></div></div></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
@@ -230,7 +231,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     const orderReturn = savedOrder && exactOrderHref(savedOrder.orderNumber, savedFilter, reopenDetails && fromOrder, Boolean(alerts), alerts, notice);
     const caseContext = `${inboxContext}${fromWallet ? `&from=wallet${savedWalletFilter ? `&fromOrders=1&orderFilter=${savedWalletFilter}` : ""}` : fromOrder ? `&from=order${savedFilter !== "all" ? `&orderFilter=${savedFilter}` : ""}${reopenDetails ? "&details=1" : ""}` : ""}${walletView ? "&walletView=1" : ""}`;
     const headerContext = query.fromUpdates === "1" ? `&fromUpdates=1${query.updateCategory === "support" ? "&updateCategory=support" : ""}` : "";
-    const linkedCaseContext = `${caseContext}${headerContext}${ownerCase ? alertContext : ""}${ownerCase && !supportCase.ledger_entry_id ? depositContext : ""}`;
+    const contactOrigin = ownerCase && query.from === "contact";
+    const linkedCaseContext = `${caseContext}${contactOrigin && !fromWallet && !fromOrder ? "&from=contact" : ""}${headerContext}${ownerCase ? alertContext : ""}${ownerCase && !supportCase.ledger_entry_id ? depositContext : ""}`;
     const caseHref = `/support?case=${validCase}${linkedCaseContext}`;
     if (messagePage > 0 && !events.error && messages.length === 0) redirect(`${caseHref}#conversation`);
     const rewardOpening = /^Reward reference: ([a-f0-9-]{36})\n(?:Reward opened from: (?:all|processing|fulfilled|exceptions|payment)\n)?(?:Reward return: ([^\n]{1,500})\n)?\n/i.exec(openingBody);
@@ -242,6 +244,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       ? await new DemoPaymentProvider(db).getRequests().then(requests => requests.find(request => request.id === depositId)).catch(() => undefined)
       : undefined;
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
+      {contactOrigin ? <Link href="/contact#recent-conversations-heading" className={button}>Back to Contact Us conversations</Link> : null}
       {notice && ownerCase && <Link href={notificationHref(alerts ?? "all", notice)} className={button}>Back to this update</Link>}
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
       <h2 tabIndex={-1} className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>

@@ -23,6 +23,7 @@ type Props = {
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
   sharesIncomplete?: boolean;
   initialSharedView?: SharedView;
+  obsoleteFilter?: string;
   initialFavoriteFilter?: FavoriteFilter;
 };
 type FavoriteFilter = "all" | "watching";
@@ -58,12 +59,17 @@ function restoreListPosition(target?: string, top?: number, artwork = false) {
   }));
 }
 
-export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all" }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
   const timeZone = useAccountTimeZone();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
   const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
   const slugs = useMemo(() => savedSlugs.filter(slug => !hidden.has(slug)), [savedSlugs, hidden]);
   const [tab, setTab] = useState(initialTab);
+  useEffect(() => {
+    if (!obsoleteFilter) return;
+    window.history.replaceState(window.history.state, "", obsoleteFilter + window.location.hash);
+    document.getElementById("obsolete-favorites-filter")?.focus();
+  }, [obsoleteFilter]);
   const [favoriteFilter, setFavoriteFilter] = useState(initialFavoriteFilter);
   const [sharedView, setSharedView] = useState<SharedView>(initialSharedView);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
@@ -351,6 +357,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding && !requestedShareUnavailable && !requestedFavoriteUnavailable} />
     <div className={styles.container}>
       <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
+      {obsoleteFilter ? <p id="obsolete-favorites-filter" tabIndex={-1} role="status">That saved filter is unavailable. The current filter is shown below.</p> : null}
       <div ref={tabs} className={styles.tabs} role="tablist" aria-label="Saved items" onKeyDown={event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault(); const next = event.key === "Home" ? "favorites" : event.key === "End" ? "shared" : tab === "favorites" ? "shared" : "favorites";
