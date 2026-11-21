@@ -124,7 +124,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   function openSavedCards(trigger?: HTMLElement) {
     manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
-    revealWalletSection("add-card", "add-card", true);
+    revealWalletSection("add-card", "add-card");
   }
   function closeSavedCards() {
     setManageCards(false);
@@ -141,6 +141,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     control.focus({ preventScroll: true });
     revealBelowHeader(control);
   }
+  useLayoutEffect(() => {
+    if (mobile && manageCards) document.getElementById("funding-saved-cards-title")?.focus({ preventScroll: true });
+  }, [mobile, manageCards]);
   function addCard(token?: DemoCardToken, trigger?: HTMLButtonElement) {
     if (!ready || locked || cardUnavailable) return;
     if (!token && allSamplesSaved) { openSavedCards(trigger); return; }
@@ -157,9 +160,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const confirmationTrigger = useRef<HTMLButtonElement>(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const settled = state.status === "succeeded" || state.status === "already_credited";
-  useDialogBack(confirmationOpen && !settled, () => {
-    confirmation.current?.close();
-  }, pending, true);
+  useDialogBack(confirmationOpen && !settled, dismissConfirmation, pending, true);
   const showConfirmation = useCallback(() => {
     if (!confirmation.current || confirmation.current.open) return;
     confirmation.current.showModal();
@@ -238,6 +239,10 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     if (!pending) requestAnimationFrame(() => focusFundingControl(confirmationTrigger.current));
     try { sessionStorage.removeItem(reviewStorageKey); } catch { /* The dialog still closes. */ }
     clearConfirmation();
+  }
+  function dismissConfirmation() {
+    confirmation.current?.close();
+    discardReview();
   }
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (!locked && savedCards && savedCards !== lastSavedCards) {
@@ -493,7 +498,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
     {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
     <button ref={confirmationTrigger} type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || blocked} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
-    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={discardReview} onCancel={event => { if (pending) event.preventDefault(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={() => { if (confirmationOpen) discardReview(); }} onCancel={event => { event.preventDefault(); if (!pending) dismissConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg p-4 text-white sm:p-6 shadow-2xl backdrop:bg-[#001027]/80`}>
       <div className={styles.confirmationContent}>
         <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
@@ -504,7 +509,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
       </div>
-      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={() => confirmation.current?.close()} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || blocked || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <div className="mt-4 flex shrink-0 gap-2"><button type="button" disabled={pending} onClick={dismissConfirmation} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || blocked || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 min-w-0 flex-[2] rounded-xl bg-[#31e800] px-2 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : null}

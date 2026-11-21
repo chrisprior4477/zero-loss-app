@@ -154,6 +154,16 @@ test.each([
   expect(mocks.createClient).not.toHaveBeenCalled();
 });
 
+test("a saved entry that became an offer retains its transaction and notification context", async () => {
+  const transaction = "11111111-1111-4111-8111-111111111111";
+  const notice = "22222222-2222-4222-8222-222222222222";
+  mocks.account.mockResolvedValueOnce({ activity: { activity: [{ ...activity[2], status: "completion", completionOptionStatus: "available" }], source: "stored" } });
+  await expect(EntryPage({ params: Promise.resolve({ entryId: ids[2] }), searchParams: Promise.resolve({ transaction, walletView: "1", notice, alerts: "account" }) })).rejects.toThrow("NEXT_REDIRECT");
+  const destination = new URL(mocks.redirect.mock.calls[0][0], "https://navigation.invalid");
+  expect(destination.pathname).toBe("/account/purchase-options/playstation-5-slim");
+  expect(Object.fromEntries(destination.searchParams)).toEqual({ option: ids[2], transaction, walletView: "1", alerts: "account", notice });
+});
+
 test("a signed-out saved link returns to that same entry after login", async () => {
   mocks.account.mockResolvedValueOnce(null);
   await expect(EntryPage({ params: Promise.resolve({ entryId: ids[2] }) })).rejects.toThrow("NEXT_REDIRECT:");

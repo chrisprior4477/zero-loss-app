@@ -33,7 +33,7 @@ test("signed-in Contact renders the existing form inline and only the customer's
   expect(screen.getByTestId("support-form")).toBeTruthy();
   expect(query.eq).toHaveBeenCalledWith("customer_id", "owner");
   expect(query.limit).toHaveBeenCalledWith(3);
-  expect(screen.getByRole("link", { name: /My existing request/ }).getAttribute("href")).toBe(`/support?case=${id}#conversation`);
+  expect(screen.getByRole("link", { name: /My existing request/ }).getAttribute("href")).toBe(`/support?case=${id}&from=contact#conversation`);
 });
 test("failed case loading does not hide the contact form or pretend history is empty", async () => {
   mocks.account.mockResolvedValue({ userId: "owner" });

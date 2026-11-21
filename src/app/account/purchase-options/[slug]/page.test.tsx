@@ -122,5 +122,9 @@ test("a multi-card receipt lists only cards from this checkout in receipt order"
   expect(screen.getByText("Your 2 gift cards are ready")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "View 2 gift cards" }));
   expect(screen.getAllByRole("link", { name: /Open card/ }).map(link => new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("rewardId"))).toEqual(["reward-2", "reward-1"]);
+  checkPurchase.mockResolvedValueOnce({ status: "succeeded", purchasedCount: 2, totalCents: 19800, rewardIds: ["reward-1", "reward-2"] });
+  view.rerender(await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ receipt: "44444444-4444-4444-8444-444444444444" }) }));
+  expect(screen.queryByRole("link", { name: /Open card/ })).toBeNull();
+  expect(screen.getByRole("button", { name: "View 2 gift cards" })).toBeTruthy();
   view.unmount();
 });

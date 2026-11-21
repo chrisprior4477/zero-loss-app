@@ -66,17 +66,20 @@ test("cancel and unmount abort without letting a late result change the search",
   expect(onTranscript).not.toHaveBeenCalled();
 });
 
-test("starting again supersedes the old pending final result and end event", () => {
+test("an extra click while finishing preserves the pending result", () => {
   const onTranscript = vi.fn();
   render(<Voice onTranscript={onTranscript} />);
   fireEvent.click(screen.getByRole("button", { name: "Start" }));
-  const first = Speech.instances[0]; const staleEnd = first.onend!; const staleResult = first.onresult!;
+  const first = Speech.instances[0];
   fireEvent.click(screen.getByRole("button", { name: "Stop" }));
   fireEvent.click(screen.getByRole("button", { name: "Start" }));
-  act(() => { staleResult({ results: [[{ transcript: "Old" }]] }); staleEnd(); });
+  expect(Speech.instances).toHaveLength(1);
+  act(() => first.result("First search"));
+  expect(onTranscript).toHaveBeenCalledExactlyOnceWith("First search");
+  fireEvent.click(screen.getByRole("button", { name: "Start" }));
   expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy();
-  act(() => Speech.instances[1].result("New"));
-  expect(onTranscript).toHaveBeenCalledExactlyOnceWith("New");
+  act(() => Speech.instances[1].result("Next search"));
+  expect(onTranscript.mock.calls).toEqual([["First search"], ["Next search"]]);
 });
 
 test("permission failure ends listening with an explanation", () => {

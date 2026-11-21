@@ -27,6 +27,7 @@ import { accountRoutes } from "@/lib/account/navigation";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { useCrewTab } from "./useCrewTab";
+import { restoreDialogTrigger } from "./dialog-keyboard";
 import type { CrewTab } from "@/lib/crew/navigation";
 import { crewViewReturnKey, readCrewViewReturn, readCrewPickDestination } from "@/lib/crew/view-return";
 
@@ -119,10 +120,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     setFinding(false);
     if (new URLSearchParams(window.location.search).get("tab") === "add") selectTab("crew");
     const trigger = finderOpener.current ?? headerFinderButton.current;
-    if (trigger) requestAnimationFrame(() => {
-      trigger.focus({ preventScroll: true });
-      revealBelowHeader(trigger);
-    });
+    restoreDialogTrigger(trigger, true);
   }
 
   function openCrewSearch(event: MouseEvent<HTMLButtonElement>, scroll = true) {

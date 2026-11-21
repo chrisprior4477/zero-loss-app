@@ -2,13 +2,23 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Component, type ReactNode } from "react";
 
-const mocks = vi.hoisted(() => ({ revive: vi.fn() }));
-vi.mock("@/lib/account/lifecycle-actions", () => ({ readDeclineForRevival: vi.fn(async () => "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"), revivePurchaseOption: mocks.revive }));
+const mocks = vi.hoisted(() => ({ revive: vi.fn(), read: vi.fn(async (): Promise<string | null> => "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee") }));
+vi.mock("@/lib/account/lifecycle-actions", () => ({ readDeclineForRevival: mocks.read, revivePurchaseOption: mocks.revive }));
 import { ReviveOptionButton } from "./ReviveOptionButton";
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 const ticket = { ticketLabel: "Ticket #aabbcc11", productTitle: "Nintendo Switch – OLED Model" };
+
+test("a checked but unavailable revival returns focus to the retry button", async () => {
+  mocks.read.mockResolvedValueOnce(null);
+  render(<ReviveOptionButton {...ticket} optionId="11111111-1111-4111-8111-111111111111" expiresAt="2099-01-01T00:00:00Z" />);
+  const button = await screen.findByRole("button", { name: "Revive" });
+  fireEvent.click(button);
+  await waitFor(() => expect(document.activeElement).toBe(button));
+  expect(button).toHaveProperty("disabled", false);
+  expect(mocks.revive).not.toHaveBeenCalled();
+});
 
 test("a declined demo option can be revived before its original deadline", async () => {
   mocks.revive.mockResolvedValue({ status: "succeeded", message: "Revived" });

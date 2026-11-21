@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: "Contact",
   description: "Contact Zero Loss, continue a private support conversation, or suggest a product.",
 };
+const contactFocusAnchors = ["message", "recent-conversations-heading"] as const;
 
 export default async function ContactPage() {
   const { account, accountUnavailable } = await getAccountContext()
@@ -37,7 +38,7 @@ export default async function ContactPage() {
   const quickAnswers = faqItems.filter(item => ["open-reward", "purchase-options", "undo-entry", "password"].includes(item.id));
   const panel = "rounded-2xl border border-cyan-300/30 bg-[#052344] p-5 sm:p-7";
   return <PageContainer>
-    <HelpLandingScroll target="" focusAnchor="message" focusAnchorPrefix="faq-" />
+    <HelpLandingScroll target="" focusAnchor={contactFocusAnchors} focusAnchorPrefix="faq-" />
     <header><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-300">Let’s get you to the right place</p><ContactHeading /><p className="mt-4 max-w-2xl leading-7 text-white/70">A question, a missing update, or something that doesn’t look right? Find a quick answer or send us a message right here.</p></header>
     <HelpShortcuts activity={account?.activity} />
     <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_1fr]">

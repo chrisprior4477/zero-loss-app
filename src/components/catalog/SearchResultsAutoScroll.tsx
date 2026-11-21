@@ -104,6 +104,7 @@ export function SearchResultsAutoScroll({
     let first = 0;
     let second = 0;
     let settle: ReturnType<typeof setTimeout>;
+    const renderedSearch = window.location.search;
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
@@ -141,15 +142,15 @@ export function SearchResultsAutoScroll({
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
       const groceryNotice = invalidGroceryIdea ? document.getElementById("unavailable-grocery-idea") : null;
       if (event?.type === "popstate" && window.location.pathname === "/browse" && window.location.hash === "#search-results"
-        && document.activeElement === document.body) {
-        requestBrowseResultsFocus(window.location.href);
+        && window.location.search !== renderedSearch) {
+        requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
       }
       const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
-        if (!focused) focusResults = takeBrowseFocus() ?? focusResults;
+        if (!focused && window.location.search === renderedSearch) focusResults = takeBrowseFocus() ?? focusResults;
         if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request"))) {
           document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }

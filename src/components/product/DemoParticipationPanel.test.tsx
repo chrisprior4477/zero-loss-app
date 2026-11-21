@@ -9,10 +9,11 @@ import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-p
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), list: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, listPendingEntryRequests: actionMocks.list, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close"); });
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" });
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
 });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 
@@ -105,7 +106,7 @@ test("typing a quantity updates the total and funding return without submitting 
   expect(screen.getAllByTestId("entry-quantity-ticket")).toHaveLength(1);
   expect(actionMocks.enter).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Enter for $101.00" }));
-  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Insufficient playable balance" })).toBeTruthy();
   expect(screen.getAllByRole("link", { name: "Add funds" }).every(link => link.getAttribute("href")?.includes("quantity=101"))).toBe(true);
 });
 
@@ -131,7 +132,7 @@ test("the compact production layout retains the original submission and funding 
   expect(screen.getByRole("button", { name: "Reset Entry Toast" }).closest("p")?.textContent).toContain("Entries and completion options never combine. Reset Entry Toast");
   fireEvent.click(screen.getByRole("button", { name: "Enter for $4.00" }));
   expect(actionMocks.enter).not.toHaveBeenCalled();
-  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Insufficient playable balance" })).toBeTruthy();
   const fundingLinks = screen.getAllByRole("link", { name: "Add funds" });
   expect(fundingLinks.every(link => link.getAttribute("href")?.includes("quantity=4"))).toBe(true);
   expect(readEntryIntent()?.resumeAfter).toBeUndefined();
@@ -536,19 +537,19 @@ test("insufficient balance opens an actionable toast before sharing or submittin
   const enter = screen.getByRole("button", { name: "Enter for $1.00" });
   enter.focus();
   fireEvent.click(enter);
-  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  const notice = screen.getByRole("dialog", { name: "Insufficient playable balance" });
   expect(readEntryIntent()).toMatchObject({ slug: props.productSlug, quantity: 1 });
   expect(screen.getByRole("status").textContent).toContain("$0.75");
   expect(screen.getByRole("status").textContent).toContain("No entries were placed");
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "Share this pick with your Crew?" })).toBeNull();
   expect(actionMocks.enter).not.toHaveBeenCalled();
   expect(document.activeElement?.getAttribute("href")).toBe("/account/wallet?view=history&from=test-product#add-funds");
-  fireEvent.keyDown(document, { key: "Escape" });
-  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+  fireEvent(notice, new Event("cancel", { cancelable: true }));
+  expect(screen.queryByRole("dialog", { name: "Insufficient playable balance" })).toBeNull();
   expect(document.activeElement).toBe(enter);
   fireEvent.click(enter);
   fireEvent.click(screen.getByRole("button", { name: "Keep browsing" }));
-  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "Insufficient playable balance" })).toBeNull();
 });
 
 test("sending an entry clears the unfinished hint before the server response arrives", async () => {
@@ -586,11 +587,11 @@ test("a server-side balance change shows the funding toast without trusting stal
   actionMocks.enter.mockResolvedValue({ status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." });
   render(<DemoParticipationPanel {...props} balanceCents={1000} isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
-  await waitFor(() => expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("dialog", { name: "Insufficient playable balance" })).toBeTruthy());
   expect(screen.getByRole("status").textContent).toContain("Your balance no longer covers");
   expect(screen.getByRole("status").textContent).not.toContain("$10.00");
   fireEvent.click(screen.getByRole("button", { name: "Keep browsing" }));
-  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "Insufficient playable balance" })).toBeNull();
 });
 
 test("quantity can exceed ten up to actual availability, total uses cents, and reducing stops at one", () => {

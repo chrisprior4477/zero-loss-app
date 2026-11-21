@@ -132,11 +132,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
-      const trigger = opener.current;
-      if (trigger) requestAnimationFrame(() => {
-        const modal = document.querySelector("dialog[open]");
-        if (!modal && document.activeElement === document.body) restoreDialogTrigger(trigger);
-      });
+      restoreDialogTrigger(opener.current);
     };
   }, [panel]);
 

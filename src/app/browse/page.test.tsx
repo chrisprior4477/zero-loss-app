@@ -64,7 +64,7 @@ test("Ending Soon ranges combine with search and budget, reset paging and preser
   cleanup();
   render(await BrowsePage({ searchParams: Promise.resolve({ ...query, ticketsLeft: undefined, batch: undefined }) }));
   expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(card => card.textContent))
-    .toEqual(["$25 Best Buy Gift Card", "$50 Best Buy Gift Card", "$75 Best Buy Gift Card", "$100 Best Buy Gift Card"]);
+    .toEqual(["$100 Best Buy Gift Card", "$25 Best Buy Gift Card", "$50 Best Buy Gift Card", "$75 Best Buy Gift Card"]);
 });
 
 test("ticket ranges never show closed or less-than-90%-full pools and are absent from ordinary Browse", async () => {
@@ -75,7 +75,7 @@ test("ticket ranges never show closed or less-than-90%-full pools and are absent
   })));
   render(await BrowsePage({ searchParams: Promise.resolve({ category: "ending-soon", q: "Best Buy", type: "gift-cards" }) }));
   expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(card => card.textContent))
-    .toEqual(["$75 Best Buy Gift Card", "$100 Best Buy Gift Card"]);
+    .toEqual(["$100 Best Buy Gift Card", "$75 Best Buy Gift Card"]);
   cleanup();
   render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy", type: "gift-cards", ticketsLeft: "1" }) }));
   expect(screen.queryByRole("navigation", { name: "Tickets remaining" })).toBeNull();

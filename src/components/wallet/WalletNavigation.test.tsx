@@ -149,7 +149,9 @@ test("same-product rewards use their own reward ID and ambiguous old URLs do not
   expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
   expect(screen.getAllByText("$500").length).toBeGreaterThan(0);
   rerender(await WalletPage({ searchParams: Promise.resolve({ reward: first.slug }) }));
-  expect(screen.getByText("Reward unavailable")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Choose your gift card" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Ref. WARD-ONE/ }).getAttribute("href")).toContain("rewardId=reward-one");
+  expect(screen.getByRole("link", { name: /Ref. WARD-TWO/ }).getAttribute("href")).toContain("rewardId=reward-two");
   expect(screen.queryByRole("region", { name: "Reward redemption details" })).toBeNull();
 });
 

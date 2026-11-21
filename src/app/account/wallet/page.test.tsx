@@ -139,7 +139,7 @@ test("sign-in preserves the exact funding return entry", async () => {
 
 test.each([
   [{ reward: "samsung-m70h-tv", rewardId: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
-  [{ view: "card" }, "/account/wallet?view=card"],
+  [{ view: "history", panel: "card", from: "playstation-5-slim", quantity: "2" }, "/account/wallet?view=history&panel=card&from=playstation-5-slim&quantity=2#wallet-add-card"],
   [{ rewards: "history" }, "/account/wallet?rewards=history#reward-history"],
   [{ view: "history", transaction: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?view=history&transaction=11111111-1111-4111-8111-111111111111#transaction-11111111-1111-4111-8111-111111111111"],
   [{}, "/account/wallet"],
