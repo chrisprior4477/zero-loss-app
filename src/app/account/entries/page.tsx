@@ -75,6 +75,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     {completedPrizeRequested && !completedPrize ? <p role="status" className="mb-4 text-sm text-amber-100">That prize selection is unavailable. Showing all completed activity. <Link href="/account/entries?filter=completed#my-activity-filters" className="underline">Clear prize selection</Link></p> : null}
+    {query.legacyEntry === "1" && filter === "active" ? <p role="status" className="mb-4 text-sm text-amber-100">This older ticket can’t be opened by number. Your open entries remain below.</p> : null}
     <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>

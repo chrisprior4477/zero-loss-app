@@ -156,13 +156,10 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
         const controls = tabbableControls(modal ?? document);
         const index = controls.indexOf(opener);
         const adjacent = controls[index + direction] ?? (modal ? controls.at(direction === 1 ? 0 : -1) : undefined);
-        restoreDialogTrigger(adjacent ?? opener, true);
+        requestAnimationFrame(() => restoreDialogTrigger(adjacent ?? opener, true));
         return;
       }
-      opener?.focus({ preventScroll: true });
-      requestAnimationFrame(() => {
-        if (opener?.isConnected && document.activeElement === document.body) opener.focus({ preventScroll: true });
-      });
+      restoreDialogTrigger(opener, true);
     }
   }
   return <div className={styles.picker}>

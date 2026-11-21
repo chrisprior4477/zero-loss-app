@@ -147,6 +147,7 @@ export function businessFieldIssues(values: FormValues, files: BusinessFile[], l
   if (values.partnership === "products") missing.push(...invalidBusinessListings(listings).map(({ index, message }) => ({ step: 2, listing: index, message })));
   if (values.work_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.work_email))) missing.push({ step: 0, field: "work_email", message: "Valid work email" });
   if (values.capacity_ack !== true) missing.push({ step: 2, field: "capacity_ack", message: "Fulfillment-capacity acknowledgment" });
+  if (values.recurrence === "auto-relist" && values.auto_relist !== true) missing.push({ step: 2, field: "auto_relist", message: "Confirm automatic relisting or choose a different publishing frequency" });
   if (values.auto_relist === true && values.card_billing !== true) missing.push({ step: 2, field: "card_billing", message: "Card-on-file billing authorization" });
   if (files.length && values.asset_rights !== true) missing.push({ step: 3, field: "asset_rights", message: "Rights to supply the attached materials" });
   return missing;

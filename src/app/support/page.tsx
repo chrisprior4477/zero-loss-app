@@ -315,6 +315,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         </>}
       </section> : null}
       <section id="case-list" tabIndex={-1} className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 tabIndex={-1} className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
+      <HelpLandingScroll target="case-list" focusAnchorPrefix="conversation" missingAnchorTarget="missing-conversation" />
+      <p id="missing-conversation" tabIndex={-1} role="status" className="mt-2 hidden text-sm text-amber-200 target:block">This link doesn’t specify a conversation. Select a case below.</p>
         {inbox ? inboxCases?.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : <>
           {inboxCases?.data?.length ? <SupportCaseList cases={inboxCases.data.slice(0, pageSize).map(item => ({ ...item, label: statusLabel(item.status, true) }))}
             context={inboxContext} timeZone={account.timezone} /> : <p className={`mt-4 ${styles.muted}`}>{casePage ? "No more cases on this page." : "No cases yet."}</p>}

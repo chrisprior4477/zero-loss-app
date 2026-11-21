@@ -82,7 +82,10 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       }
       for (const field of fields) {
         const input = form.elements.namedItem(field) as HTMLInputElement;
-        if (bounds[field] !== String(filters[field] ?? "") && !input.reportValidity()) return;
+        if (input.validity.badInput || (bounds[field] !== String(filters[field] ?? "") && !input.validity.valid)) {
+          input.reportValidity();
+          return;
+        }
         if (bounds[field] !== "") params.set(field, String(Number(bounds[field])));
       }
     } else if (["25", "50", "75", "100"].includes(valueMode)) {

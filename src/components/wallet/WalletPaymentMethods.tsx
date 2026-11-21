@@ -206,7 +206,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       </div>
       <div className={styles.cards}>{cards.map(card => {
         const cardLabel = `${demoCardFixture(card.token)?.issuer ?? "Sample card"} ending ${card.lastFour}`;
-        return <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
+        return <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`} onKeyDown={event => {
+          if (event.key !== "Escape" || event.defaultPrevented || expanded !== card.token || deleting || document.querySelector("dialog[open]")) return;
+          event.preventDefault();
+          selectPreview(undefined);
+          const trigger = document.getElementById(`saved-card-preview-${card.token}`);
+          trigger?.focus({ preventScroll: true });
+          if (mobile) revealWalletSection(`saved-card-preview-${card.token}`);
+        }}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} aria-label={`Use ${cardLabel} as my default payment method`} disabled={!enabled || unavailable || busy} aria-describedby={defaultError?.token === card.token ? defaultErrorId : undefined} onChange={event => void setDefault(card, event.currentTarget)} />Use as my default payment method</label>
         {defaultError?.token === card.token ? <p id={defaultErrorId} role="alert" className={styles.notice}>{defaultError.message}</p> : null}

@@ -4,7 +4,7 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
-import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
+import { freeEntryChoices, freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
 import { freeEntryHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { shareUuid } from "@/lib/sharing/saved-shares";
@@ -44,11 +44,12 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     </div>
   </div>;
   if (Array.isArray(offering)) {
-    const choices = await Promise.all([...new Set(offering.map(slug => slug.toLowerCase()))].slice(0, 12).map(freeEntryProduct));
+    const choices = await freeEntryChoices(offering, share);
     return <div className="mx-auto max-w-3xl p-6 text-white">
-    <h1 className="text-2xl font-black">Choose one prize for free entry</h1>
-    <p className="mt-3">This link includes more than one prize selection.</p>
-    {choices.some(Boolean) ? <ul className="mt-4 space-y-2">{choices.map(choice => choice && <li key={choice.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(choice.slug, from, parseEntryQuantity(rawQuantity))}>{choice.title}</Link></li>)}</ul> : null}
+    <AccountSettingsLandingScroll target="free-entry-choices" initialTarget="free-entry-choices" focusTarget="free-entry-choices" allScreens />
+    <h1 id="free-entry-choices" tabIndex={-1} className="text-2xl font-black">{choices.length ? "Choose one prize for free entry" : "The selected prizes are unavailable"}</h1>
+    <p className="mt-3">{choices.length ? "This link includes more than one prize selection." : "Return to prize selection to choose an open offering."}</p>
+    {choices.length > 0 && <ul className="mt-4 space-y-2">{choices.map(({ product, share }) => <li key={product.slug}><Link className="text-cyan-300 underline" href={freeEntryHref(product.slug, from, parseEntryQuantity(rawQuantity), share)}>{product.title}</Link></li>)}</ul>}
     <Link className="mt-4 inline-block text-cyan-300 underline" href={productBrowseReturnPath(from) ?? "/browse#search-results"}>Back to prize selection</Link>
     </div>;
   }

@@ -126,9 +126,9 @@ const demoDetailsByPartnership: Record<Partnership, FormValues> = {
     objective: "Introduce Trailbound Adventures to travelers looking for an approachable premium outdoor weekend.",
     relationship: "recurring",
     launch_window: "January–March 2027",
-    campaign_capacity: "Four monthly featured packages",
-    campaign_value: "$1,200 per package",
-    campaign_supply: "Cabin accommodations, guide services, gear package, destination photography, and trip-planning support.",
+    campaign_capacity: "4",
+    campaign_value: "$1,200",
+    campaign_supply: "Four featured packages monthly at $1,200 per package. Cabin accommodations, guide services, gear package, destination photography, and trip-planning support.",
     fulfillment_owner: "business",
     target_geography: "Continental United States",
     audience: "Couples, friend groups, and first-time adventure travelers looking for a planned mountain escape.",
@@ -376,7 +376,7 @@ export function BusinessOnboardingForm({ owner, record, personalSignupHref = "/s
         .find(field => !field.value.trim() || !field.validity.valid);
       const field = incomplete ?? form?.elements.namedItem(
         invalidOfferFields.find(([key]) => key !== "website")?.[0] ?? invalidBusinessCounts(values)[0]?.[0] ?? (detailsMissing.includes("Fulfillment-capacity acknowledgment") ? "capacity_ack" :
-          detailsMissing.includes("Card-on-file billing authorization") ? "card_billing" : ""),
+          detailsMissing.includes("Card-on-file billing authorization") ? "card_billing" : detailsMissing.includes("Confirm automatic relisting or choose a different publishing frequency") ? "auto_relist" : ""),
       );
       if (field instanceof HTMLElement) {
         field.focus({ preventScroll: true });

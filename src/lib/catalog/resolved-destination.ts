@@ -12,7 +12,7 @@ export function resolvedProductDestination(state: AccountActivity | null | undef
     description: "Your reward is ready to claim. Open it to continue where you left off.",
   };
   if (unclaimed.length > 1) return {
-    href: "/account/wallet", label: "View your rewards", status: "Rewards to claim",
+    href: `/account/wallet?rewards=ready&prize=${encodeURIComponent(slug)}#ready-rewards`, label: "View your rewards", status: "Rewards to claim",
     description: "Your rewards are saved in Gift Cards & Rewards. Open them to continue claiming.",
   };
   const options = outcomes.filter(item => item.status === "completion" && (!item.completionOptionStatus || item.completionOptionStatus === "available"));
@@ -23,7 +23,7 @@ export function resolvedProductDestination(state: AccountActivity | null | undef
     description: "Your purchase options for this item are saved. Review them whenever you’re ready.",
   };
   if (rewards.length) return {
-    href: rewards.length === 1 ? walletRewardHref(rewards[0]) : "/account/wallet",
+    href: rewards.length === 1 ? walletRewardHref(rewards[0]) : `/account/wallet?prize=${encodeURIComponent(slug)}#ready-rewards`,
     label: rewards.length === 1 ? "View your reward" : "View your rewards", status: "View your reward",
     description: "Your reward is saved in Gift Cards & Rewards. Open it to see its details and current status.",
   };

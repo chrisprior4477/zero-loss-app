@@ -112,7 +112,7 @@ export function LoginForm({
       const headerHeight = header?.getBoundingClientRect().height ?? 0;
       const formTop = form.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({ top: Math.max(0, formTop - headerHeight - 8), behavior: "auto" });
-      if ((focusOnMount || destination) && document.activeElement === document.body) emailRef.current?.focus({ preventScroll: true });
+      if (document.activeElement === document.body) emailRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusOnMount, destination]);

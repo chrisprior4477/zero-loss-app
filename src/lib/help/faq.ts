@@ -159,14 +159,18 @@ export const faqItems: FaqItem[] = [
   },
 ];
 
-const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
+const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 
 export function faqSearchWords(query: string) {
-  const normalized = normalizeFaq(query).replace(/[^a-z0-9\s-]/g, " ")
+  const normalized = normalizeFaq(query)
+    .replace(/\be-mail\b/g, "email")
+    .replace(/\b(where|what|how|when|who|there)'s\b/g, "$1 is")
+    .replace(/\bopt out of sharing\b/g, "stop sharing")
+    .replace(/[^a-z0-9\s-]/g, " ")
     .replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund")
-    .replace(/\b(?:contact\s+)?customer\s+service\b/g, "support");
+    .replace(/\b(?:contact\s+)?customer\s+(?:service|support)\b/g, "support");
   return normalized.trim().split(/[\s-]+/).filter(word => word && !faqFiller.has(word));
 }
 
@@ -177,6 +181,7 @@ export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
     const text = normalizeFaq(value);
     return (word.length > 3 && text.includes(word)) || (text.match(/[a-z0-9]+/g) ?? []).some(token => singular(token) === singular(word));
   };
+  if (words.join(" ") === "order history") return category === "all" || category === "rewards" ? faqItems.filter(item => item.id === "order-receipt") : [];
   const questionScore = (item: FaqItem) => words.filter(word => matches(item.question, word)).length;
   return faqItems.filter(item => (category === "all" || item.category === category) && words.every(word =>
     matches(`${item.question} ${item.answer} ${item.keywords}`, word)))

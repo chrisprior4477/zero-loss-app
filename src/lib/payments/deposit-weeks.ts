@@ -30,7 +30,7 @@ export function getDepositWeeks(requests: readonly DemoFundingRequest[], asOf: s
     week.receipts.push(request);
     week.cents += BigInt(request.amount);
   }
-  return { latest: ordered[0], weeks, partial: posted.length !== ordered.length };
+  return { latest: ordered[0], weeks, partial: posted.length !== dated.length };
 }
 
 // A customer's total deposits over time can exceed a single safe integer.

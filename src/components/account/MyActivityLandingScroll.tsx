@@ -34,9 +34,9 @@ export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabl
         const controls = revealControls ? document.getElementById("my-activity-empty-controls") : null;
         const controlsBottom = controls ? window.scrollY + controls.getBoundingClientRect().bottom - window.innerHeight + 16 : 0;
         const desktop = !window.matchMedia?.("(max-width: 767px)").matches;
-        const focusOptions = filter === "completion" && window.location.hash.startsWith(`#${openEntriesAnchorId}`);
+        const focusOptions = (filter === "completion" || filter === "active") && window.location.hash === `#${openEntriesAnchorId}`;
         if (focusOptions) {
-          const option = target.querySelector<HTMLElement>('[data-filter="completion"]');
+          const option = target.querySelector<HTMLElement>(`[data-filter="${filter}"]`);
           option?.focus({ preventScroll: true });
           option?.scrollIntoView?.({ block: "center", behavior: "instant" });
         } else if (!desktop || filter === "active") window.scrollTo({ top: Math.max(0, targetTop, desktop ? controlsBottom : 0), behavior: "auto" });

@@ -63,18 +63,30 @@ export async function getStoredAccountActivity(db: SupabaseClient): Promise<Acco
   if (error || !Array.isArray(data)) throw new Error("Account activity unavailable");
   const activity: ActivityItem[] = [];
   let incomplete = false;
+  const byEntry = new Map<string, ActivityItem>();
+  const conflicting = new Set<string>();
   for (const row of data) {
     try {
       const { item, claimUnverified } = parseItem(row);
+      const entryId = item.entryId?.toLowerCase();
+      if (entryId) {
+        const previous = byEntry.get(entryId);
+        if (previous) {
+          if (JSON.stringify(previous) !== JSON.stringify(item)) { conflicting.add(entryId); incomplete = true; }
+          continue;
+        }
+        byEntry.set(entryId, item);
+      }
       activity.push(item);
       incomplete ||= claimUnverified;
     } catch { incomplete = true; }
   }
-  if (incomplete && !activity.length) throw new Error("Invalid activity record");
+  const verified = conflicting.size ? activity.filter(item => !item.entryId || !conflicting.has(item.entryId.toLowerCase())) : activity;
+  if (incomplete && !verified.length) throw new Error("Invalid activity record");
   return {
     isPreview: true,
-    activity,
-    activeCount: incomplete ? null : activity.filter((item) => item.status === "active").length,
+    activity: verified,
+    activeCount: incomplete ? null : verified.filter((item) => item.status === "active").length,
     ...(incomplete ? { incomplete: true } : {}),
     source: activity.length ? "stored" : "customer-empty",
   };

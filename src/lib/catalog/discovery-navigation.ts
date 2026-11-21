@@ -13,7 +13,7 @@ export function discoveryCategoryHref(groupId: string, filters: BrowseFilterStat
   if (filters.availableOnly) params.set("available", "1");
   if (filters.minValue !== null) params.set("minValue", String(filters.minValue));
   if (filters.maxValue !== null) params.set("maxValue", String(filters.maxValue));
-  if (filters.sort !== "featured") params.set("sort", filters.sort);
+  if (filters.sort !== "featured" || selectedCategory === "ending-soon") params.set("sort", filters.sort);
   if (searchTerm.trim()) params.set("q", searchTerm.trim());
   return `/browse${params.size ? `?${params}` : ""}#search-results`;
 }

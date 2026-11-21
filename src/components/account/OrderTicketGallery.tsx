@@ -203,7 +203,13 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   const size = phone ? 2 : 6;
   const lastPage = Math.max(0, Math.ceil(orders.length / size) - 1);
   // Keep the same record in view when the number of cards per page changes.
-  const anchorIndex = orders.findIndex(order => order.rewardId === (opened?.id ?? pageAnchor));
+  const seenRewards = new Set<string>();
+  const ticketIds = orders.map(order => {
+    const id = seenRewards.has(order.rewardId) && order.orderNumber ? `${order.rewardId}-${order.orderNumber}` : order.rewardId;
+    seenRewards.add(order.rewardId);
+    return id;
+  });
+  const anchorIndex = ticketIds.indexOf(opened?.id ?? pageAnchor ?? "");
   const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
   const end = Math.min(start + size, orders.length);
@@ -246,10 +252,10 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
     function restorePage(event?: Event) {
       if (event?.type === "popstate" && detailsOrigin.current?.isConnected && window.location.pathname === "/account/orders") return;
       const saved = window.history.state?.zeroLossOrderTickets;
-      const hasSaved = saved?.href === window.location.href && orders.some(order => order.rewardId === saved.anchor)
+      const hasSaved = saved?.href === window.location.href && ticketIds.includes(saved.anchor)
         && Number.isFinite(saved.scrollY) && saved.scrollY >= 0;
       const anchorId = hasSaved ? saved.anchor : initialDetailsId ?? initialAnchorId;
-      if (!anchorId || !orders.some(order => order.rewardId === anchorId)) return;
+      if (!anchorId || !ticketIds.includes(anchorId)) return;
       const href = window.location.href;
       setPageAnchor(anchorId);
       setOpened(null);
@@ -257,7 +263,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
       frame = requestAnimationFrame(() => {
         if (window.location.href !== href) return;
         if (rail.current) {
-          const index = orders.findIndex(order => order.rewardId === anchorId);
+          const index = ticketIds.indexOf(anchorId);
           const pageSize = isPhone() ? 2 : 6;
           const step = pageOffset(rail.current, 1);
           const anchorPage = Math.floor(index / pageSize);
@@ -327,7 +333,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
   }, []);
 
   function changePage(page: number, byKeyboard = false) {
-    const anchor = orders[page * size]?.rewardId;
+    const anchor = ticketIds[page * size];
     const track = rail.current;
     if (!anchor || !track) return;
     setPageAnchor(anchor);
@@ -372,7 +378,7 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
     const step = pageOffset(track, 1);
     if (step <= 0 || selected || drag.current?.horizontal) return;
     const index = Math.min(lastPage, Math.max(0, Math.round(track.scrollLeft / step))) * size;
-    const anchor = orders[index]?.rewardId;
+    const anchor = ticketIds[index];
     if (!anchor) return;
     setPageAnchor(anchor);
     rememberPage(anchor, null);
@@ -457,14 +463,16 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
         {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.pageMarker} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
-          const purchaseStamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
+          const stamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
+          const purchaseStamp = stamp && stamp.orderNumber === order.orderNumber ? stamp : undefined;
           const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + `&via=${fromNotification ? "order-notification" : exactSelection ? "order-selection" : "orders"}${alertContext}`
             + (filter === "all" ? "" : `&orderFilter=${filter}`);
           const position = index % size;
           const page = Math.floor(index / size);
           const column = page * columns + position % columns;
           const visible = currentView ? column >= currentView.first && column <= currentView.last : page === currentPage;
-          return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.card} data-order-ticket data-tone={detail.tone}
+          const ticketId = ticketIds[orders.indexOf(order)];
+          return <article key={ticketId} id={`reward-${ticketId}`} className={styles.card} data-order-ticket data-tone={detail.tone}
             inert={!visible} aria-hidden={!visible || undefined}
             style={{ gridColumn: column + 1, gridRow: Math.floor(position / columns) + 1 }}>
             <Link href={href} className={styles.art} tabIndex={-1} aria-label={`View ${order.title} reward ending ${order.rewardId.slice(-8).toUpperCase()}`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
@@ -474,15 +482,15 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
               {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
               {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
             </dl>
-            <span className="sr-only" id={`order-reference-${order.rewardId}`}>{order.title}, reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
-            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${order.rewardId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <span className="sr-only" id={`order-reference-${ticketId}`}>{order.title}, reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={opened?.id === ticketId} onClick={event => openDetails(ticketId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${ticketId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>
       {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
       {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
       </div>
-      {selected && opened ? <OrderDetails alertContext={fromNotification ? `&from=notifications${alertContext}` : ""} key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
+      {selected && opened ? <OrderDetails alertContext={fromNotification ? `&from=notifications${alertContext}` : ""} key={opened.id} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
     <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasPrevious || undefined} onClick={event => { if (hasPrevious) changePage(previousPage, event.detail === 0); }}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasNext || undefined} onClick={event => { if (hasNext) changePage(nextPage, event.detail === 0); }}><AccountIcon name="chevron" /></button></div></nav>
   </div>;

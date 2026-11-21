@@ -21,7 +21,7 @@ const rewardReturnFields: Record<string, RegExp> = {
   reward: /^[a-z0-9-]{1,150}$/,
   via: /^(?:purchase|completed|orders|order-notification|order-selection|activity-win|completed-win|won)$/,
   orderFilter: /^(?:all|processing|fulfilled|exceptions|payment)$/,
-  rewards: /^(?:ready|used|expired|history)$/,
+  rewards: /^(?:ready|used|expired|history|other)$/, prize: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
   fromOrders: /^1$/, rewardHistory: /^1$/, tile: /^1$/,
 };
 

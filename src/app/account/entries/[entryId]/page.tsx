@@ -32,7 +32,7 @@ import { entryReviewContext } from "@/lib/wallet/funding-navigation";
 export const metadata: Metadata = { title: "Your Entry Details" };
 
 export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string; transaction?: string; walletView?: string; fromOrders?: string; orderFilter?: string; alerts?: string; notice?: string }> }) {
-  const { entryId } = await params;
+  const entryId = (await params).entryId.toLowerCase();
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
   const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");

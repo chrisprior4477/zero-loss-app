@@ -46,7 +46,7 @@
 .personHeading > div { min-width:0; }
 .personHeading > div > span { display:block; color:#166590; font-size:9px; font-weight:850; letter-spacing:.15em; }
 .personHeading h2 { margin:5px 0 0; font-size:26px; font-weight:850; line-height:1.12; letter-spacing:-.035em; }
-.personHeading p { margin:5px 0 0; color:#4c718a; font-size:12px; }
+.personHeading p { margin:5px 0 0; color:#3f6077; font-size:12px; }
 .headingShare { display:flex; align-items:center; gap:8px; flex:none; border:0; border-radius:8px; background:#ff8a18; padding:11px 14px; color:#092744; font-size:13px!important; font-weight:850!important; }
 .headingShare svg { width:19px; height:19px; }
 .picksRail { gap:14px; align-items:stretch; }

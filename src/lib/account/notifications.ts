@@ -101,7 +101,9 @@ function activityNotification(item: ActivityItem): AccountNotification {
     title: `Your ${item.retailer} gift-card option is ready`,
     body: `Pay ${formatUsdFromCents(item.remainingCents)} to receive a ${formatUsdFromCents(item.priceCents)} retailer gift card. This choice is optional.`,
     meta: item.availability,
-    href: activityHref(item),
+    href: item.entryId && /^ent_[a-f0-9]{32}$/.test(item.entryId)
+      ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(item.entryId)}`
+      : activityHref(item),
     action: "Continue with Purchase",
     image: item.image,
     visualLabel: item.retailer,

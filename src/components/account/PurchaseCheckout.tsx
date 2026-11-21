@@ -57,9 +57,10 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, legacyDeclineReturnHref }:  {
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, notificationReturnHref, legacyDeclineReturnHref }:  {
   cardsUnavailable?: boolean;
   returnTransactionHref?: string;
+  notificationReturnHref?: string;
   legacyDeclineReturnHref?: string;
   ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; pendingDeposits?: CheckoutDeposit[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
@@ -473,9 +474,9 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
     ? <div className={shortfall ? styles.balanceNeeded : styles.balanceReady}>{shortfall ? <><span>Still needed to continue</span><strong>{usd(required)}</strong></> : <><span aria-hidden="true">✓</span><strong>Your wallet covers this purchase.</strong></>}</div>
     : <div className={shortfall ? styles.shortfall : styles.covered}><strong>{shortfall ? `Please add ${usd(required)} to continue.` : "Your wallet covers this purchase."}</strong></div>}</div>;
-  return <div className={styles.page}><AccountSettingsLandingScroll target="purchase-options-intro" landingAlias="purchase-option-rail" settleAfterNavigation allScreens /><div id="purchase-option-rail" className={styles.shell}>
+  return <div className={styles.page}><AccountSettingsLandingScroll target="purchase-option-rail" focusTarget="purchase-options-title" allScreens restrictToTargetHash /><AccountSettingsLandingScroll target="purchase-options-intro" landingAlias="purchase-option-rail" focusTarget="purchase-options-title" skipForHash="purchase-option-rail" settleAfterNavigation allScreens /><div id="purchase-option-rail" className={styles.shell}>
     <section id="purchase-options-intro" className={`${styles.ticket} ${styles.content} ${styles.refined}`} aria-label="Your purchase options">
-      <h1>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
+      <h1 id="purchase-options-title" tabIndex={-1}>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
       <div className={singleOffer ? `${styles.quantity} ${styles.singleQuantity}` : styles.quantity}>
         {!singleOffer ? <NumberWheel label="Buying" min={1} max={options.length} value={Math.max(1, chosen.length)} disabled={locked || overlay !== null || chosen.length === 0} onChange={changeQuantity} /> : null}
         <div><h3>{chosen.length ? buyLabel : "Choose the offers you want to buy"}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div>
@@ -514,7 +515,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
       {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
-      <div className={styles.utility}>{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
+      <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack

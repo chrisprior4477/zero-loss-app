@@ -22,6 +22,10 @@ test("keeps natural amount phrases scoped to posted values and transaction type"
   expect(search("deposits between $25 and $50")).toEqual(["fund", "larger"]);
   expect(search("deposit at least $25")).toEqual(["fund", "larger", "max"]);
   expect(search("transaction $25")).toEqual(["fund", "debit"]);
+  expect(search("deposit US$25")).toEqual(["fund"]);
+  expect(search("deposit >= $25")).toEqual(["fund", "larger", "max"]);
+  expect(search("deposits above $25")).toEqual(["larger", "max"]);
+  expect(search("paid $25")).toEqual(["debit"]);
 });
 
 test("keeps posted amounts, card denominations and transaction alternatives independent", () => {

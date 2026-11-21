@@ -40,7 +40,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
   const rawQuery = await searchParams;
   const query = {
     ...rawQuery,
@@ -66,8 +66,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (!account) {
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";
     const paymentPanel = history && (query.panel === "methods" || query.panel === "card");
-    const rewardSection = !requestedReward && !history && (fromRewardHistory || ["ready", "used", "expired", "history"].includes(String(query.rewards)))
-      ? query.rewards === "ready" && !fromRewardHistory ? "#ready-rewards" : "#reward-history" : "";
+    const rewardSection = !requestedReward && !history && (query.prize || fromRewardHistory || ["ready", "used", "expired", "history", "other"].includes(String(query.rewards)))
+      ? (query.rewards === "ready" || query.prize && !query.rewards) && !fromRewardHistory ? "#ready-rewards" : "#reward-history" : "";
     const next = recoveryKey ? accountPageReturnPath("/account/wallet", query, "#purchase-deposit")
       : paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
       : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
@@ -138,8 +138,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       </section>
     </div></div>;
   }
-  const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history"
+  const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history" || query.rewards === "other"
     ? query.rewards : "all";
+  const rewardPrize = typeof query.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
   const rewardListHref = rewardView === "all" ? "/account/wallet"
     : `/account/wallet?rewards=${rewardView}#${rewardView === "ready" ? "ready-rewards" : "reward-history"}`;
   const demoDb = history && account.wallet?.scope === "demo" ? await createClient() : null;
@@ -223,7 +224,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const fulfillmentReturn = sourceOrder
         ? exactOrderHref(sourceOrder.orderNumber, orderFilter, false, orderNotification, orderContext?.filter, notice)
         : orderContext ? fulfillmentHref(reward.rewardId ?? undefined, orderFilter, false, undefined, orderContext) : undefined;
-      return <WalletRewardDetail claimCheckHref={accountPageReturnPath("/account/wallet", query, "#reward-pass")} orderFilter={orderFilter} fulfillmentReturn={fulfillmentReturn} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} locale={account.preferredLocale} item={reward}
+      return <WalletRewardDetail claimCheckHref={accountPageReturnPath("/account/wallet", query, "#reward-pass")} orderFilter={orderFilter} fulfillmentReturn={fulfillmentReturn} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnPrize={rewardPrize === reward.slug ? rewardPrize : undefined} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} locale={account.preferredLocale} item={reward}
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} sharedCrewRecipients={sharedCrewRecipients} returnLink={returnLink} checkoutContext={checkoutContext}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
@@ -267,6 +268,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   });
   const expiredSelection = rewardView === "expired" && typeof query.expiredEntry === "string" && !expired
     ? account.activity.source === "unavailable" ? "unavailable" : "missing" : undefined;
-  const rewards = <WalletRewards transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "expired" ? focusCard : undefined)} />;
+  const rewards = <WalletRewards prize={rewardPrize} invalidView={query.rewards !== undefined && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} />;
   return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={transactionOriginHref(query) ?? `/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
 }

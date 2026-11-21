@@ -106,6 +106,8 @@ export function DateOfBirthSelects({
   const [month, setMonth] = useState<number | "">(initial.month);
   const [day, setDay] = useState<number | "">(initial.day);
 
+  const invalidManualYear = manualYear && yearText.length === 4 &&
+    (Number(yearText) < 1 || !isAtLeastAge(buildIsoDate(Number(yearText), 1, 1)));
   const maxDay =
     year !== "" && month !== "" ? daysInMonth(year, month) : 31;
   const isoDate = buildIsoDate(year, month, day);
@@ -149,7 +151,9 @@ export function DateOfBirthSelects({
                 event.target.value === "" ? "" : Number(event.target.value);
               setBirthdayNotice("");
               setMonth(nextMonth);
-              setDay((current) => clampDay(current, year, nextMonth));
+              const nextDay = clampDay(day, year, nextMonth);
+              if (day !== "" && nextDay === "") setBirthdayNotice("Your selected day is unavailable for this month. Choose your birth day again.");
+              setDay(nextDay);
             }}
           >
             <option value="">Month</option>
@@ -222,13 +226,13 @@ export function DateOfBirthSelects({
       {manualYear && <label className="mt-2 block text-sm" htmlFor={id("dob_year_input")}>
         Enter your birth year
         <input ref={manualField} id={id("dob_year_input")} name="dob_year_input" className={selectClassName} value={yearText} inputMode="numeric" pattern="(?!0000)[0-9]{4}" maxLength={4} required
-          aria-invalid={yearText === "0000" || undefined} aria-describedby={yearText === "0000" ? id("dob_year_error") : undefined} onChange={event => {
+          aria-invalid={invalidManualYear || undefined} aria-describedby={invalidManualYear ? id("dob_year_error") : undefined} onChange={event => {
           const text = event.target.value.replace(/\D/g, "").slice(0, 4);
-          const nextYear = text.length === 4 && Number(text) > 0 ? Number(text) : "";
+          const nextYear = text.length === 4 && Number(text) > 0 && isAtLeastAge(buildIsoDate(Number(text), 1, 1)) ? Number(text) : "";
           setYearText(text);
           changeYear(nextYear);
         }} />
-        {yearText === "0000" ? <span id={id("dob_year_error")} role="alert" className="mt-1 block text-xs text-red-300">Enter a valid four-digit birth year.</span> : null}
+        {invalidManualYear ? <span id={id("dob_year_error")} role="alert" className="mt-1 block text-xs text-red-300">Enter a valid birth year that meets the minimum age of {MIN_ACCOUNT_AGE_YEARS}.</span> : null}
       </label>}
 
       {birthdayNotice ? <p className="mt-1 text-xs text-amber-200" role="status">{birthdayNotice}</p> : null}

@@ -4,6 +4,7 @@ import { giftCardPartnerGroups } from "./gift-card-partners";
 // Apply retailer terms only to existing gift-card offerings, not all products
 // sold by that retailer. Keep additions specific and regression-tested.
 export const productSearchTerms: Readonly<Record<string, string>> = {
+  "airpods-pro": "earbuds wireless earbuds earphones",
   "babys-essentials-bundle": "baby infant newborn diaper formula baby supplies",
   "nike-court-shot-shoes": "sneaker trainer tennis shoe footwear",
   "milani-color-fetish-lipstick": "makeup cosmetic cosmetics lip color",

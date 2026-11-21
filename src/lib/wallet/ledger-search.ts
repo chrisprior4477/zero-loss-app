@@ -33,6 +33,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*:/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\b(?:US\s*)?USD\s+(?=[$+−-])/gi, "")
+    .replace(/\bUS\s*(?=\$)/gi, "")
     .replace(/\$\s*([+−-])\s*(?=\d)/g, "$1$$")
     .replace(/\b(minus|negative|plus|positive)\s+(?=\$)/gi, (_, sign: string) => /^(?:minus|negative)$/i.test(sign) ? "-" : "+")
     .replace(/\b(?:posted\s+)?amount\s*:\s*(?=[+−($\d-])/gi, "")
@@ -41,6 +42,15 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "")
     .replace(typeAmount, "$1 ")
     .replace(/^transactions?\s+(?=[+−-]?\s*\$)/i, "");
+  const pendingEntry = /^pending\s+entr(?:y|ies)\b/i.exec(query);
+  if (pendingEntry) {
+    const closed = new Set(entries.filter(row => row.entry_type === "ENTRY_HOLD_RELEASE" && row.entryRequestId).map(row => row.entryRequestId));
+    const open = entries.filter(row => row.entry_type === "ENTRY_HOLD" && (!row.entryRequestId || !closed.has(row.entryRequestId)));
+    return searchLedger(open, query.slice(pendingEntry[0].length).trim(), describe);
+  }
+  if (/^paid\s+(?=\$|\d)/i.test(query)) {
+    return searchLedger(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.replace(/^paid\s+/i, ""), describe);
+  }
   const typeAlternative = /^([a-z]+(?:\s+or\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
   const typeOptions = typeAlternative?.[1].toLowerCase().split(/\s+or\s+/).map(word => typeAliases.get(word.replace(/s$/, "")));
   if (typeOptions?.every(Boolean) && typeAlternative) {
@@ -83,7 +93,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const matches = amountMatch(typedAmount[2]);
     return searchLedger(entries.filter(entry => matches(entry.amount)), typedAmount[1], describe);
   }
-  if (/\b(?:between|from|at least|at most|no more than|under|over|up to)\b|\$[\d,.]+\s*[-–—]\s*\$[\d,.]+/i.test(query)) {
+  if (/\b(?:between|from|at least|at most|no more than|under|over|above|below|up to)\b|[<>≤≥]\s*=?\s*\$?\s*\d|\$[\d,.]+\s*[-–—]\s*\$[\d,.]+/i.test(query)) {
     const { budget, text } = searchDenominations(query, []);
     if (budget) return searchLedger(entries.filter(entry => {
       const amount = Math.abs(entry.amount) / 100;

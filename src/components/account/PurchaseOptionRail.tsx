@@ -202,7 +202,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
         <Link href="/account/entries?filter=completion" className={styles.activityExit}>Go to My Activity</Link>
       </div>
     </section> : null}
-    <section id="purchase-option-rail" className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
+    <section id="purchase-option-rail" tabIndex={-1} className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
     <div className={styles.railHeading}>
       <h2>Your {count} purchase {count === 1 ? "option" : "options"}</h2>
       <p>{canPurchase ? "Choose a quantity or tap the exact tickets you want to purchase." : "Tap any numbered ticket to see its own purchase details. You can open more than one."}</p>

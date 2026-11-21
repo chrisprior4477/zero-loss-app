@@ -120,7 +120,10 @@ export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);
   if (item.completionOptionStatus === "declined") return declinedOfferHref(item.completionOptionId);
-  if (item.status === "active" && item.entryId) return `/account/entries/${encodeURIComponent(item.entryId)}${filter === "active" ? "?filter=active" : ""}`;
+  if (item.status === "active" && item.entryId) {
+    if (!/^ent_[a-f0-9]{32}$/i.test(item.entryId)) return "/account/entries?filter=active&legacyEntry=1#my-activity-filters";
+    return `/account/entries/${encodeURIComponent(item.entryId)}${filter === "active" ? "?filter=active" : ""}`;
+  }
   const params = new URLSearchParams({ item: item.slug });
   if (item.entryId) params.set("entry", item.entryId);
   if (destination === "/account/entries" && filter !== "all") params.set("filter", filter);

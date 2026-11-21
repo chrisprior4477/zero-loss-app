@@ -99,9 +99,17 @@ function ProfileDateOfBirth({ defaultValue, defaultParts, onClear, locale }: { d
   return <fieldset className={styles.dateField}>
     <legend>{t("Date of birth", "Fecha de nacimiento")}</legend>
     <div className={styles.dateSelects}>
-      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select name="birth_month" aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => setMonth(event.target.value)}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1} disabled={Number(year) === maximumYear && index > today.getUTCMonth()}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth month", "Mes de nacimiento")}</span><select name="birth_month" aria-label={t("Birth month", "Mes de nacimiento")} value={month} required onChange={event => {
+        const next = event.target.value;
+        setMonth(next);
+        if (Number(day) > daysInMonth(year, next) || (year && next && day && !isAtLeastAge(`${year}-${next.padStart(2, "0")}-${day.padStart(2, "0")}`))) setDay("");
+      }}><option value="">{t("Month", "Mes")}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1} disabled={Number(year) === maximumYear && index > today.getUTCMonth()}>{monthFormat.format(new Date(Date.UTC(2000, index, 1)))}</option>)}</select></label>
       <label><span className="sr-only">{t("Birth day", "Día de nacimiento")}</span><select name="birth_day" aria-label={t("Birth day", "Día de nacimiento")} value={validDay} required onChange={event => setDay(event.target.value)}><option value="">{t("Day", "Día")}</option>{Array.from({ length: maximumDay }, (_, index) => index + 1).map(value => <option key={value} value={value} disabled={!dayAllowed(value)}>{value}</option>)}</select></label>
-      <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select name="birth_year" aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => setYear(event.target.value)}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label><span className="sr-only">{t("Birth year", "Año de nacimiento")}</span><select name="birth_year" aria-label={t("Birth year", "Año de nacimiento")} value={year} required onChange={event => {
+        const next = event.target.value;
+        setYear(next);
+        if (Number(day) > daysInMonth(next, month) || (next && month && day && !isAtLeastAge(`${next}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`))) setDay("");
+      }}><option value="">{t("Year", "Año")}</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       <button type="button" className={styles.clearButton} aria-label={t("Clear date of birth", "Borrar fecha de nacimiento")} onClick={clear}>×</button>
     </div>
     {year && month && validDay && !dateValue ? <small role="alert">{t("Choose a date of birth that meets the age requirement.", "Elige una fecha de nacimiento que cumpla el requisito de edad.")}</small> : null}

@@ -30,6 +30,9 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
   const purchaseStack = purchaseTotal !== undefined;
   const openEntry = notification.tone === "active" && notification.category === "activity";
   const title = purchaseStack ? `${count} entry purchases posted` : openEntry ? notification.itemTitle || notification.title : notification.title;
+  const latestEntry = openEntry && stacked
+    ? group.notifications.findLast(item => Number.isFinite(Date.parse(item.enteredAt ?? ""))) ?? notification
+    : notification;
   const entriesId = `notification-entries-${encodeURIComponent(group.key)}`;
   const allRead = group.notifications.every(item => read.has(item.id));
   const purchaseToggleLabel = expanded ? "Hide transactions" : `See ${count} transactions`;
@@ -54,7 +57,7 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, destinat
         </div>
       </div>
       <div className={styles.bottom}>
-        <div className={styles.details}><strong>{categoryLabel}</strong>{!allRead ? <span className={styles.unreadBadge}>Unread</span> : null}<span>{notification.meta}</span></div>
+        <div className={styles.details}><strong>{categoryLabel}</strong>{!allRead ? <span className={styles.unreadBadge}>Unread</span> : null}<span>{latestEntry.meta}</span></div>
         {stacked ? <button type="button" className={`${styles.rowAction}${purchaseStack ? ` ${styles.purchaseToggle}` : expanded ? "" : " zl-see-all"}`} aria-expanded={expanded} aria-controls={entriesId} aria-label={purchaseStack ? `${purchaseToggleLabel} for ${purchaseTitle}` : expanded ? `Collapse entries for ${title}` : `See all ${count} entries for ${title}`} onClick={() => setExpanded(!expanded)}>
           {purchaseStack ? purchaseToggleLabel : expanded ? "Collapse" : `See all ${count}`}<AccountIcon name={expanded ? "chevron" : "arrow"} className={expanded ? styles.collapseIcon : undefined} />
         </button> : <Link id={`notification-link-${encodeURIComponent(notification.id)}`} href={destination?.(notification) ?? notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}

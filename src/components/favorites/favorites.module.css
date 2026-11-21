@@ -7,7 +7,7 @@
 .tabs button span { display:grid;place-items:center;min-width:24px;height:24px;padding:0 4px;border-radius:50%;background:white;color:#102947;font-size:13px; }
 .listFilters { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-width:520px;margin:0 0 10px; }
 .listFilters button { display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px;border-radius:8px;background:#d7efff;color:#14354e;font-size:14px;font-weight:800; }
-.listFilters button[aria-pressed=true] { background:#087fff;color:white; }
+.listFilters button[aria-pressed=true] { background:#0067cb;color:white; }
 .listFilters span { display:grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:50%;background:white;color:#102947;font-size:13px; }
 .reopenButton { display:flex;align-items:center;justify-content:center;width:100%;min-height:42px;margin-top:8px;padding:10px;border-radius:8px;background:#143b64;color:white;font-size:13px;font-weight:800;text-align:center;text-decoration:none; }
 .grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;align-items:start; }

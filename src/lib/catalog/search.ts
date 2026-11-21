@@ -51,6 +51,8 @@ export function searchCatalogMatches(
   const television = tokens.includes("tv") || tokens.includes("television");
   const accessoryQuery = television ? /\b(?:tv|television)s?\s+(?:(?:wall|table)\s+)?(stand|mount|remote|antenna)s?\b|\b(stand|mount|remote|antenna)s?\s+for\s+(?:(?:a|the)\s+)?(?:tv|television)s?\b/.exec(normalizedQuery) : null;
   const televisionAccessory = accessoryQuery?.[1] ?? accessoryQuery?.[2];
+  const televisionSize = television ? /\b\d+ inch\b/.exec(normalizedQuery)?.[0] : undefined;
+  const exactScreenSize = televisionSize ? new RegExp(`\\b${televisionSize}\\b`) : null;
   const appStoreGiftCard = giftCards && /\b(?:app store|itunes)\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && !exactOnly && Boolean(merchant) && values.size === 1;
   const requestedMax = Math.max(...values);
@@ -63,6 +65,7 @@ export function searchCatalogMatches(
     && (!giftCards || isGiftCardListing(product))
     && (!appStoreGiftCard || /\b(?:app store|itunes)\b/.test(normalizeSearch(`${product.title} ${product.retailer}`)))
     && (!merchant || matchesCatalogMerchant(product.retailer, merchant))
+    && (!exactScreenSize || televisionAccessory || isGiftCardListing(product) || exactScreenSize.test(normalizeSearch(product.title)))
     && (!televisionAccessory || searchWords(product.title).includes(televisionAccessory)));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
   const documents = candidates.map(product => {

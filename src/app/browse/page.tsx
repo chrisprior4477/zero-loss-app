@@ -121,7 +121,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const allowedRetailers = selectedRetailerGroup
     ? new Set(selectedRetailerGroup.options.map(option => option.value))
     : undefined;
-  const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
+  const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon" && query.sort !== "fewest-left", allowedRetailers);
   const scopedOfferRetailers = browseRetailers(filterBrowseProducts(
     matchedProducts.filter(product => !hidden.has(product.slug)),
     { ...filters, retailer: "" }, searchTerm, endingSoon,
@@ -146,7 +146,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     const matches = (isEnding ? exactEndingMatches : previewMatches)
       .filter(product => !id || productMatchesMarketplaceCategory(product, id));
     const matching = filterBrowseProducts(filterEndingSoonTickets(matches, isEnding ? ticketsLeft : null),
-      { ...filters, retailer: "", sort }, searchTerm, isEnding);
+      { ...filters, retailer: "", sort }, searchTerm, isEnding && query.sort !== "fewest-left");
     const sorted = id === "groceries" && !searchTerm && sort === "featured"
       ? groceryStoreFirst(matching, discoveryGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
       : matching;
@@ -180,7 +180,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
   const activeFilters = Boolean(subcategory) || Boolean(ticketsLeft) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || filters.minValue !== null || filters.maxValue !== null
-    || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
+    || filters.sort !== (endingSoon ? "fewest-left" : "featured");
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
   if (selectedRetailerGroup && !(selectedCategory && filters.retailer)) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
@@ -321,7 +321,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {obsoleteBatch && query.batch !== "1" ? <p role="status" className="mb-3 text-sm text-amber-200">That batch is no longer available. Showing the available results for this search.</p> : null}
           {invalidSubcategory ? <p role="status" className="mb-3 text-sm text-amber-200">That subcategory is unavailable. Showing your other filters in {selectedLabel ?? "Browse"}.</p> : null}
           {invalidGroceryIdea ? <p role="status" className="mb-3 text-sm text-amber-200">That grocery idea is unavailable. {selectedCategory === "groceries" ? <Link href={showGroceryInspiration ? "#grocery-inspiration" : "#search-results"} className="underline">Back to groceries</Link> : null}</p> : null}
-          {oversizedTail ? <p role="status" className="mb-3 text-sm text-amber-200">That saved batch is no longer available. Showing an available batch.</p> : null}
           {unknownCategory ? <p role="status" className="mb-3 text-sm text-amber-200">That category is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove category filter</Link></p> : null}
           {query.retailer && !filters.retailer && !retailerOutsideScope && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">
             That retailer is unavailable. Your other filters still apply. <Link href={searchHref + "#search-results"} className="underline">Remove retailer filter</Link>

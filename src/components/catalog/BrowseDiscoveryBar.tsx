@@ -94,7 +94,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const budgetLabel = browsePrizeValueLabel(props.filters);
   const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly) + Number(Boolean(props.ticketsLeft))
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
-    + Number(props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left"));
+    + Number(props.filters.sort !== (props.selectedCategory === "ending-soon" ? "fewest-left" : "featured"));
   const prizeCategories = marketplaceCategories.filter(category => !query.trim() || searchTextMatches(category.label, query));
   const prizeCategoryLabels = new Set(prizeCategories.map(category => category.label.toLowerCase()));
   const groups = query.trim().length > 1

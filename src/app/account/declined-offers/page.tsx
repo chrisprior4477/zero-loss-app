@@ -31,7 +31,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   const transaction = offerId && typeof query?.transaction === "string" && crewUuid.test(query.transaction)
     ? { id: query.transaction, restoreView: query.walletView === "1" } : undefined;
   const transactionReturn = transactionOriginHref(query ?? {});
-  const selectedHref = prize && !offerId ? `/account/declined-offers?prize=${encodeURIComponent(prize)}` : declinedOfferHref(offerId, filter, transaction);
+  const selectedHref = prize && !offerId ? `/account/declined-offers?prize=${encodeURIComponent(prize)}${filter === "all" ? "" : `&filter=${filter}`}` : declinedOfferHref(offerId, filter, transaction);
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", selectedHref));
@@ -82,6 +82,11 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
+    {requested !== undefined && !offerId ? <div id="invalid-declined-offer" className={styles.empty}>
+      <AccountSettingsLandingScroll target="invalid-declined-offer" initialTarget="invalid-declined-offer" focusTarget="invalid-declined-heading" allScreens />
+      <h2 id="invalid-declined-heading" tabIndex={-1}>This declined-offer link is invalid</h2>
+      <Link href={declinedOfferHref()}>View all declined offers</Link>
+    </div> : null}
     {requestedMissing && requestedAnchor && <div id={requestedAnchor} role="status" className={`${styles.empty} ${styles.declinedDestination}`}>
       <AccountSettingsLandingScroll target={requestedAnchor} initialTarget={requestedAnchor} focusTarget="missing-declined-offer" allScreens settleAfterNavigation />
       <h2 id="missing-declined-offer" tabIndex={-1}>This offer is no longer in Declined Offers</h2>

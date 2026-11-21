@@ -67,6 +67,7 @@ export function availabilityStatus(capacity: number, sold: number) {
   const safeSold = Math.min(safeCapacity, Math.max(0, sold));
   const remaining = safeCapacity - safeSold;
   // Floor instead of round: one remaining ticket must never read as 100% full.
-  const percentFilled = Math.floor(safeSold / safeCapacity * 100);
+  const percentFilled = (safeSold <= Number.MAX_SAFE_INTEGER / 100 ? Math.floor(safeSold * 100 / safeCapacity)
+    : Number(BigInt(safeSold) * BigInt(100) / BigInt(safeCapacity)));
   return { remaining, percentFilled, ...progressAppearance(percentFilled, remaining === 0) };
 }

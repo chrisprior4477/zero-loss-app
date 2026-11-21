@@ -85,6 +85,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
   const [menuVisibilityUpdate, setMenuVisibilityUpdate] = useState<{ original: boolean; enabled: boolean } | null>(null);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const navigating = useRef(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
@@ -126,6 +127,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
 
   useEffect(() => {
     if (!open) return;
+    navigating.current = false;
     const previousOverflow = document.body.style.overflow;
     const previousRootOverflow = document.documentElement.style.overflow;
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -170,11 +172,11 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       window.removeEventListener("keydown", handleKeyDown);
-      (previouslyFocused?.isConnected ? previouslyFocused : trigger)?.focus();
+      if (!navigating.current) (previouslyFocused?.isConnected ? previouslyFocused : trigger)?.focus();
     };
   }, [open, dismiss]);
 
-  const close = () => setOpen(false);
+  const close = () => { navigating.current = true; setOpen(false); };
   const openWallet = () => {
     if (walletFunding) rememberWalletSelection(walletFunding);
     close();

@@ -58,11 +58,20 @@ export function matchesFulfillmentFilter(record: FulfillmentRecord, filter: Fulf
  * and the wallet. Never creates orders, issues rewards, or infers payments. */
 export function accountFulfillment(orders: AccountOrders, activity: AccountActivity) {
   const records = new Map<string, FulfillmentRecord>();
+  const ambiguousRewards = new Set<string>();
+  const ordersByReward = new Map<string, Map<string, AccountOrder>>();
   if (orders.source !== "unavailable") for (const order of orders.orders) {
-    records.set(order.rewardId, { ...order, entryId: null, source: "purchase", rewardStatus: null, claimedAt: null });
+    const group = ordersByReward.get(order.rewardId) ?? new Map<string, AccountOrder>();
+    group.set(order.orderNumber, order);
+    ordersByReward.set(order.rewardId, group);
+  }
+  for (const [rewardId, group] of ordersByReward) {
+    if (group.size > 1) ambiguousRewards.add(rewardId);
+    for (const order of group.values()) records.set(group.size > 1 ? `order:${order.orderNumber}` : rewardId,
+      { ...order, entryId: null, source: "purchase", rewardStatus: null, claimedAt: null });
   }
   if (activity.source !== "unavailable") for (const item of activity.activity) {
-    if (item.rewardKind !== "digital" || !item.rewardId?.trim()) continue;
+    if (item.rewardKind !== "digital" || !item.rewardId?.trim() || ambiguousRewards.has(item.rewardId)) continue;
     const order = records.get(item.rewardId);
     const rewardStatus = item.rewardStatus ?? null;
     const status = rewardStatus === "expired" ? "expired"
@@ -89,7 +98,7 @@ export function accountFulfillment(orders: AccountOrders, activity: AccountActiv
   return {
     complete: !orders.incomplete && !activity.incomplete && orders.source !== "unavailable" && activity.source !== "unavailable",
     available: orders.source !== "unavailable" || activity.source !== "unavailable",
-    records: [...records.values()].sort((a, b) => orderTime(b.createdAt) - orderTime(a.createdAt) || a.rewardId.localeCompare(b.rewardId)),
+    records: [...records.values()].sort((a, b) => orderTime(b.createdAt) - orderTime(a.createdAt) || a.rewardId.localeCompare(b.rewardId) || (a.orderNumber ?? "").localeCompare(b.orderNumber ?? "")),
   };
 }
 

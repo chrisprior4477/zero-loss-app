@@ -10,6 +10,7 @@ import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { transactionOriginHref } from "@/lib/wallet/ledger-return";
 import styles from "@/components/account/purchase-options.module.css";
 import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
@@ -22,15 +23,16 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter", string | string[]>>;
+type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug } = await params;
   const query = await searchParams;
   const { option: selectedEntryId, decline, receipt } = query;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
+  const notificationReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const selectors = new URLSearchParams();
-  for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter"] as const) {
+  for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
     const value = query[key];
     if (Array.isArray(value)) notFound();
     if (value !== undefined) selectors.set(key, value);
@@ -136,7 +138,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnTransactionHref={walletHref} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnTransactionHref={walletHref} notificationReturnHref={notificationReturn} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
       ticketLabels={offerTicketLabels(options, activity)} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} legacyDeclineReturnHref={legacyDeclineReturnHref} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} cardsUnavailable={cards === null} creditedDeposits={requests?.filter(request => request.reconciliation === "reconciled").map(request => request.idempotencyKey)} fundingAvailable={account.fundingEnabled && cards !== null}
       pendingDeposits={requests?.filter(request => request.reconciliation !== "reconciled")
@@ -144,7 +146,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
   }
   return <div className={styles.page}>
-    <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} settleAfterNavigation />
+    <AccountSettingsLandingScroll target="purchase-option-rail" focusTarget="purchase-option-rail" allScreens restrictToTargetHash />
+    <AccountSettingsLandingScroll skipForHash="purchase-option-rail" target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} settleAfterNavigation />
     <div className={styles.shell}>
       <div className={styles.topline}>
         <div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Purchase Options</h1><p className={styles.subtitle}>These are your {count} separate purchase {count === 1 ? "option" : "options"}.</p></div>
@@ -155,6 +158,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         </div>
       </div>
 
+      {notificationReturn && <Link href={notificationReturn} className={styles.return}>Back to this notification</Link>}
       {walletHref && <Link href={walletHref} className={styles.return}>Back to this transaction</Link>}
       <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} showSummary />
 

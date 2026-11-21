@@ -28,7 +28,7 @@ import styles from "./wallet-rewards.module.css";
 import overview from "./gift-rewards-overview.module.css";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 
-type RewardView = "all" | "ready" | "used" | "expired" | "history";
+type RewardView = "all" | "ready" | "used" | "expired" | "history" | "other";
 
 const rewardViewHrefs = {
   all: "/account/wallet#ready-rewards",
@@ -36,6 +36,7 @@ const rewardViewHrefs = {
   used: "/account/wallet?rewards=used#reward-history",
   expired: "/account/wallet?rewards=expired#reward-history",
   history: "/account/wallet?rewards=history#reward-history",
+  other: "/account/wallet?rewards=other#reward-history",
 } satisfies Record<RewardView, string>;
 
 function rewardState(item: ActivityItem) {
@@ -70,11 +71,12 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, focusHistoryCard, expiredSelection, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", prize, invalidView = false, focusCard, focusHistoryCard, expiredSelection, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; prize?: string; invalidView?: boolean; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
-  const allRewards = walletRewards(state);
-  const ready = readyWalletRewards(state);
+  const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
+  const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
+  const prizeQuery = prize ? `&prize=${encodeURIComponent(prize)}` : "";
   const cardCounts = new Map<string, number>();
   for (const item of allRewards) {
     if (!item.rewardId) continue;
@@ -86,17 +88,18 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const toClaimCount = ready.filter(item => item.rewardId && !item.rewardClaimedAt).length;
   // Expired purchase options may never have issued a digital reward. Keep their
   // authorized records visible too, with their existing activity destination.
-  const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => item.completionOptionStatus === "expired" && !allRewards.includes(item))];
-  const rewardInView = (item: ActivityItem) => view === "all" ? walletRewardHref(item) : `${walletRewardHref(item)}&rewards=${view}`;
+  const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => (!prize || item.slug === prize) && item.completionOptionStatus === "expired" && !allRewards.includes(item))];
+  const rewardInView = (item: ActivityItem) => `${walletRewardHref(item)}${view === "all" ? "" : `&rewards=${view}`}${prizeQuery}`;
   const history = records.filter(item => !ready.includes(item));
   const used = allRewards.filter(item => rewardState(item) === "redeemed");
   const expired = records.filter(item => rewardState(item) === "expired");
   const other = history.filter(item => !used.includes(item) && !expired.includes(item));
-  const shown = view === "ready" ? ready : view === "used" ? used : view === "expired" ? expired : view === "history" ? history : records;
-  const focusedHistory = view === "used" || view === "expired";
+  const shown = view === "ready" ? ready : view === "used" ? used : view === "expired" ? expired : view === "history" ? history : view === "other" ? other : records;
+  const focusedHistory = view === "used" || view === "expired" || view === "other";
   const optionCount = state.source === "unavailable" || state.incomplete ? null : state.activity.filter(item => item.status === "completion").length;
   const readyCount = state.source === "unavailable" || state.incomplete ? null : ready.length;
-  const singleReady = ready.length === 1 && readyCount !== null ? ready[0] : null;
+  const accountReady = prize ? readyWalletRewards(state) : ready;
+  const singleReady = accountReady.length === 1 && readyCount !== null ? accountReady[0] : null;
   const readyTarget = (view === "all" || view === "ready") && focusCard
     ? ready.some(item => item.rewardId === focusCard) ? `ready-reward-${focusCard}` : "ready-rewards"
     : undefined;
@@ -105,16 +108,17 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
     {landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
-      : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
+      : prize || view === "ready" ? <AccountSettingsLandingScroll target="ready-rewards" initialTarget="ready-rewards" focusTarget="ready-heading" allScreens restrictToTargetHash /> : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all"} />}
     {!expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
     <div className={overview.shell}>
+      {prize && <p className={overview.message}>Showing rewards for this prize. <Link className="underline" href="/account/wallet">View all rewards</Link></p>}
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
         <nav aria-label="Wallet sections" className={overview.walletSections}>{transactionReturn ? <Link href={transactionReturn}>← Back to this transaction</Link> : null}<Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(readyCount)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
@@ -150,15 +154,16 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             <WalletRewardLink href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>To claim or use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
             <WalletRewardLink href={rewardViewHrefs.used} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{readyCount === null ? "—" : used.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
             <WalletRewardLink href={rewardViewHrefs.expired} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{readyCount === null ? "—" : expired.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
-            {other.length > 0 ? <WalletRewardLink href={rewardViewHrefs.history} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
+            {other.length > 0 ? <WalletRewardLink href={rewardViewHrefs.other} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
           </div>
         </aside>
       </div> : null}
       {expiredSelection ? <AccountSettingsLandingScroll target="reward-history" initialTarget="reward-history" focusTarget="expired-selection-message" allScreens settleAfterNavigation /> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
+        {invalidView && <p role="status" className={overview.message}>That reward filter is unavailable. Showing all rewards. <Link className="underline" href={prize ? `/account/wallet?prize=${encodeURIComponent(prize)}#reward-history` : "/account/wallet#reward-history"}>Clear the outdated filter</Link></p>}
         {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
         {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? "We couldn’t check that expired entry right now. Refresh to try again." : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
-        <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>
+        <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : view === "other" ? "Other reward updates" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
             <WalletRewardLink href="/account/wallet#reward-history" aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
             <WalletRewardLink href="/account/wallet?rewards=ready&rewardHistory=1#reward-history" aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
@@ -168,7 +173,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           </nav>
         </div>
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
-          {view === "used" ? <><p>No rewards used yet. Redeemed gift cards appear here.</p></> : view === "expired" ? <p>No expired rewards or purchase options.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
+          {view === "used" ? <><p>No rewards used yet. Redeemed gift cards appear here.</p></> : view === "expired" ? <p>No expired rewards or purchase options.</p> : view === "other" ? <p>No other reward updates yet.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
         </div> : <>
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view} focusRow={historyTarget || undefined}>
@@ -204,7 +209,8 @@ function sampleRewardNumber(slug: string) {
 type CheckoutContext = { receipt: string; cards: CheckoutCard[]; current: CheckoutCard; count: number };
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView: sourceView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], sharedCrewRecipients = [], timeZone = "America/New_York", checkoutContext, claimCheckHref, locale }: { timeZone?: string; locale?: string | null; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] | null; sharedCrewRecipients?: string[] | null; checkoutContext?: CheckoutContext; claimCheckHref?: string }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView: sourceView, returnPrize, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], sharedCrewRecipients = [], timeZone = "America/New_York", checkoutContext, claimCheckHref, locale }: { timeZone?: string; locale?: string | null; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnPrize?: string; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] | null; sharedCrewRecipients?: string[] | null; checkoutContext?: CheckoutContext; claimCheckHref?: string }) {
+  const returnPrizeQuery = returnPrize ? `prize=${encodeURIComponent(returnPrize)}&` : "";
   const returnView = sourceView === "ready" && item.rewardStatus === "expired" ? "expired" : sourceView;
   const directPurchase = item.rewardSource === "purchase" && !item.entryId;
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
@@ -250,9 +256,10 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
   }
   const walletReturnHref = checkoutContext ? checkoutRewardsHref(item.slug, checkoutContext.receipt, checkoutContext.current.id)
     : returnTile && item.rewardId && available
-    ? `/account/wallet?${returnView === "ready" ? "rewards=ready&" : ""}card=${encodeURIComponent(item.rewardId)}`
-    : returnHistory ? `/account/wallet?${returnView && returnView !== "all" ? `rewards=${returnView}&` : ""}rewardHistory=1${item.rewardId ? `&card=${encodeURIComponent(item.rewardId)}#wallet-reward-${encodeURIComponent(item.rewardId)}` : "#reward-history"}`
-      : returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet";
+    ? `/account/wallet?${returnPrizeQuery}${returnView === "ready" ? "rewards=ready&" : ""}card=${encodeURIComponent(item.rewardId)}`
+    : returnHistory ? `/account/wallet?${returnPrizeQuery}${returnView && returnView !== "all" ? `rewards=${returnView}&` : ""}rewardHistory=1${item.rewardId ? `&card=${encodeURIComponent(item.rewardId)}#wallet-reward-${encodeURIComponent(item.rewardId)}` : "#reward-history"}`
+      : returnView ? `/account/wallet?${returnPrizeQuery}rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}`
+        : returnPrize ? `/account/wallet?prize=${encodeURIComponent(returnPrize)}#ready-rewards` : "/account/wallet";
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
   const singleReady = ready.length === 1 ? ready[0] : null;

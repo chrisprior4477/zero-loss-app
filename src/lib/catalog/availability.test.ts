@@ -15,7 +15,8 @@ test("known showcase scenarios retain their one-slot sample display", () => {
   expect(availabilityStatus(tv.capacity, tv.sold)).toMatchObject({ remaining: 1, percentFilled: 99, label: "Almost full", color: "#f32343" });
 });
 test.each([
-  [35,  "35% full", "#25c46a"],
+  [29, "29% full", "#25c46a"],
+  [35, "35% full", "#25c46a"],
   [50, "50% full", "#0787e8"],
   [75, "75% full", "#ff6b22"],
   [90, "Almost full", "#f32343"],

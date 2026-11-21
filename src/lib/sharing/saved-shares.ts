@@ -9,20 +9,27 @@ export function parseSavedProductShares(value: unknown): SavedProductShare[] | n
 
 export function parseSavedProductShareList(value: unknown): { shares: SavedProductShare[]; incomplete: boolean } | null {
   if (!Array.isArray(value)) return null;
-  const result: SavedProductShare[] = [];
+  const result = new Map<string, SavedProductShare>();
+  const conflicts = new Set<string>();
+  let invalid = false;
   const validDate = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
   for (const item of value) {
-    if (!item || typeof item !== "object") continue;
+    if (!item || typeof item !== "object") { invalid = true; continue; }
     const v = item as Record<string, unknown>;
     if (typeof v.id !== "string" || !shareUuid.test(v.id) || typeof v.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v.slug)
       || typeof v.title !== "string" || typeof v.sender !== "string" || typeof v.createdAt !== "string" || !validDate(v.createdAt)
       || [v.declinedAt, v.savedAt, v.viewedAt].some(date => date != null && !validDate(date))
-      || (v.token !== null && (typeof v.token !== "string" || !shareUuid.test(v.token)))) continue;
-    result.push({ id: v.id, token: v.token as string | null, slug: v.slug, title: v.title, sender: v.sender, createdAt: v.createdAt,
+      || (v.token !== null && (typeof v.token !== "string" || !shareUuid.test(v.token)))) { invalid = true; continue; }
+    const share: SavedProductShare = { id: v.id, token: v.token as string | null, slug: v.slug, title: v.title, sender: v.sender, createdAt: v.createdAt,
       viewedAt: typeof v.viewedAt === "string" ? v.viewedAt : null, savedAt: typeof v.savedAt === "string" ? v.savedAt : null,
-      declinedAt: typeof v.declinedAt === "string" ? v.declinedAt : null, demo: v.demo === true });
+      declinedAt: typeof v.declinedAt === "string" ? v.declinedAt : null, demo: v.demo === true };
+    const key = share.id.toLowerCase();
+    if (conflicts.has(key)) continue;
+    const previous = result.get(key);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(share)) { result.delete(key); conflicts.add(key); }
+    else if (!previous) result.set(key, share);
   }
-  return { shares: result, incomplete: result.length !== value.length };
+  return { shares: [...result.values()], incomplete: invalid || conflicts.size > 0 };
 }
 export const sharedWithYouHref = "/account/favorites?tab=shared";
 export type SharedView = "available" | "declined";

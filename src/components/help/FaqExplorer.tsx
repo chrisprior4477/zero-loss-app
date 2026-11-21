@@ -13,6 +13,7 @@ const productRequestAnchor = "#faq-request-product";
 
 export function FaqExplorer() {
   const [query, setQuery] = useState("");
+  const [answerMissing, setAnswerMissing] = useState(false);
   const [category, setCategory] = useState<FaqCategory>("all");
   const [expanded, setExpanded] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<string[]>([]);
@@ -48,6 +49,16 @@ export function FaqExplorer() {
         } catch { /* The direct answer link works without a recorded search. */ }
       }
       const direct = faqItems.find(item => window.location.hash === `#faq-${item.id}`);
+      const missing = !direct && window.location.hash.startsWith("#faq-") && window.location.hash !== "#faq-intro";
+      setAnswerMissing(missing);
+      if (missing && !saved) {
+        cancel(); interrupted = false;
+        first = requestAnimationFrame(() => {
+          if (interrupted) return;
+          const field = document.getElementById("faq-search");
+          if (field) { field.focus({ preventScroll: true }); revealBelowHeader(field); }
+        });
+      }
       const destination = saved ?? (direct ? {
         href: window.location.href, query: "", category: "all" as const, expanded: [direct.id], collapsed: [],
         scrollY: 0, answer: direct.id, answerTop: 0, answerLink: direct.id === "request-product" ? direct.action.href : undefined,
@@ -101,6 +112,7 @@ export function FaqExplorer() {
       } catch { /* Browser Back still has its own bookmark. */ }
     }
   }}>
+    {answerMissing && <p role="status" className="mb-3 text-sm text-amber-200">That FAQ answer is unavailable. Search for a current answer below.</p>}
     <div className={`${styles.ticket} ${styles.panel}`}>
       <label htmlFor="faq-search" className="block text-lg font-extrabold">What do you need help with?</label>
       <div className={styles.searchRow}><div className={`${styles.ticket} ${styles.field}`}><input id="faq-search" type="search" maxLength={200} value={query} onChange={event => changeQuery(event.target.value)} placeholder="Try ‘undo’, ‘gift card’, or ‘password’" aria-controls="faq-results" /></div>{query.length > 0 ? <button type="button" onClick={clearQuery} className={`${styles.ticket} ${styles.button}`}>Clear</button> : null}</div>

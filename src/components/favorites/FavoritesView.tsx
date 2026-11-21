@@ -199,12 +199,16 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       const slug = query.get("item")?.toLowerCase();
       const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug ? { slug } : null;
+      const restoreTabFocus = restoreScroll && tabs.current?.contains(document.activeElement);
       const previousPosition = listPosition.current;
       setSkipFreshLanding(restoreScroll && !nextSelected && Boolean(previousPosition));
       listPosition.current = savedListPosition(state);
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
       if (nextTab === "favorites") setFavoriteFilter(nextFavoriteFilter);
       if (!restoreScroll) return;
+      if (!nextSelected && restoreTabFocus) requestAnimationFrame(() => {
+        tabs.current?.querySelector<HTMLButtonElement>(`[data-tab="${nextTab}"]`)?.focus({ preventScroll: true });
+      });
       if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(nextFavoriteFilter))) {
         restoreListPosition(previousPosition.target, previousPosition.top, previousPosition.artwork);
       }

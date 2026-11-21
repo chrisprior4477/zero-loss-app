@@ -1,5 +1,6 @@
 import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
+import { marketplaceCategories, marketplaceCategoryId } from "@/lib/catalog/navigation";
 import { popularRewardsReturnHref } from "@/lib/catalog/popular-rewards";
 
 export type BreadcrumbItem = { label: string; href?: string };
@@ -41,6 +42,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
       const rewardRoot: BreadcrumbItem = { label: "Gift Cards & Rewards", href: "/account/wallet" };
       if (searchParams.get("reward") || searchParams.get("rewardId")) return [accountRoot, rewardRoot, { label: "Reward details" }];
       if (searchParams.get("view") === "card") return [accountRoot, { label: "Wallet & Transactions", href: "/account/wallet?view=history" }, { label: "Add Card" }];
+      if (searchParams.get("view") === "history" && ["card", "methods"].includes(searchParams.get("panel") ?? "")) return [accountRoot, { label: "Wallet & Transactions", href: "/account/wallet?view=history" }, { label: "Payment Methods" }];
       if (searchParams.get("view") === "history") return [accountRoot, { label: "Wallet & Transactions" }];
       return [accountRoot, { label: "Gift Cards & Rewards" }];
     }
@@ -48,6 +50,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
     if (second === "payment-methods") return [accountRoot, { label: "Account & Security", href: "/account/security" }, { label: "Payment Methods" }];
     if (second === "security") return [accountRoot, { label: "Account & Security" }];
     if (second === "orders") return [accountRoot, { label: "Orders & Fulfillment" }];
+    if (second === "crew" && third === "display") return [accountRoot, { label: "Account & Security", href: "/account/security" }, { label: "Sharing Preferences" }];
     if (second === "crew") return [accountRoot, { label: "Your Crew" }];
     if (second === "favorites") return [accountRoot, { label: "Favorites & Sent to You" }];
     if (second === "notifications") return [accountRoot, { label: "Notifications" }];
@@ -55,8 +58,8 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
     return [accountRoot, { label: humanize(second) }];
   }
   if (root === "browse") {
-    const category = searchParams.get("category");
-    if (category) return [{ label: "Browse the Marketplace", href: "/browse" }, { label: humanize(category) }];
+    const category = marketplaceCategories.find(item => item.id === marketplaceCategoryId(searchParams.get("category") ?? ""));
+    if (category) return [{ label: "Browse the Marketplace", href: "/browse" }, { label: category.label }];
     if (searchParams.has("q")) return [{ label: "Search results" }];
     if (searchParams.get("sort") === "ending-soon") return [{ label: "Ending Soon" }];
     return [{ label: "Browse the Marketplace" }];
@@ -72,7 +75,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
   if (root === "rewards") return [{ label: "Popular Rewards", href: popularRewardsReturnHref(second ?? "") }, { label: second ? humanize(second) : "Retailer" }];
   if (root === "contact" && second === "product-request") return [{ label: "Contact Us", href: "/contact" }, { label: "Suggest a Product" }];
   if (root === "free-entry" && second === "print") {
-    const offering = searchParams.get("offering");
+    const offering = searchParams.get("offering")?.toLowerCase();
     const href = offering && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(offering)
       ? freeEntryHref(offering, searchParams.get("from"), parseEntryQuantity(searchParams.get("quantity")), searchParams.get("share"))
       : "/free-entry";

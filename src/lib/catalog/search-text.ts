@@ -7,6 +7,7 @@ export function normalizeSearch(value: string) {
     .replace(/\bbestbuy\b/g, "best buy").replace(/\bhomedepot\b/g, "home depot")
     .replace(/\bpack[\s-]+out\b/g, "packout").replace(/\b10\s+1\s*\/\s*4\b/g, "10.25")
     .replace(/\bair[\s-]+pods\b/g, "airpods")
+    .replace(/\blittle[\s-]*green\b/g, "little green").replace(/\blip[\s-]*stick\b/g, "lipstick")
     .replace(/\bwh[\s-]*1000[\s-]*xm[\s-]*5\b/g, "wh1000xm5")
     .replace(/\bo[.\s]+l[.\s]+e[.\s]+d\b/g, "oled")
     .replace(/\b(?:play[\s-]*station|p[.\s-]*s)[.\s-]*5\b/g, "playstation 5")
@@ -27,6 +28,7 @@ export const searchWords = (value: string) => normalizeSearch(value).split(/\s+/
 const ignoredWords = new Set(searchWords("a an and for of or the to i im am is me my some please find show looking look want need buy get stuff thing item product"));
 export const queryWords = (value: string) => [...new Set(searchWords(value
   .replace(/^\s*(?:can|could|would) you\s+(?:please\s+)?(?:show me|find|get me)\s+(?:(?:any|all)\s+)?(?:available\s+)?(?:deals?\s+for\s+)?/i, "")
+  .replace(/^\s*does\s+(.+?)\s+have\s+(?:an?\s+)?/i, "$1 ")
   .replace(/\s+in the (?:list|catalog)\s*$/i, "")).filter(word => !ignoredWords.has(word)
   || (word === "buy" && normalizeSearch(value).includes("best buy"))))];
 export const maxCatalogSearchLength = 512;
