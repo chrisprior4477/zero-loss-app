@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     page.drawText(`${campaign.value} VALUE`, { x: 18, y: 88, size: 10, font: bold, color: green });
     page.drawText("ENTER FOR $1", { x: 18, y: 73, size: 9, font: bold, color: rgb(1, 1, 1) });
     drawQrLabel(page, qr, 18, 12, 44, bold);
-    page.drawText("DEMONSTRATION ONLY", { x: 71, y: 15, size: 7, font: bold, color: rgb(.83, .93, 1) });
+    page.drawText("DEMONSTRATION ONLY", { x: 71, y: 15, size: 7, font: bold, color: navy });
   } else {
     const page = document.addPage([612, 792]); page.drawRectangle({ x: 0, y: 0, width: 612, height: 792, color: cream }); page.drawImage(image, { x: 0, y: 384, width: 612, height: 612 });
     page.drawRectangle({ x: 0, y: 384, width: 612, height: 408, color: navy, opacity: .25 }); page.drawText(`ZERO LOSS  x  ${campaign.brand}`, { x: 42, y: 748, size: 15, font: bold, color: rgb(1, 1, 1) });
