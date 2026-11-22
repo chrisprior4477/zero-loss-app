@@ -148,7 +148,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const matchingRewards = rewardConflict ? [] : walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"
     ? matchingRewards.find(item => item.rewardId === query.rewardId)
-    : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
+    : typeof query.reward === "string" && !account.activity.incomplete && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
   const checkoutSlug = requestedReward
     ? query.via === "purchase" && reward && isPurchasedReward(reward) ? reward.slug : undefined
     : !history && typeof query.checkout === "string" ? query.checkout : undefined;
@@ -166,7 +166,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         {receipt?.status === "succeeded" ? <CheckoutGiftCardList cards={purchasedCards} count={receipt.purchasedCount} slug={checkoutSlug} receipt={receiptId} focused={focused?.id} />
           : <>
             <p role="status">We couldn’t load this checkout.</p>
-            <a href={accountPageReturnPath("/account/wallet", query, "#checkout-gift-cards")} className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>Check this checkout again</a>
+            <AccountReadRetryLink href={accountPageReturnPath("/account/wallet", query, "#checkout-gift-cards")} className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>Check this checkout again</AccountReadRetryLink>
           </>}
         <Link href={completedActivityHref(focused?.item.entryId ?? purchasedCards[0]?.item.entryId, receipt?.status === "succeeded" ? { slug: checkoutSlug, receipt: receiptId } : undefined)} className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>← Back to My Activity</Link>
         <Link href="/account/wallet#ready-rewards" className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>See all gift cards &amp; rewards</Link>
@@ -210,7 +210,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const orderReturn = matchingOrder ? exactOrderHref(matchingOrder.orderNumber, fulfillmentFilter(query.orderFilter), false, orderNotification, orderContext?.filter, checkedNotice) : undefined;
     const ordersVisit = ["orders", "order-notification", "order-selection"].includes(String(query.via));
     const ordersBackHref = orderReturn ?? (ordersVisit ? fulfillmentHref(undefined, fulfillmentFilter(query.orderFilter), false, undefined, orderContext) : undefined);
-    if (account.activity.source === "unavailable") {
+    if (account.activity.source === "unavailable" || account.activity.incomplete && !reward) {
       const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
       const sourceTransaction = transactionOriginHref(query);
       const sourceUpdate = checkedNotice ? notificationHref(notificationFilter(query.alerts), checkedNotice) : undefined;

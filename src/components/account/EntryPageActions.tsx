@@ -344,6 +344,13 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     finally { setWorking(false); }
   }
 
+  function approveQuote(checked: boolean) {
+    setApprovedQuote(checked ? quote : null);
+    if (checked && resumeReview && initialQuantity > maxQuantity && quantityAvailable && crewReturnEntry) {
+      window.history.replaceState(window.history.state, "", entryReviewHref(crewReturnEntry, quantity, activityFilter, entryContext));
+    }
+  }
+
   function adjustQuantity(next: number, clamped = false) {
     setInvalidQuantity(null);
     setTypedLimit(clamped ? next : null);
@@ -425,7 +432,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             {result.status === "error" && result.code !== "insufficient_balance" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {reviewing ? <>
-              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApprovedQuote(event.target.checked ? quote : null)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
+              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => approveQuote(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
               <button type="button" className={styles.checkoutConfirm} disabled={working || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
             {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApprovedQuote(null); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true })); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}

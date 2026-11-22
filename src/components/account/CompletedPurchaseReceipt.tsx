@@ -36,7 +36,7 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
       </div>
       <button type="button" className={styles.dismiss} aria-label="Dismiss purchase confirmation" onClick={revealCards}>×</button>
       <div className={styles.actions}>
-        {count > 1 && first ? <button type="button" className={checkout.primary} onClick={revealCards}>View {count} gift cards</button>
+        {count > 1 ? <button type="button" className={checkout.primary} onClick={revealCards}>View {count} gift cards</button>
           : first ? <Link className={checkout.primary} href={purchasedRewardHref(first.id, slug, receipt)} prefetch={false}>{allReady ? "Open gift card" : "View gift card status"}</Link>
             : null}
         <Link className={styles.secondary} href={checkoutRewardsHref(slug, receipt)} prefetch={false}>Open My Gift Cards &amp; Rewards</Link>

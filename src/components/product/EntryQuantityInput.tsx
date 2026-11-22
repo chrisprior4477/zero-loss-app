@@ -4,14 +4,14 @@ import type { Ref } from "react";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 import styles from "./entry-quantity-input.module.css";
 
-export function EntryQuantityInput({ value, maximum, disabled, label, testId, inputRef, errorId, onChange, invalidDraft, onInvalidDraft, requireValidQuantity = false }: {
-  value: number; maximum: number; disabled?: boolean; label: string; testId?: string; inputRef?: Ref<HTMLInputElement>; errorId?: string;
+export function EntryQuantityInput({ value, maximum, disabled, label, id, testId, inputRef, errorId, onChange, invalidDraft, onInvalidDraft, requireValidQuantity = false }: {
+  value: number; maximum: number; disabled?: boolean; label: string; id?: string; testId?: string; inputRef?: Ref<HTMLInputElement>; errorId?: string;
   requireValidQuantity?: boolean;
   invalidDraft: string | null; onInvalidDraft: (draft: string | null) => void;
   onChange: (quantity: number, clamped?: boolean) => void;
 }) {
   const display = invalidDraft ?? String(value);
-  return <input ref={inputRef} type="text" role="spinbutton" inputMode="numeric" pattern="[0-9]*"
+  return <input ref={inputRef} id={id} type="text" role="spinbutton" inputMode="numeric" pattern="[0-9]*"
     aria-label={label} aria-valuemin={1} aria-valuemax={maximum} aria-valuenow={invalidDraft === null ? value : undefined} aria-invalid={invalidDraft !== null} aria-describedby={invalidDraft !== null ? errorId : undefined}
     autoComplete="off" spellCheck={false} disabled={disabled} value={display}
     data-testid={testId} className={styles.input}
