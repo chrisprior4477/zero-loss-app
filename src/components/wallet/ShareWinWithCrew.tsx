@@ -10,6 +10,7 @@ const noRecipients: string[] = [];
 
 export function ShareWinWithCrew({ rewardId, members, initialShared = noRecipients }: { rewardId: string; members: WinShareCrewMember[]; initialShared?: string[] | null }) {
   const [selected, setSelected] = useState<string[]>([]);
+  const currentSelection = selected.filter(id => members.some(member => member.id === id));
   const [pending, startTransition] = useTransition();
   const [shared, setShared] = useState<Set<string>>(() => new Set(initialShared ?? []));
   const [message, setMessage] = useState("");
@@ -42,13 +43,13 @@ export function ShareWinWithCrew({ rewardId, members, initialShared = noRecipien
   }
 
   function share() {
-    if (!selected.length || pending || needsCheck) return;
+    if (!currentSelection.length || pending || needsCheck) return;
     setMessage("");
     startTransition(async () => {
       try {
-        const result = await shareWinWithCrew(rewardId, selected);
+        const result = await shareWinWithCrew(rewardId, currentSelection);
         setError(!result.ok);
-        if (result.ok) { setShared(current => new Set([...current, ...selected])); setSelected([]); }
+        if (result.ok) { setShared(current => new Set([...current, ...currentSelection])); setSelected([]); }
         else await checkSharedRecipients();
         setMessage(result.message);
       } catch {
@@ -74,7 +75,7 @@ export function ShareWinWithCrew({ rewardId, members, initialShared = noRecipien
       <div className="mt-4 flex flex-wrap gap-3">
         {members.map(member => <label key={member.id} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold"><input type="checkbox" checked={selected.includes(member.id)} disabled={pending || shared.has(member.id)} onChange={event => { setSelected(current => event.target.checked ? [...current, member.id] : current.filter(id => id !== member.id)); setMessage(""); }} />{member.name}{shared.has(member.id) ? " · Shared" : ""}</label>)}
       </div>
-      <button type="button" className="mt-4 min-h-11 rounded-xl bg-[#00b9ff] px-5 py-2 font-black text-[#00132e] disabled:opacity-50" disabled={!selected.length || pending || needsCheck} onClick={share}>{pending ? "Saving…" : "Share win with selected Crew"}</button>
+      <button type="button" className="mt-4 min-h-11 rounded-xl bg-[#00b9ff] px-5 py-2 font-black text-[#00132e] disabled:opacity-50" disabled={!currentSelection.length || pending || needsCheck} onClick={share}>{pending ? "Saving…" : "Share win with selected Crew"}</button>
     </> : <p className="mt-4 text-sm">You don’t have any connected Crew members yet. <Link href="/account/crew" className="font-bold text-cyan-200 underline">Manage your Crew</Link></p>}
     {message ? <p role={error ? "alert" : "status"} className="mt-3 text-sm font-semibold">{message}</p> : null}
   </section>;

@@ -74,9 +74,11 @@ export const samplePicks = {
 
 export type CrewActivityPick = { title: string; retailer: string; image: string; slug: string; note?: string };
 
-export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accountMode = false, accent = "green", panelRef, compact = false, peopleFirst = false }: {
+export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accountMode = false, accent = "green", panelRef, compact = false, peopleFirst = false, discovery = false, search = "" }: {
   compact?: boolean;
   peopleFirst?: boolean;
+  discovery?: boolean;
+  search?: string;
   person: string;
   onClose: () => void;
   picks?: CrewActivityPick[];
@@ -140,7 +142,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
     </div>
     {visiblePicks.length ? <>
       <div ref={railRef} className={styles.rail} aria-label={`${person}'s shared items`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={() => { drag.current.active = false; drag.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={preventDraggedClick} onDragStart={(event) => event.preventDefault()}>
-        {visiblePicks.map((pick, index) => <Link href={accountMode ? `/items/${pick.slug}` : productHrefWithBrowseReturn(pick.slug, `/?crew-person=${encodeURIComponent(person)}&crew-prize=${pick.slug}#find-your-crew-heading`)} data-crew-home-prize={pick.slug} key={`${pick.slug}-${index}`} className={styles.pickCard} draggable={false}>
+        {visiblePicks.map((pick, index) => <Link href={accountMode ? `/items/${pick.slug}` : productHrefWithBrowseReturn(pick.slug, `/?${new URLSearchParams({ "crew-person": person, "crew-prize": pick.slug, ...(discovery ? { "crew-panel": "discovery" } : {}), ...(search ? { "crew-search": search } : {}) })}#find-your-crew-heading`)} data-crew-home-prize={pick.slug} key={`${pick.slug}-${index}`} className={styles.pickCard} draggable={false}>
           <span className={styles.productArt}><Image src={pick.image} alt="" fill draggable={false} sizes={peopleFirst ? "(max-width: 640px) 45vw, (max-width: 900px) 42vw, 350px" : "(max-width: 650px) 165px, 200px"} className={styles.productImage} /><DemoOutcomeLetter product={pick.slug} dark={!peopleFirst} /></span>
           <span className={styles.pickCopy}><small>{pick.retailer}</small><strong>{pick.title}</strong>{pick.note ? <em>{pick.note}</em> : null}<span className={styles.viewLink}>View product →</span></span>
         </Link>)}

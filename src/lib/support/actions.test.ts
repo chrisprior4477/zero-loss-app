@@ -7,7 +7,7 @@ const caseId = "11111111-1111-4111-8111-111111111111";
 const transactionId = "22222222-2222-4222-8222-222222222222";
 function form() {
   const data = new FormData();
-  Object.entries({ requestKey: "support_request_001", subject: "Funding question", category: "wallet", body: "Please check this transaction.", transactionId }).forEach(([key, value]) => data.set(key, value));
+  Object.entries({ ownerId: "owner", requestKey: "support_request_001", subject: "Funding question", category: "wallet", body: "Please check this transaction.", transactionId }).forEach(([key, value]) => data.set(key, value));
   return data;
 }
 beforeEach(() => {

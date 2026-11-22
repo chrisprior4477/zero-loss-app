@@ -63,6 +63,7 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref, 
   }, [state]);
   async function skipDemoAndClaim() {
     if (!previewShown || skipInFlight.current || pending) return;
+    if (Date.now() >= deadline) { setSkipError("The claim deadline passed. This reward can no longer be claimed."); return; }
     skipInFlight.current = true; setSkipping(true); setSkipError(null);
     try {
       const started = await beginDemoVerification(rewardId);
@@ -74,6 +75,7 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref, 
       if (!result.verification || !["demo_passed", "demo_skipped"].includes(result.verification.step)) {
         setSkipError(result.error ?? "We couldn’t confirm this demo step. Please try again."); return;
       }
+      if (Date.now() >= deadline) { setSkipError("The claim deadline passed before your reward could be claimed."); return; }
       setIntroOpen(false);
       // Claim through the same owner-checked, idempotent server action as the full walkthrough.
       form.current.requestSubmit();

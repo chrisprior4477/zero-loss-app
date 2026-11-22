@@ -43,7 +43,7 @@ export const livePulseDemoItems = [
   { label: "Darden Restaurants $100 gift card", value: "42 tickets left", tone: "urgent", href: "/items/directory-darden-restaurants-100-gift-card", format: "tickets" },
   { label: "193 winners", value: "TODAY!", tone: "live", href: "/#meet-winners-heading", format: "stat" },
   { label: "Publix gift card", value: "11 entries left", tone: "urgent", href: "/items/publix-100-gift-card-ending-soon", format: "entries" },
-  { label: "Active prize pools", value: "142", tone: "neutral", href: "/browse#search-results", format: "stat" },
+  { label: "Active prize pools", value: "142", tone: "neutral", href: "/browse?available=1#search-results", format: "stat" },
   { label: "YETI Rambler", value: "Only 1 left", tone: "urgent", href: "/items/yeti-rambler-30-tumbler", format: "only" },
   { label: "Sony WH-1000XM5", value: "40% full", tone: "neutral", href: "/items/sony-wh-1000xm5-headphones", format: "percent" },
   { label: "Kobalt leaf blower", value: "2 tickets left", tone: "urgent", href: "/items/kobalt-24v-leaf-blower", format: "tickets" },
@@ -71,7 +71,7 @@ export const transparencyStatsDemo = [
   {
     label: "Active prize pools",
     value: "142",
-    detail: "Open marketplace opportunities",
+    detail: "Sample marketplace activity",
   },
 ] as const;
 
@@ -226,7 +226,7 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "My $100 Walmart shopping reward arrived today. Zero Loss made my week!",
     accent: "#1877f2",
-    href: "/#meet-winners-heading",
+    href: "/items/walmart-100-gift-card",
   },
   {
     id: "social-instagram-1",
@@ -279,9 +279,9 @@ export const socialActivityDemoItems = [
     name: "Nicole S.",
     handle: "@nicoleathome",
     avatar: "/design/lady-with-bag.webp",
-    message: "Swipe to see the home refresh kit completely transform my kitchen counter.",
+    message: "The KitchenAid mixer I won has a permanent spot on my kitchen counter.",
     accent: "#d946ef",
-    href: "/items/dyson-v8-cordless-vacuum",
+    href: "/items/kitchenaid-artisan-5qt-mixer",
   },
   {
     id: "social-tiktok-2",
@@ -292,6 +292,6 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "Testing my new premium headphones on a flight—now I understand the hype.",
     accent: "#111827",
-    href: "/#meet-winners-heading",
+    href: "/items/sony-wh-1000xm5-headphones",
   },
 ] as const;

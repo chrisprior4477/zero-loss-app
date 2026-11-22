@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { demoCardFixture } from "@/lib/payments/demo-card";
@@ -13,23 +14,25 @@ import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import styles from "./wallet-overview.module.css";
 
 export function DepositReceiptDate({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {
+  const locale = useAccountLocale();
   const card = demoCardFixture(request.sampleCard);
   const timestamp = request.postedAt ?? request.created_at;
-  return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
+  return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone, locale)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
-export function depositReceiptLabel(request: DemoFundingRequest, timeZone?: string) {
-  return formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone) + ", reference ending " + request.id.slice(-8).toUpperCase();
+export function depositReceiptLabel(request: DemoFundingRequest, timeZone?: string, locale?: string) {
+  return formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone, locale) + ", reference ending " + request.id.slice(-8).toUpperCase();
 }
 
 export function DepositCreditLink({ request, restoreLedgerView = false, fromDeposits = false, fromWeek = false, timeZone }: { request: DemoFundingRequest; timeZone?: string; restoreLedgerView?: boolean; fromDeposits?: boolean; fromWeek?: boolean }) {
+  const locale = useAccountLocale();
   const id = request.ledgerId;
   if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
   const transaction = walletSupportReturnHref(id, restoreLedgerView, fromDeposits);
   const href = fromWeek ? transaction.replace("#", `&weeklyDeposit=${encodeURIComponent(request.idempotencyKey)}#`) : transaction;
   return <Link href={href} onNavigate={fromWeek ? () => {
     window.history.replaceState({ ...window.history.state, weeklyDepositReceipt: request.idempotencyKey }, "");
-  } : undefined} aria-label={"View wallet credit for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View wallet credit →</Link>;
+  } : undefined} aria-label={"View wallet credit for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View wallet credit →</Link>;
 }
 
 function ReceiptDetails({ request, timeZone, open, onClose }: { request: DemoFundingRequest; timeZone?: string; open?: boolean; onClose?: () => void }) {
@@ -41,16 +44,32 @@ type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[];
 
 export function WeeklyDeposits(props: ChartProps) {
   const viewport = useMenuViewport();
-  return viewport === "desktop" ? <DepositChart {...props} /> : viewport && props.restoreReceipt ? <MobileReceiptReturn requestKey={props.restoreReceipt} /> : null;
+  return viewport === "desktop" ? <DepositChart {...props} /> : viewport ? <MobileReceiptReturn requestKey={props.restoreReceipt} /> : null;
 }
 
-function MobileReceiptReturn({ requestKey }: { requestKey: string }) {
+function MobileReceiptReturn({ requestKey }: { requestKey?: string }) {
   const router = useRouter();
-  const href = `/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(requestKey)}#payment-deposits`;
+  const href = requestKey ? depositListReceiptHref(requestKey) : null;
   useEffect(() => {
-    router.replace(href, { scroll: false });
+    function restore() {
+      if (location.pathname !== "/account/wallet") return;
+      const stored = window.history.state?.weeklyDepositReceipt;
+      const destination = href ?? (typeof stored === "string" && location.hash === "#weekly-deposit-heading" ? depositListReceiptHref(stored) : null);
+      if (destination) router.replace(destination, { scroll: false });
+    }
+    restore();
+    window.addEventListener("popstate", restore);
+    window.addEventListener("pageshow", restore);
+    return () => {
+      window.removeEventListener("popstate", restore);
+      window.removeEventListener("pageshow", restore);
+    };
   }, [href, router]);
-  return <p id="weekly-deposit-heading"><Link href={href}>Open this receipt in Payment deposits</Link></p>;
+  return href ? <p id="weekly-deposit-heading"><Link href={href}>Open this receipt in Payment deposits</Link></p> : null;
+}
+
+function depositListReceiptHref(key: string) {
+  return `/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(key)}#payment-deposits`;
 }
 
 function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, restoreReceipt }: ChartProps) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 
@@ -13,12 +14,13 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./support-record-picker.module.css";
 
 function RecordDetails({ record, timeZone }: { record: SupportRecord; timeZone: string }) {
+  const locale = useAccountLocale();
   const prefix = record.kind === "order" ? "Order" : "Transaction";
   const amount = (record.kind === "transaction" && record.amount > 0 ? "+" : "") + formatUsdFromCents(record.amount);
   return <>
     <span className={styles.recordHeading}><strong>{record.title}</strong><strong>{amount}</strong></span>
     <span className={styles.recordMeta}>{record.detail} · {prefix} #{record.id.slice(-8).toUpperCase()}</span>
-    <span className={styles.recordMeta}>{formatOfferDeadline(record.date, timeZone)} · {record.status}</span>
+    <span className={styles.recordMeta}>{formatOfferDeadline(record.date, timeZone, locale)} · {record.status}</span>
   </>;
 }
 
@@ -56,6 +58,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     }
   }, [result]);
 
+  const cursors = useRef(new Map<string, Pick<SupportRecord, "id" | "date">>());
   async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false, selectedId?: string) {
     const id = ++request.current;
     focusResults.current = focusAfterLoad;
@@ -64,7 +67,10 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     setKind(nextKind);
     setPage(nextPage);
     setResult(null);
-    const lookup = selectedId ? loadSupportRecords(nextKind, nextPage, selectedId) : loadSupportRecords(nextKind, nextPage);
+    const cursorKey = `${nextKind}:${nextPage}`;
+    const cursor = selectedId ? undefined : cursors.current.get(cursorKey);
+    const lookup = cursor ? loadSupportRecords(nextKind, nextPage, undefined, cursor)
+      : selectedId ? loadSupportRecords(nextKind, nextPage, selectedId) : loadSupportRecords(nextKind, nextPage);
     const response = await lookup.catch(() => ({ error: "We couldn’t load these records. Try again." }));
     if (id === request.current && dialog.current?.open) {
       if ("records" in response && response.page !== undefined) setPage(response.page);
@@ -149,7 +155,11 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
         {result && "records" in result && result.incomplete ? <div><p role="status">Some orders could not be loaded.</p><button type="button" className={styles.control} onClick={() => void load(kind, page, true, selectedLookup.current)}>Retry order list</button></div> : null}
         {page > 0 || (result && "more" in result && result.more) ? <div className={styles.controls}>
           {page > 0 ? <button type="button" className={styles.control} disabled={!result} onClick={() => void load(kind, page - 1, true)}>Previous</button> : null}
-          {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => void load(kind, page + 1, true)}>Next</button> : null}
+          {result && "more" in result && result.more ? <button type="button" className={styles.control} onClick={() => {
+            const last = result.records.at(-1);
+            if (last) cursors.current.set(`${kind}:${page + 1}`, { id: last.id, date: last.date });
+            void load(kind, page + 1, true);
+          }}>Next</button> : null}
         </div> : null}
         <button type="button" className={styles.control} onClick={() => dialog.current?.close()}>Cancel</button>
       </div>

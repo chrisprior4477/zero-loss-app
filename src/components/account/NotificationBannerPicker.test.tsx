@@ -24,7 +24,7 @@ test("the speed slider follows all six choices, updates previews, and saves with
  fireEvent.change(slider,{target:{value:'9'}});
  expect(container.querySelector('[data-style="capsule"]')?.getAttribute('style')).toContain('--reveal-duration: 378ms');
  fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,9,6,'rounded'));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,9,6,'rounded',expect.objectContaining({speed:5})));
  expect(mock.setSpeed).toHaveBeenCalledWith(9); expect(await screen.findByText('Notification banner saved.')).toHaveProperty('role','status');
 });
 test("a saved speed is restored and failed saves remain retryable",async()=>{
@@ -52,7 +52,7 @@ test("Display time previews and saves separately from speed",async()=>{
  const previewStyle=container.querySelector('[data-style="capsule"]')?.getAttribute('style');
  expect(previewStyle).toContain('--reveal-duration: 200ms');expect(previewStyle).toContain('--close-delay: 3400ms');
  fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,10,3,'rounded'));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,10,3,'rounded',expect.objectContaining({displaySeconds:6})));
  expect(mock.setDisplaySeconds).toHaveBeenCalledWith(3);
 });
 
@@ -62,7 +62,7 @@ test("popup shape previews immediately and saves independently of the animated s
  expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');
  expect(mock.setStyle).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('ribbon',true,5,6,'ticket'));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('ribbon',true,5,6,'ticket',expect.objectContaining({popupStyle:'rounded'})));
  await screen.findByText('Notification banner saved.');
  unmount();expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');
 });

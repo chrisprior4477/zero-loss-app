@@ -162,7 +162,18 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
   return { ok: true, publicUrl };
 }
 
-export async function saveProfilePhotoVisibility(surface: PhotoVisibilitySurface, enabled: boolean): Promise<SavePhotoVisibilityResult> {
+export async function readProfilePhotoVisibility(surface: PhotoVisibilitySurface, ownerId: string): Promise<boolean | null> {
+  if (surface !== "menu" && surface !== "crew") return null;
+  const db = await createClient();
+  const { data: { user }, error } = await db.auth.getUser();
+  if (error || user?.id !== ownerId) return null;
+  const { data, error: profileError } = await db.from("customer_profiles")
+    .select("show_photo_in_menu,show_photo_to_crew").eq("customer_id", ownerId).maybeSingle();
+  if (profileError || !data) return null;
+  return surface === "menu" ? data.show_photo_in_menu : data.show_photo_to_crew;
+}
+
+export async function saveProfilePhotoVisibility(surface: PhotoVisibilitySurface, enabled: boolean, ownerId: string): Promise<SavePhotoVisibilityResult> {
   if ((surface !== "menu" && surface !== "crew") || typeof enabled !== "boolean") {
     return { ok: false, message: "Choose a valid photo setting." };
   }
@@ -170,6 +181,7 @@ export async function saveProfilePhotoVisibility(surface: PhotoVisibilitySurface
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return { ok: false, message: "Your session expired. Sign in again before changing your photo settings." };
 
+  if (user.id !== ownerId) return { ok: false, message: "This profile belongs to a different account. Reload your profile before changing this setting." };
   const { error } = await supabase.rpc("set_profile_photo_visibility", { p_surface: surface, p_enabled: enabled });
   if (error) return { ok: false, message: "Your photo setting could not be saved. Please try again." };
   revalidatePath("/", "layout");

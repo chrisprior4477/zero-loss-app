@@ -59,7 +59,8 @@ function updatePendingReads(key: string, ids: string[], remove = false) {
 }
 
 export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, supportAvailable = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; supportAvailable?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
-  const live = useNotifications()?.liveSnapshot;
+  const notificationContext = useNotifications();
+  const live = notificationContext?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
   // counts, rows and read controls without remounting the customer's view.
   const notifications = live ? live.notifications : serverNotifications;
@@ -148,7 +149,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     };
   }, []);
   const scrollFrame = useRef<number | null>(null);
-  const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
+  const preferencesKnown = initialAlertPreferences !== null;
+  const enabledNotifications = useMemo(() => notifications.filter(notification => (
+    (preferencesKnown || !notification.preferenceKey || Object.hasOwn(alertPreferences, notification.preferenceKey))
+      && notificationIsEnabled(notification, alertPreferences)
+  )), [notifications, alertPreferences, preferencesKnown]);
   const attentionNotifications = useMemo(() => enabledNotifications.filter(notification => notification.category === "action" || !read.has(notification.id) || notification.id === focusedNotice), [enabledNotifications, read, focusedNotice]);
   const actionCount = enabledNotifications.filter(notification => notification.category === "action").length;
   const unreadCount = enabledNotifications.filter(notification => !read.has(notification.id)).length;
@@ -176,7 +181,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const currentOrderNotice = orderNoticePrefix ? enabledNotifications.find(item => item.id.startsWith(orderNoticePrefix + "-")) : undefined;
   const supportCaseId = focusedNotice?.match(/^support-([a-f0-9-]{36})-/i)?.[1];
   const movedNotice = focusedNotice && noticeIndex < 0 ? enabledNotifications.find(notice => notice.id === focusedNotice) : undefined;
-  const incompleteFeed = !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || (supportEnabled && !supportAvailable);
+  const incompleteFeed = !preferencesKnown || !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || live?.ordersAvailable === false || (supportEnabled && !supportAvailable);
   useEffect(() => {
     if (!focusedNotice || focusedReturn.current === focusedNotice) return;
     if (noticeIndex < 0) {
@@ -504,6 +509,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     openNotification(notification, event.currentTarget.getAttribute("href") ?? notification.href);
   }
 
+  if (notificationContext?.sessionExpired) return <div className={styles.page}>
+    <h1>Notifications</h1>
+    <p role="status">Your session ended. Sign in to see your updates.</p>
+    <Link href="/login?next=%2Faccount%2Fnotifications">Sign in</Link>
+  </div>;
   return <div className={styles.page}>
     <NotificationsLandingScroll userId={userId} />
     <div className={styles.pageContent}>

@@ -10,6 +10,7 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { matchesCatalogMerchant } from "@/lib/catalog/search-denomination";
+import { formatUsdFromCents } from "@/lib/wallet/money";
 import { isGiftCardListing } from "@/lib/catalog/navigation";
 
 type Props = { params: Promise<{ brand: string }> };
@@ -28,7 +29,7 @@ export default async function RewardBrandPage({ params }: Props) {
   const brand = getPopularRewardBrand(requestedBrand.toLowerCase());
   if (!brand) notFound();
   if (requestedBrand !== brand.slug) permanentRedirect(`/rewards/${brand.slug}`);
-  const { hidden, unavailable, unverifiedSlugs } = await getShoppingCatalog();
+  const { hidden, unavailable, unverifiedSlugs, availability } = await getShoppingCatalog();
   const offers: { amount: number; slug: string; title?: string }[] = popularRewardAmounts.map(amount => ({ amount, slug: popularRewardProductSlug(brand.slug, amount) }))
     .filter(({ amount, slug }) => !hidden.has(slug) || (amount === 100 && !unavailable));
   const values = new Set<number>(popularRewardAmounts);
@@ -53,14 +54,17 @@ export default async function RewardBrandPage({ params }: Props) {
         <Link href={popularRewardsReturnHref(brand.slug)} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to Popular Rewards</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Popular Reward · Digital fulfillment</p>
         <h1 className="mt-2 text-4xl font-black sm:text-6xl">Choose your {brand.name} reward</h1>
-        <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to go to its $1 entry area. You can review the complete demo offering before you enter.</p>
+        <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to see its entry price. You can review the complete demo offering before you enter.</p>
 
         <section id="reward-values" tabIndex={-1} className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
           {closedBookmarks.map(product => <p key={product.slug} id={`prize-${product.slug}`} tabIndex={-1} role="status"
             className="hidden text-sm font-semibold text-amber-100 target:block sm:col-span-2">{product.title} is closed for new entries. {offers.some(({ slug }) => !hidden.has(slug)) ? "Choose an available amount below." : "Browse available prizes to find another offer."}</p>)}
           {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded." : "There are no open gift-card offers for this retailer right now."} {unavailable && <AccountReadRetryLink className="font-bold text-cyan-300 underline" href={`/rewards/${brand.slug}#reward-values`}>Try again.</AccountReadRetryLink>} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
           {offers.map(({ amount, slug, title }) => {
-            const open = !hidden.has(slug);
+            const unverified = unavailable || unverifiedSlugs?.has(slug);
+            const product = demoProducts.find(candidate => candidate.slug === slug);
+            const open = !unverified && Boolean(product) && !hidden.has(slug);
+            const price = product ? formatUsdFromCents(availability?.[slug]?.entryPriceCents ?? Math.round(product.entryPrice * 100)) : "";
             const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";
             const card = <>
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
@@ -69,8 +73,8 @@ export default async function RewardBrandPage({ params }: Props) {
                 <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-[#00132e] shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
               </div>
               <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-4 sm:gap-4">
-                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">{title ?? `$${amount} ${brand.name} Gift Card`}</h2><p className="mt-1 text-sm text-white/65">{open ? "$1 per entry · Investor demo" : "No open entries"}</p></div>
-                {open && <span className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#31e800] px-3 text-xs font-extrabold text-[#00132e] transition-colors group-hover:bg-[#72ff4e] sm:px-4 sm:text-sm">Enter for $1</span>}
+                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">{title ?? `$${amount} ${brand.name} Gift Card`}</h2><p className="mt-1 text-sm text-white/65">{open ? `${price} per entry · Investor demo` : unverified ? "Availability couldn’t be checked" : "No open entries"}</p></div>
+                {open && <span className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#31e800] px-3 text-xs font-extrabold text-[#00132e] transition-colors group-hover:bg-[#72ff4e] sm:px-4 sm:text-sm">Enter for {price}</span>}
               </div>
             </>;
             return open ? (

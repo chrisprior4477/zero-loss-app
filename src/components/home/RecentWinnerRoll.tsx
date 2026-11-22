@@ -14,6 +14,7 @@ export function RecentWinnerRoll() {
   useEffect(() => {
     if (!canAnimate) return;
     const interval = window.setInterval(() => {
+      if (sectionRef.current?.contains(document.activeElement)) return;
       setActiveIndex((current) => (current + 1) % recentWinnerDemoItems.length);
     }, 3000);
 

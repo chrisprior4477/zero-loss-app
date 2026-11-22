@@ -140,16 +140,21 @@ function activityNotification(item: ActivityItem): AccountNotification {
 }
 
 /** The order log is authoritative for fulfillment; reward readiness alone is not an order event. */
-export function buildOrderNotifications(orders: readonly AccountOrder[]): AccountNotification[] {
+export function buildOrderNotifications(orders: readonly AccountOrder[], activity?: AccountActivity): AccountNotification[] {
   return orders.map(order => {
     const issued = order.status === "fulfilled";
+    const rewardStatus = activity?.activity.find(item => item.rewardId === order.rewardId)?.rewardStatus;
+    const issuedBody = rewardStatus === "ready" ? "Your retailer gift card is ready to open."
+      : rewardStatus === "redeemed" ? "This gift card was used. Open the order for its record."
+        : rewardStatus === "expired" ? "This gift card has expired. Open the order for details."
+          : "Open the order to check the gift card’s current status.";
     const exception = order.status === "exception";
     const corrected = order.status === "corrected";
     return {
       id: `order-${order.orderNumber}-${order.status}`,
       category: exception ? "action" : "orders",
       title: issued ? `${order.retailer} gift card issued` : corrected ? `${order.retailer} order was corrected` : exception ? `${order.retailer} order needs attention` : `${order.retailer} order ${order.status === "cancelled" ? "cancelled" : "is processing"}`,
-      body: issued ? "Your retailer gift card is ready to open." : corrected ? "A correction is recorded. Open the order for its current details." : exception ? "Your order is saved, but its issuance needs attention." : order.status === "cancelled" ? "This order is closed. Its history remains available." : "Payment is confirmed. We’ll show the issued card when it is ready.",
+      body: issued ? issuedBody : corrected ? "A correction is recorded. Open the order for its current details." : exception ? "Your order is saved, but its issuance needs attention." : order.status === "cancelled" ? "This order is closed. Its history remains available." : "Payment is confirmed. We’ll show the issued card when it is ready.",
       meta: `Order ${order.orderNumber.slice(-8).toUpperCase()}`,
       href: exactOrderHref(order.orderNumber, "all", false, true, exception ? "action" : "orders", `order-${order.orderNumber}-${order.status}`),
       action: "View exact order",

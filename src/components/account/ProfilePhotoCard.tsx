@@ -4,11 +4,12 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import photoStyles from "./profile-photo.module.css";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { restoreDialogTrigger } from "./dialog-keyboard";
 import { useDialogBack } from "./useDialogBack";
 import { ChangeEvent, MouseEvent, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
+import { readProfilePhotoVisibility, saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
 
@@ -230,19 +231,26 @@ export function ProfilePhotoCard({
     };
   }, [editing, closeEditor]);
 
+  const router = useRouter();
   async function changeVisibility(surface: PhotoVisibilitySurface, trigger: HTMLInputElement) {
     const enabled = trigger.checked;
     visibilityTrigger.current = trigger;
     setPendingVisibility({ surface, enabled });
     setVisibilityMessage({ error: false, text: "Saving photo choice…" });
     try {
-      const result = await saveProfilePhotoVisibility(surface, enabled);
+      const result = await saveProfilePhotoVisibility(surface, enabled, accountId);
       if (!result.ok) { setVisibilityMessage({ error: true, text: result.message }); return; }
       setSavedVisibility(current => ({ ...current, value: { ...current.value, [surface]: enabled } }));
       notifyAccountChanged();
       setVisibilityMessage({ error: false, text: "Photo choice saved." });
     } catch {
-      setVisibilityMessage({ error: true, text: "We couldn’t confirm your photo visibility change. Please try again." });
+      const verified = await readProfilePhotoVisibility(surface, accountId).catch(() => null);
+      if (verified !== null) {
+        setSavedVisibility(current => ({ ...current, value: { ...current.value, [surface]: verified } }));
+        setVisibilityMessage({ error: verified !== enabled, text: verified === enabled ? "Photo choice saved." : "Showing the current saved photo choice." });
+        notifyAccountChanged();
+      } else setVisibilityMessage({ error: true, text: "We couldn’t confirm your photo visibility change. Refresh Profile to check the saved setting." });
+      router.refresh();
     } finally {
       setPendingVisibility(null);
     }

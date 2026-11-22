@@ -112,6 +112,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
   }, [count]);
 
   function choose(nextIndex: number) {
+    if (new URLSearchParams(location.search).get("review") === "entry") return;
     const next = Math.max(0, Math.min(count - 1, nextIndex));
     lastWheelIndex.current = null;
     if (wheelRef.current) wheelRef.current.scrollTop = next * 44;
@@ -162,7 +163,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
         <div ref={wheelRef} className={styles.wheel} role="listbox" aria-labelledby={`${id}-wheel-label`}
           aria-activedescendant={`${id}-entry-${ticket.number}`} tabIndex={0}
           onScroll={event => {
-            if (!event.currentTarget.clientHeight) return;
+            if (!event.currentTarget.clientHeight || new URLSearchParams(location.search).get("review") === "entry") return;
             const next = Math.max(0, Math.min(count - 1, Math.round(event.currentTarget.scrollTop / 44)));
             lastWheelIndex.current = next;
             if (next !== index) {

@@ -109,7 +109,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   useEffect(() => {
     if (isSignedIn) return;
     const abandonOnBack = () => {
-      if (location.pathname === "/login" || location.pathname === "/signup") return;
+      if (["/login", "/signup", "/forgot-password", "/reset-password", "/auth/recovery"].includes(location.pathname)) return;
       try { sessionStorage.removeItem(pendingKey); } catch { /* Storage is optional. */ }
     };
     window.addEventListener("popstate", abandonOnBack);
@@ -182,7 +182,16 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
           rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined, destination });
           router.push(login);
         } else setMessage(result.message ?? "Favorites could not be updated.");
-      }).catch(() => setMessage("Favorites could not be updated. Please try again.")).finally(() => finishChange(slug));
+      }).catch(async () => {
+        const latest = await getCurrentFavorites().catch(() => null);
+        if (latest?.available && latest.slugs.some(savedSlug => savedSlug === slug) === shouldSave) {
+          confirmed.current.set(slug, shouldSave);
+          setSlugs(current => shouldSave ? [...new Set([slug, ...current])] : current.filter(item => item !== slug));
+          setLastSavedSlug(shouldSave ? slug : null);
+          setMessage(shouldSave ? "Saved to Favorites." : "Removed from Favorites.");
+          notifyAccountChanged();
+        } else setMessage("We couldn’t confirm the change to Favorites. Refresh to check.");
+      }).finally(() => finishChange(slug));
     });
   };
 

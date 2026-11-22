@@ -134,7 +134,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? rewardInView(singleReady) : accountReady.length ? scopedHistory(rewardViewHrefs.ready) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(accountReady.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? rewardInView(singleReady) : accountReady.length ? rewardViewHrefs.ready : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
@@ -188,7 +188,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             {(other.length > 0 || view === "history" || view === "other") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" || view === "other" ? "page" : undefined}>History</WalletRewardLink>}
           </nav>
         </div>
-        {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
+        {state.source === "unavailable" || state.incomplete && shown.length === 0 ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
           {view === "used" ? <><p>No rewards used yet. Redeemed gift cards appear here.</p></> : view === "expired" ? <p>No expired rewards or purchase options.</p> : view === "other" ? <p>No other reward updates yet.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
         </div> : <>
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
@@ -230,7 +230,11 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
   const returnView = sourceView === "ready" && item.rewardStatus === "expired" ? "expired" : sourceView;
   const directPurchase = item.rewardSource === "purchase" && !item.entryId;
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
-  const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
+  const savedStatus = item.rewardStatus ?? (item.rewardId ? null : "ready");
+  const claimDeadlineAt = Date.parse(item.rewardClaimExpiresAt ?? "");
+  // This component renders on the server; use the response time for the initial status.
+  // eslint-disable-next-line react-hooks/purity
+  const status = savedStatus === "ready" && !item.rewardClaimedAt && claimDeadlineAt <= Date.now() ? "expired" : savedStatus;
   const available = status === "ready";
   // Illustrative cards can keep their sample. A stored reward must use its own
   // authorized credential; a failed/withheld read must never invent a barcode.
@@ -360,7 +364,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         </aside> : null}
       </div>
 
-      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <a href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</a></p> : <ShareWinWithCrew key={item.rewardId} rewardId={item.rewardId} members={crewMembers} initialShared={sharedCrewRecipients} /> : null}
+      {item.status === "prize" && item.rewardId ? crewMembers === null ? <p role="status" className={styles.backToRewards}>We couldn’t load your Crew. <AccountReadRetryLink href={claimCheckHref ?? walletRewardHref(item)}>Retry loading Crew</AccountReadRetryLink></p> : <ShareWinWithCrew key={item.rewardId} rewardId={item.rewardId} members={crewMembers} initialShared={sharedCrewRecipients} /> : null}
 
       <p className={styles.rewardDisclosure}>This retailer gift card is not restricted to the featured product. Availability, pricing, and redemption methods are controlled by {item.retailer}.</p>
       {isPreview ? <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-[#31e800]/40 bg-[#06223d] p-4 text-center text-white">

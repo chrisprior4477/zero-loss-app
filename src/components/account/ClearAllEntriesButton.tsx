@@ -8,9 +8,11 @@ import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { useRouter } from "next/navigation";
 import { checkDemoEntryReset, clearOwnDemoEntries, previewDemoEntryReset } from "@/lib/account/demo-entry-reset-actions";
+import { readWalletReset, saveWalletReset } from "@/lib/wallet/reset-recovery";
 import styles from "./clear-all-entries-button.module.css";
 
-export function ClearAllEntriesButton() {
+export function ClearAllEntriesButton({ ownerId = "test" }: { ownerId?: string }) {
+  const resetKey = `zero-loss:entry-reset:${ownerId}`;
   const router = useRouter();
   const [entryCount, setEntryCount] = useState<number | null>(null);
   const [uncertain, setUncertain] = useState(false);
@@ -42,6 +44,13 @@ export function ClearAllEntriesButton() {
 
   function openConfirmation() {
     setNotice("");
+    const saved = readWalletReset(resetKey);
+    if (saved) {
+      requestKey.current = saved;
+      setUncertain(true);
+      setEntryCount(0);
+      return;
+    }
     startTransition(async () => {
       try {
         const preview = await previewDemoEntryReset();
@@ -56,10 +65,12 @@ export function ClearAllEntriesButton() {
 
   function confirmClear() {
     if (entryCount === null || !requestKey.current || uncertain) return;
+    saveWalletReset(resetKey, requestKey.current);
     startTransition(async () => {
       try {
         const result = await clearOwnDemoEntries(entryCount, requestKey.current!, revision.current);
-        if (result.status === "error") { setNotice(result.message); if (result.stale) closeDialog(); else setUncertain(true); return; }
+        if (result.status === "error") { setNotice(result.message); if (result.stale) { saveWalletReset(resetKey, null); closeDialog(); } else setUncertain(true); return; }
+        saveWalletReset(resetKey, null);
         closeDialog();
         setNotice(`${result.clearedCount} demo ${result.clearedCount === 1 ? "entry" : "entries"} cleared from your current activity. Your wallet and transaction history were not changed.`);
         router.refresh();
@@ -77,6 +88,7 @@ export function ClearAllEntriesButton() {
       try {
         const receipt = await checkDemoEntryReset(key);
         if (receipt.status === "error") { setNotice(receipt.message); return; }
+        saveWalletReset(resetKey, null);
         closeDialog();
         const status = receipt.clearedCount === null ? "No saved receipt was found for this reset." : `This reset cleared ${receipt.clearedCount} demo ${receipt.clearedCount === 1 ? "entry" : "entries"}.`;
         const current = receipt.currentCount === null ? "" : ` Your account currently has ${receipt.currentCount} demo ${receipt.currentCount === 1 ? "entry" : "entries"}.`;
@@ -95,8 +107,8 @@ export function ClearAllEntriesButton() {
     </div>
     {entryCount !== null && typeof document !== "undefined" ? createPortal(
       <dialog ref={dialogRef} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-entry-reset-title" aria-describedby="demo-entry-reset-description">
-        <h2 id="demo-entry-reset-title">Clear your demo entries?</h2>
-        <p id="demo-entry-reset-description">This clears <strong>{entryCount} {entryCount === 1 ? "entry" : "entries"}</strong> from this signed-in account&apos;s current demo activity, including any sample win or purchase option. Their demo slots become available again across the marketplace, including Ending Soon when an offer qualifies.</p>
+        <h2 id="demo-entry-reset-title">{uncertain ? "Check your previous entry reset" : "Clear your demo entries?"}</h2>
+        <p id="demo-entry-reset-description">{uncertain ? "Check what happened to the original reset before starting another." : <>This clears <strong>{entryCount} {entryCount === 1 ? "entry" : "entries"}</strong> from this signed-in account&apos;s current demo activity, including any sample win or purchase option. Their demo slots become available again across the marketplace, including Ending Soon when an offer qualifies.</>}</p>
         <p className={styles.caution}>Only this account is affected. Your demo balance and transaction records stay intact, but old sample reward and order cards leave the current views. This does not refund an entry or charge a card. This action cannot be undone.</p>
         {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
         <div className={styles.actions}>

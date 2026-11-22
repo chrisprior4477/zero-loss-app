@@ -34,7 +34,7 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   const savedShares = shareList?.shares ?? null;
   const selectedShare = tab === "shared" ? savedShares?.find(share => share.id === safeShare) : null;
   const sharedView = selectedShare ? (selectedShare.declinedAt ? "declined" : "available") : params.view === "declined" ? "declined" : "available";
-  return <FavoritesView key={`${params.tab ?? "favorites"}:${safeShare ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={unavailable ? [] : [...hidden].filter(slug => !unverifiedSlugs.has(slug))}
+  return <FavoritesView key={`${params.tab ?? "favorites"}:${safeShare ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} availabilityUnavailable={unavailable} unverifiedSlugs={[...unverifiedSlugs]} hiddenSlugs={unavailable ? [] : [...hidden].filter(slug => !unverifiedSlugs.has(slug))}
     obsoleteFilter={invalidSharedView || invalidTab || invalidWatch ? returnPath : undefined}
     initialSharedView={sharedView}
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}

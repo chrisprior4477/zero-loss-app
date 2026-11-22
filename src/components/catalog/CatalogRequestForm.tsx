@@ -62,7 +62,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
     setShowFeedback(false);
     writeCatalogRequestDraft(draftKey, next.requestedItem !== initialProduct || next.email || next.notes ? next : null);
   }
-  const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData) => {
+  const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData): Promise<CatalogRequestState> => {
     try {
       const result = data.get("intent") === "check" ? await checkCatalogRequestReceipt(data) : await saveRequest(previous, data);
       setAwaitingCheck(result.status === "error" && result.uncertain === true);
@@ -75,6 +75,9 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
         writeCatalogRequestDraft(draftKey, null);
       }
       return result;
+    } catch {
+      setAwaitingCheck(true);
+      return { status: "error", uncertain: true, message: "We couldn’t check whether the request was saved. Check the original request again when your connection returns." };
     } finally {
       sending.current = false;
     }

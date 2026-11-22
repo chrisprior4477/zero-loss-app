@@ -6,8 +6,8 @@ import { notificationIsEnabled, type AccountNotification, type NotificationPrefe
 import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
-type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean };
-type Value = { liveSnapshot: Snapshot | null; receiveConfirmed: (notification: AccountNotification, isRead: boolean) => void; preferencesPreviewActive: boolean; setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
+type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean; ordersAvailable?: boolean };
+type Value = { sessionExpired?: boolean; liveSnapshot: Snapshot | null; receiveConfirmed: (notification: AccountNotification, isRead: boolean) => void; preferencesPreviewActive: boolean; setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
 const Context = createContext<Value | null>(null);
 export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
   // Keep incoming account refreshes from replacing an unsaved live preview.
@@ -20,6 +20,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const [displaySeconds, setDisplaySeconds] = useState(initialDisplaySeconds);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [snapshot, setSnapshot] = useState(initial);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [style, setStyle] = useState(initialStyle);
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
@@ -79,8 +80,13 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
       const requestedRevision = revision.current;
       try {
         const response = await fetch("/api/account/notifications", { cache: "no-store", signal: controller.signal });
-        if (response.status === 401) { setSnapshot(null); return; }
+        if (response.status === 401) {
+          setSessionExpired(true);
+          setSnapshot(null);
+          return;
+        }
         if (response.ok) {
+          setSessionExpired(false);
           const next: Snapshot = await response.json();
           if (requestedRevision !== revision.current) return;
           next.notifications.forEach(n => received.current.delete(n.id));
@@ -180,6 +186,6 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const read = new Set(snapshot?.readIds);
   const notifications = snapshot?.readAvailable && snapshot.preferences ? snapshot.notifications.filter(n => notificationIsEnabled(n, snapshot.preferences!)) : [];
   const unread = notifications.filter(n => !n.resolved && !read.has(n.id));
-  return <Context.Provider value={{ liveSnapshot: snapshot, receiveConfirmed, preferencesPreviewActive, setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ sessionExpired, liveSnapshot: snapshot, receiveConfirmed, preferencesPreviewActive, setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
 }
 export function useNotifications() { return useContext(Context); }

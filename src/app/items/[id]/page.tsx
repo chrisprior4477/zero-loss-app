@@ -81,7 +81,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
-  if (hiddenPool && ((!unavailable && !unverifiedSlugs?.has(product.slug)) || savedResult) && !(requestHead.ready && requestHead.validating)) {
+  if (hiddenPool && ((!unavailable && !unverifiedSlugs?.has(product.slug)) || savedResult) && requestHead.ready && !requestHead.validating) {
     if (savedResult) {
       const origin = transactionOriginParams(query);
       if (!origin) redirect(savedResult.href);

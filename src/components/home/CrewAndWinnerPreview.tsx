@@ -89,11 +89,21 @@ export function CrewAndWinnerPreview() {
       if (location.hash !== "#find-your-crew-heading") return;
       const person = new URLSearchParams(location.search).get("crew-person");
       const match = people.find(item => item.name === person);
-      if (match) setSelectedCrew(match.name);
+      if (new URLSearchParams(location.search).get("crew-panel") === "discovery") {
+        setCrewSearchOpen(true);
+        setSelectedCrew(null);
+      } else if (match) {
+        setCrewSearchOpen(false);
+        setSelectedCrew(match.name);
+      }
     };
     restore();
     window.addEventListener("pageshow", restore);
-    return () => window.removeEventListener("pageshow", restore);
+    window.addEventListener("popstate", restore);
+    return () => {
+      window.removeEventListener("pageshow", restore);
+      window.removeEventListener("popstate", restore);
+    };
   }, []);
   useEffect(() => {
     const prize = new URLSearchParams(location.search).get("crew-prize");

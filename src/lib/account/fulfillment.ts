@@ -74,7 +74,9 @@ export function accountFulfillment(orders: AccountOrders, activity: AccountActiv
     if (item.rewardKind !== "digital" || !item.rewardId?.trim() || ambiguousRewards.has(item.rewardId)) continue;
     const order = records.get(item.rewardId);
     const rewardStatus = item.rewardStatus ?? null;
-    const status = rewardStatus === "expired" ? "expired"
+    const orderException = order?.status === "cancelled" || order?.status === "corrected" || order?.status === "exception";
+    const status = orderException ? order.status
+      : rewardStatus === "expired" ? "expired"
       : rewardStatus === "cancelled" ? "cancelled"
       : rewardStatus === "issuance_failed" ? "exception"
       : rewardStatus === "issuance_pending" ? "issuance_pending"

@@ -41,6 +41,19 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
   const samples = nameFilter ? sampleCrewPeople.filter((person) => person.name.toLowerCase().includes(nameFilter)) : sampleCrewPeople;
   const edges = useHorizontalScrollEdges(railRef, samples.length > 0);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("crew-panel") !== "discovery") return;
+    const name = params.get("crew-person");
+    const person = sampleCrewPeople.find(candidate => candidate.name === name);
+    const search = params.get("crew-search")?.slice(0, 80);
+    if (!person) return;
+    const frame = requestAnimationFrame(() => {
+      setSelected(person.name);
+      if (search) { setNameFilter(search.toLowerCase()); setValues(previous => ({ ...previous, name: search })); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   useEffect(() => () => { searchVersion.current += 1; }, []);
 
   useEffect(() => {
@@ -236,7 +249,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
             <button type="button" className={styles.prizes} aria-expanded={selected === person.name} onClick={() => setSelected(selected === person.name ? null : person.name)}>{selected === person.name ? "Hide prizes ↑" : "See prizes ↓"}</button>
           </div>)}
         </div>
-        {selected ? <SharedPicksConcept key={selected} person={selected} onClose={() => setSelected(null)} accent="orange" connectedOutline panelRef={panelRef} /> : null}
+        {selected ? <SharedPicksConcept key={selected} person={selected} discovery search={nameFilter} onClose={() => setSelected(null)} accent="orange" connectedOutline panelRef={panelRef} /> : null}
         {selected ? <svg ref={svgRef} className={styles.outline} aria-hidden="true" preserveAspectRatio="none"><path ref={pathRef} fill="none" stroke="#ff7417" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
       </div> : <p className={styles.noSamples}>No sample profiles match that name. You can still invite a real person by phone or email.</p>}
       <div className={base.searchFooter}><p>Sample profiles stay in your browser preview, not the real member database. Real members are added only when you choose Add and their settings allow it. They can leave at any time; their own picks stay private until they share back.</p><button type="button" onClick={onClose}>Done <span aria-hidden="true">✓</span></button></div>

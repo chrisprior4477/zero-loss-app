@@ -60,7 +60,7 @@ export const getNotificationSnapshot = cache(async () => {
   const catalog = receivedShares.length ? await getShoppingCatalog() : null;
   const sharedNotifications = receivedShares.filter(share => !catalog?.hidden.has(share.slug)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
   const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications(cases, account.timezone, replies?.data ?? [], afterReset), ...crewNotifications,
-    ...buildOrderNotifications(orders?.orders ?? []),
+    ...buildOrderNotifications(orders?.orders ?? [], account.activity),
     ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds, account.timezone)
       // The reset already archives entries, orders and ledger records atomically.
       // This one-time account notice otherwise survives every demo reset.

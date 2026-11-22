@@ -66,7 +66,7 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   async function save() {
     setBusy(true); setMessage("");
     try {
-      const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds, popupStyle);
+      const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds, popupStyle, savedPreview.current);
       setMessage(result.message);
       if (result.ok) {
         stylePreference.confirm(choice, stylePreference.generation);

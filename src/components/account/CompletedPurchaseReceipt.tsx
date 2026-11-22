@@ -10,8 +10,8 @@ import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import checkout from "./purchase-checkout.module.css";
 import styles from "./checkout-gift-cards.module.css";
 
-export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug, receipt, fallbackHref, notificationReturnHref }: {
-  title: string; totalCents: number; count: number; cards: CheckoutCard[]; slug: string; receipt: string; fallbackHref: string; notificationReturnHref?: string;
+export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug, receipt, notificationReturnHref, transactionReturnHref }: {
+  title: string; totalCents: number; count: number; cards: CheckoutCard[]; slug: string; receipt: string; fallbackHref: string; notificationReturnHref?: string; transactionReturnHref?: string;
 }) {
   const [showToast, setShowToast] = useState(true);
   const [showCards, setShowCards] = useState(false);
@@ -27,6 +27,7 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
   return <div className={checkout.page}><div className={checkout.shell}>
     <AccountSettingsLandingScroll target="purchase-complete" visitKey={receipt} settleAfterNavigation allScreens />
     {notificationReturnHref ? <Link href={notificationReturnHref} className={styles.secondary}>← Back to this notification</Link> : null}
+    {transactionReturnHref && <Link href={transactionReturnHref} className={styles.secondary}>← Back to this transaction</Link>}
     <h1 id="purchase-complete" className={styles.title}>Purchase receipt</h1>
     {showToast ? <aside className={styles.toast} aria-label="Purchase confirmation">
       <div role="status">
@@ -44,8 +45,8 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
     <section className={`${checkout.ticket} ${checkout.content}`} aria-labelledby="purchased-cards-heading">
       <h2 id="purchased-cards-heading" ref={cardsHeading} tabIndex={-1} className={styles.heading}>Cards from this checkout</h2>
       <p>{title} · {count} {count === 1 ? "gift card" : "gift cards"}</p>
-      {showCards && cards.length ? <CheckoutGiftCardList cards={cards} count={count} slug={slug} receipt={receipt} /> : null}
-      {!cards.length ? <Link className={checkout.primary} href={fallbackHref}>View completed purchases</Link> : null}
+      {showCards ? <CheckoutGiftCardList cards={cards} count={count} slug={slug} receipt={receipt} /> : null}
+      {!cards.length ? <Link className={checkout.primary} href={checkoutRewardsHref(slug, receipt)}>View completed purchases</Link> : null}
       <Link className={`${styles.secondary} ${styles.returnButton}`} href={completedActivityHref(first?.item.entryId, { slug, receipt })}>← Back to My Activity</Link>
     </section>
   </div></div>;

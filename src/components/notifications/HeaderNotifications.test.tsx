@@ -54,14 +54,14 @@ test.each([
   await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&grouped=1&fromUpdates=1#my-activity-filters`));
   expect(mock.markRead).toHaveBeenCalledExactlyOnceWith(["one"]);
 });
-test("open products consolidate into ticket totals and a click clears the open-entry batch", async () => {
+test("open products consolidate into ticket totals and open the unread ticket before acknowledging it", async () => {
   const a=make("active-1","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"one"}); const b=make("active-2","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"two"});
   mock.unread=[b,make("support-1","account")]; mock.notifications=[a,...mock.unread];
   render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("See open entries");
   expect(screen.getAllByText("Lowe's Card")).toHaveLength(1); expect(screen.getByLabelText("2 tickets")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:/Lowe's Card/}));
-  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=one")));
-  expect(mock.markRead).toHaveBeenCalledWith(["active-2"]);
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=two")));
+  expect(mock.markRead).not.toHaveBeenCalled();
 });
 test("open entries alone have an inbox button alongside the normal ticket link", () => {
   mock.unread=[make("active-1","active"),make("wallet-1","wallet")]; mock.notifications=mock.unread;

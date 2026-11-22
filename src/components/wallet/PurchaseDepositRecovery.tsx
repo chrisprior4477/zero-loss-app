@@ -46,7 +46,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
       {continuation && <p>{continuation.title}</p>}
       {credited ? <DepositReceipt amount={credited.amount} date={date} tone="ready"
         status={`Deposit credited to your wallet. ${wallet ? "Current balance" : "Last verified balance"}: ${usd(credited.balance)}.${fromCheckout ? " Confirm your purchase separately." : ""}`}>
-        {request && <DepositCreditLink request={request} restoreLedgerView={restoreLedgerView} fromDeposits={fromDeposits} />}
+        {request && <DepositCreditLink request={request} restoreLedgerView={restoreLedgerView} fromDeposits={fromDeposits} timeZone={timeZone} />}
         {continuation ? <ContinueAfterDeposit destination={continuation} />
           : !fromDeposits && <Link href="/account/wallet?view=history&panel=transactions#transactions" className={paymentStyles.secondary}>View wallet history</Link>}
       </DepositReceipt> : request?.reconciliation === "discrepancy" ? <DepositReceipt amount={request.amount} date={date} tone="review"

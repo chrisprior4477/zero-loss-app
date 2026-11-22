@@ -16,7 +16,7 @@ test("all tickets for an unread product are counted, including previously read t
   const b = make("active-2", "active", { itemSlug: a.itemSlug, itemTitle: a.itemTitle, entryId: "two" });
   const c = make("active-3", "active", { itemSlug: "publix-100", itemTitle: "$100 Publix Card" });
   expect(groupedOpenEntries([a,b,c], [b,c])).toEqual([
-    expect.objectContaining({ title: "$100 Lowe's Card", count: 2, href: expect.stringContaining("filter=active&viewed=one") }),
+    expect.objectContaining({ title: "$100 Lowe's Card", count: 2, href: expect.stringContaining("filter=active&viewed=two") }),
     expect.objectContaining({ title: "$100 Publix Card", count: 1 }),
   ]);
   expect(groupedOpenEntries([a,b,c], [])).toEqual([]);

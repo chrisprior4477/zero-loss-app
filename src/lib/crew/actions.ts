@@ -310,6 +310,14 @@ export async function inviteToCrewById(memberId: string): Promise<CrewActionResu
   return { ok: true, message: "Added to your Crew. They can receive your shared finds and leave at any time. Their own picks stay private until they share back." };
 }
 
+export async function readCrewInviteLinkStatus(token: string): Promise<"joined" | "available" | "unavailable"> {
+  if (!crewUuid.test(token)) return "unavailable";
+  const session = await signedInClient();
+  if (!session) return "unavailable";
+  const { data, error } = await session.db.rpc("crew_invite_link_status", { p_token: token });
+  return !error && (data === "joined" || data === "available") ? data : "unavailable";
+}
+
 export async function requestCrewInvitationFromLink(token: string): Promise<CrewActionResult> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to join this Crew." };

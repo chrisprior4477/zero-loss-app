@@ -38,7 +38,7 @@ test("trash immediately clears only the selected prize and group, with Undo", as
   render(<CrewSharedPicks {...base} defaultRule={{ audience: "groups", memberIds: [], groupIds: [family, football] }} />);
   fireEvent.change(screen.getByLabelText("Shared with", { selector: "select" }), { target: { value: football } });
   fireEvent.click(screen.getByRole("button", { name: "Stop sharing all PlayStation 5 entries with Football" }));
-  await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: football, offeringSlug: "playstation-5-slim" }));
+  await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: football, offeringSlug: "playstation-5-slim", reviewedEntryIds: entries.slice(0, 42).map(entry => entry.id) }));
   fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
   await waitFor(() => expect(actions.undoCrewShareCleanup).toHaveBeenCalledWith("undo-id"));
 });

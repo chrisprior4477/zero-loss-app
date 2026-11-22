@@ -11,6 +11,7 @@ function entryForm(quantity = "3") {
   value.set("offeringSlug", "samsung-m70h-tv");
   value.set("idempotencyKey", "entry_quantity_request_001");
   value.set("quantity", quantity);
+  value.set("reviewedEntryPrice", "100");
   return value;
 }
 
@@ -32,7 +33,8 @@ test("sends the selected quantity to the atomic database batch function", async 
     href: "/account/entries?filter=active&item=samsung-m70h-tv&entry=ent_abcdef123",
     outcome: "active",
   });
-  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", {
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_reviewed_preview_entries", {
+    p_entry_price_cents: 100,
     p_offering_slug: "samsung-m70h-tv",
     p_quantity: 3,
     p_idempotency_key: "entry_quantity_request_001",
@@ -77,7 +79,8 @@ test("explicit Crew sharing uses the atomic entry-and-share function", async () 
   const form = entryForm("1");
   form.set("shareWithCrew", "yes");
   await createPreviewEntry({ status: "idle" }, form);
-  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", {
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_reviewed_preview_entries", {
+    p_entry_price_cents: 100,
     p_offering_slug: "samsung-m70h-tv",
     p_quantity: 1,
     p_idempotency_key: "entry_quantity_request_001",
@@ -149,7 +152,7 @@ test("passes last displayed receipt for atomic server comparison, not a customer
   form.set("previousRequestId", pendingReceipt.requestId);
   form.set("customerId", "someone-else");
   await createPreviewEntry({ status: "idle" }, form);
-  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", expect.objectContaining({ p_previous_request_id: pendingReceipt.requestId }));
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_reviewed_preview_entries", expect.objectContaining({ p_previous_request_id: pendingReceipt.requestId }));
   expect(mocks.rpc.mock.calls[0][1]).not.toHaveProperty("customerId");
 });
 

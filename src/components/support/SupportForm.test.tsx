@@ -24,7 +24,7 @@ test("restores a draft with an unreadable attachment and checks an uncertain sav
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
   fireEvent.click(await screen.findByRole("button", { name: "Edit draft" }));
   await waitFor(() => expect(screen.getByDisplayValue("My unsent draft message.")).toHaveProperty("disabled", false));
-  expect(mocks.check).toHaveBeenCalledWith(requestKey, undefined);
+  expect(mocks.check).toHaveBeenCalledWith(requestKey, undefined, "account");
   unmount();
 
   mocks.save.mockResolvedValue({ status: "saved", caseId });
@@ -166,7 +166,7 @@ test("transaction-linked form keeps the chosen transaction and exact retry after
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
   expect(await screen.findByRole("button", { name: "Resend same message" })).toBeTruthy();
   expect(mocks.save).toHaveBeenCalledOnce();
-  expect(mocks.check).toHaveBeenCalledWith((mocks.save.mock.calls[0][1] as FormData).get("requestKey"), undefined);
+  expect(mocks.check).toHaveBeenCalledWith((mocks.save.mock.calls[0][1] as FormData).get("requestKey"), undefined, undefined);
   fireEvent.click(screen.getByRole("button", { name: "Resend same message" }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith(`/support?case=${caseId}#conversation`));
   const first = mocks.save.mock.calls[0][1] as FormData;

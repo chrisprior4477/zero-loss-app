@@ -114,7 +114,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
                 <h2 id={`declined-product-${slug}`}>{product.title}</h2>
                 <p>{offers.length} declined {multiple ? "offers" : "offer"}</p>
               </div>
-              <DeclinedOfferCountdown deadlines={deadlines} />
+              <DeclinedOfferCountdown deadlines={deadlines} incomplete={deadlines.length !== offers.length} />
             </div>
           </div>
           <details className={styles.declinedDisclosure} data-declined-product={slug}>

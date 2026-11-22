@@ -57,7 +57,10 @@ function dateBoundary(value: string, calendar: SearchCalendar) {
     const name = words.find(word => /^[a-z]+$/.test(word));
     if (!name) return null;
     year = Number(words.find(word => /^\d{4}$/.test(word))) || undefined;
-    day = Number(words.find(word => /^\d{1,2}$/.test(word))) || undefined;
+    const dayWord = words.find(word => /^\d{1,2}$/.test(word));
+    day = dayWord === undefined ? undefined : Number(dayWord);
+    if (day === 0) return null;
+    if (words.length !== 1 + Number(year !== undefined) + Number(day !== undefined)) return null;
     if (!year && !day) return null;
     for (const locale of new Set([calendar.locale, "en-US"])) {
       for (const width of ["short", "long"] as const) {
@@ -129,7 +132,10 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(dateQuery)
     ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(dateQuery);
   if (dateRange) {
-    const start = dateBoundary(dateRange[1], calendar), end = dateBoundary(dateRange[2], calendar);
+    const first = dateBoundary(dateRange[1], calendar);
+    const last = dateBoundary(dateRange[2], calendar);
+    const start = first?.length === 7 ? `${first}-01` : first;
+    const end = last?.length === 7 ? `${last}-31` : last;
     if (start && end) {
       const yearIncluded = start.length === 10 || end.length === 10;
       const formatter = localDateKey(calendar.timeZone);
@@ -145,12 +151,28 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const dateMatches = searchDate(entries, dateQuery, calendar);
   if (dateMatches) return dateMatches;
   const searchAgain = (rows: T[], text: string) => searchLedger(rows, text, describe, fullLedger, calendar);
+  const dateParts = dateQuery.split(/\s+/);
+  if (dateParts.length > 2) {
+    const sides = [
+      [dateParts.slice(0, 2), dateParts.slice(2)],
+      [dateParts.slice(-2), dateParts.slice(0, -2)],
+    ];
+    for (const [date, remainder] of sides) {
+      if (!date.some(word => /^\d{4}$/.test(word))) continue;
+      const matches = searchDate(entries, date.join(" "), calendar);
+      if (matches) return searchAgain(matches, remainder.join(" "));
+    }
+  }
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|=|equals\b)/i.test(trimmed) || /\s+exactly$/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
     .replace(/\brefunded\b/gi, "refund")
     .replace(/(\d+)\s*¢(?=\s|$)/g, "$1 cents")
+    .replace(/^([<>]=?|[≤≥])\s*(?=[+−-]\s*\$?\s*\d)/, (_, operator: string) => (
+      { ">=": "at least ", "≥": "at least ", "<=": "at most ", "≤": "at most ", ">": "more than ", "<": "less than " }[operator] ?? operator
+    ))
+    .replace(/^(\$[\d,.]+)\s+(?:paid|spent)\s+(?:at|from)\s+/i, "spent $1 from ")
     .replace(/\s+exactly$/i, "")
     .replace(/\b(\d+)\s*c\b/gi, "$1 cents")
     .replace(/\bface value\s+(?=\$)/gi, "")

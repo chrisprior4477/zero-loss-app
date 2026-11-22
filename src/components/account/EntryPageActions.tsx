@@ -58,7 +58,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const [quantity, setQuantity] = useState(() => Math.min(isEntryQuantity(initialQuantity) ? initialQuantity : 1, isEntryQuantity(remaining) ? remaining : 1));
   const [invalidQuantity, setInvalidQuantity] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(resumeReview || initialReceipt !== null);
-  const [approved, setApproved] = useState(false);
+  const [approvedQuote, setApprovedQuote] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState("");
   const [result, setResult] = useState<PreviewEntryActionState>({ status: "idle" });
@@ -88,6 +88,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const maxQuantity = isEntryQuantity(remaining) ? remaining : 0;
   const quantityAvailable = isEntryQuantity(quantity) && quantity <= maxQuantity;
   const totalCents = quantity * (entryPriceCents ?? 0);
+  const quote = JSON.stringify([slug, quantity, entryPriceCents]);
+  const approved = approvedQuote === quote;
   const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
   const canEnter = entryEnabled && requestHead.ready && !requestHead.validating && entryPriceCents !== null && balanceCents !== null;
   const busy = working || receipt?.status === "pending";
@@ -128,7 +130,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
       if (!reviewOrigin.current || window.location.pathname !== reviewOrigin.current || receipt || uncertain || working) return;
       const reviewingEntry = new URLSearchParams(window.location.search).get("review") === "entry";
       setCheckoutOpen(reviewingEntry);
-      setApproved(false);
+      setApprovedQuote(null);
       if (!reviewingEntry) requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true }));
     }
     window.addEventListener("popstate", restoreReview);
@@ -149,7 +151,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     if (requestHead.ready && requestHead.requestId !== lastServerHead.current) {
       lastServerHead.current = requestHead.requestId;
       setLatestRequestId(requestHead.requestId);
-      setApproved(false);
+      setApprovedQuote(null);
     }
     if (!initialReceipt || initialReceipt.requestId === activeRequestId.current
       || (requestHead.ready && initialReceipt.requestId !== requestHead.requestId)) return;
@@ -158,7 +160,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     attemptedForm.current = null;
     setReceipt(initialReceipt);
     setResult({ status: "idle" });
-    setApproved(false);
+    setApprovedQuote(null);
     setCheckoutOpen(true);
   }, [initialReceipt, requestHead, uncertain, working]);
 
@@ -279,6 +281,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     if (!uncertain || !attemptedForm.current) {
       form.set("offeringSlug", slug);
       form.set("quantity", String(quantity));
+      form.set("reviewedEntryPrice", String(entryPriceCents));
       form.set("idempotencyKey", submissionKey);
       const previousRequestId = latestRequestId;
       if (previousRequestId) form.set("previousRequestId", previousRequestId);
@@ -300,9 +303,12 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
         const saved = JSON.parse(sessionStorage.getItem(submissionStorageKey) ?? "null");
         if (saved?.key === form.get("idempotencyKey")) sessionStorage.removeItem(submissionStorageKey);
       } catch { /* The verified result is still usable. */ }
-      if (uncertain && response.status === "error" && !response.code) setApproved(false);
+      if (uncertain && response.status === "error" && !response.code) setApprovedQuote(null);
       setResult(response);
-      if (response.status === "error" && response.code === "insufficient_balance") router.refresh();
+      if (response.status === "error" && (response.code === "insufficient_balance" || response.code === "price_changed")) {
+        setApprovedQuote(null);
+        router.refresh();
+      }
       if (response.status === "request") {
         activeRequestId.current = response.request.requestId;
         latestReceipt.current = null;
@@ -342,7 +348,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     setInvalidQuantity(null);
     setTypedLimit(clamped ? next : null);
     setQuantity(next);
-    setApproved(false);
+    setApprovedQuote(null);
     setCheckoutOpen(false);
     if (checkoutOpen && ticketHref) {
       if (reviewOrigin.current === window.location.pathname) window.history.back();
@@ -388,7 +394,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
           {reviewing ? <div className={styles.quantityControls} aria-label="Choose additional entries">
             <div className={styles.quantityStepper}>
               <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
-              <EntryQuantityInput errorId="additional-entry-quantity-error" value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} invalidDraft={invalidQuantity} onInvalidDraft={draft => { setInvalidQuantity(draft); if (draft !== null) setApproved(false); }} />
+              {resumeReview && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status">Availability changed. You requested {initialQuantity} entries and {maxQuantity} are now available. Review your quantity before confirming.</p> : null}
+              <EntryQuantityInput errorId="additional-entry-quantity-error" value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} invalidDraft={invalidQuantity} onInvalidDraft={draft => { setInvalidQuantity(draft); if (draft !== null) setApprovedQuote(null); }} />
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
@@ -418,10 +425,10 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             {result.status === "error" && result.code !== "insufficient_balance" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {reviewing ? <>
-              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
+              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApprovedQuote(event.target.checked ? quote : null)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
               <button type="button" className={styles.checkoutConfirm} disabled={working || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
-            {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApproved(false); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true })); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
+            {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApprovedQuote(null); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true })); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
           </div> : null}
         </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
         <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>

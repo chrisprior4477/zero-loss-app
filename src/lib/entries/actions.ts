@@ -10,7 +10,7 @@ import { isEntryQuantity } from "./quantity";
 
 export type PreviewEntryActionState =
   | { status: "idle" }
-  | { status: "error"; message: string; code?: "insufficient_balance" | "outcome_unknown" }
+  | { status: "error"; message: string; code?: "insufficient_balance" | "outcome_unknown" | "price_changed" }
   | { status: "request"; message: string; request: EntryRequest }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
@@ -25,6 +25,9 @@ function entryError(error: unknown): PreviewEntryActionState {
   const candidate = error as { code?: string; message?: string };
   if (candidate.code === "P0001" && candidate.message === "Add demo funds before entering this quantity.") {
     return { status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." };
+  }
+  if (candidate.code === "P0001" && candidate.message === "Review the updated entry price.") {
+    return { status: "error", code: "price_changed", message: "The price changed. Review the updated total before confirming." };
   }
   if (candidate.code === "P0001") return { status: "error", message: candidate.message ?? "This preview entry is not available." };
   if (candidate.code === "22023") return { status: "error", message: "This product is not currently available for a preview entry." };
@@ -78,9 +81,11 @@ export async function createPreviewEntry(
   const offeringSlug = String(formData.get("offeringSlug") ?? "");
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const quantity = Number(formData.get("quantity") ?? "1");
+  const reviewedPrice = Number(formData.get("reviewedEntryPrice"));
   const shareWithCrew = formData.get("shareWithCrew") === "yes";
   const previousRequestId = String(formData.get("previousRequestId") ?? "");
   if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !isEntryQuantity(quantity) ||
+    !Number.isInteger(reviewedPrice) || reviewedPrice < 1 || reviewedPrice > 2_147_483_647 ||
     (previousRequestId !== "" && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(previousRequestId))) {
     return { status: "error", message: "This entry request is invalid. Refresh the page and try again." };
   }
@@ -95,7 +100,8 @@ export async function createPreviewEntry(
       return { status: "error", message: "Sign in with a confirmed preview account to enter." };
     }
     await ensurePreviewCustomer(db, user);
-    const { data, error } = await db.rpc("submit_preview_entries", {
+    const { data, error } = await db.rpc("submit_reviewed_preview_entries", {
+      p_entry_price_cents: reviewedPrice,
       p_offering_slug: offeringSlug,
       p_quantity: quantity,
       p_idempotency_key: idempotencyKey,

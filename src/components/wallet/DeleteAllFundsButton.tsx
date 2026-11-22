@@ -41,12 +41,14 @@ export function DeleteAllFundsButton({ value, walletId }: { value: string; walle
   }
 
   function openConfirmation() {
+    const origin = window.location.href;
     setNotice("");
     const pendingReset = requestKey.current ?? readWalletReset(storageKey);
     if (pendingReset) { requestKey.current = pendingReset; checkBalance(); return; }
     startTransition(async () => {
       try {
         const preview = await previewDemoBalanceClear();
+        if (window.location.href !== origin || !trigger.current?.isConnected) return;
         if (preview.status === "error") { setNotice(preview.message); return; }
         if (preview.balanceCents === 0) { setNotice("Your demo Playable Balance is already $0."); return; }
         requestKey.current = crypto.randomUUID();

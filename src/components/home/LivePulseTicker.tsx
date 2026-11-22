@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import type { LivePulseItem } from "@/lib/home/live-pulse";
 import { useVisibleMotion } from "@/components/home/useVisibleMotion";
@@ -73,7 +74,7 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
       if (prize && location.hash === "#marketplace-activity" && document.activeElement === document.body) {
         const link = Array.from(trackRef.current?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(item => item.pathname === "/items/" + prize);
         link?.focus({ preventScroll: true });
-        section.scrollIntoView({ block: "center" });
+        revealBelowHeader(section);
       }
     };
     const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);

@@ -2,6 +2,7 @@ import { fundingReturnPath, purchaseOptionReturnPath } from "@/lib/wallet/fundin
 import { currentProductEntryHref, productEntryReturnPath } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "./account-return";
 import { businessSignupPath } from "@/lib/business/application";
+import { parseEntryQuantity } from "@/lib/entries/quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
 
 /** Only allow a sign-in return to a product's entry section on this site. */
@@ -37,7 +38,8 @@ export function sharedProductReturnPath(value: unknown): string | null {
   const url = new URL(value, "https://navigation.invalid");
   const params = url.searchParams;
   const keys = [...params.keys()];
-  if (url.hash || new Set(keys).size !== keys.length || keys.some(key => !["share", "shared", "saveShared", "reviewShare", "from"].includes(key))) return null;
+  if (url.hash || new Set(keys).size !== keys.length || keys.some(key => !["share", "shared", "saveShared", "reviewShare", "from", "quantity"].includes(key))) return null;
+  if (params.has("quantity") && parseEntryQuantity(params.get("quantity")) === null) return null;
   const share = params.get("share");
   const shared = params.get("shared");
   if (share === null ? shared !== "1" : shared !== null || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(share)) return null;

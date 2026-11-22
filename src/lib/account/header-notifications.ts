@@ -42,7 +42,7 @@ export function notificationMessages(notifications: AccountNotification[]): Bann
   // Open entries remain in the dropdown and ticket link, never in the rotation.
   return headerCategories.filter(c => c.key !== "entries" && c.key !== "saved" && counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
 }
-export type HeaderEntryGroup = { slug: string; title: string; image?: string; count: number; href: string };
+export type HeaderEntryGroup = { slug: string; title: string; image?: string; count: number; href: string; targetId?: string };
 function productKey(n: AccountNotification) {
   // The same gift card can have multiple offerings (for example Ending Soon).
   // Combine their display totals without merging the underlying ticket records.
@@ -52,18 +52,23 @@ export function headerGroupIds(items: AccountNotification[], category: HeaderCat
   return items.filter(item => headerCategory(item) === category && productKey(item) === group).map(item => item.id);
 }
 export function groupedActivityUpdates(all: AccountNotification[], unread: AccountNotification[], category: "wins" | "options" | "entries"): HeaderEntryGroup[] {
-  const unreadSlugs = new Set(unread.filter(n => headerCategory(n) === category).map(productKey));
+  const targets = new Map<string, AccountNotification>();
+  for (const notice of unread) {
+    if (headerCategory(notice) === category && !targets.has(productKey(notice))) targets.set(productKey(notice), notice);
+  }
   const groups = new Map<string, HeaderEntryGroup>();
   const seen = new Set<string>();
   for (const n of all) {
     if (headerCategory(n) !== category || seen.has(n.href)) continue;
     seen.add(n.href);
     const slug = productKey(n);
-    if (!unreadSlugs.has(slug)) continue;
+    const target = targets.get(slug);
+    if (!target) continue;
     const group = groups.get(slug);
     if (group) group.count++;
     else groups.set(slug, { slug, title: n.itemTitle ?? n.title.replace(/ is still open$/, ""), image: n.image, count: 1,
-      href: n.entryId ? headerDestinations[category].replace("#", `&viewed=${encodeURIComponent(n.entryId)}#`) : headerDestinations[category].replace("#", "&grouped=1#") });
+      targetId: target.id,
+      href: target.entryId ? headerDestinations[category].replace("#", `&viewed=${encodeURIComponent(target.entryId)}#`) : headerDestinations[category].replace("#", "&grouped=1#") });
   }
   return [...groups.values()];
 }

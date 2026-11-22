@@ -440,12 +440,18 @@ export async function changeAccountPasswordAction(
   return { status: "updated", message: "Your password has been changed. You can keep using your account." };
 }
 
-export async function signOutAction(formData: FormData): Promise<void> {
+export async function signOutAction(formData: FormData): Promise<{ message: string }> {
   const submittedReturn = entryReturnPath(formData.get("returnTo"));
   const requestHeaders = submittedReturn ? null : await headers();
   const returnTo = submittedReturn ?? productReturnFromReferer(requestHeaders?.get("referer"), requestHeaders?.get("host"));
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  const failure = { message: "We couldn’t sign out this device. Please try again." };
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) return failure;
+  } catch {
+    return failure;
+  }
   redirect(returnTo ? authNavigationHref("/login", returnTo) : "/");
 }
 

@@ -67,6 +67,9 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const item = account.activity.activity.find(entry => entry.entryId === entryId);
   if (!item && account.activity.incomplete) return <section className={styles.page}>
     <h1>We couldn’t verify this saved ticket</h1><AccountReadRetryLink href={destination}>Check this ticket again</AccountReadRetryLink>
+    {missingTransaction && <Link href={missingTransaction} className={styles.returnButton}>Back to this transaction</Link>}
+    {missingNotification && <Link href={missingNotification} className={styles.returnButton}>Back to this notification</Link>}
+    <Link href={query?.filter === "active" ? "/account/entries?filter=active#my-activity-filters" : "/account/entries#my-activity-filters"} className={styles.returnButton}>Go to My Activity</Link>
   </section>;
   if (!item) return <div className={styles.page}><div className={styles.shell}>
     <AccountSettingsLandingScroll target="entry-unavailable-title" initialTarget="entry-unavailable-title" focusTarget="entry-unavailable-title" allScreens />

@@ -28,8 +28,8 @@ describe("homepage preview integrity", () => {
     const marketplaceLinks = footerLinkGroups.find((group) => group.title === "Marketplace")?.links;
     expect(marketplaceLinks?.find((link) => link.label === "Winners")?.href).toBe("/#meet-winners-heading");
     expect(socialActivityDemoItems.filter((item) => item.id === "social-facebook-1" || item.id === "social-tiktok-2").map((item) => item.href)).toEqual([
-      "/#meet-winners-heading",
-      "/#meet-winners-heading",
+      "/items/walmart-100-gift-card",
+      "/items/sony-wh-1000xm5-headphones",
     ]);
   });
 

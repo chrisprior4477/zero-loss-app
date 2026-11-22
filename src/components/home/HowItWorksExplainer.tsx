@@ -80,15 +80,16 @@ export function HowItWorksExplainer({ onClose }: { onClose?: () => void } = {}) 
     if (railRef.current) railRef.current.dataset.dragging = "false";
   }
 
-  function showStep(index: number) {
+  function showStep(index: number, keyboard = false) {
     const rail = railRef.current;
     const nextStep = rail?.querySelectorAll<HTMLElement>("[data-explainer-step]")[index];
     if (!rail || !nextStep) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     rail.scrollTo({
       left: rail.scrollLeft + nextStep.getBoundingClientRect().left - rail.getBoundingClientRect().left,
-      behavior: reducedMotion ? "instant" : "smooth",
+      behavior: reducedMotion || keyboard ? "instant" : "smooth",
     });
+    if (keyboard) (nextStep.querySelector<HTMLElement>("[data-step-next]") ?? nextStep).focus({ preventScroll: true });
   }
 
   return (
@@ -119,7 +120,7 @@ export function HowItWorksExplainer({ onClose }: { onClose?: () => void } = {}) 
         {steps.map((step, index) => {
           const cropWidth = step.end - step.start;
           return (
-            <div key={step.start} data-explainer-step className={styles.stepSlot}>
+            <div key={step.start} data-explainer-step tabIndex={-1} className={styles.stepSlot}>
               <div role="img" aria-label={step.description} className={styles.step}>
                 <Image
                   src={IMAGE_SRC}
@@ -142,7 +143,7 @@ export function HowItWorksExplainer({ onClose }: { onClose?: () => void } = {}) 
                   aria-label={`Show how it works step ${index + 2} of ${steps.length}`}
                   className={styles.lightningArrow}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => showStep(index + 1)}
+                  data-step-next onClick={event => showStep(index + 1, event.detail === 0)}
                 />
               ) : null}
             </div>

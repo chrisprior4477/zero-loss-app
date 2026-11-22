@@ -96,7 +96,9 @@ export function WalletLandingScroll({ enabled = true, target = "balance" }: { en
       if (destination.origin !== window.location.origin || destination.pathname !== window.location.pathname || destination.search !== window.location.search || !shouldReveal(destination.hash)) return;
       event.preventDefault();
       // Only the hash changes: preserve Back navigation without a competing router scroll.
-      if (destination.href !== window.location.href) window.history.pushState(null, "", destination.href);
+      if (destination.href !== window.location.href && destination.pathname === window.location.pathname) {
+        window.history.pushState(null, "", destination.href);
+      }
       window.dispatchEvent(new HashChangeEvent("hashchange"));
       revealSection();
     };

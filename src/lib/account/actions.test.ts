@@ -115,17 +115,17 @@ test("expired session cannot update a profile", async () => {
 });
 
 test("photo visibility saves one owner-scoped surface without changing the photo", async () => {
-  expect(await saveProfilePhotoVisibility("menu", false)).toEqual({ ok: true });
+  expect(await saveProfilePhotoVisibility("menu", false, "own-account")).toEqual({ ok: true });
   expect(mocks.rpc).toHaveBeenCalledWith("set_profile_photo_visibility", { p_surface: "menu", p_enabled: false });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
   expect(mocks.revalidate).toHaveBeenCalledWith("/account/crew");
 });
 
 test("photo visibility rejects invalid input and failed saves", async () => {
-  expect((await saveProfilePhotoVisibility("invalid" as "menu", false)).ok).toBe(false);
+  expect((await saveProfilePhotoVisibility("invalid" as "menu", false, "own-account")).ok).toBe(false);
   expect(mocks.rpc).not.toHaveBeenCalled();
   mocks.rpc.mockResolvedValue({ error: new Error("database unavailable") });
-  expect((await saveProfilePhotoVisibility("crew", true)).ok).toBe(false);
+  expect((await saveProfilePhotoVisibility("crew", true, "own-account")).ok).toBe(false);
 });
 
 function unchangedBaseline(form: FormData) {

@@ -131,12 +131,14 @@ export async function enrichLedgerRows(db: SupabaseClient, userId: string, walle
   const debitIds = [...new Set(rows.flatMap(row =>
     row.entry_type === "ENTRY_DEBIT" && row.related_entry_id && publicEntryId.test(row.related_entry_id) ? [row.related_entry_id] : []))];
   const entryBatches = new Map<string, string>();
+  const debitRequests = new Map<string, string>();
   for (let index = 0; index < debitIds.length; index += 100) {
     const ids = debitIds.slice(index, index + 100);
-    const query = db.from("customer_entries").select("entry_id,preview_batch_id")
+    const query = db.from("customer_entries").select("entry_id,preview_batch_id,entry_request_id")
       .eq("customer_id", userId).in("entry_id", ids);
     const { data, error } = await (walletAccountId ? query.eq("wallet_account_id", walletAccountId) : query);
     if (!error) for (const entry of data ?? []) {
+      if (ids.includes(entry.entry_id) && typeof entry.entry_request_id === "string" && ledgerId.test(entry.entry_request_id)) debitRequests.set(entry.entry_id, entry.entry_request_id);
       if (ids.includes(entry.entry_id) && typeof entry.preview_batch_id === "string" && ledgerId.test(entry.preview_batch_id)) {
         entryBatches.set(entry.entry_id, entry.preview_batch_id);
       }
@@ -187,6 +189,7 @@ export async function enrichLedgerRows(db: SupabaseClient, userId: string, walle
   return rows.map(row => {
     const item = ledgerProduct(row, requestSlugs, purchaseSlugs);
     const requestId = requestEvent.exec(row.source_event)?.[1];
+    const ledgerRequestId = requestId ?? (row.related_entry_id ? debitRequests.get(row.related_entry_id) : undefined);
     const purchaseEntry = purchaseEntries.get(row.source_event);
     const rewardId = directRewards.get(row.source_event);
     const ids = row.related_entry_id ? [row.related_entry_id]
@@ -196,6 +199,6 @@ export async function enrichLedgerRows(db: SupabaseClient, userId: string, walle
     return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}),
       ...(rewardId ? { rewardId } : {}), ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
       ...(!item && (row.entry_type === "PURCHASE_DEBIT" || requestId) ? { productDetailsIncomplete: true } : {}),
-      ...(!recentOnly && requestId && requestSlugs.has(requestId) ? { entryRequestId: requestId } : {}) };
+      ...(ledgerRequestId && (recentOnly || requestSlugs.has(ledgerRequestId)) ? { entryRequestId: ledgerRequestId } : {}) };
   });
 }

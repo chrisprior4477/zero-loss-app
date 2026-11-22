@@ -134,6 +134,10 @@ export function DemoParticipationPanel({
   const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
   const showFundingSweep = highlightAfterFunding && !entryActionTouched && !entryBusy && isDemoWallet && isSignedIn && requestHead.ready
     && availabilityConfirmed && remaining > 0 && knownBalance !== null && knownBalance >= totalCents;
+  useEffect(() => {
+    if (state.status === "error" && state.code === "price_changed") router.refresh();
+  }, [router, state]);
+
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = canAdjustQuantity && remaining > 0 && !quantityReduced
     && (balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state));
@@ -480,6 +484,7 @@ export function DemoParticipationPanel({
           <input type="hidden" name="idempotencyKey" value={submissionKey} />
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
+          <input type="hidden" name="reviewedEntryPrice" value={Math.round(entryPrice * 100)} />
           <input type="hidden" name="shareWithCrew" value="no" />
           <button ref={recoveryAction} id="entry-action" type="submit" disabled={entryBusy || !requestHead.ready || (!uncertain && invalidQuantity !== null)} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
@@ -495,7 +500,10 @@ export function DemoParticipationPanel({
 
       <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={fundingForEntry ? rememberFundingEntry : undefined} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={event => {
+          if (invalidQuantity !== null) { event.preventDefault(); entryQuantityRef.current?.focus(); return; }
+          if (fundingForEntry) rememberFundingEntry();
+        }} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (

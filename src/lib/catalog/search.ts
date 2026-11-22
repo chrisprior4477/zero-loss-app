@@ -2,7 +2,7 @@ import type { DemoProduct } from "./demo-products";
 import { isGiftCardListing } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
 import { maxCatalogSearchLength, maxCatalogSearchTerms, normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
-import { catalogMerchant, matchesCatalogMerchant, searchDenominations, smallNumberWords, spokenValue } from "./search-denomination";
+import { catalogMerchant, matchesCatalogMerchant, searchDenominations, remainingTicketsRange, smallNumberWords, spokenValue } from "./search-denomination";
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
@@ -16,6 +16,11 @@ export function searchCatalogMatches(
 ): CatalogSearchMatch[] {
   if (rawQuery.length > maxCatalogSearchLength) return [];
   const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
+    .replace(/^\s*any\s+(?=gift\s*cards?\b)/i, "")
+    .replace(/\bfrom\s+(\$\s*\d+(?:\.\d{1,2})?)\s+and\s+up\b/gi, "at least $1")
+    .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
+    .replace(/\bnot sold by\s+/gi, "excluding from ")
+    .replace(/^(\$\s*\d+(?:\.\d{1,2})?)\s+or less in\s+(.+\bgift\s*cards?\b)[.!?]?$/i, "$2 up to $1")
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
@@ -29,6 +34,15 @@ export function searchCatalogMatches(
   const standaloneConsole = /^(.*\b(?:p[.\s-]*s|play[\s-]*station)[.\s-]*5\b.*?)\s*,?\s+(?:but\s+)?(?:no|not|without|excluding)\s+(?:(?:a|any)\s+)?(?:game\s+)?bundles?\s*[.!?]?$/i.exec(query);
   if (standaloneConsole) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && !/\bbundle\b/.test(normalizeSearch(product.title))), standaloneConsole[1], undefined, { includeLowerGiftCards });
+  }
+  const ticketsRange = remainingTicketsRange.exec(query.trimEnd());
+  if (ticketsRange) {
+    const minimum = Math.max(1, Number(ticketsRange[1]));
+    const maximum = Number(ticketsRange[2]);
+    return searchCatalogMatches(products.filter(product => {
+      const remaining = product.capacity - product.sold;
+      return remaining >= minimum && remaining <= maximum;
+    }), query.slice(0, ticketsRange.index), undefined, { includeLowerGiftCards });
   }
   const ticketsCondition = /\s+(fewer than|less than|at most|at least|more than|exactly)\s+(\d+)\s+(?:tickets?|entries)\s+left[.!?]?$/i.exec(query);
   if (ticketsCondition) {

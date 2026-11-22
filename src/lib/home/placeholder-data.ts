@@ -264,7 +264,7 @@ export const shopByPriceTiers = [
   { price: "$75", detail: "and under", href: "/browse?maxValue=75#search-results" },
   { price: "$100", detail: "and under", href: "/browse?maxValue=100#search-results" },
   { price: "$100+", detail: "premium prizes", href: "/browse?minValue=100#search-results" },
-  { price: "RARE FINDS", detail: "Curated Picks", href: "/browse" },
+  { price: "RARE FINDS", detail: "Curated Picks", href: "/browse?collection=rare-finds#search-results" },
 ] as const;
 
 /**

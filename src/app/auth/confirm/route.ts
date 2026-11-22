@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { type EmailOtpType } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError, type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 
@@ -127,12 +127,23 @@ export async function POST(request: NextRequest) {
     }
   );
 
+  function retryRecovery() {
+    const retryUrl = new URL("/auth/recovery", origin);
+    if (typeof tokenHash === "string" && tokenHash) retryUrl.searchParams.set("token_hash", tokenHash);
+    else if (typeof code === "string" && code) retryUrl.searchParams.set("code", code);
+    if (returnTo) retryUrl.searchParams.set("next", returnTo);
+    retryUrl.searchParams.set("unavailable", "1");
+    response.headers.set("Location", retryUrl.href);
+    return response;
+  }
   if (typeof tokenHash === "string" && tokenHash) {
     const { data, error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+    if (isAuthRetryableFetchError(error) || (error?.status ?? 0) >= 500) return retryRecovery();
     if (error || !data.session?.access_token) return response;
   } else if (typeof code === "string" && code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     const redirectType = (data as (typeof data & { redirectType?: string | null }) | null)?.redirectType;
+    if (isAuthRetryableFetchError(error) || (error?.status ?? 0) >= 500) return retryRecovery();
     if (error || redirectType !== "recovery" || !data.session?.access_token) return response;
   }
 

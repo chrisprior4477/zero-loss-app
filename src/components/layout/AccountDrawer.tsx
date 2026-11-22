@@ -209,7 +209,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
     };
   }, [open, dismiss]);
 
-  const close = () => { navigating.current = true; setOpen(false); };
+  const close = () => { navigating.current = true; endDrawerHistory(true); setOpen(false); };
   const openWallet = () => {
     if (walletFunding) rememberWalletSelection(walletFunding);
     close();
@@ -263,7 +263,16 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
       {open && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[120]" role="presentation">
           <button type="button" tabIndex={-1} aria-hidden="true" onClick={dismiss} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
-          <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
+          <aside ref={drawerRef} onClickCapture={event => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+            if (!link || link.target && link.target !== "_self" || link.origin !== location.origin
+              || link.pathname !== location.pathname || link.search !== location.search) return;
+            if (link.hash && link.hash !== location.hash && link.pathname !== "/account/notifications") return;
+            event.preventDefault();
+            event.stopPropagation();
+            dismiss();
+          }} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>
                 <Link href="/account/profile#profile-intro" replace={replaceDrawerStep} onClick={event => {

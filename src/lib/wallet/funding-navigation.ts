@@ -110,8 +110,10 @@ export function fundingReturnPath(value: unknown): string | null {
     if (params.has("notice") && (!validNotice(params.get("notice")) || params.get("alerts") !== notificationFilter(params.get("alerts")))) return null;
     return parseEntryQuantity(params.get("quantity")) !== null ? value : null;
   }
-  if (!/^\/account\/wallet\?view=history(?:&panel=funding|&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&share=[^&#]+)?(?:&choice=[0-9a-f-]{36})?)?#add-funds$/.test(value)) return null;
+  if (!/^\/account\/wallet\?view=history(?:&panel=funding|&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&share=[^&#]+)?(?:&choice=[0-9a-f-]{36})?(?:&entryTransaction=[^&#]+(?:&entryWalletView=1)?(?:&entryFromOrders=1&entryOrderFilter=(?:all|processing|fulfilled|exceptions|payment))?)?(?:&alerts=[^&#]+&notice=[^&#]+)?)?#add-funds$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
+  if (params.has("entryTransaction") && !transactionPattern.test(params.get("entryTransaction")!)) return null;
+  if (params.has("notice") && (!validNotice(params.get("notice")) || params.get("alerts") !== notificationFilter(params.get("alerts")))) return null;
   if (params.has("browse") && (params.has("entry") || !productBrowseReturnPath(params.get("browse")))) return null;
   if (params.has("share") && (params.has("entry") || !shareUuid.test(params.get("share")!))) return null;
   if (params.has("choice") && (!params.has("entry") || !purchaseChoicePattern.test(params.get("choice")!))) return null;

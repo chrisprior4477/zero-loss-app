@@ -2,6 +2,8 @@
 
 import { HeaderNotifications } from "@/components/notifications/HeaderNotifications";
 import Link from "next/link";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
+import { currentProductEntryHref, readEntryIntent } from "@/lib/entries/return-intent";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { EntryTicket } from "@/components/layout/EntryTicket";
 import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
@@ -21,14 +23,23 @@ export function HeaderAccountMetrics({
   liveBalance: string | null;
   activityState: AccountActivity;
 }) {
+  function authDestination(event: React.MouseEvent<HTMLAnchorElement>, path: "/login" | "/signup") {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const { pathname, search, hash } = window.location;
+    const returnTo = currentProductEntryHref(pathname, search, readEntryIntent())
+      ?? signInReturnPath(pathname + search + hash) ?? signInReturnPath(pathname + search);
+    if (!returnTo) return;
+    event.preventDefault();
+    window.location.assign(authNavigationHref(path, returnTo));
+  }
   const state = activityState;
   const walletFunding = useWalletFundingContext();
 
   if (!isSignedIn) {
     return (
       <div data-header-auth className="flex items-center gap-2">
-        <Link href="/login" className="grid min-h-9 place-items-center px-2 text-xs font-bold text-white sm:px-3 sm:text-sm">Sign in</Link>
-        <Link href="/signup" className="grid min-h-9 place-items-center rounded-full bg-cyan-300 px-3 text-xs font-black text-[#00132e] hover:bg-cyan-200 sm:px-4 sm:text-sm">Create account</Link>
+        <Link href="/login" onClick={event => authDestination(event, "/login")} className="grid min-h-9 place-items-center px-2 text-xs font-bold text-white sm:px-3 sm:text-sm">Sign in</Link>
+        <Link href="/signup" onClick={event => authDestination(event, "/signup")} className="grid min-h-9 place-items-center rounded-full bg-cyan-300 px-3 text-xs font-black text-[#00132e] hover:bg-cyan-200 sm:px-4 sm:text-sm">Create account</Link>
       </div>
     );
   }

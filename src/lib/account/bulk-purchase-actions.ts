@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type BulkPurchaseRequest = { slug: string; purchaseIds: string[]; declineIds: string[]; totalCents: number; requestId: string; confirmed: boolean };
 export type BulkPurchaseResult = CompletedCheckout
-  | { status: "error"; message: string; recovery: "balance" | "offers" | "check" | "edit" };
+  | { status: "error"; message: string; recovery: "balance" | "offers" | "check" | "edit" | "sign-in" };
 export type CompletedCheckout = { status: "succeeded"; purchasedCount: number; declinedCount: number; totalCents: number; href: string; cardReady: boolean; rewardIds: string[] };
 
 export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest): Promise<BulkPurchaseResult> {
@@ -25,7 +25,10 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
-    if (authError || !user) return { status: "error", recovery: "check", message: "Sign in again before completing these purchases." };
+    if (!user && (!authError?.status || authError.status < 500) && authError?.name !== "AuthRetryableFetchError") {
+      return { status: "error", recovery: "sign-in", message: "Sign in again to check the purchase." };
+    }
+    if (authError || !user) return { status: "error", recovery: "check", message: "We couldn’t verify your account. Check this purchase again." };
     const { data, error } = await db.rpc("complete_preview_purchase_options", {
       p_slug: request.slug, p_purchase_ids: request.purchaseIds, p_decline_ids: request.declineIds,
       p_expected_total: request.totalCents, p_request_id: request.requestId,
@@ -50,7 +53,7 @@ function completedPurchase(slug: string, data: { purchasedCount: number; decline
   const rewardIds = Array.isArray(data.rewardIds)
     ? [...new Set(data.rewardIds.filter((id): id is string => typeof id === "string" && uuid.test(id)))] : [];
   const href = rewardIds[0] ? purchasedRewardHref(rewardIds[0], slug) : "/account/entries?filter=completed";
-  return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, totalCents: data.totalCents, href, cardReady: rewardIds.length > 0, rewardIds };
+  return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, totalCents: data.totalCents, href, cardReady: false, rewardIds };
 }
 
 export async function checkDemoPurchaseReceipt(requestId: string, slug: string): Promise<BulkPurchaseResult | { status: "not_found" }> {
@@ -59,6 +62,9 @@ export async function checkDemoPurchaseReceipt(requestId: string, slug: string):
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
+    if (!user && (!authError?.status || authError.status < 500) && authError?.name !== "AuthRetryableFetchError") {
+      return { status: "error", recovery: "sign-in", message: "Sign in again to check the purchase." };
+    }
     if (authError || !user) return unavailable;
     const { data, error } = await db.rpc("read_preview_checkout_receipt", { p_request_id: requestId, p_slug: slug });
     if (error) return unavailable;

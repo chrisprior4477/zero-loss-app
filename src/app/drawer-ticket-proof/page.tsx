@@ -3,7 +3,7 @@ import Link from "next/link";
 import { StatusTicket } from "@/components/account/StatusTicket";
 import { MenuTicket } from "@/components/account/MenuTicket";
 import { AccountIcon } from "@/components/account/AccountIcon";
-import { signOutAction } from "@/lib/auth/actions";
+import { SignOutForm } from "@/components/auth/SignOutForm";
 import { DrawerProofInstallButton } from "./DrawerProofInstallButton";
 import styles from "./drawer-top-proof.module.css";
 
@@ -58,9 +58,9 @@ export default function DrawerTicketProofPage() {
           </div>
         </div>
         <div className={styles.utilityWrap}><DrawerProofInstallButton /></div>
-        <form action={signOutAction} className={styles.footer}>
+        <SignOutForm className={styles.footer}>
           <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
-        </form>
+        </SignOutForm>
       </div>
     </div>
   );

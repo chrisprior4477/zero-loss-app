@@ -230,14 +230,14 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     {undoExpired ? <p role="status">The Undo period ended for a cleanup.</p> : null}
     <div ref={list} className={styles.list}>
       {shown.slice(0, visible).map(({ key, all, rows }) => {
-        const item = all[0], sharedCount = all.filter(isShared).length, open = expanded === key;
+        const item = all[0], sharedIds = all.filter(isShared).map(entry => entry.id), sharedCount = sharedIds.length, open = expanded === key;
         return <div key={key} className={styles.stack} data-stacked={all.length > 1}>
           {all.length > 1 ? <span className={styles.thirdLayer} aria-hidden="true" /> : null}
           <article className={styles.ticket}>
             <div className={styles.prize}>
               <div className={styles.image}>{item.image ? <Image src={item.image} alt="" fill sizes="64px" className="object-contain p-1" /> : <span aria-hidden="true">Ø</span>}</div>
               <div className={styles.description}><h3>{item.title}</h3><div className={styles.summary}><p>{all.length} {all.length === 1 ? "entry" : "entries"} · {sharedCount} shared to {label}</p>
-                <button type="button" className={styles.trash} disabled={disabled || !sharedCount || !item.offeringSlug} aria-label={`Stop sharing all ${item.title} entries with ${label}`} title={`Stop sharing this prize with ${label}`} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug })}><TrashIcon /></button>
+                <button type="button" className={styles.trash} disabled={disabled || !sharedCount || !item.offeringSlug} aria-label={`Stop sharing all ${item.title} entries with ${label}`} title={`Stop sharing this prize with ${label}`} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug, reviewedEntryIds: sharedIds })}><TrashIcon /></button>
               </div></div>
             </div>
             <button type="button" className={styles.expand} aria-expanded={open} onClick={() => { toggleStack(open ? null : key); }}>
@@ -252,7 +252,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
               </div>; })}
               {rows.length > entryLimit ? <button type="button" onClick={() => setEntryLimit(n => n + 5)}>Show more entries · {rows.length - entryLimit} remaining</button> : null}
               {entryLimit > 5 ? <button type="button" onClick={() => setEntryLimit(5)}>Close to first five entries</button> : null}
-              <button type="button" className={styles.orange} disabled={disabled || !sharedCount || !item.offeringSlug} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug })}>Stop Sharing All</button>
+              <button type="button" className={styles.orange} disabled={disabled || !sharedCount || !item.offeringSlug} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug, reviewedEntryIds: sharedIds })}>Stop Sharing All</button>
             </div> : null}
           </article>
         </div>;

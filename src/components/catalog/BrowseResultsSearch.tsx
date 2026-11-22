@@ -33,13 +33,17 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     setPendingTerm(null);
   }
   useEffect(() => {
+    let currentPage = location.pathname + location.search;
     const restore = () => {
+      const nextPage = location.pathname + location.search;
+      if (currentPage === nextPage) return;
+      currentPage = nextPage;
       setPendingTerm(null);
       setDraft(new URLSearchParams(location.search).get("q") ?? "");
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
-  }, []);
+  }, [browseHref]);
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results", restoreTop = false) {
     const term = value.trim();

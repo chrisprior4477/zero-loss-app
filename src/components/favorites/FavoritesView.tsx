@@ -20,6 +20,8 @@ import styles from "./favorites.module.css";
 
 type Props = {
   hiddenSlugs?: string[];
+  availabilityUnavailable?: boolean;
+  unverifiedSlugs?: string[];
   availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
   sharesIncomplete?: boolean;
@@ -60,7 +62,7 @@ function restoreListPosition(target?: string, top?: number, artwork = false) {
   }));
 }
 
-export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailable = false, unverifiedSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
   const timeZone = useAccountTimeZone();
   const locale = useAccountLocale();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
@@ -306,7 +308,14 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
         back(true);
       }
     }
-    catch { if (window.location.href === previewHref) setMessage("We couldn’t confirm this change. Please try again."); }
+    catch {
+      const latest = await readReceivedProductState(share.id).catch(() => null);
+      if (latest) setShareOverrides(current => ({ ...current, [share.id]: { declinedAt: latest.declinedAt, viewedAt: latest.viewedAt } }));
+      if (window.location.href === previewHref) {
+        setMessage(latest ? "Showing the saved share status." : "We couldn’t confirm this change. Refresh to check.");
+        if (latest && Boolean(latest.declinedAt) === (state === "declined")) back(true);
+      }
+    }
     finally { setShareBusy(null); }
   }
   function toggleAlert(slug: string) {
@@ -336,7 +345,8 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     return {
       product,
       entryPriceCents: current?.entryPriceCents ?? Math.round((product?.entryPrice ?? 0) * 100),
-      status: product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null,
+      status: product && !availabilityUnavailable && !unverifiedSlugs?.includes(slug)
+        ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null,
     };
   }
   function art(slug: string, large = false, shareId?: string) {
@@ -351,6 +361,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   function price(slug: string, large = false) {
     const { product, entryPriceCents, status } = productState(slug);
     if (!product) return null;
+    if (!status) return <p role="status">Entry availability couldn’t be checked.</p>;
     return <div className={`${styles.price} ${large ? styles.detailPrice : ""}`}><span><strong>${(entryPriceCents / 100).toFixed(2)}</strong>per entry</span>
       <span className={styles.remaining} style={{ color: status ? lightSurfaceAvailabilityColor(status.percentFilled) : undefined }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
   }
@@ -360,15 +371,15 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const missingFavoriteSlug = tab === "favorites" && available && !selectedSlug ? selection?.slug : undefined;
   const missingFavorite = missingFavoriteSlug ? productState(missingFavoriteSlug) : null;
   const { product: detailProduct, entryPriceCents: detailEntryPrice, status: detailStatus } = productState(selectedSlug ?? "");
-  const showFavoriteFilters = available && initialAlerts !== null && slugs.length > 0;
-  const watchedSlugs = showFavoriteFilters ? slugs.filter(slug => {
+  const showFavoriteFilters = available && slugs.length > 0;
+  const watchedSlugs = showFavoriteFilters && initialAlerts !== null ? slugs.filter(slug => {
     if (!alerts[slug]) return false;
     const { product, status } = productState(slug);
     return Boolean(product) && status?.remaining !== 0;
   }) : [];
-  const watching = showFavoriteFilters && favoriteFilter === "watching";
+  const watching = favoriteFilter === "watching";
   const visibleFavorites = watching ? watchedSlugs : slugs;
-  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : favoritesHref(favoriteFilter, detailProduct.slug))
+  const detailHref = detailProduct && detailStatus && detailStatus.remaining > 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : favoritesHref(favoriteFilter, detailProduct.slug))
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled={!selectedSlug && !skipFreshLanding && !requestedShareUnavailable && !requestedFavoriteUnavailable} />
@@ -415,15 +426,15 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           {showFavoriteFilters ? <>
             <div className={styles.listFilters} role="group" aria-label="Filter favorites">
               <button type="button" data-saved-filter aria-pressed={!watching} onClick={() => chooseFavoriteFilter("all")}>All <span>{slugs.length}</span></button>
-              <button type="button" data-saved-filter aria-pressed={watching} onClick={() => chooseFavoriteFilter("watching")}>Watching <span>{watchedSlugs.length}</span></button>
+              <button type="button" data-saved-filter aria-pressed={watching} onClick={() => chooseFavoriteFilter("watching")}>Watching <span>{initialAlerts === null ? "–" : watchedSlugs.length}</span></button>
             </div>
             <p className={styles.note} aria-live="polite">{watching
-              ? `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`
+              ? initialAlerts === null ? "Watching results are unavailable. Try refreshing." : `${watchedSlugs.length} ${watchedSlugs.length === 1 ? "favorite" : "favorites"} with 90% email alerts selected`
               : `${slugs.length} ${slugs.length === 1 ? "favorite" : "favorites"}`}</p>
           </> : null}
           {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. <a href={favoritesHref(favoriteFilter, selection?.slug ?? initialItem)}>Try again.</a></p>
             : !slugs.length ? <div className={styles.empty}><h2>No favorites yet</h2><p>Tap a product’s heart to keep it here.</p><Link href="/browse">Browse products →</Link></div>
-            : !visibleFavorites.length ? <div className={styles.empty}><h2>No watched favorites</h2><p>Select All to find a favorite and turn on its 90% email alert.</p></div>
+            : watching && initialAlerts === null ? null : !visibleFavorites.length ? <div className={styles.empty}><h2>No watched favorites</h2><p>Select All to find a favorite and turn on its 90% email alert.</p></div>
               : <div id="favorite-products" aria-label="Favorite products" className={styles.grid}>{visibleFavorites.map(slug => {
                 const { product, status } = productState(slug);
                 return <article key={slug} className={styles.card}>{art(slug)}
@@ -444,7 +455,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
             : !visibleShares.length ? requestedShareUnavailable || sharesIncomplete ? null : <div className={styles.empty}><h2>{!shares.length && sharedView === "available" ? "Nothing shared with you yet" : sharedView === "declined" ? "No declined shares" : "No available shares"}</h2><p>{sharedView === "declined" ? "Shares you decline appear here while their pools remain open." : declinedCount ? "Check Declined to revisit a share." : "Items people send you will appear here."}</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{visibleShares.map(share => {
                 const { product, status } = productState(share.slug);
-                const reopenHref = share.declinedAt && product && status?.remaining !== 0
+                const reopenHref = share.declinedAt && product && status && status.remaining > 0
                   ? productHrefWithBrowseReturn(share.slug, savedShareHref(share.id, "declined")) + (share.token ? `&share=${share.token}` : "") : null;
                 return <article key={share.id} className={styles.card}>{art(share.slug, false, share.id)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>{share.declinedAt ? "View declined share" : "View prize"} <span aria-hidden="true">→</span></button>{reopenHref ? <Link className={styles.reopenButton} href={reopenHref}>Reopen prize →</Link> : null}</div></article>;
               })}</div>}

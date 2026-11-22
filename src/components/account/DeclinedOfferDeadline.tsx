@@ -29,11 +29,11 @@ function timeLeft(remaining: number) {
   return `${days} ${days === 1 ? "day" : "days"} left`;
 }
 
-export function DeclinedOfferCountdown({ deadlines }: { deadlines: number[] }) {
+export function DeclinedOfferCountdown({ deadlines, incomplete = false }: { deadlines: number[]; incomplete?: boolean }) {
   const now = useOfferClock();
   const next = now === null ? undefined : deadlines.find(deadline => deadline > now);
   const label = !deadlines.length ? "Deadline unavailable" : now === null ? "Checking deadline…" : next === undefined
-    ? deadlines.length === 1 ? "Offer expired" : "Offers expired"
+    ? incomplete ? "Some deadlines unavailable" : deadlines.length === 1 ? "Offer expired" : "Offers expired"
     : timeLeft(next - now);
   return <p className={styles.declinedCountdown}>
     <strong>{label}</strong>{next !== undefined && deadlines.length > 1 && deadlines[0] !== deadlines.at(-1) ? <span>Next offer expires</span> : null}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition, type MouseEvent } from "react";
 import {
-  getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest,
+  getCrewSharedPicks, setCrewShareBack, removeCrewConnection, readCrewInviteLinkStatus, requestCrewInvitationFromLink, respondToCrewRequest,
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
@@ -191,10 +191,24 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     }
   }
 
+  useEffect(() => {
+    if (!incomingInviteToken || incomingInviteToken === ownInviteToken) return;
+    let active = true;
+    void readCrewInviteLinkStatus(incomingInviteToken).then(status => {
+      if (active && status === "joined") setIncomingRequestSent(true);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [incomingInviteToken, ownInviteToken]);
+
   function requestFromInviteLink() {
     if (!incomingInviteToken) return;
     startTransition(async () => {
-      const result = await requestCrewInvitationFromLink(incomingInviteToken).catch(() => ({ ok: false, message: "We couldn’t confirm the request. Please try again." }));
+      const result = await requestCrewInvitationFromLink(incomingInviteToken).catch(() => null);
+      if (!result?.ok) {
+        const verified = await readCrewInviteLinkStatus(incomingInviteToken).catch(() => null);
+        if (verified === "joined") { setIncomingRequestSent(true); setMessage("You’re connected."); router.refresh(); return; }
+      }
+      if (!result) { setMessage("We couldn’t confirm the request. Check this invite again."); return; }
       setMessage(result.message);
       if (result.ok) { setIncomingRequestSent(true); router.refresh(); }
     });
@@ -355,8 +369,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>
-        <div className={styles.utilityPanel}><h2>Requests for you</h2>{received.length ? <div className={styles.utilityList}>{received.map((item) => <article key={item.id} id={`crew-request-${item.id}`} className={styles.utilityItem}><strong>{item.requester_name} wants to join your Crew</strong><p>Requested {formatDate(item.created_at, timeZone, locale)}. Accepting does not share your existing picks.</p><div className={styles.utilityActions}><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, true))} className={styles.approveButton}>Approve</button><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, false))} className={styles.secondaryButton}>Decline</button></div></article>)}</div> : <p className={styles.emptyUtility}>No requests waiting for approval.</p>}</div>
-        <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at, timeZone, locale)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
+        <div className={styles.utilityPanel}><h2>Requests for you</h2>{received.length ? <div className={styles.utilityList}>{received.map((item) => <article key={item.id} id={`crew-request-${item.id}`} className={styles.utilityItem}><strong>{item.requester_name} wants to join your Crew</strong><p>Requested {formatDate(item.created_at, timeZone, locale)}. Accepting does not share your existing picks.</p><div className={styles.utilityActions}><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, true))} className={styles.approveButton}>Approve</button><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, false))} className={styles.secondaryButton}>Decline</button></div></article>)}</div> : <p className={styles.emptyUtility}>{available ? "No requests waiting for approval." : "Incoming requests are unavailable. Try refreshing."}</p>}</div>
+        <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at, timeZone, locale)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>{available ? "No outgoing requests." : "Outgoing requests are unavailable. Try refreshing."}</p>}</div>
       </section> : null}
 
       {tab === "picks" ? <CrewSharedPicks ownerId={currentUserId} entries={entries} available={available && visibilityAvailable}

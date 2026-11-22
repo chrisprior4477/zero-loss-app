@@ -66,6 +66,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
   });
+  const rareFinds = query.collection === "rare-finds";
+  const rareFindSlugs = new Set(["lg-oled-c6-65-tv", "playstation-5-slim", "dyson-v8-cordless-vacuum", "kitchenaid-artisan-5qt-mixer", "sony-wh-1000xm5-headphones", "nintendo-switch"]);
   const searchTerm = conflictingSearch ? "" : query.q?.trim() ?? "";
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
@@ -91,7 +93,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     .map(product => ({ ...product, sold: product.capacity })) : [];
   const searchableProducts = [...availableProducts, ...unavailableDenominations];
   const categoryProducts = filterCatalogSubcategory((endingSoon ? availableProducts : searchableProducts).filter(
-    product => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
+    product => (!rareFinds || rareFindSlugs.has(product.slug)) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory);
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
@@ -118,6 +120,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const filters = reversedRange ? { ...requestedFilters, minValue: null, maxValue: null } : requestedFilters;
   const budgetLabel = browsePrizeValueLabel(filters);
   const appliedFilters = [
+    rareFinds ? "Rare Finds" : null,
     selectedLabel,
     subcategory,
     selectedRetailerGroup?.category,
@@ -209,6 +212,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   if (searchTerm) clearHrefParams.set("q", searchTerm);
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
+  if (rareFinds) searchParamsForView.set("collection", "rare-finds");
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
     if (key === "sort" && unknownSort || key === "type" && invalidType) continue;
     if (key === "available") {
@@ -319,7 +323,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Zero Loss Marketplace</p>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
+            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || (rareFinds ? "Rare Finds" : "Browse every product")}</h1>
             <p className="mt-2 text-white/65">
               {invalidSearch ? "Enter a product or retailer name to search." : searchTooLong ? "Shorten your search to see matching prizes." : searchTerm
                 ? <>{products.length} {products.length === 1 ? "product" : "products"}{!broaderSearch && directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="break-words text-white">“{searchTerm}”</strong></>

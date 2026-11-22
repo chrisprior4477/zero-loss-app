@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ record: vi.fn(), receiving: vi.fn(), push: vi.
 const router = { push: mocks.push, replace: mocks.replace, refresh: mocks.refresh };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/lib/sharing/saved-share-actions", () => ({ recordReceivedProduct: mocks.record }));
-vi.mock("@/lib/sharing/receiving-actions", () => ({ updateSharedProductReceiving: mocks.receiving }));
+vi.mock("@/lib/sharing/receiving-actions", () => ({ updateSharedProductReceiving: mocks.receiving, readSharedProductReceiving: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/components/favorites/FavoritesProvider", () => ({ useFavorites: () => ({ toggle: mocks.favorite }) }));
 import { SharedProductControls } from "./SharedProductControls";
 const context: SharedProductContext = { token: "11111111-1111-4111-8111-111111111111", slug: "playstation-5-slim", sender: "Alex", scope: "Alex’s Crew", isGroup: false, own: false, receiving: false, shareBack: false, hasChoice: true };
@@ -99,7 +99,7 @@ test("a failed save unlocks the same sharing draft for retry", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /Receive shared picks/ }));
   fireEvent.click(screen.getByRole("button", { name: "Save choices" }));
-  await screen.findByText("Your choice could not be saved. Please try again.");
+  await screen.findByText("Your choice could not be saved. Check the current settings before retrying.");
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("disabled", false);
   expect(screen.getByRole("button", { name: "Close sharing options" })).toHaveProperty("disabled", false);

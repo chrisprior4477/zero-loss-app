@@ -99,7 +99,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "change-email", category: "account", question: "Can I change my email address?",
     answer: "Profile displays your current sign-in email. To request an address change in this MVP, contact Support from your signed-in account.",
-    keywords: "update replace edit login email", action: { label: "Ask Support about my email", href: "/support#report-problem" },
+    keywords: "update replace edit login email", action: { label: "Ask Support about my email", href: "/support?topic=email#report-problem" },
   },
   {
     id: "balance-discrepancy", category: "wallet", question: "What if my wallet balance is wrong?",
@@ -125,7 +125,7 @@ export const faqItems: FaqItem[] = [
     id: "free-entry", category: "entries", question: "How do I enter without a purchase?",
     answer: "Open the mail-in instructions for the prize you want to enter. The instructions explain how to prepare and print the sample insert.",
     keywords: "free entry mail in mail-in postcard print insert without purchase",
-    action: { label: "Read the free-entry instructions", href: "/free-entry#free-entry-intro" },
+    action: { label: "Read the free-entry instructions", href: "/free-entry?origin=faq#free-entry-intro" },
   },
   {
     id: "remove-crew-member", category: "account", question: "How do I remove someone from Crew?",

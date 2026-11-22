@@ -5,7 +5,7 @@ import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 
 export const metadata: Metadata = { title: "Continue password reset" };
 
-type Props = { searchParams: Promise<{ token_hash?: string; code?: string; next?: string | string[] }> };
+type Props = { searchParams: Promise<{ token_hash?: string; code?: string; unavailable?: string; next?: string | string[] }> };
 
 export default async function RecoveryPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -19,6 +19,7 @@ export default async function RecoveryPage({ searchParams }: Props) {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Account recovery</p>
       <h1 className="mt-3 text-3xl font-black sm:text-4xl">Continue password reset</h1>
       {hasLink ? <>
+        {params.unavailable === "1" && <p role="alert" className="mt-3 text-amber-100">Password reset is temporarily unavailable. Try this link again in a moment.</p>}
         <p className="mt-4 text-sm leading-6 text-white/70">For your security, confirm that you want to use this link. Your password has not changed yet.</p>
         <form action="/auth/confirm" method="post" className="mt-7">
           <input type="hidden" name="flow" value="recovery" />

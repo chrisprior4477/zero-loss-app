@@ -103,7 +103,13 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">{isPleasure ? "Create an account" : "Business launch setup"}</p>
         <h2 id="personal-signup-heading" tabIndex={-1} className="mt-2 text-3xl font-black tracking-[-0.04em]">{isPleasure ? "Let’s get you set up." : "Launch an offer on Zero Loss."}</h2>
         <p className="mt-2 text-sm leading-6 text-white/60">
-          {isPleasure ? <>Already registered? <Link href={authNavigationHref("/login", returnTo)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
+          {isPleasure ? <>Already registered? <Link href={authNavigationHref("/login", returnTo)} onNavigate={() => {
+            const email = setupRef.current?.querySelector<HTMLInputElement>('input[name="email"]')?.value.trim();
+            try {
+              sessionStorage.removeItem("zero-loss-login-email");
+              if (email) sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email, destination: returnTo, expires: Date.now() + 300_000 }));
+            } catch { /* The sign-in link still works. */ }
+          }} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
         </p>
         <div className="mt-7">
           <SignUpForm returnTo={returnTo} />

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-const pages = /^\/(?:support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet))$/;
+const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew))$/;
 const stateKey = "zeroLossAccountHistoryReturn";
 
 export function hasAccountHistoryReturn() {
@@ -19,6 +19,7 @@ export function AccountHistoryReturn() {
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("main a[href]") : null;
       if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.pathname + anchor.search === location.pathname + location.search) return;
       if (!/^(?:←\s*)?(?:Back to Account & Security|Edit profile|Continue shopping|View fulfillment status|Add funds)/i.test(anchor.textContent?.trim() ?? "")
+        && !/^(?:Ask Support about my email|Account updates|Add to Crew|Manage Crew|Contact us|Open Wallet)/i.test(anchor.textContent?.trim() ?? "")
         && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit")) return;
       const href = anchor.getAttribute("href");
       const identical = [...document.querySelectorAll("main a[href]")].filter(link => link.getAttribute("href") === href);

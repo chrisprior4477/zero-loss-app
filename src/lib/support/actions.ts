@@ -16,13 +16,14 @@ function bodyError(limit: number): SupportActionState {
   return { status: "error", field: "body", message: `Please enter a message of 10–${limit.toLocaleString("en-US")} characters, excluding spaces at the beginning and end.` };
 }
 
-export async function checkSupportMessage(requestKey: string, caseId?: string): Promise<SupportActionState> {
+export async function checkSupportMessage(requestKey: string, caseId?: string, ownerId?: string): Promise<SupportActionState> {
   const failure = { status: "error", uncertain: true, message: "We couldn’t check your message. Try again." } as const;
   if (!isPreviewDataEnvironment() || !key.test(requestKey) || (caseId && !uuid.test(caseId))) return failure;
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
     if (authError || !user) return { ...failure, message: "Sign in again to check your message." };
+    if (user.id !== ownerId) return { status: "error", message: "This draft belongs to a different account. Sign back in to that account to continue." };
     let lookup = db.from("support_case_events").select("case_id").eq("actor_id", user.id).eq("idempotency_key", requestKey);
     lookup = caseId ? lookup.eq("case_id", caseId).neq("event_name", "support.case.opened") : lookup.eq("event_name", "support.case.opened");
     const { data, error } = await lookup.maybeSingle();
@@ -50,13 +51,15 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     (depositKey && (!depositRequestKeyPattern.test(depositKey) || Boolean(caseId || transactionId || rewardId))) ||
     (!caseId && !["wallet", "entry", "reward", "account", "other"].includes(category)) ||
     !["open", "awaiting_customer", "resolved"].includes(status)) return { status: "error", message: "Please check the form details and try again." };
-  if (!caseId && (subject.length < 5 || subject.length > 140)) return { status: "error", field: "subject", message: "Please enter a subject of 5–140 characters, excluding spaces at the beginning and end." };
+  if (!caseId && (Array.from(subject).length < 5 || Array.from(subject).length > 140)) return { status: "error", field: "subject", message: "Please enter a subject of 5–140 characters, excluding spaces at the beginning and end." };
   let prefix = supportReferencePrefix(rewardId, undefined, transactionOrigin);
-  if (body.length < 10 || body.length + prefix.length > 4000) return bodyError(4000 - prefix.length);
+  const bodyLength = Array.from(body).length;
+  if (bodyLength < 10 || bodyLength + Array.from(prefix).length > 4000) return bodyError(4000 - prefix.length);
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
     if (authError || !user) return { status: "error", message: "Sign in again before sending your request." };
+    if (user.id !== form.get("ownerId")) return { status: "error", message: "This draft belongs to a different account. Sign back in to that account to send it." };
     const linkedTransaction = orderNumber ? await getOrderSupportTransactionId(db, user.id, orderNumber) : transactionId;
     if (orderNumber && !linkedTransaction) return { status: "error", message: "We couldn’t verify the payment for this order. Choose another record or remove the attachment and send your request." };
     if (rewardId) {
@@ -68,7 +71,7 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
       const deposit = await new DemoPaymentProvider(db).getRequest(depositKey);
       if (!deposit) return { status: "error", message: "That deposit is unavailable for this account. Open the deposit in your wallet and try again." };
       prefix = supportReferencePrefix("", { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount });
-      if (body.length + prefix.length > 4000) return bodyError(4000 - prefix.length);
+      if (bodyLength + Array.from(prefix).length > 4000) return bodyError(4000 - prefix.length);
     }
     const result = caseId
       ? await db.rpc("reply_support_case", { p_case_id: caseId, p_body: body, p_status: status, p_idempotency_key: requestKey })

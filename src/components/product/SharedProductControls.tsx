@@ -5,9 +5,10 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { recordReceivedProduct } from "@/lib/sharing/saved-share-actions";
+import { readEntryIntent } from "@/lib/entries/return-intent";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
-import { updateSharedProductReceiving } from "@/lib/sharing/receiving-actions";
+import { readSharedProductReceiving, updateSharedProductReceiving } from "@/lib/sharing/receiving-actions";
 import type { SharedProductContext } from "@/lib/sharing/receiving";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -67,9 +68,14 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
   const router = useRouter();
   const shareParams = new URLSearchParams(initial ? { share: initial.token } : { shared: "1" });
   if (browseReturnHref) shareParams.set("from", browseReturnHref);
-  const returnPath = `/items/${slug}?${shareParams}`;
+  function returnPath() {
+    const selection = readEntryIntent();
+    const params = new URLSearchParams(shareParams);
+    if (selection?.slug === slug) params.set("quantity", String(selection.quantity));
+    return `/items/${slug}?${params}`;
+  }
   function signIn(review: "options" | "membership") {
-    router.push(authNavigationHref("/login", `${returnPath}&reviewShare=${review}`));
+    router.push(authNavigationHref("/login", `${returnPath()}&reviewShare=${review}`));
   }
   useEffect(() => {
     if (!signedIn || initial?.own) return;
@@ -81,7 +87,7 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
     return () => { active = false; };
   }, [slug, initial?.token, initial?.own, signedIn, saveOnReturn, router]);
   async function saveItem() {
-    if (!signedIn) { router.push(authNavigationHref("/signup", `${returnPath}&saveShared=1`)); return; }
+    if (!signedIn) { router.push(authNavigationHref("/signup", `${returnPath()}&saveShared=1`)); return; }
     if (savingItem) return;
     setSavingItem(true); setMessage(""); setLegacyCrew(false); setSaveFailed(false);
     try {
@@ -117,8 +123,9 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
     setLegacyCrew(false); setSaveFailed(false); setChoiceFailed(false); setMessage("");
     setDialogKind("options");
   }
-  async function save(receiving: boolean, sharing: boolean | null) {
+  async function save(receiving: boolean | null, sharing: boolean | null) {
     if (!context || busy) return;
+    if (receiving === null && sharing === null) { setDialogKind(null); return; }
     saveAttempt.current += 1;
     setBusy(true); setChoiceFailed(false); setMessage("");
     try {
@@ -133,7 +140,24 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
         router.refresh();
       }
     }
-    catch { setChoiceFailed(true); setMessage("Your choice could not be saved. Please try again."); }
+    catch {
+      const latest = await readSharedProductReceiving(slug, context.token).catch(() => null);
+      if (latest) {
+        setSaved({ source: initial, context: latest });
+        setReviewSnapshot({ source: initial, receiving: latest.receiving, shareBack: latest.shareBack });
+      }
+      if (latest && (receiving === null || latest.receiving === receiving) && (sharing === null || latest.shareBack === sharing)) {
+        setReceiveDraft(null);
+        setShareBackDraft(null);
+        setDialogKind(null);
+        setMessage("Your sharing choices were saved.");
+        notifyAccountChanged();
+        router.refresh();
+      } else {
+        setChoiceFailed(true);
+        setMessage("Your choice could not be saved. Check the current settings before retrying.");
+      }
+    }
     finally { setBusy(false); }
   }
   if (initial?.own) return null;
@@ -153,7 +177,7 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
         <label><input type="checkbox" checked={receive} disabled={busy} onChange={e => setReceiveDraft(e.target.checked === reviewChoice.receiving ? null : e.target.checked)} /><span>Receive shared picks from {scope}</span></label>
         <label><input type="checkbox" checked={shareBack} disabled={busy} onChange={e => setShareBackDraft(e.target.checked === reviewChoice.shareBack ? null : e.target.checked)} /><span>Let {context.sender} see picks I choose to share with my Crew</span></label>
         <p>Receiving is separate from sharing. Your private picks and wallet are never shared. Your existing audience settings still apply.</p>
-        <button ref={choiceSubmit} className={styles.save} type="button" disabled={busy} onClick={() => void save(receive, shareBackDraft)}>{busy ? "Saving…" : "Save choices"}</button>
+        <button ref={choiceSubmit} className={styles.save} type="button" disabled={busy} onClick={() => void save(receiveDraft, shareBackDraft)}>{busy ? "Saving…" : "Save choices"}</button>
       </> : <p>This link has no Crew details. <Link href="/account/crew/display#account-settings-sections">Open your sharing preferences →</Link></p>}
       {message ? <p role={choiceFailed ? "alert" : "status"}>{message}</p> : null}
     </dialog>

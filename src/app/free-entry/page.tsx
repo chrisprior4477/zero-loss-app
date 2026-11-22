@@ -40,7 +40,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
-      <Link href={origin === "terms" ? "/terms#free-entry" : productBrowseReturnPath(from) ?? "/legal#free-entry-legal-link"} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {origin === "terms" ? "Terms" : productBrowseReturnPath(from) ? productBrowseReturnLabel(productBrowseReturnPath(from)!) : "Legal Center"}</Link>
+      <Link href={origin === "terms" ? "/terms#free-entry" : origin === "faq" ? "/faq#faq-free-entry" : productBrowseReturnPath(from) ?? "/legal#free-entry-legal-link"} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {origin === "terms" ? "Terms" : origin === "faq" ? "FAQ" : productBrowseReturnPath(from) ? productBrowseReturnLabel(productBrowseReturnPath(from)!) : "Legal Center"}</Link>
       <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens />
       <FreeEntryInstructions />
       <Link href={productBrowseReturnPath(from) ?? "/browse#search-results"} className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>

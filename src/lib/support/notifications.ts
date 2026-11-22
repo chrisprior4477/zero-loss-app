@@ -22,12 +22,14 @@ export function supportNotifications(rows: unknown, timeZone = "America/New_York
     const id = resolved || awaiting
       ? `support-${r.id}-${resolved ? "resolved" : "awaiting"}-${statusReply?.id ?? Date.parse(when)}`
       : reply ? `support-${r.id}-reply-${reply.id}` : `support-${r.id}-opened`;
+    const exactReply = awaiting || resolved ? statusReply : reply;
+    const anchor = exactReply ? `&messageAnchor=${encodeURIComponent(`${exactReply.created_at}|${exactReply.id}`)}` : "";
     return [{
       id,
       category: awaiting ? "action" : "account", tone: "account",
       title: r.status === "resolved" ? "Support case resolved" : awaiting ? "Your support case needs a reply" : reply ? "Support replied to your case" : "Support case received",
       body: r.subject, meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(when)),
-      href: `/support?case=${r.id}#conversation`, action: "View conversation", visualLabel: "Support",
+      href: `/support?case=${r.id}${anchor}${exactReply ? `#support-message-${exactReply.id}` : "#conversation"}`, action: "View conversation", visualLabel: "Support",
       preferenceKey: "support_replies",
     }];
   });

@@ -8,7 +8,7 @@ import { PrefetchKind } from "next/dist/client/components/router-reducer/router-
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNotifications } from "./NotificationProvider";
 import { NotificationBanner, previewMessages } from "./NotificationBanner";
-import { groupedActivityUpdates, headerCategories, headerCategory, headerCategoryIds, headerGroupIds, headerCounts, headerDestinations, notificationMessages, notificationDestination, type HeaderCategory } from "@/lib/account/header-notifications";
+import { groupedActivityUpdates, headerCategories, headerCategory, headerCategoryIds, headerCounts, headerDestinations, notificationMessages, notificationDestination, type HeaderCategory } from "@/lib/account/header-notifications";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import styles from "./notifications.module.css";
@@ -137,7 +137,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const categoryInfo = headerCategories.find(c => c.key === current)!;
   const activityCategory = current === "wins" || current === "options" || current === "entries" ? current : null;
   // Reading a category clears its badge, never the cards the member is viewing.
-  const groups = activityCategory ? groupedActivityUpdates(all, all, activityCategory) : [];
+  const groups = activityCategory ? groupedActivityUpdates(all, [...unread, ...all], activityCategory) : [];
   const items = unread.filter(n => headerCategory(n) === current);
   const actions = { wins: "View my wins", options: "View purchase options", entries: "See my entries" };
   const preloadKey = (value?.open && activityCategory
@@ -170,7 +170,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       <div ref={list} className={styles.items} id="header-update-sections">
         <section className={styles.section} aria-label={categoryInfo.label}>
           <div className={styles.sectionHeading}><h3>{categoryInfo.label}</h3>{activityCategory ? <button type="button" disabled={busy} onClick={() => void act(headerCategoryIds(unread, activityCategory), headerDestinations[activityCategory])}>View all →</button> : current === "shared" ? <button type="button" onClick={() => void act([], items.some(item => item.crewRequestId) ? items.every(item => item.crewRequestId) ? "/account/crew?tab=requests" : "/account/notifications?filter=crew#notification-tickets-filters" : "/account/favorites?tab=shared")}>View all →</button> : null}</div>
-          {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href)} onFocus={() => prefetch(group.href)} onClick={() => void act(headerGroupIds(unread, activityCategory, group.slug), group.href)}>
+          {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href)} onFocus={() => prefetch(group.href)} onClick={() => void act(activityCategory === "entries" || !group.targetId || !unread.some(item => item.id === group.targetId) ? [] : [group.targetId], group.href)}>
               {group.image ? <Image src={group.image} alt="" width={44} height={44} unoptimized /> : null}
               <span><strong>{group.title}</strong><b>{actions[activityCategory]} →</b></span><span className={styles.ticketCount} aria-label={`${group.count} ${activityCategory === "entries" ? "tickets" : activityCategory === "wins" ? "wins" : "purchase options"}`}>{group.count}</span>
             </button>) : <p className={styles.empty}>Nothing here yet. View all to see your activity.</p>) : items.length ? items.map(n => <button type="button" key={n.id} disabled={busy} onClick={() => void act([n.id], n.href)} className={styles.entry} data-color={categoryInfo.color}>

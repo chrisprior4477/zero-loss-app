@@ -127,7 +127,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
         <aside className={styles.sideRail} aria-label="Fulfillment links">
           <section className={styles.helpCard}>
             <span><AccountIcon name="security" /></span><h2>Need help with an order?</h2>
-            <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : "Your support request will include this order’s transaction."}</p>
+            <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : reportHref.includes("reward=") ? "Your support request will include this reward." : "Your support request will include this order’s transaction."}</p>
             <Link href={reportHref}>{supportLabel}<AccountIcon name="arrow" /></Link>
           </section>
         </aside>

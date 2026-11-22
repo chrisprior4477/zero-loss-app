@@ -20,6 +20,7 @@ const actions = vi.hoisted(() => ({
   getCrewSharedPicks: vi.fn(),
   setCrewShareBack: vi.fn(),
   requestCrewInvitationFromLink: vi.fn(),
+  readCrewInviteLinkStatus: vi.fn().mockResolvedValue("available"),
   saveCrewGroup: vi.fn(),
   saveCrewDisplaySettings: vi.fn(),
 }));

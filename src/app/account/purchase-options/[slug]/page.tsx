@@ -98,7 +98,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const result = await checkDemoPurchaseReceipt(receipt, slug);
     if (result.status === "succeeded") {
       const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
-      return <CompletedPurchaseReceipt key={receipt} notificationReturnHref={notificationReturn} title={title} totalCents={result.totalCents} count={result.purchasedCount}
+      return <CompletedPurchaseReceipt key={receipt} notificationReturnHref={notificationReturn} transactionReturnHref={walletHref} title={title} totalCents={result.totalCents} count={result.purchasedCount}
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
     return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
@@ -137,7 +137,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const item = options[0] ?? activity.find(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined");
     if (item) return <div className={styles.page}><section className={styles.shell}>
       <h1>Check your declined offers</h1>
-      <Link href={prizePath}>View purchase options</Link>
+      <Link href={keepOrigin(prizePath)}>View purchase options</Link>
+      {originLinks}
       <DeclinePurchaseOffersDialog item={item} recovering ownerId={account.userId}
         offeredOptionIds={options.flatMap(offer => offer.completionOptionId ? [offer.completionOptionId] : [])}
         ticketLabels={offerTicketLabels(activity.filter(ticket => ticket.slug === slug), activity)} />
@@ -145,7 +146,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   }
   if (invalidOption || optionId !== undefined && !options.some(option => option.entryId === optionId)) {
     const ticket = optionId ? findActivityItem(activity, slug, optionId) : undefined;
-    if (!ticket && account.activity.incomplete) return <section className={styles.page}><div className={styles.shell}><h1>We couldn’t verify this purchase option</h1><AccountReadRetryButton label="Check this option again" /></div></section>;
+    if (!ticket && account.activity.incomplete) return <section className={styles.page}><div className={styles.shell}><h1>We couldn’t verify this purchase option</h1><AccountReadRetryButton label="Check this option again" />{originLinks}</div></section>;
     if (!ticket) return unavailableOffer(options.length > 0);
     if (isPurchasedReward(ticket)) {
       redirect(keepOrigin(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : completedActivityHref(ticket.entryId)));
@@ -153,6 +154,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     redirect(keepOrigin(activityHref(ticket)));
   }
   if (options.length === 0) {
+    if (account.activity.incomplete) return <section className={styles.page}><div className={styles.shell}><h1>We couldn’t verify your purchase options</h1><AccountReadRetryButton label="Check options again" />{originLinks}</div></section>;
     if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect(keepOrigin(`/account/declined-offers?prize=${encodeURIComponent(slug)}`));
     const completed = activity.find(ticket => ticket.slug === slug && isPurchasedReward(ticket));
     if (completed) redirect(keepOrigin(completedActivityHref(completed.entryId)));

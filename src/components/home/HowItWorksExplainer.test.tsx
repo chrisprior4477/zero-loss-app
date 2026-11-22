@@ -29,6 +29,6 @@ test("uses the supplied five-step artwork with seam arrows and no redundant caro
   const scrollTo = vi.fn();
   Object.defineProperty(strip, "scrollTo", { value: scrollTo });
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
-  fireEvent.click(within(strip).getByRole("button", { name: "Show how it works step 2 of 5" }));
+  fireEvent.click(within(strip).getByRole("button", { name: "Show how it works step 2 of 5" }), { detail: 1 });
   expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
 });

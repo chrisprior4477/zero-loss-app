@@ -47,7 +47,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
   const openEntryCount = emptyPurchaseOptions ? filterActivity(verifiedState.activity, "active").length : 0;
   const hasWins = emptyPurchaseOptions && filterActivity(verifiedState.activity, "prize").length > 0;
   return <section data-activity-source={state.source}>
-    <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} viewedEntryId={viewedEntryId} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).filter(notification => !viewedEntryId || notification.entryId === viewedEntryId).map(notification => notification.id)} />
+    <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase || viewedRewardId && !viewedEntryId)} viewedEntryId={viewedEntryId} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).filter(notification => !viewedEntryId || notification.entryId === viewedEntryId).map(notification => notification.id)} />
     <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!filterReset && !selectionMessage && !selectedSlug && !selectedEntryId && !viewedEntryId && !viewedRewardId && !returnToOptions && !resumePurchase} />
     {filterReset || selectionMessage ? <AccountSettingsLandingScroll target={openEntriesAnchorId} initialTarget={openEntriesAnchorId} focusTarget={selectionMessage ? "activity-selection-message" : openEntriesAnchorId} allScreens /> : null}
     <nav id={openEntriesAnchorId} tabIndex={-1} aria-label="Filter My Activity" className={styles.filters}>
@@ -84,7 +84,7 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
         {openEntryCount > 0 ? <Link href={openEntriesHref} data-filter="active" className={styles.emptyShortcut}>See Open Entries</Link> : null}
       </nav> : null}
       {!emptyPurchaseOptions && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}
-    </div><div id="my-activity-empty-controls" className={styles.emptyControls}><Link href="/" className={styles.continueShopping}>Continue shopping</Link>{canClearDemoEntries && state.source !== "unavailable" ? <ClearAllEntriesButton /> : null}</div></>}
+    </div><div id="my-activity-empty-controls" className={styles.emptyControls}><Link href="/" className={styles.continueShopping}>Continue shopping</Link>{canClearDemoEntries && state.source !== "unavailable" ? <ClearAllEntriesButton ownerId={ownerId} /> : null}</div></>}
     <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} returnToOptions={returnToOptions} resumePurchase={resumePurchase} />
   </section>;
 }

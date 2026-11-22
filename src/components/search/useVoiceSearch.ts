@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountLocale } from "@/components/account/TimeZoneProvider";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Recognition = {
@@ -15,6 +17,7 @@ const noSpeech = "No speech was heard. Try the microphone again or type your sea
 
 /** Shared by header, hero and Browse; transcript is reviewed before pressing Go. */
 export function useVoiceSearch(onTranscript: (text: string) => void) {
+  const locale = useAccountLocale();
   const recognitionRef = useRef<Recognition | null>(null);
   const [phase, setPhase] = useState<"idle" | "listening" | "finishing">("idle");
   const listening = phase === "listening";
@@ -84,7 +87,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void) {
     }
     cancelActiveVoice = cancel;
     recognitionRef.current = recognition;
-    recognition.lang = "en-US";
+    recognition.lang = locale;
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.onresult = event => {

@@ -145,6 +145,12 @@
 .reportLink svg { width: 25px; height: 25px; }
 .transactionActions { grid-area: actions; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; min-width: 0; border-top: 1px dotted #b9cfdf; padding-top: 3px; }
 .transactionActions a, .relatedEntries summary { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; color: #075fae; font-size: 13px; font-weight: 850; text-decoration: none; }
+@media (max-width: 1023px) {
+  .transactionActions a[data-weekly-deposit-back="desktop"] { display: none; }
+}
+@media (min-width: 1024px) {
+  .transactionActions a[data-weekly-deposit-back="mobile"] { display: none; }
+}
 .transactionActions svg { width: 17px; height: 17px; flex: none; }
 .transactionActions .supportAction { margin-left: auto; color: #4c6686; font-size: 12px; font-weight: 650; }
 .transactionActions a:hover { text-decoration: underline; text-underline-offset: 3px; }

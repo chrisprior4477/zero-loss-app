@@ -88,9 +88,10 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   useEffect(() => {
     let lastSyncedHref = "";
-    const sync = () => {
+    const sync = (initial = false) => {
+      if (window.location.pathname !== "/account/wallet") return;
       let hash = window.location.hash;
-      if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#funding-amount", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
+      if (initial && initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#funding-amount", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }
@@ -119,8 +120,9 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     };
     // A confirmation can close on Back without changing the wallet destination.
     const onPop = () => { if (window.location.href !== lastSyncedHref) sync(); };
-    sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", onPop); document.addEventListener("click", click, true);
-    return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", onPop); document.removeEventListener("click", click, true); };
+    const onHash = () => sync();
+    sync(true); window.addEventListener("hashchange", onHash); window.addEventListener("popstate", onPop); document.addEventListener("click", click, true);
+    return () => { window.removeEventListener("hashchange", onHash); window.removeEventListener("popstate", onPop); document.removeEventListener("click", click, true); };
   }, [initialSection]);
   useLayoutEffect(() => {
     if (!panelOpen) return;
@@ -158,7 +160,15 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       }
       if (result.status === "succeeded") setMessage(result.message);
       if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
-    } catch { reportError("Your preference could not be saved. Please try again."); }
+    } catch {
+      const latest = await readDemoPaymentMethod(card.token).catch(() => null);
+      if (latest?.status === "loaded" && latest.card?.isDefault === value) {
+        const saved = latest.card;
+        setCards(current => current.map(item => item.token === saved.token ? saved : value ? { ...item, isDefault: false } : item));
+        setMessage("Your default card preference was saved.");
+      } else reportError("We couldn’t confirm your preference. Check your saved cards before trying again.");
+      router.refresh();
+    }
     finally { setBusy(false); }
   }
   async function removeCard(token: DemoCardToken) {
@@ -184,6 +194,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     setBusy(true);
     try {
       const latest = await readDemoPaymentMethod(token);
+      if (latest.status === "loaded" && latest.card === null) {
+        setCards(current => current.filter(card => card.token !== token));
+        if (expanded === token) selectPreview();
+        setDeleting(null);
+        setMessage("The card was removed.");
+        router.refresh();
+        return false;
+      }
       if (latest.status !== "loaded" || !latest.card?.revision) {
         setDeleteMessage("We couldn’t verify this card. Close this review and refresh your saved cards.");
         return false;

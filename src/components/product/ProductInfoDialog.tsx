@@ -54,7 +54,13 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   return <>
     <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={openInfo}>{label}</button>
     <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={() => {
-      endDialogHistory();
+      const state = { ...history.state };
+      const restored = state.zeroLossProductInfoReturn?.title === title;
+      if (restored) {
+        delete state.zeroLossProductInfoReturn;
+        history.replaceState(state, "");
+      }
+      endDialogHistory(restored);
       setOpen(false); trigger.current?.focus({ preventScroll: true });
     }} onClick={event => {
       if (event.target === event.currentTarget) { dialog.current?.close(); return; }

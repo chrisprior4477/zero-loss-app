@@ -330,12 +330,19 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const [title, detail] = description(entry);
     const artwork = icon(entry);
     const preserveView = !compact && Boolean(walletId);
-    const links = transactionLinks(entry, activity, preserveView, ordersFilter);
+    const notice = entry.id === selectedId && notificationReturnHref ? new URL(notificationReturnHref, "https://zeroloss.local").searchParams : null;
+    const origin = notice?.get("notice") ? { notice: notice.get("notice")!, alerts: notice.get("filter") ?? "all" } : null;
+    const links = transactionLinks(entry, activity, preserveView, ordersFilter).map(link => {
+      if (!origin) return link;
+      const url = new URL(link.href, "https://zeroloss.local");
+      for (const [name, value] of Object.entries(origin)) url.searchParams.set(name, value);
+      return { ...link, href: url.pathname + url.search + url.hash };
+    });
     const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
     const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
       ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}), ...(ordersFilter ? { fromOrders: "1", orderFilter: ordersFilter } : {}), ...(entry.id === selectedId && notificationReturnHref ? { alerts: new URL(notificationReturnHref, "https://zeroloss.local").searchParams.get("filter") ?? "all", notice: new URL(notificationReturnHref, "https://zeroloss.local").searchParams.get("notice") ?? "" } : {}) })}` : productPath;
     const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
-    const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" || ordersFilter ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}`;
+    const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" || ordersFilter ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}${origin ? `&${new URLSearchParams(origin)}` : ""}`;
     const selected = entry.id === selectedId;
     return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
       ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
@@ -352,8 +359,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <span className={styles.posted}>Posted</span>
       <div className={styles.transactionActions}>
         {selected && weeklyDeposit && deposit?.requestKey === weeklyDeposit ? <>
-          <Link className="max-lg:hidden" href={`/account/wallet?view=history&weeklyDeposit=${encodeURIComponent(weeklyDeposit)}#weekly-deposit-heading`}>← Back to Weekly deposits</Link>
-          <Link className="lg:hidden" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(weeklyDeposit)}#payment-deposits`}>← Back to Payment deposits</Link>
+          <Link data-weekly-deposit-back="desktop" href={`/account/wallet?view=history&weeklyDeposit=${encodeURIComponent(weeklyDeposit)}#weekly-deposit-heading`}>← Back to Weekly deposits</Link>
+          <Link data-weekly-deposit-back="mobile" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(weeklyDeposit)}#payment-deposits`}>← Back to Payment deposits</Link>
         </> : null}
         {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
         {links.length === 1 ? <Link href={links[0].href} aria-label={links[0].label === "View entry" ? links[0].label + " for " + (entry.product?.title ?? "this prize") + ", reference ending " + links[0].id.slice(-8).toUpperCase() : undefined}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}

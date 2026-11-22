@@ -4,7 +4,8 @@ import { ProfilePhotoCard } from "./ProfilePhotoCard";
 import type { CSSProperties } from "react";
 
 const { savePhoto, saveVisibility } = vi.hoisted(() => ({ savePhoto: vi.fn(), saveVisibility: vi.fn() }));
-vi.mock("@/lib/account/actions", () => ({ saveProfilePhoto: savePhoto, saveProfilePhotoVisibility: saveVisibility }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/lib/account/actions", () => ({ saveProfilePhoto: savePhoto, saveProfilePhotoVisibility: saveVisibility, readProfilePhotoVisibility: vi.fn().mockResolvedValue(null) }));
 // eslint-disable-next-line @next/next/no-img-element -- simulate the crop image load in jsdom.
 vi.mock("next/image", () => ({ default: ({ src, style, onLoad }: { src: string; style?: CSSProperties; onLoad?: React.ReactEventHandler<HTMLImageElement> }) => <img data-photo-source={src} alt="" style={style} onLoad={onLoad} /> }));
 afterEach(() => {
@@ -304,7 +305,7 @@ test("the menu checkbox updates the round header photo immediately and saves ind
     expect(crew.checked).toBe(true);
     expect(changed).toHaveBeenCalledTimes(1);
     expect((changed.mock.calls[0][0] as CustomEvent).detail).toEqual({ enabled: false });
-    expect(saveVisibility).toHaveBeenCalledWith("menu", false);
+    expect(saveVisibility).toHaveBeenCalledWith("menu", false, "photo-owner");
     finishSave({ ok: true });
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Photo choice saved."));
   } finally {

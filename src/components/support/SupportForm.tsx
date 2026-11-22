@@ -28,12 +28,12 @@ function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
   return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
 }
 
-type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
+type Props = { ownerId?: string; topic?: "email"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
 export function SupportForm(props: Props) {
-  return <SupportFormSession key={`${props.ownerId}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
+  return <SupportFormSession key={`${props.ownerId}:${props.topic}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
 
-function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
+function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
   const router = useRouter();
   const sending = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -43,9 +43,9 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const attachedOrder = Boolean(transactionId && transactionOrigin.startsWith("order:"));
   const initialDraft: SupportDraft = {
     requestKey,
-    subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? transactionSubject : rewardId ? "Question about this reward" : "",
+    subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? transactionSubject : rewardId ? "Question about this reward" : topic === "email" ? "Question about my email address" : "",
     body: "",
-    category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : "other",
+    category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : topic === "email" ? "account" : "other",
     caseStatus: "awaiting_customer",
     uncertain: false,
   };
@@ -56,10 +56,10 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   const pickedTransaction = record?.kind === "transaction" ? record.id : "";
   const pickedOrder = record?.kind === "order" ? record.id : "";
   const effectiveOrigin = pickedOrder ? "order:all" : pickedTransaction ? "wallet" : transactionOrigin;
-  const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : "new");
+  const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : topic === "email" ? "account-email" : "new");
   const lengthErrorId = useId();
   const bodyLimit = 4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length;
-  const extraCharacters = Math.max(0, body.length - bodyLimit);
+  const extraCharacters = Math.max(0, Array.from(body.trim()).length - bodyLimit);
   const attempted = useRef<FormData | null>(null);
   const restored = useRef(false);
   useLayoutEffect(() => {
@@ -73,13 +73,13 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       if (saved.uncertain && !saved.recordUnavailable) {
         const payload = new FormData();
         const savedRecord = allowRecordPicker ? saved.record : undefined;
-        Object.entries({ requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: savedRecord?.kind === "transaction" ? savedRecord.id : transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
+        Object.entries({ ownerId: ownerId ?? "", requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: savedRecord?.kind === "transaction" ? savedRecord.id : transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
         if (savedRecord?.kind === "order") payload.set("orderNumber", savedRecord.id);
         if (saved.transactionOrigin) payload.set("transactionOrigin", saved.transactionOrigin);
         attempted.current = payload;
       }
     }
-  }, [draftKey, caseId, transactionId, rewardId, depositKey, staff, allowRecordPicker]);
+  }, [draftKey, caseId, transactionId, rewardId, depositKey, staff, allowRecordPicker, ownerId]);
   function changeDraft(change: Partial<SupportDraft>) {
     const next = { ...draft, ...change };
     setDraft(next);
@@ -107,7 +107,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     }
     if (data.get("intent") === "check") {
       try {
-        const result = await checkSupportMessage(draft.requestKey, caseId);
+        const result = await checkSupportMessage(draft.requestKey, caseId, ownerId);
         if (result.status === "saved") writeSupportDraft(draftKey, null);
         if (result.status === "error" && result.canResend && draft.recordUnavailable) return {
           ...result, message: "No saved message was found. You can edit the draft and replace the unavailable attachment.",
@@ -152,7 +152,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
   return <form ref={formRef} onSubmit={event => {
     event.preventDefault();
     if (locked || sending.current || extraCharacters > 0) return;
-    const invalidField = !caseId && subject.trim().length < 5 ? "subject" : body.trim().length < 10 ? "body" : null;
+    const invalidField = !caseId && Array.from(subject.trim()).length < 5 ? "subject" : Array.from(body.trim()).length < 10 ? "body" : null;
     if (invalidField) {
       const message = invalidField === "subject" ? "Enter at least 5 characters for the subject, excluding spaces at the beginning and end." : "Enter at least 10 characters for the message, excluding spaces at the beginning and end.";
       setValidation({ status: "error", field: invalidField, fieldValue: draft[invalidField], message });
@@ -169,6 +169,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     sending.current = true;
     startTransition(() => action(data));
   }} className="space-y-4">
+    <input type="hidden" name="ownerId" value={ownerId ?? ""} />
     <input type="hidden" name="requestKey" value={draft.requestKey} />
     <input type="hidden" name="caseId" value={caseId ?? ""} />
     <input type="hidden" name="transactionId" value={transactionId ?? pickedTransaction} />

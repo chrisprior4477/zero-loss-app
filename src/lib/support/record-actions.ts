@@ -8,15 +8,27 @@ import { getWalletSnapshot } from "@/lib/wallet/balance";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { ledgerDescription } from "@/lib/wallet/transaction-links";
-import { parseSupportRecord, type SupportRecordKind, type SupportRecordPage } from "./records";
+import { parseSupportRecord, type SupportRecord, type SupportRecordKind, type SupportRecordPage } from "./records";
 
 const pageSize = 8;
+
+function recordOrder(aDate: string, aId: string, bDate: string, bId: string) {
+  return Date.parse(bDate) - Date.parse(aDate) || bId.localeCompare(aId);
+}
+
+function cursorOffset<T>(rows: T[], after: Pick<SupportRecord, "date" | "id">, key: (row: T) => [string, string]) {
+  const index = rows.findIndex(row => {
+    const [date, id] = key(row);
+    return recordOrder(date, id, after.date, after.id) > 0;
+  });
+  return index < 0 ? rows.length : index;
+}
 const orderStatus: Record<AccountOrderStatus, string> = {
   payment_confirmed: "Payment confirmed", issuance_pending: "Issuance pending", fulfilled: "Card issued",
   exception: "Action needed", cancelled: "Cancelled", corrected: "Order corrected",
 };
 
-export async function loadSupportRecords(kind: SupportRecordKind, page: number, selectedId?: string): Promise<SupportRecordPage> {
+export async function loadSupportRecords(kind: SupportRecordKind, page: number, selectedId?: string, after?: Pick<SupportRecord, "id" | "date">): Promise<SupportRecordPage> {
   if (!isPreviewDataEnvironment() || (kind !== "order" && kind !== "transaction")
     || !Number.isSafeInteger(page) || page < 0 || page >= Math.floor(Number.MAX_SAFE_INTEGER / pageSize)) {
     return { error: "These records are unavailable." };
@@ -26,10 +38,11 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number, 
     const { data: { user }, error } = await db.auth.getUser();
     if (error || !user) return { error: "Sign in again to choose a record." };
     if (kind === "order") {
-      const { orders, incomplete } = await getAccountOrders(db);
+      const { orders: loaded, incomplete } = await getAccountOrders(db);
+      const orders = [...loaded].sort((a, b) => recordOrder(a.createdAt, a.orderNumber, b.createdAt, b.orderNumber));
       const index = selectedId ? orders.findIndex(order => order.orderNumber === selectedId) : -1;
       if (index >= 0) page = Math.floor(index / pageSize);
-      const offset = page * pageSize;
+      const offset = after ? cursorOffset(orders, after, row => [row.createdAt, row.orderNumber]) : page * pageSize;
       const records = orders.slice(offset, offset + pageSize).flatMap(order => {
         const record = parseSupportRecord({ kind, id: order.orderNumber, title: order.title, detail: order.retailer,
           amount: order.amountPaidCents, date: order.createdAt, status: orderStatus[order.status] });
@@ -49,10 +62,10 @@ export async function loadSupportRecords(kind: SupportRecordKind, page: number, 
     ]);
     if (!history || visibility.error) throw new Error("Wallet history unavailable");
     const hidden = new Set(parseDemoWalletHistoryVisibility(visibility.data).ledgerEntryIds);
-    const rows = history.filter(row => !hidden.has(row.id));
+    const rows = history.filter(row => !hidden.has(row.id)).sort((a, b) => recordOrder(a.created_at, a.id, b.created_at, b.id));
     const index = selectedId ? rows.findIndex(row => row.id === selectedId) : -1;
     if (index >= 0) page = Math.floor(index / pageSize);
-    const offset = page * pageSize;
+    const offset = after ? cursorOffset(rows, after, row => [row.created_at, row.id]) : page * pageSize;
     const records = rows.slice(offset, offset + pageSize).flatMap(row => {
       const [label, detail] = ledgerDescription(row.entry_type);
       const product = row.product;

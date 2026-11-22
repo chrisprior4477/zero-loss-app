@@ -123,6 +123,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const shareToken = matchingLink?.token ?? null;
   const publicLinkAllowed = singleLinkAudience && !shareGroupId && !preparedLink?.token;
   const linkReady = publicLinkAllowed || Boolean(matchingLink && (!shareGroupId || shareToken));
+  const copyReady = linkReady && (!restoreManualHistory || Boolean(matchingLink));
   const linkFailed = singleLinkAudience && failedLink?.slug === shareSlug && failedLink.groupId === shareGroupId && failedLink.attempt === linkRetry;
   useEffect(() => {
     if (!singleLinkAudience) return;
@@ -295,7 +296,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }
 
   async function copyLink() {
-    if (!linkReady) return;
+    if (!copyReady) return;
     try {
       await navigator.clipboard.writeText(productShareUrl(window.location.origin, item.slug, shareToken));
       if (alive.current) feedback("Link copied. Paste it into your conversation.");
@@ -576,11 +577,17 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     const group = groupExpected.current;
     if (!group) return;
     await run(async () => {
-      const result = await saveCrewGroup({ group, remove: true, expected: group });
+      const result = await saveCrewGroup({ group, remove: true, expected: group }).catch(() => null);
       if (!alive.current) return;
-      if (!result.ok) {
-        if (result.conflict) { setGroupConflict(true); setDeleteGroupConfirm(null); }
-        feedback(result.message, true); return;
+      if (!result?.ok) {
+        const latest = await getCrewShareOptions().catch(() => null);
+        if (!alive.current) return;
+        if (!latest?.ok || latest.groups.some(candidate => candidate.id === group.id)) {
+          if (result?.conflict) { setGroupConflict(true); setDeleteGroupConfirm(null); }
+          feedback(result?.message ?? "We couldn’t confirm the group removal. Refresh your Crew to check.", true);
+          return;
+        }
+        setOptions(latest);
       }
       notifyAccountChanged();
       setOptions(current => current ? { ...current, groups: current.groups.filter(value => value.id !== group.id) } : current);
@@ -707,7 +714,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <p role="status">That person is no longer available in your Crew.</p>}
       </div> : null}
       {step === "home" ? <div className={styles.actions}>
-        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
+        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
         <button type="button" className={styles.back} disabled={busy} onClick={() => void openFinder()}>Find &amp; add someone</button>
@@ -715,7 +722,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {shortcuts}
       </div> : null}
 
-      {step === "send" ? <div className={styles.actions}>{shortcuts}<button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button><p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
+      {step === "send" ? <div className={styles.actions}>{shortcuts}<button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button><p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
 
       {step === "crew" ? <div className={styles.actions}>
         <button type="button" className={styles.primary} onClick={() => void loadAudiences()} disabled={busy}><ShareIcon name="crew" />Share with my Crew</button>
@@ -739,7 +746,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </div>
         <p className={styles.messagePreview}>{text}</p>
         <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
-        <button type="button" disabled={!linkReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
+        <button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
         <p className={styles.note}>Review and send in your texting app.</p>
       </> : null}
 

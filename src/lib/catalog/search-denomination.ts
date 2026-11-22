@@ -250,10 +250,12 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
   return Number.isFinite(amount) ? { text: maximum.text, budget: { maximum: amount, inclusive: true } } : null;
 }
 
+export const remainingTicketsRange = /\s+(?:with\s+)?between\s+(\d+)\s+and\s+(\d+)\s+(?:tickets?|entries)\s+left[.!?]?$/i;
+
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
   const foreignCode = "(?:CAD|AUD|NZD|EUR|GBP|JPY|CHF|MXN|INR)";
   const unsupportedCurrency = new RegExp(String.raw`(?:\b${foreignCode}\s*\$?\s*\d|\d[\d.,]*\s*${foreignCode}\b|\b(?:CA|AU|NZ)\s*\$\s*\d|[€£¥]\s*\d)`, "i").test(query);
-  let normalized = query.trim().replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
+  let normalized = query.trim().replace(remainingTicketsRange, "").replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
     .replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b|\b(?:(?:grocery|fuel)\s+)?vouchers?\b/gi, "gift card")
     .replace(/\b(?:sony\s+)?playstation store cards?\b/gi, "Sony PlayStation gift card")
     .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")

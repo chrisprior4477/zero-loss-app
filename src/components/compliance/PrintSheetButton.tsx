@@ -7,6 +7,8 @@ export function PrintSheetButton({ offering, name, account, reference }: {
 }) {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState("");
+  const [checkingPrint, setCheckingPrint] = useState(false);
+  const [closedOffering, setClosedOffering] = useState(false);
   const [pdfLink, setPdfLink] = useState("");
   const inFlight = useRef<{ controller: AbortController; popup: Window | null } | null>(null);
   const fallbackUrl = useRef("");
@@ -43,6 +45,13 @@ export function PrintSheetButton({ offering, name, account, reference }: {
         popup.document.body.textContent = "Preparing your entry insert…";
       }
       const response = await fetch(form.action, { method: "POST", body: new FormData(form), signal: controller.signal });
+      if (response.status === 410 || response.redirected) {
+        popup?.close();
+        window.focus();
+        setClosedOffering(true);
+        setError("This offering is closed or unavailable for free entry.");
+        return;
+      }
       if (response.status === 422) {
         popup?.close();
         window.focus();
@@ -74,6 +83,22 @@ export function PrintSheetButton({ offering, name, account, reference }: {
     }
   }
 
+  async function printPage() {
+    setCheckingPrint(true);
+    setError("");
+    try {
+      const response = await fetch("/api/free-entry-pdf", {
+        method: "POST", body: new URLSearchParams({ offering, intent: "check" }), cache: "no-store",
+      });
+      if (response.status === 204) window.print();
+      else if (response.status === 410 || response.redirected) {
+        setClosedOffering(true);
+        setError("This offering is closed or unavailable for free entry.");
+      } else setError("Prize availability couldn’t be checked. Try again before printing.");
+    } catch { setError("Prize availability couldn’t be checked. Try again before printing."); }
+    finally { setCheckingPrint(false); }
+  }
+
   return (
     <div>
       {error ? <p role="alert" className="mb-2 text-sm font-semibold text-amber-100">{error}</p> : null}
@@ -84,13 +109,13 @@ export function PrintSheetButton({ offering, name, account, reference }: {
           <input type="hidden" name="name" value={name} />
           <input type="hidden" name="account" value={account} />
           <input type="hidden" name="reference" value={reference} />
-          <button type="submit" aria-disabled={opening} className="rounded-xl bg-[#00b9ff] px-6 py-3 font-extrabold text-[#00132e] shadow-lg transition hover:bg-cyan-200 aria-disabled:opacity-60">
+          <button type="submit" aria-disabled={opening} disabled={closedOffering} className="rounded-xl bg-[#00b9ff] px-6 py-3 font-extrabold text-[#00132e] shadow-lg transition hover:bg-cyan-200 aria-disabled:opacity-60">
             {opening ? "Preparing PDF…" : "Open printable PDF"}
           </button>
         </form>
         {pdfLink ? <a ref={fallbackLink} href={pdfLink} target="_blank" rel="noopener noreferrer" className="min-h-11 px-3 py-2 font-bold underline">Open prepared PDF</a> : null}
-        <button type="button" onClick={() => window.print()} className="rounded-xl border border-white/25 px-5 py-3 font-bold text-white transition hover:bg-white/10">
-          Open print dialog
+        <button type="button" onClick={() => void printPage()} disabled={checkingPrint || closedOffering} className="rounded-xl border border-white/25 px-5 py-3 font-bold text-white transition hover:bg-white/10">
+          {checkingPrint ? "Checking eligibility…" : "Open print dialog"}
         </button>
       </div>
     </div>

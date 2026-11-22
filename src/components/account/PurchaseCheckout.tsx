@@ -26,6 +26,8 @@ import { PurchaseOptionPicker } from "./PurchaseOptionPicker";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
+import { entryReviewContext } from "@/lib/wallet/funding-navigation";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
@@ -119,6 +121,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const [reviewedCheckout, setReviewedCheckout] = useState<{ details: string; summary: string } | null>(null);
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
+  const [signInRequired, setSignInRequired] = useState(false);
   const [checkingReceipt, setCheckingReceipt] = useState(false);
   const receiptHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -184,8 +187,25 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   };
   const noticeParams = new URLSearchParams(notificationReturnHref?.split("?")[1]?.split("#")[0]);
   const noticeId = noticeParams.get("notice");
-  const alertContext = noticeId ? `&${new URLSearchParams({ alerts: noticeParams.get("filter") ?? "all", notice: noticeId })}` : "";
-  const keepAlert = useCallback((href: string) => href.replace(/(#.*)?$/, (_, hash) => alertContext + (hash ?? "")), [alertContext]);
+  const walletOrigin = new URLSearchParams(returnTransactionHref?.split("?")[1]?.split("#")[0]);
+  const origin = entryReviewContext({
+    transaction: walletOrigin.get("transaction"), walletView: walletOrigin.get("walletView"),
+    fromOrders: walletOrigin.get("fromOrders"), orderFilter: walletOrigin.get("orderFilter"),
+    alerts: noticeParams.get("filter"), notice: noticeId,
+  });
+  const receiptContext = new URLSearchParams(origin).toString();
+  const fundingContext = new URLSearchParams({
+    ...(origin.transaction ? { entryTransaction: origin.transaction } : {}),
+    ...(origin.walletView ? { entryWalletView: origin.walletView } : {}),
+    ...(origin.fromOrders && origin.orderFilter ? { entryFromOrders: origin.fromOrders, entryOrderFilter: origin.orderFilter } : {}),
+    ...(origin.notice ? { alerts: origin.alerts ?? "all", notice: origin.notice } : {}),
+  }).toString();
+  const keepAlert = useCallback((href: string) => {
+    const url = new URL(href, "https://navigation.invalid");
+    const context = new URLSearchParams(url.pathname === "/account/wallet" ? fundingContext : receiptContext);
+    for (const [key, value] of context) url.searchParams.set(key, value);
+    return url.pathname + url.search + url.hash;
+  }, [fundingContext, receiptContext]);
   const walletHref = keepAlert(depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId));
   const rememberSelectionFor = (href: string) => {
     rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff });
@@ -427,7 +447,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       if (saved?.purchase?.requestId === request.requestId) saveAttempt(null);
     } catch { /* The verified receipt is still available from the server. */ }
     clearChoice();
-    const href = result.rewardIds ? purchaseReceiptHref(request.slug, request.requestId) : result.href;
+    const href = keepAlert(result.rewardIds ? purchaseReceiptHref(request.slug, request.requestId) : result.href);
     setReceipt({ status: "ready", href, cardReady: result.cardReady, totalCents: result.totalCents ?? request.totalCents, purchasedCount: result.purchasedCount });
     window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
     notifyAccountChanged();
@@ -452,10 +472,12 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         router.refresh();
         return;
       }
-      setError(result.recovery === "check" ? "" : result.message);
-      setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null);
+      const needsReceipt = result.recovery === "check" || result.recovery === "sign-in";
+      setSignInRequired(result.recovery === "sign-in");
+      setError(needsReceipt ? "" : result.message);
+      setRecovery(result.recovery === "offers" ? "offers" : needsReceipt ? "purchase" : null);
       setOverlay(null);
-      if (result.recovery !== "check") { saveAttempt(null); clearReceiptUrl(); setPurchaseRequest(null); }
+      if (!needsReceipt) { saveAttempt(null); clearReceiptUrl(); setPurchaseRequest(null); }
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
     } catch { setRecovery("purchase"); setOverlay(null); }
     finally { inFlight.current = false; setBusy(false); }
@@ -472,7 +494,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         rememberReceiptUrl(purchaseRequest.requestId);
         router.refresh();
       }
-      else setReceipt({ status: result.status === "not_found" ? "unconfirmed" : "unavailable" });
+      else {
+        setSignInRequired(result.status === "error" && result.recovery === "sign-in");
+        setReceipt({ status: result.status === "not_found" ? "unconfirmed" : "unavailable" });
+      }
     } catch { setReceipt({ status: "unavailable" }); }
     finally { inFlight.current = false; setBusy(false); setCheckingReceipt(false); }
   }
@@ -489,7 +514,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         : receipt?.status === "unavailable" ? "We couldn’t verify the result. Try checking again."
         : "Check whether your purchase was saved before trying again."}</p>}
     </div>
-    {receipt?.status === "ready" ? <a href={receipt.href} className={styles.primary}>
+    {signInRequired ? <Link className={styles.primary} href={authNavigationHref("/login", keepAlert(purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId)))}>Sign in to check this purchase</Link> : receipt?.status === "ready" ? <a href={receipt.href} className={styles.primary}>
       {receipt.purchasedCount ? "View purchase receipt" : receipt.cardReady ? "Open gift card" : "View completed purchases"}</a>
       : receipt?.status === "unconfirmed" && !busy ? <button type="button" className={styles.primary} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest.totalCents)}</button>
         : <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkPurchase()}>{busy ? checkingReceipt ? "Checking…" : "Confirming…" : "Check this purchase"}</button>}

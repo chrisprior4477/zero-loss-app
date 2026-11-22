@@ -6,6 +6,7 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
+import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 import { DepositCreditLink, DepositReceiptDate, depositReceiptLabel } from "./WeeklyDeposits";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
@@ -128,6 +129,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const manageCardsOpener = useRef<HTMLElement | null>(null);
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
+  const editorDraftKey = `${storageKey}:card-editor:${returnHref ?? "wallet"}`;
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
@@ -170,10 +172,12 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     cardEditorOpener.current = token && trigger?.id ? trigger.id : null;
     const editorToken = token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
     // Only store the funding choice and fixture reference in this tab's editor history entry.
-    openWalletPanel(fundingEditorHash, { fundingCardDraft: {
+    const draft = {
       walletId, returnHref, editorToken, editingSavedCard: cards.some(card => card.token === editorToken),
-      selectedToken, amountCents: amountIsValid ? Number(amount) : null, custom: Boolean(customAmount),
-    } });
+      selectedToken, amountCents: amountIsValid ? Number(amount) : null, custom: Boolean(customAmount), customAmount,
+    };
+    try { sessionStorage.setItem(editorDraftKey, JSON.stringify(draft)); } catch { /* History still preserves the draft. */ }
+    openWalletPanel(fundingEditorHash, { fundingCardDraft: draft });
   }
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
@@ -298,16 +302,21 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         return;
       }
       if (!ready || recovered || locked) return;
-      const draft = window.history.state?.fundingCardDraft;
+      let draft = window.history.state?.fundingCardDraft;
+      if (!draft) try { draft = JSON.parse(sessionStorage.getItem(editorDraftKey) ?? "null"); } catch { /* Require a new amount if both stores failed. */ }
       const editorToken = demoCardFixture(draft?.editorToken)?.token;
       if (!editorToken || draft.walletId !== walletId || draft.returnHref !== returnHref) {
+        if (!draft) {
+          setAmount("");
+          setCustomAmount("");
+        }
         openWalletPanel("#add-funds", null, true);
         return;
       }
       const cents = draft.amountCents;
       const valid = isFundingAmount(cents) && cents % 100 === 0;
       setAmount(valid ? String(cents) : "");
-      setCustomAmount(valid && draft.custom ? String(cents / 100) : "");
+      setCustomAmount(typeof draft.customAmount === "string" ? draft.customAmount : valid && draft.custom ? String(cents / 100) : "");
       if (draft.selectedToken === null || visibleTokens.includes(draft.selectedToken)) setSelectedToken(draft.selectedToken);
       if (cardUnavailable || draft.editingSavedCard !== cards.some(card => card.token === editorToken)) {
         openWalletPanel("#add-funds", null, true);
@@ -320,7 +329,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     window.addEventListener("hashchange", syncEditor);
     window.addEventListener("popstate", syncEditor);
     return () => { window.removeEventListener("hashchange", syncEditor); window.removeEventListener("popstate", syncEditor); };
-  }, [fundingEditorHash, ready, recovered, locked, walletId, returnHref, cardUnavailable, cards, visibleTokens]);
+  }, [fundingEditorHash, ready, recovered, locked, walletId, returnHref, editorDraftKey, cardUnavailable, cards, visibleTokens]);
   function reviewCardRemoval(token: DemoCardToken, deadline = Date.now() + 30_000) {
     setDeleteDeadline(deadline);
     setCardMessage("");
@@ -371,6 +380,17 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     setDeletingCard(true);
     try {
       const latest = await readDemoPaymentMethod(token);
+      if (latest.status === "loaded" && latest.card === null) {
+        const remainingCards = cards.filter(card => card.token !== token);
+        setCards(remainingCards);
+        setVisibleTokens(previous => previous.filter(card => card !== token));
+        setSelectedToken(current => current === token ? preferredDepositCard(remainingCards) ?? remainingCards[0]?.token ?? null : current);
+        setDefaultToken(current => current === token ? null : current);
+        closeDeleteDialog();
+        setCardMessage("The card was removed.");
+        router.refresh();
+        return false;
+      }
       if (latest.status !== "loaded" || !latest.card?.revision) {
         setCardMessage("We couldn’t verify this card. Close this review and refresh your saved cards.");
         return false;
@@ -412,7 +432,16 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         else if (defaultToken === token) setDefaultToken(null);
         router.refresh();
       }
-    } catch { setCardMessage("The sample card could not be saved. Please try again."); }
+    } catch {
+      const latest = await readDemoPaymentMethod(token).catch(() => null);
+      if (latest?.status === "loaded" && latest.card?.isDefault === asDefault) {
+        const saved = latest.card;
+        setCards(current => current.map(card => card.token === token ? saved : asDefault ? { ...card, isDefault: false } : card));
+        setDefaultToken(current => asDefault ? token : current === token ? null : current);
+        setCardMessage("Your default card preference was saved.");
+      } else setCardMessage("We couldn’t confirm your preference. Check your saved cards before trying again.");
+      router.refresh();
+    }
     finally { setSavingCard(null); }
   }
   useEffect(() => {
@@ -647,6 +676,10 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   const recoveryDate = recoveryRequest ? <DepositReceiptDate request={recoveryRequest} timeZone={timeZone} />
     : attemptedAt ? <time dateTime={attemptedAt}>{formatOfferDeadline(attemptedAt, timeZone)}</time> : undefined;
   const recoveryDestination = continueTo?.href === (recoveredCredit?.destination ?? attempt.destination) ? continueTo : undefined;
+  if (successMessage && recoveredCredit && recoveryRequest?.reconciliation === "discrepancy") return <section className={paymentStyles.editor}>
+    <p role="alert">The deposit needs review. The payment and Wallet records do not match.</p>
+    <Link href={depositSupportHref(recoveredCredit.key, recoveryDestination?.href, false, recoveryDestination?.entryDepositReturn)}>Contact Support</Link>
+  </section>;
   if (successMessage && recoveredCredit) return <section id="funding-success" aria-label="Deposit complete" className={paymentStyles.editor}>
     <DepositCreditedToast amount={recoveredCredit.amount} />
     <DepositReceipt amount={recoveredCredit.amount} date={recoveryDate} tone="ready" status={successMessage}>
@@ -696,6 +729,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
 }
 
 export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; focusRequest?: string; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
+  const locale = useAccountLocale();
   const [showArchived, setShowArchived] = useState(false);
   const desktop = useMenuViewport() === "desktop";
   const [allDeposits, setAllDeposits] = useState(false);
@@ -823,7 +857,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
           <p>Request {request.id}</p><div className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
-          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone)} className="font-bold underline">View deposit receipt</Link></p>}</div>
+          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View deposit receipt</Link></p>}</div>
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey, undefined, true)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey, true)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
