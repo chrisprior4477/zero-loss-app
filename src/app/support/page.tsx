@@ -1,3 +1,4 @@
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { supportMessageAnchor, supportRewardReturn } from "@/lib/support/references";
 import type { Metadata } from "next";
@@ -193,7 +194,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     if (!lookup.result || lookup.result.error) return <PageContainer>{heading}{navigation}
       <section id="conversation" className={`${card} ${styles.anchor}`} aria-label="Support conversation unavailable">
         <p role="alert">We couldn’t load this support conversation right now.</p>
-        <a className={`${button} mt-3`} href={next}>Retry this conversation</a>
+        <AccountReadRetryLink className={`${button} mt-3`} href={next}>Retry this conversation</AccountReadRetryLink>
         {caseReturn ? <Link className={button} href={caseReturn.href}>← {caseReturn.label}</Link> : null}
       </section>
     </PageContainer>;
@@ -297,7 +298,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     : validReward ? `/support?rewardId=${validReward}${orderContext}${rewardReturnQuery}${returnToDetails ? "&from=order&details=1" : ""}${alertContext}`
     : validDeposit ? depositSupportHref(validDeposit, checkoutReturn, depositList, entryReturn).split("#")[0] : "/support";
   const casesRetryHref = inbox ? caseInboxHref : `${caseBase}${casePage ? `${caseBase.includes("?") ? "&" : "?"}page=${casePage + 1}` : ""}#case-list`;
-  const failedCases = <p role="alert" className="mt-4">We couldn’t load cases. <a className="font-bold text-cyan-300 underline" href={casesRetryHref}>Try again.</a></p>;
+  const failedCases = <p role="alert" className="mt-4">We couldn’t load cases. <AccountReadRetryLink className="font-bold text-cyan-300 underline" href={casesRetryHref}>Try again.</AccountReadRetryLink></p>;
   const inboxCases = inbox ? await db.from("support_cases").select(caseColumns)
     .order("updated_at", { ascending: false }).order("id", { ascending: false })
     .range(casePage * pageSize, (casePage + 1) * pageSize) : null;

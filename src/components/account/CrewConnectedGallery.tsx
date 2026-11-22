@@ -166,7 +166,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
   </section>;
 }
 
-export function CrewSharePicker({ products, onClose, opener, recipientId }: { recipientId?: string; products: CrewActivityPick[]; onClose: () => void; opener?: RefObject<HTMLButtonElement | null> }) {
+export function CrewSharePicker({ products, onClose, opener, recipientId, onSelect }: { recipientId?: string; products: CrewActivityPick[]; onClose: () => void; opener?: RefObject<HTMLButtonElement | null>; onSelect?: (product: CrewActivityPick & { recipientId?: string }) => void }) {
   const hidden = useResolvedCatalogSlugs();
   const choices = products.filter(product => !hidden.has(product.slug));
   const dialog = useRef<HTMLDialogElement>(null);
@@ -182,6 +182,6 @@ export function CrewSharePicker({ products, onClose, opener, recipientId }: { re
   }, [opener]);
   return <dialog ref={dialog} className={styles.shareDialog} aria-labelledby="crew-share-title" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <header><div><small>PASS IT ON</small><h2 id="crew-share-title">What caught your eye?</h2></div><button type="button" aria-label="Close share picker" onClick={onClose}>×</button></header><p>{recipientId ? "Choose a find, then confirm who gets it." : "Choose a find, then choose who to share it with."}</p>
-    <div className={styles.shareChoices}>{choices.length ? choices.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /><DemoOutcomeLetter product={product.slug} position="left-1 top-1" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} aria-label={`Share ${product.title}`} onClick={() => { handingOff.current = true; dialog.current?.close(); onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { ...product, recipientId } })); }}><ShareIcon name="share" /> Share</button></article>) : <Link href="/browse">Find an open prize to share →</Link>}</div>
+    <div className={styles.shareChoices}>{choices.length ? choices.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /><DemoOutcomeLetter product={product.slug} position="left-1 top-1" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} aria-label={`Share ${product.title}`} onClick={() => { handingOff.current = true; dialog.current?.close(); if (onSelect) onSelect({ ...product, recipientId }); else { onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { ...product, recipientId } })); } }}><ShareIcon name="share" /> Share</button></article>) : <Link href="/browse">Find an open prize to share →</Link>}</div>
   </dialog>;
 }

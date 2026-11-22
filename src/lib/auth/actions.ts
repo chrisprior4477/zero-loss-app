@@ -182,6 +182,8 @@ export async function signUpAction(
   });
 
   if (error) {
+    if (error.status === 429) return { ok: false, message: "Too many sign-in attempts. Wait a few minutes and try again." };
+    if (!error.status || error.status >= 500) return { ok: false, message: "Sign-in is temporarily unavailable. Please try again in a moment." };
     const lowered = error.message.toLowerCase();
     if (
       lowered.includes("already registered") ||

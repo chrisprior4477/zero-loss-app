@@ -34,9 +34,13 @@ import { groceryInspirationOfferSlugs } from "@/lib/catalog/grocery-themes";
 import { groceryStoreFirst } from "@/lib/catalog/grocery-order";
 import { matchingQueryValue } from "@/lib/navigation/query-value";
 
-export const metadata: Metadata = {
-  title: "Browse",
-};
+export async function generateMetadata({ searchParams }: BrowsePageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const category = marketplaceCategoryId(matchingQueryValue(params.category) ?? "");
+  if (params.sort === "ending-soon" || category === "ending-soon") return { title: "Ending Soon" };
+  const label = marketplaceCategories.find(item => item.id === category)?.label;
+  return { title: params.q ? "Search results" : label ?? "Browse" };
+}
 
 type BrowsePageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 const batchSize = 24;
@@ -521,15 +525,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {endingSoon ? (
             <div className={browseStyles.batchActions} role="group" aria-label="Ending Soon prize batches">
               {showEndingSoonShortcuts && (
-                <BrowseResultsLink target={offerLastShortcut ? undefined : "first-prize"} className={browseStyles.batchShortcut}
+                <BrowseResultsLink returnAnchor="ending-first-last" target={offerLastShortcut ? undefined : "first-prize"} className={browseStyles.batchShortcut}
                   href={offerLastShortcut ? `/browse?${lastBatchParams}#prize-${products[products.length - batchSize].slug}` : firstBatchHref}>
                   {offerLastShortcut ? "Last 24" : "First 24"}
                 </BrowseResultsLink>
               )}
-              {nextProduct && <Link scroll={false} prefetch={false} className={browseStyles.morePrizes}
-                href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
-              {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <Link scroll={false} prefetch={false} className={browseStyles.batchShortcut}
-                href={previousBatchHref}>Previous {tailBatch ? Math.min(batchSize, tailStart) : batchSize}</Link>}
+              {nextProduct && <BrowseResultsLink returnAnchor="ending-next-prizes" className={browseStyles.morePrizes}
+                href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</BrowseResultsLink>}
+              {showEndingSoonShortcuts && previousBatchHref !== firstBatchHref && <BrowseResultsLink returnAnchor="ending-previous-prizes" className={browseStyles.batchShortcut}
+                href={previousBatchHref}>Previous {tailBatch ? Math.min(batchSize, tailStart) : batchSize}</BrowseResultsLink>}
             </div>
           ) : nextProduct && <BrowseResultsLink returnAnchor="browse-more-prizes" className={browseStyles.morePrizes}
             href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</BrowseResultsLink>}
@@ -539,5 +543,5 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </div>
     </div>
   );
-  return showBatchSearch ? <BrowseResultsSearchSession key={JSON.stringify([selectedCategory, subcategory, selectedRetailerGroup?.id, filters.retailer, searchTerm, endingSoon, ticketsLeft])} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
+  return <BrowseResultsSearchSession browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession>;
 }

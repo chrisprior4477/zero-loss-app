@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import Image from "next/image";
 import Link from "next/link";
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { notFound, redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
 import { activityHref, openPrizeOptions } from "@/lib/account/activity";
@@ -64,6 +65,9 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   }
   // A saved URL remains usable after this customer's entry receives an outcome.
   const item = account.activity.activity.find(entry => entry.entryId === entryId);
+  if (!item && account.activity.incomplete) return <section className={styles.page}>
+    <h1>We couldn’t verify this saved ticket</h1><AccountReadRetryLink href={destination}>Check this ticket again</AccountReadRetryLink>
+  </section>;
   if (!item) return <div className={styles.page}><div className={styles.shell}>
     <AccountSettingsLandingScroll target="entry-unavailable-title" initialTarget="entry-unavailable-title" focusTarget="entry-unavailable-title" allScreens />
     <section className={styles.playTicket} aria-labelledby="entry-unavailable-title">
@@ -99,7 +103,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     image: entry.image,
     enteredAt: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? entry.enteredAt : null,
     enteredLabel: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt))
-      ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(entry.enteredAt)) : "Date unavailable",
+      ? new Intl.DateTimeFormat(account.preferredLocale ?? "en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(entry.enteredAt)) : "Date unavailable",
     amountLabel: formatUsdFromCents(entry.paidCents),
   }));
   const initialTicket = entryView === "first" ? savedTickets[0].entryId : entryId;
@@ -154,7 +158,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat(account.preferredLocale ?? "en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
             <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)}><ProductShareButton product={shareItem} label="Share" className={styles.mobileShare} /></PrizeNumberCopy></div>
           </dl>
         </div>

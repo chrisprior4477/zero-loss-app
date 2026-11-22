@@ -44,7 +44,7 @@ test.each(["Dismiss install suggestion", "Not now"])("%s closes the suggestion w
   const prompt = new Event("beforeinstallprompt", { cancelable: true });
   Object.assign(prompt, { prompt: vi.fn(), userChoice: Promise.resolve({ outcome: "dismissed" }) });
   fireEvent(window, prompt);
-  fireEvent.pointerDown(window);
+  fireEvent.click(window);
   fireEvent.click(screen.getByRole("button", { name }));
   expect(screen.queryByLabelText("Install Zero Loss")).toBeNull();
 });

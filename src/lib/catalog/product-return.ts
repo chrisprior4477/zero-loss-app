@@ -20,6 +20,9 @@ export function productBrowseReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > (value.startsWith("/browse?") ? 8192 : 1000) || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (value === "/account/favorites" || /^\/(?:\?ending-prize=[a-z0-9]+(?:-[a-z0-9]+)*)?#ending-soon$/.test(value)) return value;
   if (/^\/\?(?:choice-prize=[a-z0-9]+(?:-[a-z0-9]+)*#dollar-choice-title|upgrade-prize=[a-z0-9]+(?:-[a-z0-9]+)*#dollar-choice-light-title)$/.test(value)) return value;
+  if (/^\/\?activity-prize=[a-z0-9-]+#marketplace-activity$/.test(value)
+    || /^\/\?crew-person=(?:Maya|Daniel|Ari|Leo)&crew-prize=[a-z0-9-]+#find-your-crew-heading$/.test(value)) return value;
+  if (/^\/account\/entries\/ent_[a-f0-9]{32}#entry-crew-share$/i.test(value)) return value;
   const transaction = /^\/account\/wallet\?view=history&transaction=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:&walletView=1)?(?:&panel=transactions&fromOrders=1&orderFilter=(?:all|processing|fulfilled|exceptions|payment))?#transaction-\1$/i;
   if (transaction.test(value)) return value;
   if (/^\/\?marketplace-prize=[a-z0-9]+(?:-[a-z0-9]+)*#marketplace-mosaic-title$/.test(value)) return value;
@@ -59,7 +62,7 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const url = new URL(value, "https://zeroloss.local");
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse") return null;
     const preview = /^#category-preview~(?:top|bottom)~([a-z0-9-]*)~[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(url.hash);
-    if (url.hash && !/^(?:#search-results|#browse-search-input|#ending-soon-search-input|#prize-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(url.hash)
+    if (url.hash && !/^(?:#search-results|#browse-search-input|#ending-soon-search-input|#(?:prize|grocery-offer)-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(url.hash)
       && !(preview && (!preview[1] || marketplaceCategories.some(category => category.id === preview[1])))) return null;
     const batch = url.searchParams.get("batch");
     const category = url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "");
@@ -102,6 +105,9 @@ export function freeEntryHref(slug: string, browseReturn: unknown, quantity?: nu
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
+  if (url.pathname === "/" && url.hash === "#marketplace-activity") return "Marketplace activity";
+  if (url.pathname === "/" && url.hash === "#find-your-crew-heading") return "Crew picks";
+  if (url.pathname.startsWith("/account/entries/")) return "this saved entry";
   if (url.pathname === "/" && url.hash === "#ending-soon") return "Ending Soon";
   if (url.pathname === "/" && url.hash === "#marketplace-mosaic-title") return "Browse the marketplace";
   if (url.pathname === "/" && url.hash === "#dollar-choice-title") return "the $1 prize rail";

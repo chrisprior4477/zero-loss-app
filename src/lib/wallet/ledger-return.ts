@@ -1,3 +1,4 @@
+import { notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { fulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 
 export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refunds";
@@ -10,12 +11,13 @@ export function walletSupportReturnHref(transactionId: string, restoreView: bool
   return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}${orders}#transaction-${id}`;
 }
 
-type TransactionOrigin = { transaction?: unknown; walletView?: unknown; fromOrders?: unknown; orderFilter?: unknown };
+type TransactionOrigin = { transaction?: unknown; walletView?: unknown; fromOrders?: unknown; orderFilter?: unknown; alerts?: unknown; notice?: unknown };
 
 export function transactionOriginParams(origin: TransactionOrigin): Record<string, string> | null {
   if (typeof origin.transaction !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(origin.transaction)) return null;
   return {
     transaction: origin.transaction,
+    ...(validNotice(origin.notice) ? { notice: origin.notice, alerts: notificationFilter(origin.alerts) } : {}),
     ...(origin.walletView === "1" ? { walletView: "1" } : {}),
     ...(origin.fromOrders === "1" ? { fromOrders: "1", orderFilter: fulfillmentFilter(origin.orderFilter) } : {}),
   };
@@ -23,7 +25,11 @@ export function transactionOriginParams(origin: TransactionOrigin): Record<strin
 
 export function transactionOriginHref(origin: TransactionOrigin): string | undefined {
   const params = transactionOriginParams(origin);
-  return params ? walletSupportReturnHref(params.transaction, params.walletView === "1", false, params.fromOrders ? fulfillmentFilter(params.orderFilter) : undefined) : undefined;
+  if (!params) return undefined;
+  const href = walletSupportReturnHref(params.transaction, params.walletView === "1", false, params.fromOrders ? fulfillmentFilter(params.orderFilter) : undefined);
+  if (!params.notice) return href;
+  const [path, hash] = href.split("#");
+  return `${path}&${new URLSearchParams({ notice: params.notice, alerts: params.alerts })}#${hash}`;
 }
 
 function supportReturnKey(walletId: string, transactionId: string) {

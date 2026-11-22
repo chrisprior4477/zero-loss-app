@@ -3,6 +3,7 @@
 import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Image from "next/image";
 import Link from "next/link";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useRouter } from "next/navigation";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -75,6 +76,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const checkout = useRef<HTMLDivElement>(null);
   const closingRequest = useRef(false);
   const crewRail = useRef<HTMLDivElement>(null);
+  const [crewEdges, setCrewEdges] = useState({ start: true, end: true });
   const railDrag = useRef<{ pointerId: number; startX: number; scrollLeft: number } | null>(null);
   const sampleNames = useSampleCrewPreviews();
   const sampleNamesKey = sampleNames.join("|");
@@ -92,9 +94,9 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const uncertain = result.status === "error" && result.code === "outcome_unknown";
   const reviewing = !receipt && result.status !== "succeeded" && result.status !== "request";
   const activityFilter = new URLSearchParams(returnHref.split("?")[1]).get("filter");
-  const addFundsHref = entryReviewFundingHref(slug, entryId, quantity, activityFilter, entryContext);
+  const addFundsHref = entryReviewFundingHref(slug, crewReturnEntry, quantity, activityFilter, entryContext);
   const ticketQuery = new URLSearchParams({ ...(activityFilter === "active" ? { filter: "active" } : {}), ...entryContext });
-  const ticketHref = entryId ? `/account/entries/${entryId}${ticketQuery.size ? `?${ticketQuery}` : ""}#entry-details-intro` : null;
+  const ticketHref = crewReturnEntry ? `/account/entries/${crewReturnEntry}${ticketQuery.size ? `?${ticketQuery}` : ""}#entry-details-intro` : null;
 
   useLayoutEffect(() => {
     if (!submissionStorageKey || restoredAttempt.current === submissionStorageKey) return;
@@ -134,9 +136,9 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   }, [receipt, uncertain, working]);
   function openReview() {
     if (invalidQuantity !== null) return;
-    if (entryId) {
+    if (crewReturnEntry) {
       reviewOrigin.current = window.location.pathname;
-      window.history.pushState(window.history.state, "", entryReviewHref(entryId, quantity, activityFilter, entryContext));
+      window.history.pushState(window.history.state, "", entryReviewHref(crewReturnEntry, quantity, activityFilter, entryContext));
     }
     setCheckoutOpen(true);
   }
@@ -199,7 +201,15 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
 
   useEffect(() => { initializeSampleCrewPreview(); }, []);
   useEffect(() => {
-    if (crewRail.current) crewRail.current.scrollLeft = 0;
+    const rail = crewRail.current;
+    if (!rail) return;
+    rail.scrollLeft = 0;
+    const update = () => setCrewEdges({ start: rail.scrollLeft < 2, end: rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2 });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(rail);
+    rail.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => { observer?.disconnect(); rail.removeEventListener("scroll", update); };
   }, [sampleNamesKey, crew.length]);
   useEffect(() => {
     const onReceipt = (event: Event) => {
@@ -334,7 +344,10 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     setQuantity(next);
     setApproved(false);
     setCheckoutOpen(false);
-    if (checkoutOpen && ticketHref) window.history.replaceState(window.history.state, "", ticketHref);
+    if (checkoutOpen && ticketHref) {
+      if (reviewOrigin.current === window.location.pathname) window.history.back();
+      else window.history.replaceState(window.history.state, "", ticketHref);
+    }
     setActionError("");
   }
 
@@ -417,7 +430,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
         <h3 id="crew-title">Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Only the connected Crew members you select can receive email. Sample profiles are for the demo.</p>
         <div className={styles.crewRailWrap}>
-          <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>‹</button>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" disabled={crewEdges.start} hidden={crewEdges.start && crewEdges.end} onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>‹</button>
           <div className={styles.crewRail} ref={crewRail} aria-label="Crew members" onPointerDown={startRailDrag} onPointerMove={moveRailDrag} onPointerUp={endRailDrag} onPointerCancel={endRailDrag}>
             {displayCrew.map(member => {
               const selected = selectedCrew.includes(member.id);
@@ -430,10 +443,10 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             })}
             <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
-          <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" disabled={crewEdges.end} hidden={crewEdges.start && crewEdges.end} onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
         </div>
         <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared || crewSharePending} onClick={() => void sendCrewShare()}>{crewSharePending ? "Saving…" : demoAlertPrepared ? selectedCrew.every(id => id.startsWith("sample:")) ? "Crew preview prepared" : "Share request saved" : "Send to My Crew"}</button>
-        {crewShareMessage ? <div role={crewShareError ? "alert" : "status"} className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>{crewShareMessage}</p></div> : null}
+        {crewShareMessage ? <div role={crewShareError ? "alert" : "status"} className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={crewReturnEntry && /^ent_[a-f0-9]{32}$/i.test(crewReturnEntry) ? productHrefWithBrowseReturn(slug, `/account/entries/${crewReturnEntry}#entry-crew-share`) : `/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>{crewShareMessage}</p></div> : null}
       </section>
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>

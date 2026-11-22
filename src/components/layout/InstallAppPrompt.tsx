@@ -125,7 +125,7 @@ export function InstallAppPrompt() {
       void offerInstall();
     };
 
-    window.addEventListener("pointerdown", noteInteraction, { once: true });
+    window.addEventListener("click", noteInteraction, { once: true });
     window.addEventListener("keydown", noteInteraction, { once: true });
     window.addEventListener("beforeinstallprompt", capturePrompt);
     window.addEventListener("appinstalled", noteInstalled);
@@ -133,7 +133,7 @@ export function InstallAppPrompt() {
 
     return () => {
       window.clearTimeout(initialize);
-      window.removeEventListener("pointerdown", noteInteraction);
+      window.removeEventListener("click", noteInteraction);
       window.removeEventListener("keydown", noteInteraction);
       window.removeEventListener("beforeinstallprompt", capturePrompt);
       window.removeEventListener("appinstalled", noteInstalled);

@@ -221,7 +221,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [initialItem.slug, product?.image]);
 
   useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); if (!busyRef.current) onClose(); } };
     document.addEventListener("keydown", escape);
     return () => document.removeEventListener("keydown", escape);
   }, [onClose]);
@@ -690,11 +690,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const suggestedPeople = people.length || query.trim() ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
   const visiblePeople = [...suggestedPeople].sort((a, b) => Number(personAdded(a.memberId)) - Number(personAdded(b.memberId)));
 
-  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); if (!busyRef.current) onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : styles.journey} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
       <div className={styles.top}>
         {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
-        <button type="button" className={styles.close} aria-label="Close sharing toast" onClick={onClose}>×</button>
+        <button type="button" className={styles.close} aria-label="Close sharing toast" disabled={busy} onClick={onClose}>×</button>
       </div>
       {step !== "home" ? <div className={styles.headingRow}>{titleHeading}{step === "group" && editingGroup ? <button type="button" className={styles.deleteGroup} disabled={busy || groupConflict} onClick={() => setDeleteGroupConfirm(groupExpected.current?.name ?? groupName)}>Delete this group</button> : null}</div> : null}
       {step === "roster" ? <button type="button" className={styles.primary} disabled={busy || !members.length} onClick={() => { setStep("audience"); void shareCrew(null); }}>Send to my Crew</button> : null}
@@ -878,7 +878,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       </p> : null}
       {message && !shared && step !== "find" ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
       {requested.length > 0 && ["messages", "contacts"].includes(step) ? <Link className={styles.seeCrew} href="/account/crew#crew-intro" onClick={onClose}>See your Crew →</Link> : null}
-      <button type="button" className={styles.later} onClick={onClose}>{shared ? "Done" : "Not now"}</button>
+      <button type="button" className={styles.later} disabled={busy} onClick={onClose}>{shared ? "Done" : "Not now"}</button>
       <p className={styles.privacy}>{request && !shared ? "Your entry stays private unless you share it with your Crew." : "Your wallet and payment details stay private."}</p>
     </div>
   </dialog>;

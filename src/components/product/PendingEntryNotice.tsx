@@ -114,8 +114,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     if (manualProduct || shareRequest || previous?.href !== window.location.href) return;
     manualShareLocation.current = pathname + (search ? "?" + search : "");
     shareTrigger.current = previous.trigger;
-    const { slug, title, image, retailer, value, win } = previous.product;
-    setManualProduct({ slug, title, image, retailer, value, win });
+    setManualProduct(previous.product);
   });
 
   useEffect(() => {

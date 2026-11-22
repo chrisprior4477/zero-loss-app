@@ -34,7 +34,9 @@ export function useVerifiedEmailPreference<T extends EmailSaveResult>(
     } else {
       try {
         const result = await save(initialState, data);
-        if (result.status !== "succeeded") return { status: result.status, message: result.message ?? "" };
+        if (result.status !== "succeeded") return result.status === "error"
+          ? { status: "unverified", submitted, successMessage: null, message: result.message ?? "Check the saved preference before trying again." }
+          : { status: "idle", message: "" };
         successMessage = result.message ?? "";
       } catch {
         return { status: "unverified", submitted, successMessage: null, message: "We couldn’t confirm whether your preference saved. Check the saved setting before trying again." };

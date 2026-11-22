@@ -85,6 +85,24 @@ export function CrewAndWinnerPreview() {
   const [selectedCrew, setSelectedCrew] = useState<(typeof people)[number]["name"] | null>(null);
 
   useEffect(() => {
+    const restore = () => {
+      if (location.hash !== "#find-your-crew-heading") return;
+      const person = new URLSearchParams(location.search).get("crew-person");
+      const match = people.find(item => item.name === person);
+      if (match) setSelectedCrew(match.name);
+    };
+    restore();
+    window.addEventListener("pageshow", restore);
+    return () => window.removeEventListener("pageshow", restore);
+  }, []);
+  useEffect(() => {
+    const prize = new URLSearchParams(location.search).get("crew-prize");
+    if (!selectedCrew || !prize || location.hash !== "#find-your-crew-heading") return;
+    const link = Array.from(activityPanelRef.current?.querySelectorAll<HTMLAnchorElement>("[data-crew-home-prize]") ?? []).find(item => item.dataset.crewHomePrize === prize);
+    link?.scrollIntoView({ block: "center", inline: "nearest" });
+    link?.focus({ preventScroll: true });
+  }, [selectedCrew]);
+  useEffect(() => {
     if (!selectedCrew && !crewSearchOpen) return;
     const closeWhenOutside = (event: globalThis.PointerEvent) => {
       const target = event.target;

@@ -1,6 +1,6 @@
 "use client";
 
-import { type PointerEvent as ReactPointerEvent, type TransitionEvent as ReactTransitionEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, type TransitionEvent as ReactTransitionEvent, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { HowItWorksExplainer } from "@/components/home/HowItWorksExplainer";
 
@@ -36,6 +36,18 @@ function DesktopHeroCarousel() {
   const howItWorksPanelRef = useRef<HTMLElement>(null);
   const swipeRef = useRef({ startX: 0, startY: 0, currentX: 0, currentY: 0, active: false });
 
+  const closeHowItWorks = useCallback(() => {
+    const trigger = document.querySelector<HTMLButtonElement>('article[aria-hidden="false"] [data-how-it-works-trigger]');
+    setShowHowItWorks(false);
+    requestAnimationFrame(() => {
+      trigger?.focus({ preventScroll: true });
+      trigger?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  }, []);
+
   useEffect(() => {
     if (!showHowItWorks) return;
 
@@ -50,7 +62,7 @@ function DesktopHeroCarousel() {
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowHowItWorks(false);
+      if (event.key === "Escape") closeHowItWorks();
     };
 
     document.addEventListener("pointerdown", closeOnOutsideClick);
@@ -59,7 +71,7 @@ function DesktopHeroCarousel() {
       document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [showHowItWorks]);
+  }, [showHowItWorks, closeHowItWorks]);
 
   useEffect(() => {
     if (!showHowItWorks || window.matchMedia("(min-width: 1024px)").matches) return;
@@ -122,17 +134,7 @@ function DesktopHeroCarousel() {
     showSlide(activeSlide + (deltaX < 0 ? 1 : -1));
   };
 
-  const closeHowItWorks = () => {
-    const trigger = document.querySelector<HTMLButtonElement>('article[aria-hidden="false"] [data-how-it-works-trigger]');
-    setShowHowItWorks(false);
-    requestAnimationFrame(() => {
-      trigger?.focus({ preventScroll: true });
-      trigger?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        block: "center",
-      });
-    });
-  };
+
 
   return (
     <>

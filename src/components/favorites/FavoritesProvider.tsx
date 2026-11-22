@@ -25,7 +25,7 @@ type FavoritesContextValue = {
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
-type FavoriteIntent = { slug: string; save: boolean; owner?: string };
+type FavoriteIntent = { slug: string; save: boolean; owner?: string; destination?: string };
 function rememberFavorite(intent: FavoriteIntent) {
   try { sessionStorage.setItem(pendingKey, JSON.stringify({ ...intent, savedAt: Date.now() })); }
   catch { /* Sign-in still works without storage. */ }
@@ -38,6 +38,7 @@ function readPendingFavorite(): FavoriteIntent | null {
     if (value && typeof value === "object" && "slug" in value && "savedAt" in value &&
       typeof value.slug === "string" && slugPattern.test(value.slug) &&
       typeof value.savedAt === "number" && value.savedAt <= Date.now() && Date.now() - value.savedAt < pendingMaxAge) return {
+      destination: "destination" in value && typeof value.destination === "string" ? value.destination : undefined,
       slug: value.slug, save: !("save" in value) || value.save === true, owner: "owner" in value && typeof value.owner === "string" ? value.owner : undefined,
     };
     sessionStorage.removeItem(pendingKey);
@@ -106,10 +107,24 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   }, [message, handoffError]);
 
   useEffect(() => {
+    if (isSignedIn) return;
+    const abandonOnBack = () => {
+      if (location.pathname === "/login" || location.pathname === "/signup") return;
+      try { sessionStorage.removeItem(pendingKey); } catch { /* Storage is optional. */ }
+    };
+    window.addEventListener("popstate", abandonOnBack);
+    return () => window.removeEventListener("popstate", abandonOnBack);
+  }, [isSignedIn]);
+
+  useEffect(() => {
     if (!isSignedIn || !available || syncedPending.current) return;
     syncedPending.current = true;
     const pending = readPendingFavorite();
     if (!pending || (pending.owner && pending.owner !== accountId)) return;
+    if (!pending.destination || pending.destination !== location.pathname + location.search + location.hash) {
+      sessionStorage.removeItem(pendingKey);
+      return;
+    }
     const { slug, save } = pending;
     if (initialSlugs.includes(slug) === save) { sessionStorage.removeItem(pendingKey); return; }
     // The guest explicitly tapped Save. The server rechecks catalog membership and ownership.
@@ -142,8 +157,10 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`);
     };
     if (!isSignedIn) {
-      rememberFavorite({ slug, save: true });
-      router.push(favoriteLogin());
+      const login = favoriteLogin();
+      const destination = new URL(login, location.origin).searchParams.get("next") ?? undefined;
+      rememberFavorite({ slug, save: true, destination });
+      router.push(login);
       return;
     }
     if (!available) { setMessage("Favorites are temporarily unavailable. Please try again later."); return; }
@@ -160,8 +177,10 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
           setLastSavedSlug(result.status === "saved" ? slug : null);
           setMessage(result.status === "saved" ? "Saved to Favorites." : "Removed from Favorites.");
         } else if (result.status === "sign-in") {
-          rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined });
-          router.push(favoriteLogin());
+          const login = favoriteLogin();
+          const destination = new URL(login, location.origin).searchParams.get("next") ?? undefined;
+          rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined, destination });
+          router.push(login);
         } else setMessage(result.message ?? "Favorites could not be updated.");
       }).catch(() => setMessage("Favorites could not be updated. Please try again.")).finally(() => finishChange(slug));
     });

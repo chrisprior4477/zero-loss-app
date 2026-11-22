@@ -104,7 +104,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
             {unavailablePanel ? <p id="unavailable-wallet-panel" role="status" className={styles.balanceNote}>That saved Wallet section is unavailable. Use the links below to open the current sections.</p> : null}
             <div className={styles.balanceAmountRow}>
               <p data-testid="wallet-balance" className={styles.balance}>{balance}</p>
-              {canFund ? <DeleteAllFundsButton value={balance} /> : null}
+              {canFund ? <DeleteAllFundsButton value={balance} walletId={wallet?.walletAccountId ?? undefined} /> : null}
             </div>
             <p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
@@ -138,7 +138,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
-      <WalletPaymentMethods walletId={wallet?.walletAccountId ?? undefined} initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
+      <WalletPaymentMethods checkoutReturn={initialSection ? returnToProduct : undefined} walletId={wallet?.walletAccountId ?? undefined} initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
 
       <section id={canFund && !recoveryKey && returnToProduct ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
         <div className={styles.fundingBody}>
@@ -148,7 +148,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
           : returnToProduct.selectionUnavailable
           ? `Entry availability for ${returnToProduct.title} changed. Check the prize again before funding those entries.`
           : returnToProduct.label === "Open gift card"
-            ? `Your purchase of ${returnToProduct.title} is complete. Your gift card is ready to open.`
+            ? returnToProduct.rewardSource === "winner" ? `You won ${returnToProduct.title}. Check your reward status.` : `Your purchase of ${returnToProduct.title} is complete. Check your gift card status.`
             : returnToProduct.label === "Back to purchase option" && canFund
               ? `Add funds to complete your purchase of ${returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.`
               : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}

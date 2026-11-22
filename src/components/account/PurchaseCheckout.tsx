@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDeadline } from "./useDeadline";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { purchaseReceiptHref, type ActivityItem } from "@/lib/account/activity";
 import { checkoutAttemptKey } from "@/lib/account/checkout-attempt";
@@ -24,7 +25,7 @@ import { NumberWheel, PurchaseDialog } from "./PurchaseCheckoutDialog";
 import { PurchaseOptionPicker } from "./PurchaseOptionPicker";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
-import { useAccountTimeZone } from "./TimeZoneProvider";
+import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
@@ -33,6 +34,10 @@ import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 import { useDialogBack } from "./useDialogBack";
 import { restoreDialogTrigger } from "./dialog-keyboard";
 import { AccountIcon } from "./AccountIcon";
+
+function hasPassed(deadline: number) {
+  return deadline <= Date.now();
+}
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -66,6 +71,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; pendingDeposits?: CheckoutDeposit[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
+  const locale = useAccountLocale();
   const router = useRouter();
   const item = options[0];
   const singleOffer = options.length === 1;
@@ -169,17 +175,28 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   }, [attemptKey, item.slug, creditedDeposits, purchaseRequest]);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
-  const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
+  const deadline = Math.min(...chosen.map(offer => Date.parse(offer.completionExpiresAt ?? "") || Infinity));
+  const offerExpired = useDeadline(deadline);
+  const refreshExpired = () => {
+    setOverlay(null);
+    setNotice("A selected offer reached its deadline. Refresh to review the remaining offers.");
+    router.refresh();
+  };
+  const noticeParams = new URLSearchParams(notificationReturnHref?.split("?")[1]?.split("#")[0]);
+  const noticeId = noticeParams.get("notice");
+  const alertContext = noticeId ? `&${new URLSearchParams({ alerts: noticeParams.get("filter") ?? "all", notice: noticeId })}` : "";
+  const keepAlert = useCallback((href: string) => href.replace(/(#.*)?$/, (_, hash) => alertContext + (hash ?? "")), [alertContext]);
+  const walletHref = keepAlert(depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId));
   const rememberSelectionFor = (href: string) => {
     rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff });
   };
   const rememberSelection = () => rememberSelectionFor(walletHref);
-  const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
+  const addCardHref = keepAlert(`/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`);
   useLayoutEffect(() => {
     const href = handoffId ? purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId) : null;
-    setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff } : null);
+    setWalletFundingContext(href && !offerExpired ? { href: keepAlert(href), ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff } : null);
     return () => setWalletFundingContext(null);
-  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview, handoffId, freezeHandoff]);
+  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview, handoffId, freezeHandoff, keepAlert, offerExpired]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
   if (lastServerBalance !== initialBalance) {
     setLastServerBalance(initialBalance);
@@ -291,6 +308,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   }
   function review() {
     if (locked) return;
+    if (hasPassed(deadline)) { refreshExpired(); return; }
     setPurchaseExpired(false);
     if (needsReview || !selected.length) { setOverlay("options"); return; }
     setError(""); setNotice(""); setAcknowledged(false);
@@ -329,6 +347,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   async function addFunds(retry?: CheckoutDepositAttempt) {
     if (inFlight.current || !fundingAvailable || (retry ? !depositMissing || !cards.some(saved => saved.token === retry.token) : locked || fundingBlocked || !card || !selectedCard || !depositApproved)) return;
     if (!retry && !validDeposit) { setError("Only whole-dollar amounts are accepted. Enter extra dollars such as 50, without a decimal point."); return; }
+    if (hasPassed(deadline)) { refreshExpired(); return; }
     inFlight.current = true; setBusy(true); setError("");
     const form = new FormData();
     const original = retry ?? { key: `purchase_fund_${crypto.randomUUID()}`, amount: deposit, token: card!, makeDefault: selectedCard?.isDefault ?? false };
@@ -416,6 +435,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
 
   async function confirm(retry = false) {
     if (!purchaseRequest || inFlight.current || (retry ? receipt?.status !== "unconfirmed" || recovery !== "purchase" : locked || reviewChanged)) return;
+    if (hasPassed(deadline)) { refreshExpired(); return; }
     setReceipt(null);
     saveAttempt({ purchase: purchaseRequest });
     rememberReceiptUrl(purchaseRequest.requestId);
@@ -427,7 +447,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         if (!retry) {
           setRecovery("purchase");
           setOverlay(null);
-          router.replace(purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId));
+          router.replace(keepAlert(purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId)));
         }
         router.refresh();
         return;
@@ -463,7 +483,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     <div className={styles.receiptDetails} role="status">
       <div><h2 id="purchase-receipt-heading" ref={receiptHeading} tabIndex={-1}>Purchase receipt</h2><strong>{usd(receipt?.status === "ready" ? receipt.totalCents : purchaseRequest.totalCents)}</strong></div>
       <p className={styles.receiptResult}>{busy ? checkingReceipt ? "Checking this purchase…" : "Confirming this purchase…" : receipt?.status === "ready" ? receipt.cardReady ? "Gift card ready" : "Purchase completed"
-        : receipt?.status === "unconfirmed" ? "No completed purchase found" : receipt?.status === "unavailable" ? "Still checking" : "Purchase status unknown"}</p>
+        : receipt?.status === "unconfirmed" ? "No completed purchase found" : receipt?.status === "unavailable" ? "Couldn’t verify purchase" : "Purchase status unknown"}</p>
       {receipt?.status !== "ready" && <p>{busy ? "Using the original request." : receipt?.status === "unconfirmed"
         ? "You can confirm the same purchase again without paying twice."
         : receipt?.status === "unavailable" ? "We couldn’t verify the result. Try checking again."
@@ -528,13 +548,14 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
           <strong>{ticketLabels[item.completionOptionId!]}</strong>
           <dl>
             <div><dt>Entry credit</dt><dd>{usd(item.paidCents)} applied</dd></div>
-            <div><dt>Available until</dt><dd>{item.completionExpiresAt ? <time dateTime={item.completionExpiresAt}>{formatOfferDeadline(item.completionExpiresAt, timeZone)}</time> : "Original deadline"}</dd></div>
+            <div><dt>Available until</dt><dd>{item.completionExpiresAt ? <time dateTime={item.completionExpiresAt}>{formatOfferDeadline(item.completionExpiresAt, timeZone, locale)}</time> : "Original deadline"}</dd></div>
           </dl>
         </div>
       </div> : <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>}
       {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}{purchaseReceipt}
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
-      {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
+      {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked || offerExpired} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
+      {offerExpired ? <p role="status">A selected offer reached its deadline. <button type="button" className={styles.backLink} onClick={refreshExpired}>Check available offers</button></p> : null}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
       <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
@@ -544,13 +565,13 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact closeDisabled={busy || checkingReceipt} centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
-        {recovery === "deposit" ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
+        {offerExpired && recovery !== "deposit" ? <><p role="alert">A selected offer reached its deadline.</p><button type="button" className={styles.primary} onClick={refreshExpired}>Check available offers</button></> : recovery === "deposit" ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
           <h3>Check your deposit before adding more funds</h3>
           {feedback}
         </section> : cardsUnavailable ? <section className={styles.depositWarning} aria-label="Saved cards unavailable">
           <h3>We couldn’t load your saved cards</h3>
           <p>Check your payment methods before adding funds.</p>
-          <Link className={styles.secondary} href="/account/wallet?view=history&panel=methods#payment-methods" onClick={rememberSelection}>Open Payment methods</Link>
+          <Link className={styles.secondary} href={addCardHref.replace("panel=card", "panel=methods").replace("#wallet-add-card", "#payment-methods")} onClick={rememberSelection}>Open Payment methods</Link>
         </section> : blockedFunding ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
           <h3>Check your deposit before adding more funds</h3>
           {pending.length > 1 ? <details>
@@ -568,18 +589,18 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
           keepExtra(validDeposit ? extra : "", handoffId ?? "", Date.now());
         }}>Add a card in your wallet</Link> : null}
         <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => changeExtra(value ? String(value) : "", Date.now())}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
-        <div className={styles.extraEquation}><h3>Add a different amount</h3><div><span><small>Needed</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => changeExtra(event.target.value.replace(/^\$/, ""), Date.now())} /></label></div></div>
-        {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{extraCents > 0 ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}
+        <div className={styles.extraEquation}><h3>Add a different amount</h3>{required !== shortfall ? <p>Purchase shortfall: {usd(shortfall)}</p> : null}<div><span><small>Minimum deposit</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => changeExtra(event.target.value.replace(/^\$/, ""), Date.now())} /></label></div></div>
+        {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{balance + deposit > total ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}
         {notice ? <p role="status" className={styles.small}>{notice}</p> : null}
         <label className={styles.check}><input type="checkbox" checked={depositApproved} disabled={locked || !selectedCard} onChange={event => { setApprovedDeposit(event.target.checked ? depositDetails : null); setAcknowledged(event.target.checked); }} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
         {!fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
         </>}
-        {recovery !== "deposit" && feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !depositApproved || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}{refreshingReview ? <p role="status">Checking your purchase options…</p> : reviewChanged && !busy ? <><p role="alert" className={styles.error}>Your offers changed. Review your purchase again before confirming.</p><button type="button" className={styles.primary} onClick={close}>Back to purchase options</button></> : <ConfirmPurchase total={purchaseRequest?.totalCents ?? total} balance={balance} quantity={purchaseRequest?.purchaseIds.length ?? chosen.length} summary={reviewedCheckout?.summary ?? selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />}{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
+        {recovery !== "deposit" && feedback}<button type="button" className={styles.primary} disabled={locked || offerExpired || !validDeposit || !depositApproved || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}{offerExpired ? <><p role="alert">A selected offer reached its deadline.</p><button type="button" className={styles.primary} onClick={refreshExpired}>Check available offers</button></> : refreshingReview ? <p role="status">Checking your purchase options…</p> : reviewChanged && !busy ? <><p role="alert" className={styles.error}>Your offers changed. Review your purchase again before confirming.</p><button type="button" className={styles.primary} onClick={close}>Back to purchase options</button></> : <ConfirmPurchase total={purchaseRequest?.totalCents ?? total} balance={balance} quantity={purchaseRequest?.purchaseIds.length ?? chosen.length} summary={reviewedCheckout?.summary ?? selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />}{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
           onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>
           {draft => <div className={styles.optionDetails}>{options.map((option, index) =>
-            <p key={option.completionOptionId}><strong>Option {index + 1} · {ticketLabels[option.completionOptionId!]}</strong> · {draft.includes(option.completionOptionId!) ? "Selected" : "Not selected"}<br />{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
+            <p key={option.completionOptionId}><strong>Option {index + 1} · {ticketLabels[option.completionOptionId!]}</strong> · {draft.includes(option.completionOptionId!) ? "Selected" : "Not selected"}<br />{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone, locale)}</time> : "its original deadline"}</p>
           )}</div>}
         </PurchaseOptionPicker></>}
     </PurchaseDialog> : null}</div>;

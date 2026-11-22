@@ -38,8 +38,8 @@ export const getAccountContext = cache(async () => {
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => { console.warn("[account-load] Verified wallet snapshot unavailable"); return null; }) : Promise.resolve(null),
   ]);
   const [activity, orders] = await Promise.all([
-    wallet ? getStoredAccountActivity(supabase).catch(() => drawerState(false)) : Promise.resolve(drawerState(false)),
-    wallet ? getAccountOrders(supabase).catch(() => ({ source: "unavailable" as const, orders: [] })) : Promise.resolve({ source: "unavailable" as const, orders: [] }),
+    getStoredAccountActivity(supabase).catch(() => drawerState(false)),
+    getAccountOrders(supabase).catch(() => ({ source: "unavailable" as const, orders: [] })),
   ]);
   const displayName = customerDisplayName(profile);
   return {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-const submit = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/catalog/request-actions", () => ({ submitCatalogRequest: submit }));
+const { submit, checkReceipt } = vi.hoisted(() => ({ submit: vi.fn(), checkReceipt: vi.fn() }));
+vi.mock("@/lib/catalog/request-actions", () => ({ submitCatalogRequest: submit, checkCatalogRequestReceipt: checkReceipt }));
 import { CatalogRequestForm } from "./CatalogRequestForm";
 import { catalogRequestDraftKey } from "@/lib/catalog/request-draft";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
@@ -82,7 +82,7 @@ test("Clear draft restores the original search and stays clear after refreshing"
 
 test("a connection error survives remount, while confirmed success removes the remembered draft", async () => {
   submit.mockRejectedValueOnce(new Error("Disconnected"));
-  submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
+  checkReceipt.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
   const view = render(<CatalogRequestForm initialProduct="Kayaks" ownerId="customer-a" />); editDraft();
   fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
   await screen.findByRole("alert"); view.unmount();
@@ -92,11 +92,11 @@ test("a connection error survives remount, while confirmed success removes the r
   fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Different request" } });
   fireEvent.submit(screen.getByRole("button", { name: "Check original request" }).closest("form")!);
   await screen.findByText("Saved request");
-  expect((submit.mock.calls[1][1] as FormData).get("requestedItem")).toBe("Tandem fishing kayak");
+  expect((checkReceipt.mock.calls[0][0] as FormData).get("requestedItem")).toBe("Tandem fishing kayak");
   expect(sessionStorage.getItem(catalogRequestDraftKey("customer-a", "Kayaks"))).toBeNull();
   const originalKey = (submit.mock.calls[0][1] as FormData).get("requestKey");
   expect(originalKey).toEqual(expect.any(String));
-  expect((submit.mock.calls[1][1] as FormData).get("requestKey")).toBe(originalKey);
+  expect((checkReceipt.mock.calls[0][0] as FormData).get("requestKey")).toBe(originalKey);
   returned.unmount(); render(<CatalogRequestForm initialProduct="Kayaks" ownerId="customer-a" />);
   expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "");
 });
@@ -104,7 +104,7 @@ test("a connection error survives remount, while confirmed success removes the r
 test("preserves the entire original search in a new request and its receipt retry", async () => {
   const original = "kayak with deck storage, ".repeat(9) + "and adjustable footrests";
   submit.mockRejectedValueOnce(new Error("Disconnected"));
-  submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
+  checkReceipt.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
   const page = render(<CatalogRequestForm initialProduct={original} />);
   editDraft();
   fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
@@ -115,8 +115,9 @@ test("preserves the entire original search in a new request and its receipt retr
   check.focus();
   fireEvent.submit(check.closest("form")!);
   await screen.findByText("Saved request");
-  expect(submit.mock.calls.map(([, data]) => data.get("sourceQuery"))).toEqual([original, original]);
-  expect(submit.mock.calls[1][1].get("requestKey")).toBe(submit.mock.calls[0][1].get("requestKey"));
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(checkReceipt.mock.calls[0][0].get("sourceQuery")).toBe(original);
+  expect(checkReceipt.mock.calls[0][0].get("requestKey")).toBe(submit.mock.calls[0][1].get("requestKey"));
   expect(document.activeElement).toBe(screen.getByText("Request received"));
 });
 
@@ -126,12 +127,12 @@ test("retries a previously submitted draft with the original truncated source", 
   sessionStorage.setItem(catalogRequestDraftKey(undefined, original), JSON.stringify({
     savedAt: Date.now(), requestedItem: "Kayak", email: "person@example.test", notes: "", requestKey,
   }));
-  submit.mockResolvedValueOnce({ status: "succeeded", message: "Previously saved" });
+  checkReceipt.mockResolvedValueOnce({ status: "succeeded", message: "Previously saved" });
   render(<CatalogRequestForm initialProduct={original} />);
   fireEvent.submit(screen.getByRole("button", { name: "Check original request" }).closest("form")!);
   await screen.findByText("Previously saved");
-  expect(submit.mock.calls[0][1].get("sourceQuery")).toBe(original.slice(0, 160));
-  expect(submit.mock.calls[0][1].get("requestKey")).toBe(requestKey);
+  expect(checkReceipt.mock.calls[0][0].get("sourceQuery")).toBe(original.slice(0, 160));
+  expect(checkReceipt.mock.calls[0][0].get("requestKey")).toBe(requestKey);
 });
 
 test("blocked browser storage leaves editing and clearing usable", () => {

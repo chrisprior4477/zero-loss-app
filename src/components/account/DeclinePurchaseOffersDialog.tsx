@@ -269,7 +269,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
           {ticketLabels?.[id] ?? `Offer ${index + 1}`} · {checked[id] === "declined"
             ? <Link href={declinedOfferHref(id)}>Declined</Link>
             : checked[id] === "available" ? "Available in Purchase Options"
-            : checked[id] === "purchased" ? "Purchased" : checked[id] === "expired" ? "Expired" : "Still checking"}
+            : checked[id] === "purchased" ? "Purchased" : checked[id] === "expired" ? "Expired" : checking ? "Checking…" : "Couldn’t verify"}
         </li>)}
     </ul>}
   </PurchaseDialog>;

@@ -22,7 +22,7 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
     tab: tab === "shared" ? tab : undefined, view: invalidSharedView ? undefined : params.view,
     watch: invalidWatch ? undefined : params.watch, item: item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item) ? item : undefined, share: safeShare,
   }, tab === "shared" ? "#saved-items-heading" : "");
-  const { account, hidden, availability } = await getShoppingCatalog();
+  const { account, hidden, availability, unavailable, unverifiedSlugs } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", returnPath));
   const db = await createClient();
   const [alerts, preference, shares] = await Promise.all([
@@ -34,7 +34,7 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
   const savedShares = shareList?.shares ?? null;
   const selectedShare = tab === "shared" ? savedShares?.find(share => share.id === safeShare) : null;
   const sharedView = selectedShare ? (selectedShare.declinedAt ? "declined" : "available") : params.view === "declined" ? "declined" : "available";
-  return <FavoritesView key={`${params.tab ?? "favorites"}:${safeShare ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
+  return <FavoritesView key={`${params.tab ?? "favorites"}:${safeShare ?? ""}:${item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={unavailable ? [] : [...hidden].filter(slug => !unverifiedSlugs.has(slug))}
     obsoleteFilter={invalidSharedView || invalidTab || invalidWatch ? returnPath : undefined}
     initialSharedView={sharedView}
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}

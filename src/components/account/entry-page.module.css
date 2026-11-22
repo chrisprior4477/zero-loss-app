@@ -75,6 +75,7 @@
 .entryRailView:focus-visible { outline: 3px solid #0789ef; outline-offset: 3px; }
 .playTicket { margin-top: 18px; padding: clamp(26px, 3vw, 40px); }
 .playTicket h2 { margin: 8px 0; font-size: clamp(23px, 2.5vw, 31px); line-height: 1.2; }
+.playTicket .eyebrow { color: #0872a4; }
 .playTicket > p:not(.eyebrow) { margin: 0 0 16px; color: #526e8a; line-height: 1.5; }
 .nextButton { display: flex; width: 100%; min-height: 54px; align-items: center; justify-content: space-between; gap: 12px; border: 0; border-radius: 10px; background: #ff8124; padding: 12px 18px; color: #07183d; font-size: 17px; font-weight: 900; cursor: pointer; }
 .nextButton:hover { background: #ffa34f; }
@@ -164,7 +165,7 @@
 .crewAvatar img { object-fit: cover; }
 .crewCard strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .crewCard small { color: #667d91; font-size: 10px; }
-.notifyButton { width: 100%; min-height: 30px; border: 0; border-radius: 6px; background: #168bd4; color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; }
+.notifyButton { width: 100%; min-height: 30px; border: 0; border-radius: 6px; background: #0672b5; color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; }
 .notifySelected { background: #31d82a; color: #082514; }
 .addCrewCard { justify-content: center; color: #0c7aa9; font-size: 13px; }
 .addCrewCard span { display: grid; width: 75px; height: 75px; place-items: center; border: 2px dashed #0aa15e; border-radius: 50%; color: #0aa15e; font-size: 36px; }

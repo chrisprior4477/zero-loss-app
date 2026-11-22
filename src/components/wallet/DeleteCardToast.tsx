@@ -41,7 +41,7 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mob
       <div id={description}>
         <strong>Are you sure you want to delete this card?</strong>
         {mobileCard && <p>{mobileCard}</p>}
-        <p>Undo keeps your card. No confirmation? We’ll keep it.</p>
+        <p>{needsReview ? "Check whether the card was removed before trying again." : "Undo keeps your card. No confirmation? We’ll keep it."}</p>
       </div>
       {!needsReview ? <EntryUndoCountdown seconds={seconds} /> : null}
     </div>
@@ -52,10 +52,10 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete, onReview, mob
       setDeadline(Date.now() + 30_000);
       setSeconds(30);
       requestAnimationFrame(() => confirm.current?.focus());
-    }}>Review deletion again</button> : <button ref={confirm} type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else { setReviewedMessage(undefined); onDelete(); } }}>{busy ? "Deleting…" : "Yes, delete"}</button>}<button type="button" disabled={busy} onClick={onUndo}>Undo</button></div>
+    }}>Check card status</button> : <button ref={confirm} type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else { setReviewedMessage(undefined); onDelete(); } }}>{busy ? "Deleting…" : "Yes, delete"}</button>}<button type="button" disabled={busy} onClick={onUndo}>{needsReview ? "Close" : "Undo"}</button></div>
   </>;
   if (mobileCard) return <FundingNoticeDialog label="Delete saved card" description={description}
-    closeLabel="Keep saved card" onClose={onUndo} tone="delete" busy={busy} revealTrigger>
+    closeLabel={needsReview ? "Close" : "Keep saved card"} onClose={onUndo} tone="delete" busy={busy} revealTrigger>
     <div className={styles.deleteDialogContent}>{content}</div>
   </FundingNoticeDialog>;
   return <div className={styles.deleteToast} role="status">{content}</div>;

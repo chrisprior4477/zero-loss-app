@@ -5,7 +5,7 @@ import Link from "next/link";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
+import { getCrewShareOptions, saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import { changedCrewEntryRules, isCrewVisibilityGroup, sameCrewVisibilityRule, type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
@@ -377,6 +377,23 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     setRemovingGroupId(group.id);
   }
 
+  async function checkGroupRemoval(group: CrewVisibilityGroup) {
+    try {
+      const saved = await getCrewShareOptions();
+      if (saved.ok) {
+        if (saved.groups.some(item => item.id === group.id)) return true;
+        setRemovingGroupId(null);
+        discardGroup(group.id);
+        setGroupMessage(`${group.name} was removed.`);
+        setGroupMessageError(false);
+        router.refresh();
+        return false;
+      }
+    } catch { /* Leave this operation in recovery. */ }
+    setEditorMessage({ id: group.id, text: "We couldn’t verify the group. Check again.", error: true });
+    return false;
+  }
+
   function removeGroup(group: CrewVisibilityGroup) {
     if (removingGroupId !== group.id || pending || !available || conflictingGroups.has(group.id)) return;
     const expected = baselineGroups.get(group.id);
@@ -516,7 +533,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
                 setExpandedGroupId(null);
                 document.getElementById(`crew-group-toggle-${group.id}`)?.focus({ preventScroll: true });
               }}>
-                {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
+                {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onCheck={() => checkGroupRemoval(group)} onUndo={() => { undoGroupRemoval(); if (removalFailures) router.refresh(); }} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`}
                   aria-invalid={editorMessage?.id === group.id && editorMessage.field === "name" || undefined}
                   aria-describedby={editorMessage?.id === group.id && editorMessage.field === "name" ? `crew-group-message-${group.id}` : undefined}

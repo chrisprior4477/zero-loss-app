@@ -2,8 +2,8 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 
-const { saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone } = vi.hoisted(() => ({ saveCrewDisplaySettings: vi.fn(), saveCrewGroup: vi.fn(), inviteToCrew: vi.fn(), inviteToCrewByPhone: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone }));
+const { getCrewShareOptions, saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone } = vi.hoisted(() => ({ getCrewShareOptions: vi.fn(), saveCrewDisplaySettings: vi.fn(), saveCrewGroup: vi.fn(), inviteToCrew: vi.fn(), inviteToCrewByPhone: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions, saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.useRealTimers(); });
@@ -221,7 +221,8 @@ test.each(["Undo", "timeout", "collapse"])("%s preserves a saved group without a
   if (mode !== "collapse") expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove group" }));
 });
 
-test("failed removal keeps the group and allows a deliberate retry", async () => {
+test("failed removal keeps the group and allows a deliberate retry after checking saved status", async () => {
+  getCrewShareOptions.mockResolvedValueOnce({ ok: true, groups: [{ id: first, name: "Family", memberIds: [] }] });
   saveCrewGroup.mockResolvedValueOnce({ ok: false, message: "Couldn’t confirm removal. Please try again." }).mockResolvedValueOnce({ ok: true });
   render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
   fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
@@ -230,7 +231,7 @@ test("failed removal keeps the group and allows a deliberate retry", async () =>
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn’t confirm removal. Please try again.");
   expect(screen.getByText("Family")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Confirm removal" })).toBeNull();
-  const review = await screen.findByRole<HTMLButtonElement>("button", { name: "Review removal again" });
+  const review = await screen.findByRole<HTMLButtonElement>("button", { name: "Check group status" });
   await waitFor(() => expect(review.disabled).toBe(false));
   fireEvent.click(review);
   fireEvent.click(await screen.findByRole("button", { name: "Confirm removal" }));

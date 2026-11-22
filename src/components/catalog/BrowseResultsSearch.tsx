@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -14,7 +14,7 @@ type Editor = Position | "filters";
 type SearchSession = {
   draft: string; setDraft: (value: string) => void; applied: string;
   editor: Editor | null; setEditor: (value: Editor | null) => void;
-  search: (value: string, anchor?: string, restoreTop?: boolean) => void; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
+  search: (value: string, anchor?: string, restoreTop?: boolean) => void; pending: boolean; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
 export function useBrowseResultsSearch() { return useContext(Session); }
@@ -25,21 +25,40 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   const router = useRouter();
   const [draft, setDraft] = useState(searchTerm);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [lastApplied, setLastApplied] = useState(searchTerm);
+  const [pendingTerm, setPendingTerm] = useState<string | null>(null);
+  if (lastApplied !== searchTerm) {
+    setLastApplied(searchTerm);
+    if (pendingTerm === null || draft === pendingTerm) setDraft(searchTerm);
+    setPendingTerm(null);
+  }
+  useEffect(() => {
+    const restore = () => {
+      setPendingTerm(null);
+      setDraft(new URLSearchParams(location.search).get("q") ?? "");
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results", restoreTop = false) {
     const term = value.trim();
     if (catalogSearchTooLong(term) || invalidCatalogSearch(term)) return;
     voice.cancel();
     setDraft(term);
+
     const url = new URL(browseHref, "https://zeroloss.local");
     if (term) url.searchParams.set("q", term); else url.searchParams.delete("q");
     // A new search starts at the first batch, retaining the shopper's filters.
     url.searchParams.delete("batch");
     const destination = `${url.pathname}${url.search}#${anchor}`;
     if (restoreTop || term) requestBrowseResultsFocus(destination, restoreTop ? "top-search" : "heading");
-    if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
+    if ((pendingTerm !== null && term !== pendingTerm) || !scrollToCurrentSearch(destination)) {
+      setPendingTerm(term === searchTerm ? null : term);
+      router.push(destination, { scroll: false });
+    }
   }
-  return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;
+  return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, pending: pendingTerm !== null, voice, endingSoon }}>{children}</Session.Provider>;
 }
 
 export function BrowseResultsSearch({ position, retailerScope }: { position: Position; retailerScope?: string }) {
@@ -49,6 +68,13 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
   const restoringFocus = useRef(false);
   if (!session) throw new Error("Browse results search requires a search session");
   const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
+  const connectField = useCallback((node: HTMLInputElement | null) => {
+    if (node && !field.current && node.value !== node.defaultValue) {
+      const typed = node.value;
+      queueMicrotask(() => setDraft(typed));
+    }
+    field.current = node;
+  }, [setDraft]);
   const editing = editor === position;
   const tooLong = catalogSearchTooLong(draft.trim());
   const invalid = invalidCatalogSearch(draft);
@@ -80,10 +106,10 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
       close(true);
     }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
-    <input id={inputId} ref={field} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || invalid || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
+    <input id={inputId} ref={connectField} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || invalid || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
-      onClick={() => { voice.reset(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined, position === "top"); }}>×</button> : null}
+      onClick={() => { voice.reset(); setDraft(""); field.current?.focus(); search("", position === "bottom" ? inputId : undefined, position === "top"); }}>×</button> : null}
     {draft.trim() && !voice.busy && !tooLong && !invalid ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
     <VoiceSearchControl listening={editing && voice.listening} finishing={editing && voice.finishing} error={editing ? voice.error : ""}
       toggle={() => {

@@ -18,7 +18,7 @@ import styles from "./wallet-payments.module.css";
 
 const emptyCards: DemoCard[] = [];
 function revealMethods() { revealWalletSection("payment-methods", "payment-methods", true, true); }
-export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection, walletId }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean; walletId?: string }) {
+export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection, walletId, checkoutReturn }: { checkoutReturn?: { href: string; label?: string }; initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean; walletId?: string }) {
   const router = useRouter();
   const mobile = useMenuViewport() === "mobile";
   const [cards, setCards] = useState(savedCards);
@@ -202,6 +202,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     router.refresh();
   }
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
+    {checkoutReturn ? <Link href={checkoutReturn.href} className="font-bold underline">← {checkoutReturn.label ?? "Back to checkout"}</Link> : null}
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. <AccountReadRetryButton label="Retry saved cards" className="font-bold underline" /></p> : null}
     {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";

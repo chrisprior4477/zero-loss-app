@@ -14,7 +14,10 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { walletRewards } from "@/lib/account/activity";
 import { rewardSupportHref } from "@/lib/support/references";
 
-export const metadata: Metadata = { title: "My Account" };
+export async function generateMetadata({ params }: { params: Promise<{ section: string }> }): Promise<Metadata> {
+  const { section } = await params;
+  return { title: section === "orders" ? "Orders & Fulfillment" : section === "security" ? "Sign-in & Security" : "My Account" };
+}
 
 const liveSections = {
   entries: {

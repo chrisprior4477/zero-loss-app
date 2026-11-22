@@ -84,7 +84,7 @@ test('a normal reminder rejection remains an inline error with a safe retry',asy
  mocks.save.mockResolvedValueOnce({status:'error',message:'Reminder unavailable. Try again.'}).mockResolvedValueOnce({status:'pending',message:'Saved'});
  render(<DeclinedOfferReminder optionId={optionId} expiresAt="2026-11-08T12:00:00Z" initialReminderStatus={null} canRequestReminder/>);
  fireEvent.click(screen.getByRole('checkbox'));await screen.findByText('Reminder unavailable. Try again.');
- expect(screen.getByRole('checkbox')).toHaveProperty('disabled',false);
+ await waitFor(() => expect(screen.getByRole('checkbox')).toHaveProperty('disabled',false));
  fireEvent.click(screen.getByRole('checkbox'));await screen.findByText('Saved');
  expect(screen.getByRole('checkbox')).toHaveProperty('checked',true);
 });

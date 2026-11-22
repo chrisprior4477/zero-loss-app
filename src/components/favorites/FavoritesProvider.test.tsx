@@ -112,16 +112,16 @@ test('a quick second product save is accepted and each product unlocks only when
   twoProducts();
   fireEvent.click(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })[0]);
   const other = screen.getByRole('button', { name: `Add ${secondName} to favorites` });
-  expect(other).toHaveProperty('disabled', false);fireEvent.click(other);
+  expect(other).toHaveProperty("ariaBusy", "false");fireEvent.click(other);
   expect(mocks.setFavorite).toHaveBeenCalledTimes(2);
   expect(mocks.setFavorite).toHaveBeenCalledWith(secondSlug, true);
-  for (const button of screen.getAllByRole('button')) expect(button).toHaveProperty('disabled', true);
+  for (const button of screen.getAllByRole('button')) expect(button).toHaveProperty("ariaBusy", "true");
   await act(async () => second.resolve({ status: 'saved' }));
-  expect(screen.getByRole('button', { name: `Remove ${secondName} from favorites` })).toHaveProperty('disabled', false);
-  for (const button of screen.getAllByRole('button', { name: `Add ${productName} to favorites` })) expect(button).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: `Remove ${secondName} from favorites` })).toHaveProperty("ariaBusy", "false");
+  for (const button of screen.getAllByRole('button', { name: `Add ${productName} to favorites` })) expect(button).toHaveProperty("ariaBusy", "true");
   await act(async () => first.resolve({ status: 'saved' }));
   expect(screen.getAllByRole('button', { name: `Remove ${productName} from favorites` })).toHaveLength(2);
-  for (const button of screen.getAllByRole('button')) expect(button).toHaveProperty('disabled', false);
+  for (const button of screen.getAllByRole('button')) expect(button).toHaveProperty("ariaBusy", "false");
 });
 
 test('one failed favorite does not cancel another save or leave either product locked', async () => {
@@ -131,7 +131,7 @@ test('one failed favorite does not cancel another save or leave either product l
   fireEvent.click(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })[0]);
   fireEvent.click(screen.getByRole('button', { name: `Add ${secondName} to favorites` }));
   await act(async () => { first.resolve({ status: 'error', message: 'Please try again.' }); second.resolve({ status: 'saved' }); });
-  expect(screen.getByRole('button', { name: `Remove ${secondName} from favorites` })).toHaveProperty('disabled', false);
+  expect(screen.getByRole('button', { name: `Remove ${secondName} from favorites` })).toHaveProperty("ariaBusy", "false");
   expect(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })).toHaveLength(2);
   mocks.setFavorite.mockResolvedValueOnce({status:'saved'});
   fireEvent.click(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })[0]);
@@ -148,7 +148,7 @@ test('two removals retain their own results when replies arrive in reverse order
   await act(async () => second.resolve({ status: 'removed' }));
   await act(async () => first.resolve({ status: 'removed' }));
   expect(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })).toHaveLength(2);
-  expect(screen.getByRole('button', { name: `Add ${secondName} to favorites` })).toHaveProperty('disabled', false);
+  expect(screen.getByRole('button', { name: `Add ${secondName} to favorites` })).toHaveProperty("ariaBusy", "false");
   expect(mocks.setFavorite).toHaveBeenCalledWith(secondSlug, false);
 });
 
@@ -165,17 +165,17 @@ test('the same product cannot enqueue duplicate writes before the disabled butto
 });
 
 test('the guest sign-in handoff and another product save are both retained', async () => {
-  sessionStorage.setItem('zero-loss-pending-favorite-v1', JSON.stringify({slug:'dyson-v8-cordless-vacuum',savedAt:Date.now()}));
+  sessionStorage.setItem('zero-loss-pending-favorite-v1', JSON.stringify({slug:'dyson-v8-cordless-vacuum',savedAt:Date.now(),destination:location.pathname + location.search + location.hash}));
   const first = delayedReply(), second = delayedReply();
   mocks.setFavorite.mockImplementation((slug:string)=>slug===secondSlug?second.promise:first.promise);
   twoProducts();
-  expect(screen.getAllByRole('button',{name:`Add ${productName} to favorites`})[0]).toHaveProperty('disabled',true);
+  expect(screen.getAllByRole('button',{name:`Add ${productName} to favorites`})[0]).toHaveProperty("ariaBusy", "true");
   fireEvent.click(screen.getByRole('button',{name:`Add ${secondName} to favorites`}));
   expect(mocks.setFavorite).toHaveBeenCalledTimes(2);
   await act(async()=>{first.resolve({status:'saved'});second.resolve({status:'saved'});});
   expect(sessionStorage.getItem('zero-loss-pending-favorite-v1')).toBeNull();
   expect(screen.getAllByRole('button',{name:`Remove ${productName} from favorites`})).toHaveLength(2);
-  expect(screen.getByRole('button',{name:`Remove ${secondName} from favorites`})).toHaveProperty('disabled',false);
+  expect(screen.getByRole('button',{name:`Remove ${secondName} from favorites`})).toHaveProperty("ariaBusy", "false");
 });
 
 function snapshotView(slugs: string[], accountId = "customer") {

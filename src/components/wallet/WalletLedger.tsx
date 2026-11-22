@@ -316,7 +316,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     }
     const dates = { from: nextFrom, through: nextThrough };
     setAppliedDates(dates);
-    updateBookmark({ ...dates, draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
+    setQuery(draft.trim());
+    updateBookmark({ ...dates, query: draft.trim(), draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
     batches.reset();
   }
   const historyIncomplete = typeof totalCount === "number" && totalCount > entries.length;
@@ -332,7 +333,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const links = transactionLinks(entry, activity, preserveView, ordersFilter);
     const productPath = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
     const productHref = productPath && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(entry.id)
-      ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}), ...(ordersFilter ? { fromOrders: "1", orderFilter: ordersFilter } : {}) })}` : productPath;
+      ? `${productPath}?${new URLSearchParams({ transaction: entry.id, ...(preserveView ? { walletView: "1" } : {}), ...(ordersFilter ? { fromOrders: "1", orderFilter: ordersFilter } : {}), ...(entry.id === selectedId && notificationReturnHref ? { alerts: new URL(notificationReturnHref, "https://zeroloss.local").searchParams.get("filter") ?? "all", notice: new URL(notificationReturnHref, "https://zeroloss.local").searchParams.get("notice") ?? "" } : {}) })}` : productPath;
     const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
     const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" || ordersFilter ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}${ordersFilter ? `&fromOrders=1&orderFilter=${ordersFilter}` : ""}`;
     const selected = entry.id === selectedId;
@@ -411,7 +412,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <p aria-live="polite">Showing {firstRecord > 0 || lastRecord < matching.length ? `${firstRecord + 1}–${lastRecord}` : lastRecord} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, query: draft.trim(), offset: 0 }); setQuery(draft.trim()); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : ({ funding: "No funding transactions", entries: "No entry transactions", purchases: "No gift-card purchases", refunds: "No refunds" })[filter]}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
@@ -446,7 +447,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       })}</ul>
     </div>}
     {!compact && <TicketBatchControls {...controls} />}
-    {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" /> : null}
+    {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" walletId={walletId} /> : null}
     {!compact && !hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { updateBookmark({ showArchived: !showArchived, offset: 0 }); setShowArchived(value => !value); batches.reset(); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo transactions" : `View archived demo transactions (${hiddenIds.length})`}</button> : null}
   </>;
 }

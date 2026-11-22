@@ -39,6 +39,7 @@ function orderPresentation(order: FulfillmentRecord) {
     case "fulfilled": return order.source === "winner" && !order.claimedAt
       ? { label: "Ready to claim", tone: "reward", action: "View winning reward", message: "Your winning reward is ready. Open it to review and claim it." }
       : { label: "Card issued", tone: "reward", action: "Open gift card", message: "Your retailer gift card is ready to open in your reward wallet." };
+    case "unverified": return { label: "Status unavailable", tone: "action", action: "Check reward status", message: "We couldn’t verify whether the gift card has been issued." };
     case "exception": return { label: "Action needed", tone: "action", action: "View reward status", message: "The gift-card provider needs attention. Your entitlement remains recorded while support resolves it." };
     case "cancelled": return { label: "Cancelled", tone: "complete", action: "View reward status", message: "This fulfillment record was cancelled and remains in your account history." };
     case "expired": return { label: "Expired", tone: "complete", action: "View reward status", message: "The reward claim period has expired. Open the saved reward for its status and support options." };
@@ -493,8 +494,8 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
               {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
               {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
             </dl>
-            <span className="sr-only" id={`order-reference-${ticketId}`}>{order.title}, reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
-            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-label={`${order.source === "winner" ? "Reward details" : "Order details"} for ${order.title}, reference ending ${(order.orderNumber ?? order.rewardId).slice(-8).toUpperCase()}`} aria-expanded={opened?.id === ticketId} onClick={event => openDetails(ticketId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${ticketId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <span className="sr-only" id={`order-reference-${ticketId}`}>{order.title}, gift-card reference ending {order.rewardId.slice(-8).toUpperCase()}</span>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-label={`${order.source === "winner" ? "Reward details" : "Order details"} for ${order.title}, ${order.orderNumber ? "order number" : "reward reference"} ending ${(order.orderNumber ?? order.rewardId).slice(-8).toUpperCase()}`} aria-expanded={opened?.id === ticketId} onClick={event => openDetails(ticketId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} data-order-reward-action aria-describedby={`order-reference-${ticketId}`} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import styles from "./product-entry-layout.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useDialogBack } from "@/components/account/useDialogBack";
@@ -21,6 +21,24 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
     setOpen(true);
     close.current?.focus({ preventScroll: true });
   }
+  useEffect(() => {
+    const restore = () => {
+      const saved = history.state?.zeroLossProductInfoReturn;
+      if (!saved || saved.page !== location.pathname + location.search || saved.title !== title) return;
+      const element = dialog.current;
+      if (!element) return;
+      if (!element.open) element.showModal();
+      setOpen(true);
+      requestAnimationFrame(() => {
+        const link = Array.from(element.querySelectorAll<HTMLAnchorElement>("a[href]")).find(item => item.getAttribute("href") === saved.link);
+        link?.focus();
+      });
+    };
+    restore();
+    window.addEventListener("pageshow", restore);
+    window.addEventListener("popstate", restore);
+    return () => { window.removeEventListener("pageshow", restore); window.removeEventListener("popstate", restore); };
+  }, [title]);
   const endDialogHistory = useDialogBack(open, () => dialog.current?.close(), false, false, false, id, openInfo);
   useLayoutEffect(() => {
     if (!open) return;
@@ -38,7 +56,13 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
     <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={() => {
       endDialogHistory();
       setOpen(false); trigger.current?.focus({ preventScroll: true });
-    }} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
+    }} onClick={event => {
+      if (event.target === event.currentTarget) { dialog.current?.close(); return; }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(link instanceof HTMLAnchorElement) || link.target === "_blank" || link.origin !== location.origin) return;
+      history.replaceState({ ...history.state, zeroLossProductInfoReturn: { title, link: link.getAttribute("href"), page: location.pathname + location.search } }, "");
+    }}>
       <div className={variant === "ticket" ? styles.infoTicket : undefined}>
         <button ref={close} type="button" aria-label={`Close ${title.toLowerCase()}`} className={styles.dialogClose} onClick={() => dialog.current?.close()}>×</button>
         <h2 id={id} className={styles.infoHeading}>{title}</h2>

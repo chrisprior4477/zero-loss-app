@@ -22,7 +22,7 @@ describe("legal and safety pages", () => {
     expect(screen.getByRole("heading", { name: "Terms of Service" })).toBeTruthy();
     expect(screen.getByText(/30-second pending window/)).toBeTruthy();
     expect(screen.getByText(/does not currently submit, reserve, or create an entry/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "free-entry page" }).getAttribute("href")).toBe("/free-entry");
+    expect(screen.getByRole("link", { name: "free-entry page" }).getAttribute("href")).toBe("/free-entry?origin=terms");
   });
 
   test("privacy provides real account controls and a request route", () => {

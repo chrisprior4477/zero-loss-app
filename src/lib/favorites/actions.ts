@@ -36,6 +36,7 @@ export async function setFavorite(productSlug: string, shouldSave: boolean): Pro
     if (isPreviewDataEnvironment()) await ensurePreviewCustomer(db, user);
     if (shouldSave) {
       const catalog = await getShoppingCatalog();
+      if (catalog.unavailable || catalog.unverifiedSlugs?.has(productSlug)) return { status: "error", message: "Prize availability couldn’t be verified. Please try again." };
       if (catalog.hidden.has(productSlug)) return { status: "error", message: "This prize has closed and can’t be saved." };
       if (catalog.unavailable) return { status: "error", message: "Prize availability could not be checked. Try again shortly." };
       const { error } = await db.from("customer_favorites").insert({ customer_id: user.id, product_slug: productSlug });

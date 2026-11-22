@@ -11,6 +11,24 @@ export type CatalogRequestState =
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export async function checkCatalogRequestReceipt(formData: FormData): Promise<CatalogRequestState> {
+  const requestKey = formData.get("requestKey");
+  if (!isCatalogRequestKey(requestKey)) return { status: "error", message: "The original receipt reference is missing." };
+  try {
+    const db = await createClient();
+    const { data, error } = await db.rpc("check_catalog_request_receipt", {
+      p_request_key: requestKey,
+      p_email: String(formData.get("email") ?? ""),
+      p_requested_item: String(formData.get("requestedItem") ?? ""),
+      p_notes: String(formData.get("notes") ?? ""),
+      p_source_query: String(formData.get("sourceQuery") ?? ""),
+    });
+    if (!error && data === true) return { status: "succeeded", message: "Your original product request was saved." };
+    if (!error && data === false) return { status: "error", message: "No saved request matched. Review your draft before sending it again." };
+  } catch { /* Keep the original receipt available for another read. */ }
+  return { status: "error", uncertain: true, message: "We couldn’t check the original request. Try checking again." };
+}
+
 export async function submitCatalogRequest(
   _previous: CatalogRequestState,
   formData: FormData,

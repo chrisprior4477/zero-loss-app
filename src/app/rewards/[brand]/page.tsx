@@ -1,3 +1,4 @@
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -57,7 +58,7 @@ export default async function RewardBrandPage({ params }: Props) {
         <section id="reward-values" tabIndex={-1} className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
           {closedBookmarks.map(product => <p key={product.slug} id={`prize-${product.slug}`} tabIndex={-1} role="status"
             className="hidden text-sm font-semibold text-amber-100 target:block sm:col-span-2">{product.title} is closed for new entries. {offers.some(({ slug }) => !hidden.has(slug)) ? "Choose an available amount below." : "Browse available prizes to find another offer."}</p>)}
-          {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded." : "There are no open gift-card offers for this retailer right now."} {unavailable && <a className="font-bold text-cyan-300 underline" href={`/rewards/${brand.slug}#reward-values`}>Try again.</a>} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
+          {!offers.length && <p role="status">{unavailable ? "Prize availability could not be loaded." : "There are no open gift-card offers for this retailer right now."} {unavailable && <AccountReadRetryLink className="font-bold text-cyan-300 underline" href={`/rewards/${brand.slug}#reward-values`}>Try again.</AccountReadRetryLink>} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
           {offers.map(({ amount, slug, title }) => {
             const open = !hidden.has(slug);
             const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";

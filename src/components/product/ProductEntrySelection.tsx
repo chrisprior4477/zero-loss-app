@@ -22,12 +22,18 @@ export function ProductEntrySelection({ slug, initialQuantity, invalidBookmark =
     if (freeEntryDraft.href ? freeEntryDraft.href !== current : new URLSearchParams(window.location.search).has("quantity")) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuantity(freeEntryDraft.quantity);
+    if (typeof freeEntryDraft.invalidDraft === "string") setInvalidDraft(freeEntryDraft.invalidDraft);
   }, [slug, invalidBookmark]);
   return <EntrySelection.Provider value={{ maximum, selection: [quantity, next => {
     setQuantity(next);
     try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity: next, href: window.location.pathname + window.location.search } }, ""); }
     catch { /* The visible selection still updates. */ }
-  }, invalidDraft, setInvalidDraft] }}>{children}</EntrySelection.Provider>;
+  }, invalidDraft, draft => {
+    setInvalidDraft(draft);
+    if (draft === null) return;
+    try { history.replaceState({ ...history.state, freeEntryDraft: { slug, quantity, invalidDraft: draft, href: location.pathname + location.search } }, ""); }
+    catch { /* The visible edit remains available. */ }
+  }] }}>{children}</EntrySelection.Provider>;
 }
 
 export function useEntrySelection(initialQuantity: number): Selection {
@@ -42,5 +48,5 @@ export function FreeEntryLink({ slug, from, share, className, children }: {
 }) {
   const context = useContext(EntrySelection);
   const quantity = context && context.selection[2] === null ? Math.min(context.selection[0], context.maximum) : undefined;
-  return <Link href={freeEntryHref(slug, from, quantity, share)} className={className}>{children}</Link>;
+  return <Link href={freeEntryHref(slug, from, quantity, share) + (context?.selection[2] != null ? "&recheck=1" : "")} className={className}>{children}</Link>;
 }

@@ -1,3 +1,4 @@
+import { AccountReadRetryButton } from "./AccountReadRetryButton";
 import Link from "next/link";
 import { activityFilters, declinedOfferHref, filterActivity, isPurchasedReward, openEntriesAnchorId, openEntriesHref, revivableDeclinedOfferCount, type AccountActivity, type ActivityFilter } from "@/lib/account/activity";
 import { PendingPurchaseReceipts } from "./PendingPurchaseReceipts";
@@ -55,10 +56,10 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
     {filterReset ? <p role="status" className="mb-4 text-sm text-amber-100">That saved activity filter is unavailable. Showing all activity.</p> : null}
     {selectionMessage ? <p id="activity-selection-message" tabIndex={-1} role="status" className="mb-4 text-sm text-amber-100">{selectionMessage}</p> : null}
     {missingViewedEntry ? <p role="status" className="mb-4 text-sm text-amber-100">This saved entry could not be highlighted. Your current activity is shown below.</p> : null}
-    {state.incomplete ? <p className="mb-5 text-sm text-amber-100" role="status">Some activity could not be verified. Showing the records that loaded. <a className="underline" href={`/account/entries?filter=${filter}#my-activity-filters`}>Check again</a></p> : null}
+    {state.incomplete ? <p className="mb-5 text-sm text-amber-100" role="status">Some activity could not be verified. Showing the records that loaded. <AccountReadRetryButton className="underline" label="Check again" /></p> : null}
     {completedPrize && <p className="mb-5 text-sm text-[#b5cce4]"><Link className="underline" href="/account/entries?filter=completed#my-activity-filters">See all completed activity</Link></p>}
     {pendingEntriesResult === null ? <p className="mb-5 text-sm text-amber-100" role="status">
-      We couldn’t check pending entries. <a className="underline" href={`/account/entries?filter=${filter}#my-activity-filters`}>Check again</a> before submitting another entry.
+      We couldn’t check pending entries. <AccountReadRetryButton className="underline" label="Check again" /> before submitting another entry.
     </p> : null}
     {pendingEntries.length > 0 && state.source !== "unavailable" ? <div className="mb-5 rounded-2xl border border-cyan-300/50 bg-[#062b4d] px-5 py-4 text-white" role="status">
       <p className="font-extrabold">{pendingEntries.length === 1 ? "Entry request awaiting confirmation" : `${pendingEntries.length} entry requests awaiting confirmation`}</p>

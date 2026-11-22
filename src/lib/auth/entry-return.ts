@@ -28,6 +28,7 @@ export function signInReturnPath(value: unknown): string | null {
     const path = value.endsWith("#search-results") ? value.slice(0, -"#search-results".length) : value;
     if (productBrowseReturnPath(path)) return value;
   }
+  if (typeof value === "string" && (/^\/faq(?:#faq-[a-z0-9-]+)?$/.test(value) || /^\/rewards\/[a-z0-9-]+(?:#reward-values)?$/.test(value))) return value;
   return sharedProductReturnPath(value) ?? entryReturnPath(value) ?? fundingReturnPath(value) ?? purchaseOptionReturnPath(value) ?? accountReturnPath(value);
 }
 

@@ -58,7 +58,7 @@ function updatePendingReads(key: string, ids: string[], remove = false) {
   } catch { /* Saving a read receipt still works without storage. */ }
 }
 
-export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, supportAvailable = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; supportAvailable?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const live = useNotifications()?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
   // counts, rows and read controls without remounting the customer's view.
@@ -167,13 +167,16 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   }, [batches.end, listRef]);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : key === "action" ? attentionNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications, attentionNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
-  const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
-  const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
+  const singleReward = !overview?.activity.incomplete && readyRewards.length === 1 ? readyRewards[0] : null;
+  const optionsCount = overview?.activity.source === "unavailable" || overview?.activity.incomplete ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
   const restoreRange = batches.restoreRange;
   const noticeIndex = focusedNotice ? groups.findIndex(group => group.notifications.some(item => item.id === focusedNotice)) : -1;
 
+  const orderNoticePrefix = focusedNotice?.match(/^(order-[a-z0-9_-]+)-(?:payment_confirmed|issuance_pending|fulfilled|exception|cancelled|corrected)$/i)?.[1];
+  const currentOrderNotice = orderNoticePrefix ? enabledNotifications.find(item => item.id.startsWith(orderNoticePrefix + "-")) : undefined;
+  const supportCaseId = focusedNotice?.match(/^support-([a-f0-9-]{36})-/i)?.[1];
   const movedNotice = focusedNotice && noticeIndex < 0 ? enabledNotifications.find(notice => notice.id === focusedNotice) : undefined;
-  const incompleteFeed = !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable;
+  const incompleteFeed = !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || (supportEnabled && !supportAvailable);
   useEffect(() => {
     if (!focusedNotice || focusedReturn.current === focusedNotice) return;
     if (noticeIndex < 0) {
@@ -461,7 +464,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
           return next;
         });
         setReadMessage(message);
-      } else setReadMessage("All notifications marked as read.");
+      } else setReadMessage(incompleteFeed ? "Loaded updates marked as read. More updates may still be unread." : "All notifications marked as read.");
     });
   }
 
@@ -506,7 +509,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     <div className={styles.pageContent}>
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" || overview.activity.incomplete ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
       {obsoleteFilter && filter === "all" ? <p role="status" className="mb-3 text-sm font-semibold text-amber-200">That notification filter is unavailable. Showing all updates.</p> : null}
@@ -529,9 +532,9 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
         </div>
       </header>
 
-      {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {incompleteFeed || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {focusedNotice && noticeIndex < 0 ? <div ref={noticeFallback} tabIndex={-1} role="status" className={styles.sourceWarning}>
-        {movedNotice ? <>This update is outside the selected filter. <Link href={notificationHref(movedNotice.category, movedNotice.id)}>Open this update in {filters.find(([key]) => key === movedNotice.category)?.[1]}</Link></> : incompleteFeed ? "We couldn’t verify this update right now. Try refreshing this page." : "This update is no longer available. Your current updates are below."}
+        {movedNotice ? <>This update is outside the selected filter. <Link href={notificationHref(movedNotice.category, movedNotice.id)}>Open this update in {filters.find(([key]) => key === movedNotice.category)?.[1]}</Link></> : currentOrderNotice ? <>This order has a newer update. <Link href={notificationHref(currentOrderNotice.category, currentOrderNotice.id)}>Open the current update</Link></> : supportCaseId ? <>This update may have moved out of the recent feed. <Link href={`/support?case=${supportCaseId}#conversation`}>Check this support case</Link></> : incompleteFeed ? "We couldn’t verify this update right now. Try refreshing this page." : "This update is no longer available. Your current updates are below."}
       </div> : null}
       {crewMessage ? <p ref={crewNotice} tabIndex={-1} role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage && readMessageLocation === "top" ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}

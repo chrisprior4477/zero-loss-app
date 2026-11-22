@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import styles from "./crew-group-removal-countdown.module.css";
 
-export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm }: {
-  name: string; busy: boolean; retry?: number; onUndo: () => void; onConfirm: () => void;
+export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm, onCheck }: {
+  name: string; busy: boolean; retry?: number; onUndo: () => void; onConfirm: () => void; onCheck?: () => Promise<boolean>;
 }) {
   const [deadline, setDeadline] = useState(() => Date.now() + 30_000);
   const [reviewedAttempt, setReviewedAttempt] = useState(retry);
@@ -32,14 +32,15 @@ export function CrewGroupRemovalCountdown({ name, busy, retry, onUndo, onConfirm
 
   return <section className={styles.confirmation} aria-label="Confirm group removal" aria-busy={busy}>
     <div className={styles.header}><div><strong>Remove “{name}”?</strong><p>Removes this group and its saved contact list. Your Crew connections and other groups stay.</p></div>{!needsReview ? <EntryUndoCountdown seconds={seconds} compact /> : null}</div>
-    <p>Undo keeps this group. Time runs out? We’ll keep it.</p>
+    <p>{needsReview ? "Check the saved groups before trying again." : "Undo keeps this group. Time runs out? We’ll keep it."}</p>
     <div className={styles.actions}>
-      <button ref={undoButton} type="button" className={styles.undo} disabled={busy} onClick={onUndo}>Undo</button>
-      {needsReview ? <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
+      <button ref={undoButton} type="button" className={styles.undo} disabled={busy} onClick={onUndo}>{needsReview ? "Close" : "Undo"}</button>
+      {needsReview ? <button type="button" className={styles.confirm} disabled={busy} onClick={async () => {
+        if (onCheck && !await onCheck()) return;
         setSeconds(30);
         setDeadline(Date.now() + 30_000);
         setReviewedAttempt(retry);
-      }}>Review removal again</button> : <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
+      }}>Check group status</button> : <button type="button" className={styles.confirm} disabled={busy} onClick={() => {
         if (submitting.current) return;
         if (Date.now() >= deadline) { onUndo(); return; }
         submitting.current = true;

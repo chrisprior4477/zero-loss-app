@@ -25,7 +25,7 @@ test.each(["close", "cancel", "backdrop", "explore", "navigate"])("grocery ideas
   const dialog = screen.getByRole("dialog", { name: "Taco Night" });
   const product = new URL((screen.getByRole("link", { name: /\$100 Publix/ }) as HTMLAnchorElement).href);
   expect(product.pathname).toBe("/items/publix");
-  expect(product.searchParams.get("from")).toBe("/browse?category=groceries&groceryIdea=taco-night");
+  expect(product.searchParams.get("from")).toBe("/browse?category=groceries&groceryIdea=taco-night#grocery-offer-publix");
   if (exit === "close") fireEvent.click(screen.getByRole("button", { name: "Close grocery idea" }));
   if (exit === "cancel") fireEvent(dialog, new Event("cancel", { cancelable: true }));
   if (exit === "backdrop") fireEvent.click(dialog);

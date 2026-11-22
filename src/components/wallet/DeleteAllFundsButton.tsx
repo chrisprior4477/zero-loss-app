@@ -7,9 +7,10 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { useRouter } from "next/navigation";
 import { checkDemoBalanceClear, clearDemoBalance, previewDemoBalanceClear } from "@/lib/wallet/demo-balance-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { readWalletReset, saveWalletReset } from "@/lib/wallet/reset-recovery";
 import styles from "./delete-all-funds-button.module.css";
 
-export function DeleteAllFundsButton({ value }: { value: string }) {
+export function DeleteAllFundsButton({ value, walletId }: { value: string; walletId?: string }) {
   const router = useRouter();
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [uncertain, setUncertain] = useState(false);
@@ -19,6 +20,7 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
   const requestKey = useRef<string | null>(null);
+  const storageKey = `zero-loss:wallet-reset:${walletId ?? "demo"}:balance`;
 
   useEffect(() => {
     if (!pending && balanceCents !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
@@ -34,12 +36,14 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
     restoreFocus.current = true;
     dialogRef.current?.close();
     setBalanceCents(null);
-    requestKey.current = null;
+    if (!uncertain) requestKey.current = null;
     setUncertain(false);
   }
 
   function openConfirmation() {
     setNotice("");
+    const pendingReset = requestKey.current ?? readWalletReset(storageKey);
+    if (pendingReset) { requestKey.current = pendingReset; checkBalance(); return; }
     startTransition(async () => {
       try {
         const preview = await previewDemoBalanceClear();
@@ -54,9 +58,12 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   function confirmClear() {
     if (balanceCents === null || !requestKey.current || uncertain) return;
     startTransition(async () => {
+      saveWalletReset(storageKey, requestKey.current);
       try {
         const result = await clearDemoBalance(balanceCents, requestKey.current!);
         if (result.status === "error") { setNotice(result.message); setUncertain(true); return; }
+        saveWalletReset(storageKey, null);
+        requestKey.current = null;
         closeDialog();
         setNotice(`${formatUsdFromCents(result.clearedCents)} in demo funds cleared. Your entries, rewards, and wallet history remain.`);
         router.refresh();
@@ -72,6 +79,8 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
       try {
         const result = await checkDemoBalanceClear(requestKey.current!);
         if (result.status === "error") { setNotice(result.message); return; }
+        saveWalletReset(storageKey, null);
+        requestKey.current = null;
         closeDialog();
         setNotice(result.status === "succeeded"
           ? `${formatUsdFromCents(result.clearedCents)} in demo funds cleared. Your entries, rewards, and wallet history remain.`

@@ -8,7 +8,7 @@ import { cleanupCutoff, entrySharedAtInScope, entrySharedInScope, type SharingSe
 import { cleanupCrewShares, shareOwnedCrewEntry, undoCrewShareCleanup, type SharingResult } from "@/lib/crew/sharing-actions";
 import { CrewSharingDialog } from "./CrewSharingDialog";
 import { useDialogBack } from "./useDialogBack";
-import { useAccountTimeZone } from "./TimeZoneProvider";
+import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
 import styles from "./crew-shared-picks.module.css";
 
 type Props = { ownerId?: string; entries: OwnCrewEntry[]; groups: CrewVisibilityGroup[]; defaultRule: CrewVisibilityRule; rules: Record<string, CrewVisibilityRule>; available: boolean; onPrivacy: () => void };
@@ -28,6 +28,7 @@ function TrashIcon() {
 export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, available, onPrivacy }: Props) {
   const router = useRouter();
   const timeZone = useAccountTimeZone();
+  const locale = useAccountLocale();
   const [selectedScope, setSelectedScope] = useState(() => {
     if (entries.some(entry => entrySharedInScope(entry, "crew", defaultRule, rules))) return "crew";
     return groups.find(group => entries.some(entry => entrySharedInScope(entry, group.id, defaultRule, rules)))?.id ?? "crew";
@@ -247,7 +248,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
                 const sharedAt = entrySharedAtInScope(entry, scope);
                 return <div key={entry.id} className={styles.entry}>
                 <div><strong>Entry {all.findIndex(e => e.id === entry.id) + 1}</strong><button type="button" disabled={disabled} onClick={() => isShared(entry) ? stopSelection({ scope, entryId: entry.id }) : share(entry.id)}>{isShared(entry) ? "Stop sharing" : "Share here"}</button></div>
-                <p>{isShared(entry) ? `Shared ${sharedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(sharedAt)) : "previously"} · ${label}`  : entry.shared ? "Shared with another group · choose Share here to add this group" : "Private · choose Share here to share with this audience"}</p>
+                <p>{isShared(entry) ? `Shared ${sharedAt ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone }).format(new Date(sharedAt)) : "previously"} · ${label}`  : entry.shared ? "Shared with another group · choose Share here to add this group" : "Private · choose Share here to share with this audience"}</p>
               </div>; })}
               {rows.length > entryLimit ? <button type="button" onClick={() => setEntryLimit(n => n + 5)}>Show more entries · {rows.length - entryLimit} remaining</button> : null}
               {entryLimit > 5 ? <button type="button" onClick={() => setEntryLimit(5)}>Close to first five entries</button> : null}

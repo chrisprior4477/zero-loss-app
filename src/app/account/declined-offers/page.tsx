@@ -1,3 +1,4 @@
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -40,7 +41,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   if (!account) redirect(authNavigationHref("/login", selectedHref));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId) && (Boolean(offerId) || !prize || item.slug === prize));
-  const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
+  const requestedMissing = offerId && !account.activity.incomplete && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
   const currentOffer = requestedMissing ? account.activity.activity.find(item => item.completionOptionId === offerId) : undefined;
   const currentOfferHref = currentOffer && (openPrizeOptions([currentOffer], currentOffer.slug).length
     ? `/account/purchase-options/${encodeURIComponent(currentOffer.slug)}?option=${encodeURIComponent(currentOffer.entryId!)}`
@@ -97,7 +98,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       <h2 id="missing-declined-offer" tabIndex={-1}>This offer is no longer in Declined Offers</h2>
       {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
-    {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={selectedHref}>Try again</a></div>
+    {account.activity.source === "unavailable" || account.activity.incomplete && (declined.length === 0 || offerId && !declined.some(item => item.completionOptionId === offerId)) ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><AccountReadRetryLink href={selectedHref}>Try again</AccountReadRetryLink></div>
       : declined.length === 0 ? <div className={styles.empty}>{prize && !requestedMissing ? <AccountSettingsLandingScroll target="no-declined-offers" initialTarget="no-declined-offers" focusTarget="no-declined-offers" allScreens /> : null}<h2 id="no-declined-offers" tabIndex={-1}>{prize ? "No declined offers for this prize" : "No declined offers yet"}</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn} scroll={false}>Back to My Activity →</Link></div>
       : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;

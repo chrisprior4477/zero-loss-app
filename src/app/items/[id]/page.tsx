@@ -67,7 +67,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const hiddenPool = hidden.has(product.slug);
   const current = availability?.[product.slug];
   const remaining = current?.remaining ?? product.capacity - product.sold;
-  const savedQuantityTooHigh = requestedQuantity !== null && remaining > 0 && requestedQuantity > remaining;
+  const savedQuantityTooHigh = requestedQuantity !== null && Boolean(current) && requestedQuantity > remaining;
   const invalidBookmark = query.quantity !== undefined && (requestedQuantity === null || savedQuantityTooHigh)
     ? (typeof query.quantity === "string" ? query.quantity.slice(0, 32) : "") : null;
   const initialQuantity = invalidBookmark === null ? requestedQuantity ?? 1 : 1;
@@ -150,7 +150,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title, returnHref: browseReturnHref }} /><div className={entryStyles.page}>
     {!hiddenPool ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${selectionKey}:${query.funded ?? ""}`} />
-    <ProductEntrySelection key={selectionKey} slug={product.slug} initialQuantity={initialQuantity} invalidBookmark={invalidBookmark} remaining={remaining}>
+    <ProductEntrySelection key={selectionKey} slug={product.slug} initialQuantity={initialQuantity} invalidBookmark={invalidBookmark} remaining={current ? remaining : Math.max(remaining, initialQuantity)}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
       <div className={entryStyles.nav}>
         <Link href={transactionReturn ?? browseReturnHref}>← Back to {transactionReturn ? "this transaction" : browseReturnLabel}</Link>

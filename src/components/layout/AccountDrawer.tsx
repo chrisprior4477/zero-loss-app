@@ -240,7 +240,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
             const draft = window.history.state?.freeEntryDraft;
             const selection = draft && typeof draft.slug === "string" && isEntryQuantity(draft.quantity) ? { slug: draft.slug, quantity: draft.quantity } : null;
             setGuestDestination(currentProductEntryHref(pathname, search, selection)
-              ?? (pathname === "/browse" ? signInReturnPath(pathname + search + hash) ?? signInReturnPath(pathname + search) : null));
+              ?? (signInReturnPath(pathname + search + hash) ?? signInReturnPath(pathname + search)));
           }
           const query = new URLSearchParams(window.location.search);
           const inWallet = pathname === "/account/wallet" && query.get("view") === "history" && !query.has("reward") && !query.has("rewardId");
@@ -355,7 +355,7 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span>Help, Rules & Policies</span><span aria-hidden="true" className="text-cyan-300">{moreOpen ? "⌄" : "›"}</span>
                 </button>
-                <nav hidden={!moreOpen} id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} replace={replaceDrawerStep} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>
+                <nav hidden={!moreOpen} id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href === "/free-entry" && guestDestination?.startsWith("/browse") ? `${href}?from=${encodeURIComponent(guestDestination)}` : href} replace={replaceDrawerStep} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>
               </div> : null}
             </div>
             {showAccountContent ? (

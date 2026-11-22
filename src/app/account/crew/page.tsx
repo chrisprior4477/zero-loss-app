@@ -89,7 +89,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   // Older invitation emails linked to the general Crew page. Surface received
   // requests there too, while an exact request link must never reveal another's.
   const incoming = invitations.find(invitation => invitation.recipient_id === account.userId
-    && (params.request ? invitation.id === params.request : invitation.status === "pending"));
+    && (params.request ? invitation.id === params.request : !Object.values(params).some(value => value !== undefined) && invitation.status === "pending"));
   const entryParams = new URLSearchParams({ ...(params.filter === "active" ? { filter: "active" } : {}), ...entryReviewContext(params) });
   return <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={[...hidden]}><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
     invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
@@ -118,6 +118,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     entryReturn={typeof params.entry === "string" && /^ent_[a-f0-9]{32}$/i.test(params.entry) ? `/account/entries/${params.entry}${entryParams.size ? `?${entryParams}` : ""}#entry-crew-share` : undefined}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
+    invalidInvite={params.invite !== undefined && (typeof params.invite !== "string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite))}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}
   /></OfferingAvailabilityProvider>;
 }

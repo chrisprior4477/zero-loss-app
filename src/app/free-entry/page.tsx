@@ -14,7 +14,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
-type Props = { searchParams: Promise<{ offering?: string | string[]; share?: string | string[]; from?: string | string[]; quantity?: string | string[] }> };
+type Props = { searchParams: Promise<{ offering?: string | string[]; share?: string | string[]; from?: string | string[]; quantity?: string | string[]; origin?: string; recheck?: string }> };
 
 function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: boolean }) {
   return <>
@@ -35,12 +35,12 @@ function FreeEntryInstructions({ prizeSelected = false }: { prizeSelected?: bool
 }
 
 export default async function FreeEntryPage({ searchParams }: Props) {
-  const { offering: requested, from, share, quantity: quantityQuery } = await searchParams;
+  const { offering: requested, from, share, origin, recheck, quantity: quantityQuery } = await searchParams;
   const rawQuantity = matchingQueryValue(quantityQuery) ?? quantityQuery;
   const offering = Array.isArray(requested) && new Set(requested.map(slug => slug.toLowerCase())).size === 1 ? requested[0] : requested;
   if (!offering) return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
     <div className="mx-auto max-w-4xl">
-      <Link href="/legal#free-entry-legal-link" className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to Legal Center</Link>
+      <Link href={origin === "terms" ? "/terms#free-entry" : productBrowseReturnPath(from) ?? "/legal#free-entry-legal-link"} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {origin === "terms" ? "Terms" : productBrowseReturnPath(from) ? productBrowseReturnLabel(productBrowseReturnPath(from)!) : "Legal Center"}</Link>
       <AccountSettingsLandingScroll target="free-entry-intro" initialTarget="free-entry-intro" focusTarget="free-entry-intro" allScreens />
       <FreeEntryInstructions />
       <Link href={productBrowseReturnPath(from) ?? "/browse#search-results"} className="mt-6 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Browse prizes →</Link>
@@ -82,6 +82,8 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <Link href={productEntryHref(product.slug, 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action")} className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Back to {product.title}</Link>
   </div>;
   const backHref = productEntryHref(product.slug, quantity ?? 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action");
+  const returnUrl = new URL(backHref, "https://zeroloss.local");
+  if (recheck === "1") returnUrl.searchParams.set("quantity", "invalid");
   const account = await getAccountContext();
   const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");
   const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
@@ -89,7 +91,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   return (
     <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference}
       signInHref={account ? undefined : authNavigationHref("/login", freeEntryHref(product.slug, browseReturn, quantity, sharedToken) + "#free-entry-intro")} intro={<>
-        <Link href={backHref} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
+        <Link href={returnUrl.pathname + returnUrl.search + returnUrl.hash} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
         <AccountSettingsLandingScroll target="free-entry-intro" focusTarget="free-entry-intro" visitKey={product.slug} restrictToTargetHash allScreens settleAfterNavigation />
         <FreeEntryInstructions prizeSelected />
       </>} footer={

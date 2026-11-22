@@ -115,7 +115,7 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
           if (!open && restoredReceipt === displayedReceipt.idempotencyKey) dismissRestoredReceipt();
         }}>
         <summary><DepositReceiptDate request={displayedReceipt} timeZone={timeZone} /><b>View {formatUsdFromCents(displayedReceipt.amount)} receipt</b></summary>
-        <p>Payment &amp; credit matched</p><p>Request {displayedReceipt.id}</p><DepositCreditLink request={displayedReceipt} fromWeek />
+        <p>Payment &amp; credit matched</p><p>Request {displayedReceipt.id}</p><DepositCreditLink request={displayedReceipt} fromWeek timeZone={timeZone} />
       </details></div>}
     </>}
   </aside>;

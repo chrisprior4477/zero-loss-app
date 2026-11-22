@@ -37,7 +37,9 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
   const segments = pathname.split("/").filter(Boolean);
   const [root, second, third] = segments;
   if (root === "account") {
+    if (second === "entries" && third) return [{ label: "My Activity", href: "/account/entries?filter=active" }, { label: "Entry details" }];
     if (!second || second === "entries") return [{ label: "My Activity" }];
+    if (second === "purchase-options") return [accountRoot, { label: "Purchase Options", href: "/account/entries?filter=completion" }, { label: "Offer details" }];
     if (second === "wallet") {
       const rewardRoot: BreadcrumbItem = { label: "Gift Cards & Rewards", href: "/account/wallet" };
       if (searchParams.get("reward") || searchParams.get("rewardId")) return [accountRoot, rewardRoot, { label: "Reward details" }];

@@ -163,7 +163,7 @@ test("preview reward renders a responsive sample redemption without pretending i
   expect(screen.getByText("Sample — not redeemable")).toBeTruthy();
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
   expect(screen.getByRole("img", { name: 'Samsung 50" M70H Mini LED 4K Smart TV' })).toBeTruthy();
-  expect(screen.getByText(/Use it on anything Best Buy sells/)).toBeTruthy();
+  expect(screen.getByText(/Use it on eligible purchases at Best Buy/)).toBeTruthy();
   expect(screen.getByText(/not a restriction on your reward/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Show barcode" })).toBeNull();

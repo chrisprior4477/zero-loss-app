@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
+import { hasAccountHistoryReturn } from "./AccountHistoryReturn";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
 export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false, skipForHash }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean; skipForHash?: string }) {
@@ -29,7 +30,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       return bottom;
     };
     const align = () => {
-      if (disposed || interrupted || (!allScreens && !window.matchMedia?.("(max-width: 767px)").matches)) return;
+      if (disposed || interrupted || hasAccountHistoryReturn() || (!allScreens && !window.matchMedia?.("(max-width: 767px)").matches)) return;
       cancel();
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {

@@ -35,72 +35,107 @@ function localDateKey(timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-const englishMonths = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-
-function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], query: string, calendar: SearchCalendar) {
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(query);
-  if (iso) return searchDate(entries, `${iso[2]}/${iso[3]}/${iso[1]}`, calendar);
-  const numeric = /^(\d{1,2})([/-])(\d{1,2})\2(\d{4})$/.exec(query);
-  if (numeric) {
-    const [, month, , day, year] = numeric.map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return [];
-    const format = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
-    return searchDate(entries, format.format(date), calendar);
-  }
-  const monthYear = /^([a-z]{3,9})\.?\s+(\d{4})$/i.exec(query);
-  if (monthYear) {
-    const name = monthYear[1].toLowerCase();
-    const monthIndex = englishMonths.findIndex(month => month === name || month.slice(0, 3) === name);
-    if (monthIndex < 0) return null;
-    const formatter = localDateKey(calendar.timeZone);
-    const monthKey = `${monthYear[2]}-${String(monthIndex + 1).padStart(2, "0")}`;
-    return entries.filter(entry => formatter.format(new Date(entry.created_at)).slice(0, 7) === monthKey);
-  }
-  const month = /^(?:([a-z]{3,9})\.?\s+\d{1,2}|\d{1,2}\s+([a-z]{3,9})\.?)(?:,?\s+\d{4})?$/i.exec(query);
-  if (!month || !/^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)$/i.test(month[1] ?? month[2])) return null;
-  const terms = normalizeSearch(query).split(" ").map(term => /^\d{1,2}$/.test(term) ? String(Number(term)) : term);
-  const includeYear = terms.length === 3 ? { year: "numeric" as const } : {};
-  const formatters = (["short", "long"] as const).flatMap(month =>
-    [...new Set([calendar.locale, "en-US"])].map(locale =>
-      new Intl.DateTimeFormat(locale, { timeZone: calendar.timeZone, month, day: "numeric", ...includeYear })));
-  return entries.filter(entry => formatters.some(formatter =>
-    normalizeSearch(formatter.format(new Date(entry.created_at))).split(" ").every(term => terms.includes(term))));
+function normalizedDate(value: string) {
+  return normalizeSearch(value.replace(/(\d)(?:st|nd|rd|th)\b/gi, "$1"))
+    .split(" ").filter(part => part !== "de");
 }
 
 function dateBoundary(value: string, calendar: SearchCalendar) {
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  const numeric = /^(\d{1,2})([/-])(\d{1,2})\2(\d{4})$/.exec(value);
-  const input = iso ? `${iso[2]}/${iso[3]}/${iso[1]}` : numeric ? value.replaceAll("-", "/") : value;
-  const includesYear = /\b\d{4}\b/.test(input);
-  const day = Date.parse(input + (includesYear ? " UTC" : " 2000 UTC"));
-  if (!Number.isFinite(day)) return null;
-  const probe = { created_at: new Date(day).toISOString().slice(0, 10) + "T12:00:00Z" };
-  // Date.parse accepts overflow and incomplete dates. Require the same exact day
-  // to match the calendar search as well.
-  if (!searchDate([probe], input, { ...calendar, timeZone: "UTC" })?.length) return null;
-  return probe.created_at.slice(includesYear ? 0 : 5, 10);
+  const iso = /^(\d{4})([-/])(\d{1,2})\2(\d{1,2})$/.exec(value);
+  const numeric = /^(\d{1,2})([-/])(\d{1,2})\2(\d{4})$/.exec(value);
+  let year: number | undefined;
+  let month: number | undefined;
+  let day: number | undefined;
+  if (iso) [year, month, day] = [Number(iso[1]), Number(iso[3]), Number(iso[4])];
+  else if (numeric) {
+    const dayFirst = new Intl.DateTimeFormat(calendar.locale, { day: "numeric", month: "numeric" })
+      .formatToParts(0).find(part => part.type === "day" || part.type === "month")?.type === "day";
+    [year, month, day] = [Number(numeric[4]), Number(numeric[dayFirst ? 3 : 1]), Number(numeric[dayFirst ? 1 : 3])];
+  } else {
+    const words = normalizedDate(value);
+    if (words.length < 2 || words.length > 3) return null;
+    const name = words.find(word => /^[a-z]+$/.test(word));
+    if (!name) return null;
+    year = Number(words.find(word => /^\d{4}$/.test(word))) || undefined;
+    day = Number(words.find(word => /^\d{1,2}$/.test(word))) || undefined;
+    if (!year && !day) return null;
+    for (const locale of new Set([calendar.locale, "en-US"])) {
+      for (const width of ["short", "long"] as const) {
+        const formatter = new Intl.DateTimeFormat(locale, { month: width, timeZone: "UTC" });
+        for (let index = 0; index < 12; index++) {
+          if (normalizeSearch(formatter.format(new Date(Date.UTC(2000, index, 1)))) === name
+            || name === "sept" && index === 8) month = index + 1;
+        }
+      }
+      if (month) break;
+    }
+  }
+  if (!month || !day && !year) return null;
+  const date = new Date(Date.UTC(year ?? 2000, month - 1, day ?? 1));
+  if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== (day ?? 1)) return null;
+  const key = date.toISOString().slice(0, 10);
+  return day ? key.slice(year ? 0 : 5) : key.slice(0, 7);
+}
+
+function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], query: string, calendar: SearchCalendar) {
+  const boundary = dateBoundary(query, calendar);
+  if (!boundary) return null;
+  const formatter = localDateKey(calendar.timeZone);
+  return entries.filter(entry => {
+    const day = formatter.format(new Date(entry.created_at));
+    return boundary.length === 5 ? day.slice(5) === boundary : day.startsWith(boundary);
+  });
 }
 
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const trimmed = rawQuery.trim();
   if (!trimmed) return entries;
+  const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
+  if (reference) {
+    const id = reference[1].toLowerCase();
+    const matches = entries.filter(entry => entry.id.toLowerCase().endsWith(id));
+    if (matches.length || /^transaction|^#/i.test(trimmed)) return matches;
+  }
   const dateQuery = trimmed.replace(/^(?:(?:posted(?:\s+transactions?)?|transactions?)\s+on)\s+/i, "");
-  const after = /^after\s+(.+)$/i.exec(dateQuery);
-  const exclusiveStart = after && dateBoundary(after[1], calendar);
+  const week = /^week of\s+(.+)$/i.exec(dateQuery);
+  const weekDay = week && dateBoundary(week[1], calendar);
+  if (weekDay && weekDay.length === 10) {
+    const start = new Date(weekDay + "T00:00:00Z");
+    start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 6);
+    const formatter = localDateKey(calendar.timeZone);
+    return entries.filter(entry => {
+      const date = formatter.format(new Date(entry.created_at));
+      return date >= start.toISOString().slice(0, 10) && date <= end.toISOString().slice(0, 10);
+    });
+  }
+  const after = /^(?:(?:posted\s+)?transactions?\s+)?(on or after|after|on or before|before)\s+(.+)$/i.exec(dateQuery);
+  const exclusiveStart = after && dateBoundary(after[2], calendar);
   if (exclusiveStart) {
     const formatter = localDateKey(calendar.timeZone);
-    return entries.filter(entry => formatter.format(new Date(entry.created_at)).slice(exclusiveStart.length === 10 ? 0 : 5) > exclusiveStart);
+    return entries.filter(entry => {
+      const key = formatter.format(new Date(entry.created_at));
+      const date = exclusiveStart.length === 5 ? key.slice(5) : key.slice(0, exclusiveStart.length);
+      switch (after![1].toLowerCase()) {
+        case "on or after": return date >= exclusiveStart;
+        case "on or before": return date <= exclusiveStart;
+        case "before": return date < exclusiveStart;
+        default: return date > exclusiveStart;
+      }
+    });
   }
   const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(dateQuery)
     ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(dateQuery);
   if (dateRange) {
     const start = dateBoundary(dateRange[1], calendar), end = dateBoundary(dateRange[2], calendar);
     if (start && end) {
-      const yearIncluded = start.length === 10 && end.length === 10;
+      const yearIncluded = start.length === 10 || end.length === 10;
       const formatter = localDateKey(calendar.timeZone);
-      const lower = yearIncluded ? start : start.slice(-5), upper = yearIncluded ? end : end.slice(-5);
+      const crossesYear = start.slice(-5) > end.slice(-5);
+      const lower = start.length === 5 && end.length === 10 ? `${Number(end.slice(0, 4)) - Number(crossesYear)}-${start}` : start;
+      const upper = end.length === 5 && start.length === 10 ? `${Number(start.slice(0, 4)) + Number(crossesYear)}-${end}` : end;
       return entries.filter(entry => {
         const value = formatter.format(new Date(entry.created_at)).slice(yearIncluded ? 0 : 5);
         return value >= lower && value <= upper;
@@ -141,6 +176,18 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(new RegExp(String.raw`^(\$\s*${dollars})\s+to\s+(\$\s*${dollars})$`, "i"), "between $1 and $2")
     .replace(/^transactions?\s+(?=[+−-]?\s*\$)/i, "").trim();
   if (!query) return entries;
+  const comparison = /^(?:amount\s*)?(>=|<=|>|<)\s*(.+)$/.exec(query);
+  if (comparison && amountOnly.test(comparison[2])) {
+    const cents = amountCents(comparison[2]);
+    return entries.filter(row => {
+      const amount = Math.abs(row.amount);
+      return comparison[1].startsWith(">") ? amount > cents || comparison[1] === ">=" && amount === cents : amount < cents || comparison[1] === "<=" && amount === cents;
+    });
+  }
+  const cardPayments = /^(?:card payments? (?:of|for)\s+)(.+)$/i.exec(query);
+  if (cardPayments) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), cardPayments[1]);
+  const paidAt = /^(.+?)\s+(?:paid|spent)\s+(?:at|with)\s+(.+)$/i.exec(query);
+  if (paidAt && amountOnly.test(paidAt[1])) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), paidAt[2] + " " + paidAt[1]);
   const direction = /^(?:wallet\s+)?(debits?|charges?|credits?)(?=\s|$)/i.exec(query);
   if (direction) {
     const debit = !/^credit/i.test(direction[1]);

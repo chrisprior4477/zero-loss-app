@@ -82,11 +82,15 @@ export function FaqExplorer() {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, destination.answerTop) : destination.scrollY;
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-          if (!focused && answer) {
+          if (answer) {
             const link = destination.answerLink
               ? Array.from(answer.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === destination.answerLink)
               : answer.querySelector("summary");
-            if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
+            if (link?.getClientRects().length) {
+              if (!focused) link.focus({ preventScroll: true });
+              if (document.activeElement === link && (link.getBoundingClientRect().bottom > window.innerHeight || link.getBoundingClientRect().top < header)) revealBelowHeader(link);
+              focused = true;
+            }
           }
         }); });
       };

@@ -1,5 +1,5 @@
 "use client";
-import { useAccountTimeZone } from "@/components/account/TimeZoneProvider";
+import { useAccountLocale, useAccountTimeZone } from "@/components/account/TimeZoneProvider";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -62,6 +62,7 @@ function restoreListPosition(target?: string, top?: number, artwork = false) {
 
 export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
   const timeZone = useAccountTimeZone();
+  const locale = useAccountLocale();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
   const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
   const slugs = useMemo(() => savedSlugs.filter(slug => !hidden.has(slug)), [savedSlugs, hidden]);
@@ -86,7 +87,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   // Resolve a received preview from the latest share list every render. A
   // missing receipt cannot turn the remembered prize into a favorite.
   const selectedShare = selection?.shareId ? shares.find(share => share.id === selection.shareId) : null;
-  const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
+  const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !sharesIncomplete && !selectedShare);
   const detailHeading = useRef<HTMLHeadingElement>(null);
   const unavailableShareHeading = useRef<HTMLHeadingElement>(null);
   const unavailableFavoriteHeading = useRef<HTMLHeadingElement>(null);
@@ -354,7 +355,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       <span className={styles.remaining} style={{ color: status ? lightSurfaceAvailabilityColor(status.percentFilled) : undefined }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
   }
   function sender(share: SavedProductShare) {
-    return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
+    return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString(locale, { month: "short", day: "numeric", timeZone })}</small></div></div>;
   }
   const missingFavoriteSlug = tab === "favorites" && available && !selectedSlug ? selection?.slug : undefined;
   const missingFavorite = missingFavoriteSlug ? productState(missingFavoriteSlug) : null;

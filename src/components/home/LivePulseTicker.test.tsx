@@ -29,7 +29,7 @@ test("removes the Sample badge, exposes real links once for keyboard users, and 
   const { rail, link } = setup();
   expect(screen.queryByText("Sample")).toBeNull();
   expect(screen.getAllByRole("link")).toHaveLength(1);
-  expect(link.getAttribute("href")).toBe("/items/airpods-pro");
+  expect(new URL((link as HTMLAnchorElement).href).searchParams.get("from")).toBe("/?activity-prize=airpods-pro#marketplace-activity");
   expect(rail.querySelectorAll("a")[1].tabIndex).toBe(-1);
   fireEvent.click(rail.querySelectorAll("a")[1]);
   expect(navigate).toHaveBeenCalledOnce();

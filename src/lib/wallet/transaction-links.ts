@@ -16,7 +16,7 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
   if (entry.entry_type === "PURCHASE_DEBIT" && entry.rewardId) {
     const reward = activity.find(item => item.rewardId === entry.rewardId && isWalletReward(item));
     if (!reward) return [];
-    return [{ id: entry.rewardId, label: "Open gift card", href: `${activityHref(reward)}${origin}` }];
+    return [{ id: entry.rewardId, label: reward.rewardStatus === "ready" ? "Open gift card" : "View gift card status", href: `${activityHref(reward)}${origin}` }];
   }
   const reservation = entry.entry_type === "ENTRY_HOLD" || entry.entry_type === "ENTRY_HOLD_RELEASE";
   const byId = new Map(activity.filter(item => item.entryId).map(item => [item.entryId!, item]));

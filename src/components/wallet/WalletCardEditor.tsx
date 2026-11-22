@@ -18,7 +18,9 @@ export function openWalletPanel(hash: string, state: object | null = null, repla
 }
 
 export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id, moveFocus = false, keepFocusedControl = false) {
+  const href = window.location.href;
   requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (window.location.href !== href) return;
     const target = (window.innerWidth <= 767 ? document.getElementById(mobileId) : null) ?? document.getElementById(id);
     if (!target || (keepFocusedControl && target.contains(document.activeElement))) return;
     const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;

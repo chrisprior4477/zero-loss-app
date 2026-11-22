@@ -5,7 +5,7 @@ import Image from "next/image";
 import { DemoOutcomeLetter } from "./DemoOutcomeLetter";
 import { BrowseResultsLink } from "./BrowsePrizeLink";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
@@ -91,6 +91,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const session = useBrowseResultsSearch();
   const search = session?.draft ?? localSearch;
   const setSearch = session?.setDraft ?? setLocalSearch;
+  const connectSearchInput = useCallback((node: HTMLInputElement | null) => {
+    if (node && !searchInput.current && node.value !== node.defaultValue) {
+      const typed = node.value;
+      queueMicrotask(() => setSearch(typed));
+    }
+    searchInput.current = node;
+  }, [setSearch]);
   const voice = useVoiceSearch(value => { session?.setEditor(null); setSearch(value); });
   const invalidSearch = invalidCatalogSearch(search);
   const showSearchLimit = (catalogSearchTooLong(search.trim()) || invalidSearch) && (!session?.editor || session.editor === "top");
@@ -318,6 +325,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     return `${url.pathname}${url.search}#search-results`;
   }
   function applySearch(value: string, restoreSearch = false) {
+    if (session) {
+      session.search(value, undefined, restoreSearch);
+      return;
+    }
     const destination = searchDestination(value);
     if (restoreSearch || value.trim()) requestBrowseResultsFocus(destination, restoreSearch ? "top-search" : "heading");
     if (!scrollToCurrentSearch(destination)) router.push(destination, { scroll: false });
@@ -333,7 +344,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     voice.reset();
     setSearch("");
     searchInput.current?.focus();
-    if (props.searchTerm) applySearch("", true);
+    if (props.searchTerm || session?.pending) applySearch("", true);
   }
   function submitPickerSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -437,7 +448,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || invalidSearch || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={connectSearchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || invalidSearch || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() && !voice.busy && !invalidSearch && !catalogSearchTooLong(search.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />

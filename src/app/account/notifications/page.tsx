@@ -20,7 +20,10 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const notice = validNotice(requestedNotice) ? requestedNotice : undefined;
   const noticeConflict = Array.isArray(query?.notice) && requestedNotice === undefined;
   const [listPath] = notificationHref(filter, notice).split("#");
-  const notificationDestination = listPath + (query?.section === "email" ? "#email-choices" : "#notification-tickets-filters");
+  const section = matchingQueryValue(query?.section);
+  const notificationDestination = section === "alerts"
+    ? listPath + (listPath.includes("?") ? "&" : "?") + "section=alerts#alert-settings"
+    : listPath + (section === "email" ? "#email-choices" : "#notification-tickets-filters");
   const account = await getAccountContext();
   if (!account) {
     redirect(authNavigationHref("/login", notificationDestination) + "&focus=email#login-form");
@@ -41,9 +44,10 @@ export default async function NotificationsPage({ searchParams }: { searchParams
     initialNotice={notice}
     userId={account.userId}
     supportEnabled={snapshot.supportEnabled}
+    supportAvailable={snapshot.supportAvailable}
     notifications={snapshot.notifications}
     initialReadIds={snapshot.readIds}
-    activityAvailable={account.activity.source !== "unavailable"}
+    activityAvailable={account.activity.source !== "unavailable" && !account.activity.incomplete}
     walletAvailable={account.wallet !== null}
     crewAvailable={snapshot.crewAvailable}
     readAvailable={snapshot.readAvailable}

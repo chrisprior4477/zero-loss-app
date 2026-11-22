@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
@@ -106,6 +107,6 @@ export function SupportCasePages({ cases, timeZone, initialPage, pageSize, base 
       <span role="status">Page {page + 1}</span>
       {page < last ? <Link href={href(page + 1)} onNavigate={event => { event.preventDefault(); go(page + 1); }}>Older cases →</Link> : null}
     </nav> : null}
-    <a className="mt-3 inline-block font-bold text-[#00568f] underline" href={href(0)}>Load latest cases</a>
+    <AccountReadRetryLink className="mt-3 inline-block font-bold text-[#00568f] underline" href={href(0)}>Load latest cases</AccountReadRetryLink>
   </div>;
 }

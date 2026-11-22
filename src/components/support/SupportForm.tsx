@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { checkSupportMessage, saveSupportCase, type SupportActionState } from "@/lib/support/actions";
 import styles from "@/components/help/help-tickets.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -99,7 +100,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     changeDraft(change);
   }
   const [state, action, pending] = useActionState(async (previous: SupportFormState, data: FormData): Promise<SupportFormState> => {
-    if (data.get("intent") === "edit-checked-draft" && previous.status === "error" && previous.canResend && draft.recordUnavailable) {
+    if (data.get("intent") === "edit-checked-draft" && previous.status === "error" && previous.canResend) {
       changeDraft({ uncertain: false, reuseRequestKey: true });
       sending.current = false;
       return { status: "idle" };
@@ -193,6 +194,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
     {feedback.status === "error" && showError ? <p ref={formError} id="support-error" role="alert" tabIndex={-1} className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{feedback.message}</p> : null}
+    {showError && feedback.status === "error" && /sign in again/i.test(feedback.message) ? <Link href={`${authNavigationHref("/login", caseId ? `/support?case=${encodeURIComponent(caseId)}#conversation` : "/support#report-problem")}`} target="_blank" rel="noopener">Sign in again, then return to this draft</Link> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
       <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {
@@ -202,7 +204,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
         data.set("intent", "check");
         startTransition(() => action(data));
       }}>{pending ? "Checking…" : "Check saved message"}</button>
-      {state.status === "error" && state.canResend && draft.recordUnavailable ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
+      {state.status === "error" && state.canResend ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
         if (sending.current) return;
         sending.current = true;
         const data = new FormData();

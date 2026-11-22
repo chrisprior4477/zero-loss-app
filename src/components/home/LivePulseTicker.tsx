@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import type { LivePulseItem } from "@/lib/home/live-pulse";
 import { useVisibleMotion } from "@/components/home/useVisibleMotion";
 
@@ -11,7 +12,7 @@ function TickerSequence({ items, hidden = false }: { items: LivePulseItem[]; hid
       {items.map((item) => (
         <div key={`${item.label}-${item.value}`} className="flex shrink-0 items-center">
           <span className="mx-5 h-1.5 w-1.5 rounded-full bg-cyan-300/70" aria-hidden="true" />
-          <Link href={item.href} aria-label={`${item.label} ${item.value}`} draggable={false} tabIndex={hidden ? -1 : undefined}
+          <Link href={item.href.startsWith("/items/") ? productHrefWithBrowseReturn(item.href.slice(7), `/?activity-prize=${item.href.slice(7)}#marketplace-activity`) : item.href} aria-label={`${item.label} ${item.value}`} draggable={false} tabIndex={hidden ? -1 : undefined}
             className="flex items-center rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
           <span className="text-[12px] font-bold uppercase tracking-[0.11em] text-white/65">
             {item.label.startsWith("Popular ") ? <><span className="text-[#31e800]">Popular</span>{item.label.slice(7)}</> : item.label}
@@ -68,6 +69,12 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
       // A full sequence can scroll off the left edge before the track wraps.
       setSequenceCount(Math.max(2, Math.ceil(section.clientWidth / width) + 1));
       normalizeAndRender();
+      const prize = new URLSearchParams(location.search).get("activity-prize");
+      if (prize && location.hash === "#marketplace-activity" && document.activeElement === document.body) {
+        const link = Array.from(trackRef.current?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(item => item.pathname === "/items/" + prize);
+        link?.focus({ preventScroll: true });
+        section.scrollIntoView({ block: "center" });
+      }
     };
     const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
     resizeObserver?.observe(sequence);
@@ -105,6 +112,7 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
   return (
     <section
       ref={sectionRef}
+      id="marketplace-activity"
       aria-label="Marketplace activity"
       className="group relative flex h-10 items-center overflow-hidden border-y border-cyan-300/15 bg-[#020d20]"
       onMouseEnter={() => { hoveredRef.current = true; }}

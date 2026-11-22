@@ -134,7 +134,7 @@ export function filterBrowseProducts(products: readonly DemoProduct[], filters: 
   const availableFirst = (left: DemoProduct, right: DemoProduct) =>
     Number(remaining(left) === 0) - Number(remaining(right) === 0);
 
-  return result.sort((left, right) => {
+  result.sort((left, right) => {
     switch (filters.sort) {
       case "fewest-left":
         return (picturedFirstInFewest && !searchTerm ? picturedFirst(left, right) : 0)
@@ -151,4 +151,19 @@ export function filterBrowseProducts(products: readonly DemoProduct[], filters: 
           : searchTerm ? 0 : picturedFirst(left, right) || left.title.localeCompare(right.title);
     }
   });
+  const earlierClosed = new Map<string, number[]>();
+  for (let index = 0; index < result.length; index++) {
+    const product = result[index];
+    const key = JSON.stringify([product.title, product.retailer, product.value]);
+    const closed = earlierClosed.get(key) ?? [];
+    if (!remaining(product)) {
+      closed.push(index);
+      earlierClosed.set(key, closed);
+    } else if (closed.length) {
+      const previous = closed.shift()!;
+      [result[previous], result[index]] = [product, result[previous]];
+      closed.push(index);
+    }
+  }
+  return result;
 }

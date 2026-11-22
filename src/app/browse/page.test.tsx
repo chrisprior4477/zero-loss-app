@@ -470,7 +470,7 @@ describe("Browse search results", () => {
     fireEvent.click(screen.getByRole("button", { name: "Explore Stir-Fry Night" }));
     const popup = within(screen.getByRole("dialog", { name: "Stir-Fry Night" }));
     const offer = popup.getAllByRole("link", { name: /Publix Gift Card/ })[0];
-    expect(new URL(offer.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=groceries&groceryIdea=stir-fry-night");
+    expect(new URL(offer.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=groceries&groceryIdea=stir-fry-night#grocery-offer-publix-100-gift-card");
     fireEvent.click(popup.getByRole("button", { name: "Keep exploring ideas" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("heading", { name: "Follow your appetite." })).toBeTruthy();

@@ -77,12 +77,16 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
   }, [ownerId, selectedEntryId, setSelected, tickets]);
 
   function remember(entryId: string, expanded = showAll) {
+    const url = new URL(window.location.href);
+    if (/^\/account\/entries\/ent_[a-f0-9]{32}$/.test(url.pathname) && !url.searchParams.has("review")) {
+      url.pathname = `/account/entries/${entryId}`;
+      if (url.searchParams.get("entries") === "first") url.searchParams.set("entries", "open");
+    }
     const saved: EntryTicketReturn = {
-      ownerId, href: window.location.pathname + window.location.search,
-      initialEntryId: selectedEntryId, selectedEntryId: entryId, showAll: expanded,
+      ownerId, href: url.pathname + url.search,
+      initialEntryId: url.pathname.endsWith("/" + entryId) ? entryId : selectedEntryId, selectedEntryId: entryId, showAll: expanded,
     };
-    // Keep Next's routing state and URL intact, without adding a Back-button step.
-    try { window.history.replaceState({ ...window.history.state, [entryTicketReturnKey]: saved }, ""); }
+    try { window.history.replaceState({ ...window.history.state, [entryTicketReturnKey]: saved }, "", url); }
     catch { /* The viewer still works if history storage is unavailable. */ }
   }
 

@@ -10,8 +10,8 @@ import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import checkout from "./purchase-checkout.module.css";
 import styles from "./checkout-gift-cards.module.css";
 
-export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug, receipt, fallbackHref }: {
-  title: string; totalCents: number; count: number; cards: CheckoutCard[]; slug: string; receipt: string; fallbackHref: string;
+export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug, receipt, fallbackHref, notificationReturnHref }: {
+  title: string; totalCents: number; count: number; cards: CheckoutCard[]; slug: string; receipt: string; fallbackHref: string; notificationReturnHref?: string;
 }) {
   const [showToast, setShowToast] = useState(true);
   const [showCards, setShowCards] = useState(false);
@@ -26,6 +26,7 @@ export function CompletedPurchaseReceipt({ title, totalCents, count, cards, slug
   }
   return <div className={checkout.page}><div className={checkout.shell}>
     <AccountSettingsLandingScroll target="purchase-complete" visitKey={receipt} settleAfterNavigation allScreens />
+    {notificationReturnHref ? <Link href={notificationReturnHref} className={styles.secondary}>← Back to this notification</Link> : null}
     <h1 id="purchase-complete" className={styles.title}>Purchase receipt</h1>
     {showToast ? <aside className={styles.toast} aria-label="Purchase confirmation">
       <div role="status">

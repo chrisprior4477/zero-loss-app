@@ -259,6 +259,13 @@ export function searchDenominations(query: string, products: readonly { retailer
     .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")
     .replace(/\bstrictly\s+(?=below|under|less than|above|over|more than)/gi, "")
     .replace(/\beither\s+(?=\$\s*\d)/gi, "");
+  normalized = normalized
+    .replace(/\bno cheaper than\b/gi, "at least")
+    .replace(/\bup to but not including\b/gi, "under")
+    .replace(/\bsomewhere\s+(?=between\b)/gi, "")
+    .replace(/(\$\s*\d[\d.]*)\s+or less,\s*including\s+\1\b/gi, "up to $1")
+    .replace(new RegExp("\\b(" + words + ")\\s+(to|through)\\s+(" + words + ")\\s+(?:dollars?|bucks?)\\b", "gi"),
+      (_, low: string, join: string, high: string) => "$" + spokenValue(low) + " " + join + " $" + spokenValue(high));
   if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;
   const screen = /\b(?:tvs?|televisions?)\b/i.test(normalized) ? screenComparison.exec(normalized) : null;
@@ -300,7 +307,7 @@ export function searchDenominations(query: string, products: readonly { retailer
   const text = amountText
     .replace(budget ? /\s+\b(?:price\s+range|range|each)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:with values?|ranging|in the range of|worth|priced|in(?: the)?|within(?: the)?|costing)\s*$/i : /$^/, "")
-    .replace(values.size ? /\s+\b(?:with a value of|with|costing|valued at|priced at|each)[\s,]*$/i : /$^/, "").trim();
+    .replace(values.size ? /\s+\b(?:with a value of|with|costing|valued at|priced at|each|at)[\s,]*$/i : /$^/, "").trim();
   const merchant = values.size || budget || strippedOnly || /\bgift card\b/i.test(text) ? catalogMerchant(text, products) : null;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   const conflictingBudget = Boolean(budget?.minimum !== undefined && budget.maximum !== null

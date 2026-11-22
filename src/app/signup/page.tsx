@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
@@ -34,6 +35,11 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
       </div>
     );
   }
+  if (user?.email_confirmed_at && verify === "resend") return <section className="mx-auto max-w-lg px-5 py-10 text-white">
+    <h1 className="text-2xl font-black">Your email is already verified</h1>
+    <p className="my-4">You’re signed in and can use your account.</p>
+    <Link href="/account/security" className="text-cyan-200 underline">Account &amp; Security</Link>
+  </section>;
   if (user?.email_confirmed_at) redirect(returnTo ?? "/account/entries");
 
   return (

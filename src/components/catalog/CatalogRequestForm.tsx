@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
+import { checkCatalogRequestReceipt, submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
 import { catalogRequestDraftKey, readCatalogRequestDraft, writeCatalogRequestDraft, type CatalogRequestDraft } from "@/lib/catalog/request-draft";
 
 const initialState: CatalogRequestState = { status: "idle" };
@@ -64,7 +64,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   }
   const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData) => {
     try {
-      const result = await saveRequest(previous, data);
+      const result = data.get("intent") === "check" ? await checkCatalogRequestReceipt(data) : await saveRequest(previous, data);
       setAwaitingCheck(result.status === "error" && result.uncertain === true);
       if (result.status === "error" && !result.uncertain) {
         setDraft(current => ({ ...current, requestKey: undefined, submittedSourceQuery: undefined }));
@@ -121,6 +121,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
       formData.set("requestKey", requestKey);
       formData.set("sourceQuery", submittedSourceQuery);
       if (awaitingCheck) {
+        formData.set("intent", "check");
         formData.set("requestedItem", draft.requestedItem);
         formData.set("email", draft.email);
         formData.set("notes", draft.notes);
@@ -187,7 +188,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
           className="mt-2 w-full resize-y rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
       </div>
-      {awaitingCheck ? <p role="status">This submission still needs confirmation. Checking uses the original details and can finish the request if it hasn’t been saved yet.</p> : null}
+      {awaitingCheck ? <p role="status">This submission still needs confirmation. Checking looks up the original request without sending it again.</p> : null}
       {showFeedback && state.status === "error" ? <p role="alert" className="rounded-xl border border-orange-400/45 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100">{state.message}</p> : null}
       <button ref={submitButton} type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] transition hover:bg-[#62ff3b] disabled:cursor-wait disabled:opacity-60 sm:w-auto">
         {pending ? awaitingCheck ? "Checking request…" : "Sending request…" : awaitingCheck ? "Check original request" : "Send product request →"}

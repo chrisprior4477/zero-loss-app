@@ -10,7 +10,7 @@ export type FulfillmentRecord = Omit<AccountOrder, "orderNumber" | "amountPaidCe
   source: RewardSource | null;
   rewardStatus: RewardStatus | null;
   claimedAt: string | null;
-  status: AccountOrder["status"] | "expired";
+  status: AccountOrder["status"] | "expired" | "unverified";
 };
 
 export function fulfillmentFilter(value: unknown): FulfillmentFilter {
@@ -82,7 +82,7 @@ export function accountFulfillment(orders: AccountOrders, activity: AccountActiv
       // timestamp. Its historical event ordering must not regress a reward
       // which the authoritative wallet reader already verifies as ready/used.
       : (rewardStatus === "ready" || rewardStatus === "redeemed") && (!order || order.status === "payment_confirmed" || order.status === "issuance_pending") ? "fulfilled"
-      : order?.status ?? (rewardStatus === "ready" || rewardStatus === "redeemed" ? "fulfilled" : "issuance_pending");
+      : order?.status ?? (rewardStatus === "ready" || rewardStatus === "redeemed" ? "fulfilled" : activity.incomplete && rewardStatus === null ? "unverified" : "issuance_pending");
     records.set(item.rewardId, {
       orderNumber: order?.orderNumber ?? null,
       rewardSlug: item.slug, rewardId: item.rewardId, title: item.title,

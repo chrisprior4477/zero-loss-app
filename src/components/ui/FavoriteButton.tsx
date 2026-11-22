@@ -24,11 +24,12 @@ export function FavoriteButton({ itemName, itemHref, className = "", size = "com
       aria-label={isSignedIn ? `${isFavorite ? "Remove" : "Add"} ${itemName} ${isFavorite ? "from" : "to"} favorites` : `Sign in to save ${itemName} to favorites`}
       aria-pressed={isFavorite}
       aria-busy={busy}
-      disabled={busy}
+      aria-disabled={busy || undefined}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (busy) return;
         if (returnTo) toggle(slug, returnTo);
         else toggle(slug);
       }}

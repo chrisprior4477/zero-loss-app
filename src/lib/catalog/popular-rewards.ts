@@ -12,7 +12,7 @@ export const originalRewardBrands = [
   { slug: "cvs", name: "CVS", accent: "#ffffff", dark: "#cc0000", homeColor: "linear-gradient(145deg,#f54b5c,#cc1634)", artFile: "cvs-card-clean.png", category: "Health & Essentials", sourceUrl: "https://www.cvs.com/shop/gift-cards" },
   { slug: "uber-eats", name: "Uber Eats", accent: "#06c167", dark: "#101010", homeColor: "linear-gradient(145deg,#37c875,#078c50)", artFile: "uber-eats-card-display.png", category: "Dining & Delivery", sourceUrl: "https://www.uber.com/us/en/gift-cards/" },
   { slug: "adidas", name: "Adidas", accent: "#ffffff", dark: "#111111", homeColor: "linear-gradient(145deg,#344961,#101820)", artFile: "adidas-card-display.png", category: "Apparel & Footwear", sourceUrl: "https://www.adidas.com/us/giftcards" },
-  { slug: "petsmart", name: "PetSmart", accent: "#e31837", dark: "#0877bd", homeColor: "linear-gradient(145deg,#238ed0,#005696)", artFile: "petsmart.jpg", category: "Pet Essentials", sourceUrl: "https://www.petsmart.com/gift-cards.html" },
+  { slug: "petsmart", name: "PetSmart", accent: "#e31837", dark: "#0877bd", homeColor: "linear-gradient(145deg,#238ed0,#005696)", artFile: "petsmart.jpg", category: "Pet Essentials", sourceUrl: "https://www.petsmart.com/gift-cards/" },
 ] as const;
 
 export const popularRewardBrands = [...originalRewardBrands.map(brand => ({

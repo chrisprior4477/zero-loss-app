@@ -135,6 +135,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   function openSavedCards(trigger?: HTMLElement) {
     manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
+    if (location.pathname === "/account/wallet") window.history.replaceState(window.history.state, "", "#add-card");
     revealWalletSection("add-card", "add-card");
   }
   function closeSavedCards() {
@@ -153,7 +154,15 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     revealBelowHeader(control);
   }
   useLayoutEffect(() => {
-    if (mobile && manageCards) document.getElementById("funding-saved-cards-title")?.focus({ preventScroll: true });
+    if (mobile && !manageCards && location.pathname === "/account/wallet" && window.location.hash === "#add-card") {
+      const frame = requestAnimationFrame(() => setManageCards(true));
+      return () => cancelAnimationFrame(frame);
+    }
+    if (mobile && manageCards) {
+      const heading = document.getElementById("funding-saved-cards-title");
+      heading?.focus({ preventScroll: true });
+      if (heading) revealBelowHeader(heading);
+    }
   }, [mobile, manageCards]);
   function addCard(token?: DemoCardToken, trigger?: HTMLButtonElement) {
     if (!ready || locked || cardUnavailable) return;
@@ -833,7 +842,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
       : count > 0 ? <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(renderDeposit)}</ul></>
       : depositsToCheck.length === 0 && <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>}
     <TicketBatchControls {...controls} />
-    {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
+    {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" walletId={walletId} /> : null}
     {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={toggleArchive} aria-expanded={includeArchived}>{includeArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

@@ -18,6 +18,7 @@ export type FaqItem = {
   keywords: string;
   action: { label: string; href: string };
   followUpAction?: { label: string; href: string };
+  issuerTerms?: Array<{ label: string; href: string }>;
 };
 
 // Product guidance for the current MVP, not a substitute for published terms.
@@ -196,6 +197,10 @@ export const faqItems: FaqItem[] = [
     id: "reward-restrictions", category: "rewards", question: "Do I have to use the gift card on the pictured item?",
     answer: "A retailer gift card is not restricted to the featured item. You can use it toward eligible purchases with that retailer, subject to the retailer’s gift-card rules. Check the retailer, value, and status in your reward details before using it.",
     keywords: "different product retailer store item eligible", action: { label: "View reward details", href: "/account/wallet" },
+    issuerTerms: [
+      { label: "Walmart gift-card terms", href: "https://www.walmart.com/help/article/gift-card-terms-and-conditions/90f9e217278146898946c1d786bedea3" },
+      { label: "Best Buy gift-card terms", href: "https://www.bestbuy.com/site/gift-cards/gift-card-help/pcmcat203400050004.c" },
+    ],
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
@@ -226,7 +231,7 @@ export const faqItems: FaqItem[] = [
     id: "notifications", category: "account", question: "Where do I see updates that need my attention?",
     answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Use Alert settings to choose which in-app alerts appear. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
     keywords: "email alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
-    followUpAction: { label: "Open Alert settings", href: "/account/notifications#alert-settings" },
+    followUpAction: { label: "Open Alert settings", href: "/account/notifications?section=alerts#alert-settings" },
   },
   {
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
@@ -323,6 +328,10 @@ const faqIntents: readonly [RegExp, string][] = [
   [/\b(?:real card was charged|unexpected charge)\b/, "balance-discrepancy"],
   [/\b(?:money|balance)\b.*\b(?:missing|short)\b.*\bbalance\b|\b(?:wallet|playable)\s+balance\b.*\b(?:missing|short)\b/, "balance-discrepancy"],
   [/\b(?:will|would|does)\b.*\breal\s+(?:payment\s+)?card\b.*\bcharg(?:e|ed)\b/, "mvp"],
+  [/\b(?:without paying|without a purchase)\b/, "free-entry"],
+  [/\bdeclin(?:e|ed)\b.*\b(?:by mistake|offer back)\b/, "decline-and-revive"],
+  [/\bverification link\b.*\b(?:expired|expire)\b/, "verification-email"],
+  [/\b(?:copy|download)\b(?=.*\breceipt\b)(?=.*\b(?:entry|entries|tickets?)\b)/, "entry-receipt"],
   [/\b(?:copy|download)\b.*\b(?:order\s+)?receipt\b/, "order-receipt"],
   [/\breceipt\b.*\bentr(?:y|ies)\b|\bentry receipt\b/, "entry-receipt"],
   [/\bproof\b.*\b(?:paid|payment)\b.*\b(?:tickets?|entry|entries)\b/, "entry-receipt"],

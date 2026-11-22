@@ -57,8 +57,8 @@ export const getNotificationSnapshot = cache(async () => {
   const receivedShares = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt));
   // Apply the same discovery rules as the destination. Keep the receipt and its
   // read state in storage, but never offer a closed prize as a clickable update.
-  const hiddenSharedPrizes = receivedShares.length ? (await getShoppingCatalog()).hidden : new Set<string>();
-  const sharedNotifications = receivedShares.filter(share => !hiddenSharedPrizes.has(share.slug)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
+  const catalog = receivedShares.length ? await getShoppingCatalog() : null;
+  const sharedNotifications = receivedShares.filter(share => !catalog?.hidden.has(share.slug)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
   const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications(cases, account.timezone, replies?.data ?? [], afterReset), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
     ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds, account.timezone)
@@ -78,5 +78,5 @@ export const getNotificationSnapshot = cache(async () => {
   // Claim/purchase completion is already persisted by the authoritative account
   // action. Derive acknowledgement from that record, including older rewards.
   const readIds = [...new Set([...(readRows ?? []).map(row => row.notification_id), ...notifications.filter(n => n.resolved).map(n => n.id)])];
-  return { notifications, readIds, readAvailable: !readError, preferences: alertPreferences.error ? null : parseNotificationPreferences(alertPreferences.data), supportEnabled, supportAvailable: !support.error && !actionableSupport.error && !replies?.error, crewAvailable: !crewError, ordersAvailable: orders !== null };
+  return { notifications, readIds, readAvailable: !readError, preferences: alertPreferences.error ? null : parseNotificationPreferences(alertPreferences.data), supportEnabled, supportAvailable: !support.error && !actionableSupport.error && !replies?.error, crewAvailable: !crewError && !shares.error && Array.isArray(shares.data) && !catalog?.unavailable && !catalog?.availabilityIncomplete, ordersAvailable: Boolean(orders && orders.source !== "unavailable" && !orders.incomplete) };
 });

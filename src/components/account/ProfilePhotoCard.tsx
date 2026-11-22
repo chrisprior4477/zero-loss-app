@@ -128,10 +128,12 @@ export function ProfilePhotoCard({
   const savingRef = useRef(false);
   const measured = dimensions?.source === draftPhoto && dimensions.width > 0 && dimensions.height > 0 ? dimensions : undefined;
   const fittedCrop = fitCrop(draftCrop, measured?.width ?? 0, measured?.height ?? 0);
+  const [error, setError] = useState<string | null>(null);
   const closeEditor = useCallback(() => {
     if (savingRef.current) return;
     draftVersion.current += 1;
     setEditing(false);
+    setError(null);
   }, []);
   const [saving, setSaving] = useState(false);
   const restoreCrop = useRef(false);
@@ -140,7 +142,6 @@ export function ProfilePhotoCard({
     restoreCrop.current = false;
     setEditing(true);
   });
-  const [error, setError] = useState<string | null>(null);
   const [savedVisibility, setSavedVisibility] = useState({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
   if (savedVisibility.source !== initialVisibility) {
     setSavedVisibility({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
@@ -427,7 +428,7 @@ export function ProfilePhotoCard({
             <input type="checkbox" checked={crewVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("crew", event.currentTarget)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
             <span>Show my photo to My Crew<span className="mt-0.5 block text-xs font-normal text-[#506b8e]">Connected Crew members see it in My Crew.</span></span>
           </label>
-          {visibilityMessage ? <p role={visibilityMessage.error ? "alert" : "status"} className={`mt-2 text-xs font-semibold ${visibilityMessage.error ? "text-[#a6321a]" : "text-[#087443]"}`}>{visibilityMessage.text}</p> : null}
+          {visibilityMessage ? <p role={visibilityMessage.error ? "alert" : "status"} className={`mt-2 text-xs font-semibold ${visibilityMessage.error ? "text-[#a6321a]" : "text-[#087443]"}`}>{visibilityMessage.text}{visibilityMessage.error && /sign in again/i.test(visibilityMessage.text) ? <> <a className="underline" href="/login?next=%2Faccount%2Fprofile" target="_blank" rel="noopener">Sign in again, then return here</a></> : null}</p> : null}
         </fieldset> : null}
         {!compact ? <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
           Your saved photo follows your account across devices. Choose where to show it in Profile settings.

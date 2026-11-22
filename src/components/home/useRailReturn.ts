@@ -89,8 +89,8 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
           if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
         }
         if (!retailer && anchorHref && !focused && document.activeElement === document.body) {
-          const heart = anchor?.querySelector<HTMLButtonElement>("button[aria-pressed]");
-          if (heart?.getClientRects().length) { heart.focus({ preventScroll: true }); focused = true; }
+          const link = anchor && links(anchor).find(candidate => candidate.getClientRects().length && candidate.getAttribute("href")?.startsWith("/items/"));
+          if (link instanceof HTMLElement) { link.focus({ preventScroll: true }); focused = true; }
         }
       };
       align();

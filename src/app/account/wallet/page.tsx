@@ -1,3 +1,4 @@
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { getOwnWinShareRecipients } from "@/lib/crew/actions";
 import { notificationFilter, notificationHref, validNotice } from "@/lib/account/notification-return";
 import { exactOrderHref, fulfillmentFilter, fulfillmentFilterLabel, fulfillmentHref } from "@/lib/account/fulfillment";
@@ -118,8 +119,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity, query.filter, entryOrigin), label: "Back to entry review", entryQuantity: requestedQuantity,
           entryDepositReturn: entryReviewFundingHref(fromEntry.slug, fromEntry.entryId!, requestedQuantity, query.filter, entryOrigin), ...amounts }
       : isWalletReward(fromEntry) && fromEntry.rewardId
-        ? { title: fromEntry.title, href: `/account/wallet?${new URLSearchParams({ reward: fromEntry.slug, rewardId: fromEntry.rewardId, ...entryReviewContext(entryOrigin) })}#reward-pass`, label: "Open gift card" }
-        : { title: fromEntry.title, href: fromEntry.status === "completion" ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice) ?? activityHref(fromEntry) : activityHref(fromEntry), label: fromEntry.status === "completion" ? "Back to purchase option" : undefined }
+        ? { title: fromEntry.title, rewardSource: isPurchasedReward(fromEntry) ? "purchase" : fromEntry.rewardSource ?? "winner", href: `/account/wallet?${new URLSearchParams({ reward: fromEntry.slug, rewardId: fromEntry.rewardId, ...entryReviewContext(entryOrigin) })}#reward-pass`, label: "Open gift card" }
+        : { title: fromEntry.title, href: fromEntry.status === "completion" ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice) ? `${purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice)}${validNotice(query.notice) ? `&${new URLSearchParams({ alerts: notificationFilter(query.alerts), notice: query.notice })}` : ""}` : activityHref(fromEntry) : activityHref(fromEntry), label: fromEntry.status === "completion" ? "Back to purchase option" : undefined }
     : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse, query.share) } : undefined;
   if (fundingReturn && forEntry) {
@@ -213,7 +214,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
       const sourceTransaction = transactionOriginHref(query);
       const sourceUpdate = checkedNotice ? notificationHref(notificationFilter(query.alerts), checkedNotice) : undefined;
-      return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={ordersBackHref ?? sourceTransaction ?? sourceUpdate ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : sourceTransaction ? "Back to this transaction" : sourceUpdate ? "Back to this notification" : "Back to your wallet ›"}</Link></div></div></PageContainer>;
+      return <PageContainer><div className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><AccountReadRetryLink href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</AccountReadRetryLink><Link href={ordersBackHref ?? sourceTransaction ?? sourceUpdate ?? rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">{orderReturn ? "Back to this order" : ordersBackHref ? "Back to orders & rewards" : sourceTransaction ? "Back to this transaction" : sourceUpdate ? "Back to this notification" : "Back to your wallet ›"}</Link></div></div></PageContainer>;
     }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] | null = [];

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useBrowseResultsSearch } from "./BrowseResultsSearch";
+import { catalogSearchTooLong, invalidCatalogSearch } from "@/lib/catalog/search-text";
 import type { ReactNode } from "react";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 
@@ -12,8 +14,18 @@ export function BrowseResultsLink({ href, className, target, returnAnchor, child
 }
 
 export function EndingSoonRangeLink({ href, selected, className, children }: { href: string; selected: boolean; className: string; children: ReactNode }) {
-  return <Link href={href} prefetch={false} scroll={false} className={className} aria-current={selected ? "true" : undefined}
-    onNavigate={() => requestBrowseResultsFocus(href, "ticket-range")}>{children}</Link>;
+  const session = useBrowseResultsSearch();
+  const url = new URL(href, "https://zeroloss.local");
+  if (session) {
+    const search = session.draft.trim();
+    if (!catalogSearchTooLong(search) && !invalidCatalogSearch(search)) {
+      if (search) url.searchParams.set("q", search);
+      else url.searchParams.delete("q");
+    }
+  }
+  const destination = url.pathname + url.search + url.hash;
+  return <Link href={destination} prefetch={false} scroll={false} className={className} aria-current={selected ? "true" : undefined}
+    onNavigate={() => requestBrowseResultsFocus(destination, "ticket-range")}>{children}</Link>;
 }
 
 export function BrowsePrizeLink({ href, anchor, className, children }: {

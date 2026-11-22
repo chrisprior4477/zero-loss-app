@@ -129,7 +129,8 @@ export function SearchResultsAutoScroll({
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
         ? document.getElementById(hashId) : null;
       const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
-      const target = window.location.hash === "#browse-more-prizes" ? "browse-more-prizes"
+      const pager = /^#(browse-more-prizes|ending-first-last|ending-next-prizes|ending-previous-prizes)$/.exec(window.location.hash)?.[1];
+      const target = pager ? pager
         : window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
         : footerHeading ? footerHeading
@@ -148,7 +149,7 @@ export function SearchResultsAutoScroll({
         && window.location.search !== renderedSearch) {
         requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
       }
-      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (target === "browse-more-prizes" ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
+      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (pager ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {

@@ -1,3 +1,4 @@
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import Image from "next/image";
 import Link from "next/link";
 import { accountLocale } from "@/lib/account/locale";
@@ -177,7 +178,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       {expiredSelection ? <AccountSettingsLandingScroll target="reward-history" initialTarget="reward-history" focusTarget="expired-selection-message" allScreens settleAfterNavigation /> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
         {missingHistoryCard && !expiredSelection ? <p id="missing-reward-message" role="status" tabIndex={-1}>{state.source === "unavailable" ? "We couldn’t check the selected reward right now." : "That reward is unavailable in this history view."}</p> : null}
-        {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? <>We couldn’t check that expired entry right now.{expiredRetryHref && <> <a className="underline" href={expiredRetryHref}>Try again.</a></>}</> : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
+        {expiredSelection ? <p id="expired-selection-message" role="status" tabIndex={-1}>{expiredSelection === "unavailable" ? <>We couldn’t check that expired entry right now.{expiredRetryHref && <> <AccountReadRetryLink className="underline" href={expiredRetryHref}>Try again.</AccountReadRetryLink></>}</> : "That expired entry couldn’t be opened. Your available expired history is shown below."}</p> : null}
         <div className={overview.historyHeading}><div><h2 id="history-heading" tabIndex={-1}>{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : view === "other" ? "Other reward updates" : "Reward history"}</h2>{!focusedHistory ? <p>{state.incomplete ? "Verified rewards from your account." : "Your complete reward activity, from your account records."}</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
             <WalletRewardLink href={scopedHistory("/account/wallet#reward-history")} aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
@@ -276,8 +277,8 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
       : returnView ? `/account/wallet?${returnPrizeQuery}rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}`
         : returnPrize ? `/account/wallet?prize=${encodeURIComponent(returnPrize)}#ready-rewards` : "/account/wallet";
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
-  const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
-  const singleReady = ready.length === 1 ? ready[0] : null;
+  const optionCount = accountOverview?.activity.source === "unavailable" || accountOverview?.activity.incomplete ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
+  const singleReady = !accountOverview?.activity.incomplete && ready.length === 1 ? ready[0] : null;
 
   return <div key={item.rewardId ?? item.slug} className={styles.detailPage}>
     {fromPurchase
@@ -286,7 +287,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
     <section aria-label="Reward redemption details" className={styles.detailShell}>
       {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
-        <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : ready.length ? rewardViewHrefs.ready : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" || accountOverview.activity.incomplete ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : ready.length ? rewardViewHrefs.ready : accountRoutes.rewards} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section> : null}
       <header className={styles.detailHeading}>
@@ -328,9 +329,9 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
                 <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
-                <div><p>{notice.title}</p><span>{notice.message}</span>{(status === null || available && claimed) && claimCheckHref ? <a href={claimCheckHref} className="mr-4 mt-3 inline-block font-bold text-[#075b8c] underline">Try this reward again</a> : null}<Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+                <div><p>{notice.title}</p><span>{notice.message}</span>{(status === null || available && claimed) && claimCheckHref ? <AccountReadRetryLink href={claimCheckHref} className="mr-4 mt-3 inline-block font-bold text-[#075b8c] underline">Try this reward again</AccountReadRetryLink> : null}<Link href={rewardSupportHref(item.rewardId, orderFilter, claimCheckHref)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
-              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} checkHref={claimCheckHref} /> : (
+              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} checkHref={claimCheckHref} expiresAt={item.rewardClaimExpiresAt} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}
                   afterShopping={checkoutContext ? <Link className={`${checkoutStyles.secondary} ${checkoutStyles.returnButton}`} href={completedActivityHref(item.entryId, { slug: item.slug, receipt: checkoutContext.receipt })}>← Back to My Activity</Link> : undefined}
                   remainingOffers={rewardReady && remainingCount > 0 ? { count: remainingCount, retailer: item.retailer, slug: item.slug } : undefined} />
@@ -352,7 +353,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
             <li><span>2</span><div><strong>Redeem at checkout</strong><p>Follow {item.retailer}&apos;s gift-card instructions, online or in store where accepted.</p></div></li>
             <li><span>3</span><div><strong>Enjoy your purchase</strong><p>Use it toward the featured item—or something else {item.retailer} sells.</p></div></li>
           </ol>
-          {available ? <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Product availability and redemption methods are set by {item.retailer}.</p> : null}
+          {available ? <p className={styles.storewideMessage}><strong>Use it on eligible purchases at {item.retailer}.</strong> Product availability and redemption methods are set by {item.retailer}.</p> : null}
         </aside> : canClaim ? <aside className={styles.howToTicket} aria-labelledby="how-to-heading">
           <h2 id="how-to-heading">How to use it</h2>
           <p>Claim your reward to open your saved gift-card number.</p>

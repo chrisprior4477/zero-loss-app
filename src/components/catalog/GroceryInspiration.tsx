@@ -64,7 +64,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf 
     const overflow = document.body.style.overflow;
     const rootOverflow = document.documentElement.style.overflow;
     element?.showModal();
-    const focusedOffer = window.history.state?.zeroLossGroceryOffer;
+    const focusedOffer = window.history.state?.zeroLossGroceryOffer ?? /^#grocery-offer-([a-z0-9-]+)$/.exec(window.location.hash)?.[1];
     const previousOffer = Array.from(element?.querySelectorAll<HTMLAnchorElement>("[data-grocery-offer]") ?? [])
       .find(link => link.dataset.groceryOffer === focusedOffer);
     previousOffer?.focus();
@@ -117,7 +117,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea, showShelf 
           <h2 id="grocery-theme-title">{selected.title}</h2><p>{selected.ingredients}</p>
           <h3>Make it happen with a grocery gift card</h3>
           <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} data-grocery-offer={offer.slug} className="relative"
-            href={productHrefWithBrowseReturn(offer.slug, ideaHref(selected))}
+            href={productHrefWithBrowseReturn(offer.slug, ideaHref(selected) + `#grocery-offer-${offer.slug}`)}
             onNavigate={() => window.history.replaceState({ ...window.history.state, zeroLossGroceryOffer: offer.slug }, "")}>
             <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span><DemoOutcomeLetter product={offer.slug} position="right-2 top-1" />
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>

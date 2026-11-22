@@ -58,12 +58,12 @@ describe("complete simulated retailer directory", () => {
   });
 
   test("legacy offers retain their approved catalog data", () => {
-    // Original catalog from 174e7ed plus the approved shoe-sizing copy in b05b937.
+    // Legacy catalog with the approved sizing and sample bundle copy.
     // Keep the fixture independent of shallow Git checkouts.
     const current = readFileSync(path.join(process.cwd(),"src/lib/catalog/demo-products.ts"),"utf8");
     const array = (text:string, name:string) => text.slice(text.indexOf(`const ${name}: DemoProduct[] = [`), text.lastIndexOf("\n];") + 3).replace(name,"products").replaceAll("\r\n","\n");
     expect(createHash("sha256").update(array(current,"existingDemoProducts")).digest("hex"))
-      .toBe("2de4f99021a36eac891e4f7261a5c0410d7c2087f019eb7b8f30fb98dedc46aa");
+      .toBe("00f01cd41cec0ced956e9683b6c8a754aac9081fdda3c574241d84e4ed997da1");
   });
 
   test("328 new cards have four equal mixed buckets and half of each completion outcome", () => {

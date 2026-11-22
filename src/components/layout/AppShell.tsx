@@ -1,3 +1,4 @@
+import { AccountHistoryReturn } from "@/components/account/AccountHistoryReturn";
 import { getNotificationSnapshot } from "@/lib/account/notification-snapshot";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import { ReturnToUpdates } from "@/components/notifications/HeaderNotifications";
@@ -51,6 +52,7 @@ export async function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
+      {account ? <AccountHistoryReturn /> : null}
       {account ? <AccountStateSync key={account.userId} accountId={account.userId} balanceCents={account.wallet?.balanceCents ?? null} activeCount={account.activity.activeCount}
         offerRevision={JSON.stringify(account.activity.activity.filter(item => item.completionOptionId)
           .map(item => [item.completionOptionId, item.completionOptionStatus, item.status]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))))} /> : null}

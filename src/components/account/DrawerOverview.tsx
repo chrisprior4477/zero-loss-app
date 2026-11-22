@@ -9,9 +9,9 @@ export function DrawerOverview({ state, balanceLabel, fundingEnabled, walletHref
   walletHref?: string; fundingHref?: string; onWalletNavigate?: () => void; replace?: boolean;
 }) {
   const rewards = readyWalletRewards(state);
-  const count = state.source === "unavailable" ? null : rewards.length;
+  const count = state.source === "unavailable" || state.incomplete ? null : rewards.length;
   const single = count === 1 ? rewards[0] : null;
-  const optionCount = state.source === "unavailable" ? null : state.activity.filter(item => item.status === "completion").length;
+  const optionCount = state.source === "unavailable" || state.incomplete ? null : state.activity.filter(item => item.status === "completion").length;
   return <div aria-label="Your Zero Loss overview" className={styles.overview}>
     <StatusTicket variant="wallet" label="Playable Wallet" value={balanceLabel ?? "Unavailable"} valueTestId="drawer-balance" action="Add funds"
       href={walletHref} actionHref={fundingEnabled ? fundingHref : undefined} actionDisabled={!fundingEnabled} onNavigate={onWalletNavigate} replace={replace} />

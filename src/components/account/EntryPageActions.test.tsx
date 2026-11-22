@@ -323,7 +323,7 @@ test("Crew tiles save a selected real member for email without claiming delivery
   expect(screen.getByRole("button", { name: "Share request saved" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByText("Saved for email delivery to 1 connected Crew member.")).toBeTruthy();
   expect(screen.getByRole("link", { name: /View the PlayStation 5 Slim Model prize page/ }).getAttribute("href"))
-    .toBe("/items/playstation-5-slim");
+    .toBe(`/items/playstation-5-slim?from=${encodeURIComponent(`/account/entries/${props.entryId}#entry-crew-share`)}`);
 });
 
 test("Crew rail can be dragged by mouse without disrupting member buttons", () => {

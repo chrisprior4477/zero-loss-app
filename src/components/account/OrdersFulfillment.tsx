@@ -48,14 +48,14 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
     ? `${resultsCount} paid ${resultsCount === 1 ? "order" : "orders"}`
     : `${resultsCount} ${resultsCount === 1 ? "record" : "records"}`;
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
-  const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
-  const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
+  const singleReward = !overview?.activity.incomplete && readyRewards.length === 1 ? readyRewards[0] : null;
+  const optionsCount = overview?.activity.source === "unavailable" || overview?.activity.incomplete ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
 
   return <div className={styles.page}>
     <div className={styles.shell}>
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" || overview.activity.incomplete ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header className={styles.heading}>

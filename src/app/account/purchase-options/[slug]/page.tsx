@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
@@ -97,7 +98,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const result = await checkDemoPurchaseReceipt(receipt, slug);
     if (result.status === "succeeded") {
       const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
-      return <CompletedPurchaseReceipt key={receipt} title={title} totalCents={result.totalCents} count={result.purchasedCount}
+      return <CompletedPurchaseReceipt key={receipt} notificationReturnHref={notificationReturn} title={title} totalCents={result.totalCents} count={result.purchasedCount}
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
     return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
@@ -144,6 +145,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   }
   if (invalidOption || optionId !== undefined && !options.some(option => option.entryId === optionId)) {
     const ticket = optionId ? findActivityItem(activity, slug, optionId) : undefined;
+    if (!ticket && account.activity.incomplete) return <section className={styles.page}><div className={styles.shell}><h1>We couldn’t verify this purchase option</h1><AccountReadRetryButton label="Check this option again" /></div></section>;
     if (!ticket) return unavailableOffer(options.length > 0);
     if (isPurchasedReward(ticket)) {
       redirect(keepOrigin(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : completedActivityHref(ticket.entryId)));
