@@ -44,9 +44,15 @@ export function rememberLedgerSupportReturn(saved: LedgerReturn, transactionId: 
 }
 
 export function readLedgerSupportReturn(walletId: string, href: string, selectedId?: string) {
-  if (!selectedId || new URL(href).searchParams.get("walletView") !== "1") return null;
+  const url = new URL(href);
+  if (!selectedId || url.searchParams.get("walletView") !== "1") return null;
+  // The notification origin affects the return link, not the saved ledger filters.
+  if (validNotice(url.searchParams.get("notice"))) {
+    url.searchParams.delete("notice");
+    url.searchParams.delete("alerts");
+  }
   try {
-    return readLedgerReturn(JSON.parse(sessionStorage.getItem(supportReturnKey(walletId, selectedId)) ?? "null"), walletId, href, selectedId);
+    return readLedgerReturn(JSON.parse(sessionStorage.getItem(supportReturnKey(walletId, selectedId)) ?? "null"), walletId, url.href, selectedId);
   } catch { return null; }
 }
 

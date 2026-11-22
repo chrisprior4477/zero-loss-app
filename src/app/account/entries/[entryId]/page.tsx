@@ -56,7 +56,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <h2 id="entry-unavailable-title">We couldn’t load your entry right now</h2>
         <p>Your account activity is temporarily unavailable. Try again to check this entry.</p>
         {/* A full navigation retries the server read, including a previously cached failed response. */}
-        <a href={destination} className={styles.primaryLink}>Try again</a>
+        <AccountReadRetryLink href={destination} className={styles.primaryLink}>Try again</AccountReadRetryLink>
         {missingTransaction && <Link href={missingTransaction} className={styles.returnButton}>Back to this transaction</Link>}
         {missingNotification && <Link href={missingNotification} className={styles.returnButton}>Back to this notification</Link>}
         <Link href={query?.filter === "active" ? "/account/entries?filter=active#my-activity-filters" : "/account/entries#my-activity-filters"} className={styles.returnButton}>Go to My Activity</Link>

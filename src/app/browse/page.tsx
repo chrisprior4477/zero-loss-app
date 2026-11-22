@@ -11,6 +11,7 @@ import {
 } from "@/lib/catalog/navigation";
 import { catalogAlternatives, searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/search";
 import { catalogSearchTooLong } from "@/lib/catalog/search-text";
+import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
@@ -335,7 +336,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <h2 id="browse-results-heading" tabIndex={-1} className="sr-only">{retryScope ? `${retryScope} prize results` : "Prize results"}</h2>
-          {availabilityIncomplete && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">Some prize counts could not be verified. Showing the available results. <a className="underline" href={searchHref + "#search-results"}>Check availability again</a></p> : null}
+          {availabilityIncomplete && !unavailable ? <p role="status" className="mb-3 text-sm text-amber-200">Some prize counts could not be verified. Showing the available results. <AccountReadRetryLink className="underline" href={searchHref + "#search-results"}>Check availability again</AccountReadRetryLink></p> : null}
           {(invalidMinimum || invalidMaximum) && <p role="status" className="mb-3 text-sm text-amber-200">
             {invalidMinimum && invalidMaximum ? "The minimum and maximum prize values couldn’t be applied." : invalidMinimum ? "The minimum prize value couldn’t be applied." : "The maximum prize value couldn’t be applied."} <Link href={searchHref + "#search-results"} className="underline">Remove the invalid value from this link</Link>
           </p>}
