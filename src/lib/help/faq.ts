@@ -285,6 +285,9 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:cancel|undo)\b(?=.*\b(?:tickets?|entr(?:y|ies))\b)(?=.*\b(?:accident|mistake|bought|purchased|entered)\b)/, "undo-entry"],
+  [/\b(?:get|have|take)\b.*\b(?:deposit|deposited funds)\b.*\bback\b/, "withdrawals"],
+  [/\b(?:took|deducted|charged|billed)\b.*\b(?:money|payment|wallet|card)\b.*\b(?:twice|two times)\b/, "funding-status"],
   [/\b(?:used up|ran out of|out of|no)\b.*\bbalance\b.*\benter\b/, "insufficient-balance"],
   [/\b(?:hold|reservation)\b.*\b(?:turned into|became|converted to)\b.*\b(?:ticket|entry)\b/, "entry-status"],
   [/\b(?:itemized|receipt)\b.*\b(?:one|my|a|this)\s+ticket\b/, "entry-receipt"],
@@ -381,9 +384,15 @@ export function faqSearchWords(query: string) {
   return normalized.trim().split(/[\s-]+/).filter(word => word && !faqFiller.has(word));
 }
 
+export function isPasswordChangeQuery(query: string) {
+  const text = normalizeFaq(query);
+  return /\b(?:change|update|edit|replace)\b.*\bpassword\b/.test(text)
+    && !/\b(?:forgot|forgotten|reset|cannot sign in|cannot log in)\b/.test(text);
+}
+
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const words = faqSearchWords(query);
-  const intent = faqIntents.find(([pattern]) => pattern.test(normalizeFaq(query)))?.[1];
+  const intent = isPasswordChangeQuery(query) ? "password" : faqIntents.find(([pattern]) => pattern.test(normalizeFaq(query)))?.[1];
   const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;
   const matches = (value: string, word: string) => {
     const text = normalizeFaq(value);

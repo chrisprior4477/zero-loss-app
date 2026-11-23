@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import styles from "./product-entry-layout.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useDialogBack } from "@/components/account/useDialogBack";
@@ -39,7 +40,11 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
     window.addEventListener("popstate", restore);
     return () => { window.removeEventListener("pageshow", restore); window.removeEventListener("popstate", restore); };
   }, [title]);
-  const endDialogHistory = useDialogBack(open, () => dialog.current?.close(), false, false, false, id, openInfo);
+  const endDialogHistory = useDialogBack(open, () => {
+    dialog.current?.close();
+    // Native close can be delivered after Forward has already reopened the dialog.
+    flushSync(() => setOpen(false));
+  }, false, false, false, id, openInfo);
   useLayoutEffect(() => {
     if (!open) return;
     const overflow = document.body.style.overflow;
@@ -53,7 +58,8 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   }, [open]);
   return <>
     <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={openInfo}>{label}</button>
-    <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={() => {
+    <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={event => {
+      if (event.currentTarget.open) return;
       const state = { ...history.state };
       const restored = state.zeroLossProductInfoReturn?.title === title;
       if (restored) {

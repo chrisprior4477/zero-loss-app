@@ -83,6 +83,33 @@ test.each([ ["methods", "payment-methods"], ["card", "wallet-add-card"] ])("the 
 });
 const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
 
+test("expired options preserve the filtered history and its exact notification context", async () => {
+  const prize = purchaseActivity.slug;
+  const transaction = "22222222-2222-4222-8222-222222222222";
+  const notice = "reward-ready-1";
+  const query = { prize, rewards: "expired", transaction, walletView: "1", alerts: "activity", notice };
+  mocks.getAccountContext.mockResolvedValue({ userId: "owner", wallet: null, activity: { source: "stored", activity: [{ ...purchaseActivity, status: "completed", completionOptionStatus: "expired" }] } });
+  const page = render(await WalletPage({ searchParams: Promise.resolve(query) }));
+  const filter = screen.getByRole("link", { name: "Used", exact: true });
+  const filterQuery = new URL(filter.getAttribute("href")!, "https://example.test").searchParams;
+  expect(filterQuery.get("notice")).toBe(notice);
+  expect(filterQuery.get("alerts")).toBe("activity");
+  const row = screen.getByRole("link", { name: /Open Baby bundle, Expired/ });
+  const rowQuery = new URL(row.getAttribute("href")!, "https://example.test").searchParams;
+  expect(rowQuery.get("prize")).toBe(prize);
+  expect(rowQuery.get("expiredEntry")).toBe(purchaseEntry);
+  page.unmount();
+
+  // Check the rendered exit without requiring native dialog support in the test DOM.
+  const opened = await WalletPage({ searchParams: Promise.resolve(Object.fromEntries(rowQuery)) });
+  const dialog = opened.props.children[1];
+  const exit = new URL(dialog.props.expiredWalletReturn, "https://example.test");
+  expect(exit.searchParams.get("prize")).toBe(prize);
+  expect(exit.searchParams.get("notice")).toBe(notice);
+  expect(exit.searchParams.get("expiredFocus")).toBe(purchaseEntry);
+  expect(exit.hash).toBe(`#wallet-reward-${purchaseEntry}`);
+});
+
 test("existing active entries return to their own review, never a purchase option", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, slug: "playstation-5-slim", status: "active" }] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "playstation-5-slim", entry: purchaseEntry, quantity: "23", review: "entry" }) }));

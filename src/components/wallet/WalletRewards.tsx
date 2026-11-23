@@ -84,7 +84,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     if (keepPrize && prize) url.searchParams.set("prize", prize);
     if (transactionReturn) {
       const source = new URL(transactionReturn, "https://zeroloss.local").searchParams;
-      for (const key of ["transaction", "walletView", "fromOrders", "orderFilter"]) {
+      for (const key of ["transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"]) {
         const value = source.get(key);
         if (value) url.searchParams.set(key, value);
       }
@@ -129,7 +129,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     <div className={overview.shell}>
       {invalidPrize ? <p role="status" className={overview.message}>That prize filter is unavailable. <Link className="underline" href="/account/wallet#ready-rewards">View all rewards</Link></p> : null}
       {invalidWalletView ? <p role="status" className={overview.message}>That Wallet view is unavailable. <Link className="underline" href={walletHistoryHref}>Open Wallet &amp; Transactions</Link> or <Link className="underline" href="/account/wallet#ready-rewards">view rewards</Link>.</p> : null}
-      {prize && <p className={overview.message}>Showing rewards for this prize. <Link className="underline" href="/account/wallet">View all rewards</Link></p>}
+      {prize && <p className={overview.message}>Showing rewards for this prize. <Link className="underline" href={scopedHistory(rewardViewHrefs.all, false)}>View all rewards</Link></p>}
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
         <nav aria-label="Wallet sections" className={overview.walletSections}>{transactionReturn ? <Link href={transactionReturn}>← Back to this transaction</Link> : null}<Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
@@ -187,7 +187,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             <WalletRewardLink href={scopedHistory("/account/wallet?rewards=ready&rewardHistory=1#reward-history")} aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
             <WalletRewardLink href={scopedHistory(rewardViewHrefs.used)} aria-current={view === "used" ? "page" : undefined}>Used</WalletRewardLink>
             {(expired.length > 0 || focusedHistory) && <WalletRewardLink href={scopedHistory(rewardViewHrefs.expired)} aria-current={view === "expired" ? "page" : undefined}>Expired</WalletRewardLink>}
-            {(other.length > 0 || view === "history" || view === "other") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" || view === "other" ? "page" : undefined}>History</WalletRewardLink>}
+            {(other.length > 0 || view === "history" || view === "other") && <WalletRewardLink href={scopedHistory(rewardViewHrefs.history)} aria-current={view === "history" ? "page" : undefined}>History</WalletRewardLink>}
           </nav>
         </div>
         {state.source === "unavailable" || state.incomplete && shown.length === 0 ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
@@ -196,7 +196,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view} focusRow={historyTarget || undefined}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId || item.entryId ? `wallet-reward-${item.rewardId ?? item.entryId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : item.entryId ? `/account/wallet?rewards=expired&expiredEntry=${encodeURIComponent(item.entryId)}#reward-history` : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId || item.entryId ? `wallet-reward-${item.rewardId ?? item.entryId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : item.entryId ? scopedHistory(`/account/wallet?rewards=${view}&rewardHistory=1&expiredEntry=${encodeURIComponent(item.entryId)}#reward-history`) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
             <span>{rewardDate(item.rewardClaimedAt, timeZone, locale)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><span className="min-w-0"><strong>{item.title}</strong>{repeatedCardRef(item) ? <small className="block">Card ref. {repeatedCardRef(item)}</small> : null}</span></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}

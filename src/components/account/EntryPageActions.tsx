@@ -17,7 +17,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { EntryQuantityInput } from "@/components/product/EntryQuantityInput";
-import { useSelectedEntryTicket } from "./EntryTicketRail";
+import { EntryActivityReturnLink, useSelectedEntryTicket } from "./EntryTicketRail";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import { entryReviewFundingHref, entryReviewHref } from "@/lib/wallet/funding-navigation";
 import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
@@ -472,8 +472,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>
       <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
-      <Link href={transactionReturnHref ?? notificationReturnHref ?? returnHref} className={styles.returnButton}>{transactionReturnHref ? "Back to this transaction" : notificationReturnHref ? "Back to this notification" : "Return to My Activity"} →</Link>
+      <EntryActivityReturnLink href={transactionReturnHref ?? notificationReturnHref ?? returnHref} className={styles.returnButton}>{transactionReturnHref ? "Back to this transaction" : notificationReturnHref ? "Back to this notification" : "Return to My Activity"} →</EntryActivityReturnLink>
     </nav>
-    {transactionReturnHref ? <Link href={returnHref} className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-cyan-200 underline">Go to My Activity</Link> : null}
+    {transactionReturnHref ? <EntryActivityReturnLink href={returnHref} className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-cyan-200 underline">Go to My Activity</EntryActivityReturnLink> : null}
   </>;
 }

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { faqCategories, faqItems, faqSearchWords, filterFaqs, type FaqCategory } from "@/lib/help/faq";
+import { faqCategories, faqItems, faqSearchWords, filterFaqs, isPasswordChangeQuery, type FaqCategory } from "@/lib/help/faq";
 import { FaqAnswer } from "./FaqAnswer";
 import styles from "./help-tickets.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -11,7 +11,7 @@ import { faqReturnKey, readFaqReturn, type FaqReturn } from "@/lib/help/faq-retu
 const productRequestReturnKey = "zero-loss-faq-product-request-return";
 const productRequestAnchor = "#faq-request-product";
 
-export function FaqExplorer() {
+export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
   const [query, setQuery] = useState("");
   const [answerMissing, setAnswerMissing] = useState(false);
   const [category, setCategory] = useState<FaqCategory>("all");
@@ -22,6 +22,7 @@ export function FaqExplorer() {
   const fillerOnly = /[a-z0-9]/i.test(query) && !searching;
   const invalidSearch = Boolean(query.trim()) && !searching && !fillerOnly;
   const items = invalidSearch ? [] : filterFaqs(searching ? query : "", category);
+  const changePassword = signedIn && isPasswordChangeQuery(query);
   const otherTopicMatches = items.length === 0 && searching && category !== "all" && filterFaqs(query, "all").length > 0;
   function updateBookmark(changes: Partial<FaqReturn>) {
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: {
@@ -129,7 +130,7 @@ export function FaqExplorer() {
     </div>
     <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => changeCategory(key)} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
     <p role="status" className="mb-4 text-sm text-white/65">{fillerOnly ? "Enter a topic word, such as password or gift card. " : ""}{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
-    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={item} expanded={searching ? !collapsed.includes(item.id) : expanded.includes(item.id)} onToggle={open => {
+    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={changePassword && item.id === "password" ? { ...item, action: { label: "Open Change password", href: "/account/security#change-password" } } : item} expanded={searching ? !collapsed.includes(item.id) : expanded.includes(item.id)} onToggle={open => {
       if (searching && open === collapsed.includes(item.id)) {
         const next = open ? collapsed.filter(id => id !== item.id) : [...collapsed, item.id];
         updateBookmark({ collapsed: next }); setCollapsed(next);

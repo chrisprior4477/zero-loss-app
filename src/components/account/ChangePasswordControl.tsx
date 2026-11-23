@@ -72,6 +72,7 @@ export function ChangePasswordControl() {
   return <div className={styles.passwordControl}>
     <button
       type="button"
+      id="change-password"
       ref={trigger}
       className={styles.passwordToggle}
       aria-expanded={open}

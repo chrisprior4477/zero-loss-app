@@ -1,5 +1,6 @@
 "use client";
 
+import { rememberEmailForSignup } from "./signup-email-handoff";
 import Link from "next/link";
 import { ResendVerificationForm } from "./ResendVerificationForm";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -56,7 +57,10 @@ export function AuthDestinationLink({ returnTo, page, className, children }: {
   returnTo: string | null; page: "/login" | "/signup" | "/forgot-password"; className?: string; children: ReactNode;
 }) {
   const destination = useLoginDestination(returnTo);
-  return <Link href={authNavigationHref(page, destination)} className={className}>{children}</Link>;
+  return <Link href={authNavigationHref(page, destination)} onNavigate={page === "/signup" ? () => {
+    const email = document.querySelector<HTMLInputElement>('#login-form input[name="email"]');
+    if (email) rememberEmailForSignup(email.value, destination);
+  } : undefined} className={className}>{children}</Link>;
 }
 
 export function LoginForm({
@@ -217,6 +221,7 @@ export function LoginForm({
         Need an account?{" "}
         <Link
           href={authNavigationHref("/signup", destination)}
+          onNavigate={() => rememberEmailForSignup(emailRef.current?.value ?? email, destination)}
           className="font-bold text-cyan-300 underline-offset-4 hover:underline"
         >
           Sign up

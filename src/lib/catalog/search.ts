@@ -96,14 +96,14 @@ export function searchCatalogMatches(
       return remaining.map(product => ({ product, kind: "product" }));
     }
   }
-  const retailerQuery = budget ? denomination.text : query;
+  const retailerQuery = budget || excludedValues.size || entryPrice !== null ? denomination.text : query;
   const specificRetailers = /\bgift cards?\s+(?:for|from|at)\s+(?:both\s+|either\s+)?(.+)$/i.exec(retailerQuery);
   if (specificRetailers) {
     const names = specificRetailers[1].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(part => catalogMerchant(part, products));
     if (names.length > 1 && names.every(name => name !== null)) {
       const scoped = products.filter(product => isGiftCardListing(product) && names.some(name => name && matchesCatalogMerchant(product.retailer, name)));
       const scope = retailerQuery.slice(0, specificRetailers.index) + "gift cards";
-      return searchCatalogMatches(scoped, scope, budget ? { ...denomination, text: scope, merchant: null } : undefined, { includeLowerGiftCards: false });
+      return searchCatalogMatches(scoped, scope, { ...denomination, text: scope, merchant: null }, { includeLowerGiftCards: false });
     }
   }
   if (denomination.values.size > 1 && !denomination.budget && normalizeSearch(denomination.text) === "gift card") {

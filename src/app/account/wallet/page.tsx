@@ -328,16 +328,26 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     return <WalletOverview unavailablePanel={query.panelUnavailable === "1"} ordersFilter={ordersFilter} ordersReturnHref={ordersFilter ? fulfillmentHref(undefined, ordersFilter) : undefined} landOnBalance={query.landing === "balance" && !recoveryKey && !transaction?.requested} notificationReturnHref={validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined} hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} transactionRetryHref={transactionOriginHref(query)} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} weeklyDeposit={weeklyDeposit} fromDeposits={query.panel === "deposits"} depositList={query.depositList === "1"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={stalePurchaseReturn ? undefined : fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry ? query.review === "entry" ? "entry" : "purchase" : false} />;
   }
   const focusCard = typeof query.card === "string" ? query.card : undefined;
-  const expired = rewardView === "expired" && typeof query.expiredEntry === "string" && account.activity.source !== "unavailable"
-    ? account.activity.activity.find(item => item.entryId === query.expiredEntry && item.completionOptionStatus === "expired") : undefined;
-  const focusExpired = rewardView === "expired" && typeof query.expiredFocus === "string" ? query.expiredFocus : expired?.entryId;
+  const expiredView = rewardView === "expired" || fromRewardHistory;
+  const expired = expiredView && typeof query.expiredEntry === "string" && account.activity.source !== "unavailable"
+    ? account.activity.activity.find(item => item.entryId === query.expiredEntry && item.completionOptionStatus === "expired" && (!rewardPrize || item.slug === rewardPrize)) : undefined;
+  const focusExpired = expiredView && typeof query.expiredFocus === "string" ? query.expiredFocus : expired?.entryId;
   const cardEndings = rewardView === "used" || rewardView === "expired" ? {} : await rewardCardEndings(account.activity, async id => {
     const db = await createClient();
     const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: id });
     return error ? null : data;
   });
-  const expiredSelection = rewardView === "expired" && typeof query.expiredEntry === "string" && !expired
+  const expiredSelection = expiredView && typeof query.expiredEntry === "string" && !expired
     ? account.activity.source === "unavailable" || account.activity.incomplete ? "unavailable" : "missing" : undefined;
   const rewards = <><LegacyWalletFragment /><WalletRewards prize={rewardPrize} invalidPrize={query.prize !== undefined && !rewardPrize} invalidWalletView={query.view !== undefined} invalidView={query.rewards !== undefined && query.rewards !== "all" && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} expiredRetryHref={expiredSelection === "unavailable" ? accountPageReturnPath("/account/wallet", query, "#reward-history") : undefined} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} /></>;
-  return expired ? <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={transactionOriginHref(query) ?? `/account/wallet?rewards=expired&expiredFocus=${encodeURIComponent(expired.entryId!)}#wallet-reward-${encodeURIComponent(expired.entryId!)}`} /></> : rewards;
+  if (!expired?.entryId) return rewards;
+  const expiredReturn = new URLSearchParams({
+    rewards: fromRewardHistory ? rewardView : "expired",
+    expiredFocus: expired.entryId,
+    ...(fromRewardHistory ? { rewardHistory: "1" } : {}),
+    ...(rewardPrize ? { prize: rewardPrize } : {}),
+    ...(transactionOriginParams(query) ?? {}),
+  });
+  const historyReturn = `/account/wallet?${expiredReturn}#wallet-reward-${encodeURIComponent(expired.entryId)}`;
+  return <>{rewards}<ActivityDetailDialog item={expired} destination="/account/entries" expiredWalletReturn={(!fromRewardHistory && transactionOriginHref(query)) || historyReturn} /></>;
 }

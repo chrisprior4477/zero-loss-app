@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { takeSignupEmail } from "./signup-email-handoff";
 import { formText, recoverAuthForm } from "./recover-auth-form";
 import {
   signUpAction,
@@ -46,6 +47,14 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
   const [email, setEmail] = useState(state.values?.email ?? "");
   const [editingAfter, setEditingAfter] = useState<AuthActionState | null>(null);
   const emailField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (compact) return;
+    const frame = requestAnimationFrame(() => {
+      const remembered = takeSignupEmail(safeReturnTo);
+      if (remembered) setEmail(current => current || remembered);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [compact, safeReturnTo]);
 
   const confirmError =
     clientConfirmError ?? state.confirmPasswordError ?? null;

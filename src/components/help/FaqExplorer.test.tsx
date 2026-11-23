@@ -6,6 +6,15 @@ import { faqReturnKey } from "@/lib/help/faq-return";
 beforeEach(() => { window.history.replaceState({ framework: "keep" }, "", "/faq"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
 
+test("signed-in password changes point to the existing security control", () => {
+  render(<FaqExplorer signedIn />);
+  const search = screen.getByRole("searchbox");
+  fireEvent.change(search, { target: { value: "change my login password" } });
+  expect(screen.getByRole("link", { name: "Open Change password" }).getAttribute("href")).toBe("/account/security#change-password");
+  fireEvent.change(search, { target: { value: "forgot my password" } });
+  expect(screen.getByRole("link", { name: "Reset my password" }).getAttribute("href")).toBe("/forgot-password");
+});
+
 test("a fresh search survives remount and can widen an empty topic without clearing the query", () => {
   const first = render(<FaqExplorer />);
   fireEvent.click(screen.getByRole("button", { name: "Wallet & funding" }));

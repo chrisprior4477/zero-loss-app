@@ -43,7 +43,7 @@ function normalizedDate(value: string) {
 function dateBoundary(value: string, calendar: SearchCalendar) {
   if (/[$€£¥]/.test(value)) return null;
   const iso = /^(\d{4})([-/])(\d{1,2})\2(\d{1,2})$/.exec(value);
-  const numeric = /^(\d{1,2})([-/])(\d{1,2})\2(\d{4})$/.exec(value);
+  const numeric = /^(\d{1,2})([-/])(\d{1,2})\2(\d{4}|\d{2})$/.exec(value);
   let year: number | undefined;
   let month: number | undefined;
   let day: number | undefined;
@@ -51,7 +51,9 @@ function dateBoundary(value: string, calendar: SearchCalendar) {
   else if (numeric) {
     const dayFirst = new Intl.DateTimeFormat(calendar.locale, { day: "numeric", month: "numeric" })
       .formatToParts(0).find(part => part.type === "day" || part.type === "month")?.type === "day";
-    [year, month, day] = [Number(numeric[4]), Number(numeric[dayFirst ? 3 : 1]), Number(numeric[dayFirst ? 1 : 3])];
+    // Two-digit years refer to this ledger's supported operating century.
+    year = Number(numeric[4]) + (numeric[4].length === 2 ? 2000 : 0);
+    [month, day] = [Number(numeric[dayFirst ? 3 : 1]), Number(numeric[dayFirst ? 1 : 3])];
   } else {
     const words = normalizedDate(value);
     if (words.length < 2 || words.length > 3) return null;
@@ -101,7 +103,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const matches = entries.filter(entry => entry.id.toLowerCase().endsWith(id));
     if (matches.length || /^transaction|^#/i.test(trimmed)) return matches;
   }
-  const dateQuery = trimmed.replace(/^(?:(?:posted(?:\s+transactions?)?|transactions?)\s+on)\s+/i, "");
+  const dateQuery = trimmed.replace(/^(?:(?:posted(?:\s+transactions?)?|transactions?)\s+)?on\s+/i, "");
   const week = /^week of\s+(.+)$/i.exec(dateQuery);
   const weekDay = week && dateBoundary(week[1], calendar);
   if (weekDay && weekDay.length === 10) {
@@ -159,7 +161,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       [dateParts.slice(-length), dateParts.slice(0, -length)],
     ]);
     for (const [date, remainder] of sides) {
-      if (!date.some(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word))) continue;
+      if (!date.some(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word) || /^\d{1,2}[/-]\d{1,2}[/-]\d{2}$/.test(word))) continue;
       const matches = searchDate(entries, date.join(" "), calendar);
       if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, ""));
     }
@@ -201,7 +203,9 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       const scope = /^deposit/i.test(type) ? "deposit" : /^debit/i.test(type) ? "debit" : "paid";
       return scope + " " + amount;
     })
-    .replace(new RegExp(String.raw`^(\$\s*${dollars})\s+to\s+(\$\s*${dollars})$`, "i"), "between $1 and $2")
+    .replace(/^payments?(?:\s+of)?(?=\s+(?:[+−-]?\s*\$|\d)|$)/i, "paid")
+    .replace(new RegExp(String.raw`^(?:(deposits?|funding|refunds?|adjustments?|corrections?|purchases?)\s+)?(\$\s*${dollars})\s+to\s+(\$\s*${dollars})$`, "i"),
+      (_, scope: string | undefined, low: string, high: string) => `${scope ? scope + " " : ""}between ${low} and ${high}`)
     .replace(/^transactions?\s+(?=[+−-]?\s*\$)/i, "").trim();
   if (!query) return entries;
   const comparison = /^(?:amount\s*)?(>=|<=|>|<)\s*(.+)$/.exec(query);
@@ -242,8 +246,9 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const open = entries.filter(row => row.entry_type === "ENTRY_HOLD" && (!row.entryRequestId || !closed.has(row.entryRequestId)));
     return searchAgain(open, query.slice(pendingEntry[0].length).trim());
   }
-  if (/^(?:paid|spent)\s+/i.test(query)) {
-    return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.replace(/^(?:paid|spent)\s+/i, "").replace(/^(\$[\d,.]+)\s+from\b/i, "$1"));
+  const paid = /^(?:paid|spent)(?=\s|$)/i.exec(query);
+  if (paid) {
+    return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.slice(paid[0].length).trim().replace(/^(\$[\d,.]+)\s+from\b/i, "$1"));
   }
   const orders = /^orders?(?:\s+for)?(?=\s|$)/i.exec(query);
   if (orders) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), query.slice(orders[0].length).trim());

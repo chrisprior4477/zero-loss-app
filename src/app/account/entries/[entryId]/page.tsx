@@ -20,7 +20,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { EntryTicketRail, EntryTicketSelectionProvider } from "@/components/account/EntryTicketRail";
+import { EntryActivityReturnLink, EntryTicketRail, EntryTicketSelectionProvider, SelectedEntryDate } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
@@ -138,7 +138,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       name: member.name,
       avatarUrl: member.avatar_reference ? db.storage.from("profile-photos").getPublicUrl(member.avatar_reference).data.publicUrl : null,
     }));
-  const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnFilter = query?.filter === "active" ? "active" : undefined;
   const walletHref = transactionOriginHref(query ?? {});
   const alertsHref = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
@@ -147,13 +146,14 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
 
   return <PreferenceSnapshot><div className={styles.page}>
     <AccountSettingsLandingScroll target="entry-details-intro" focusTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? undefined : "entry-details-heading"} initialTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}:${invalidQuantity}`} settleAfterNavigation allScreens />
+    <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1 id="entry-details-heading" tabIndex={-1}>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
-          <Link href={walletHref ?? alertsHref ?? returnHref} className={styles.topReturnButton}>{walletHref ? "Back to this transaction" : alertsHref ? "Back to this notification" : "Go to My Activity"}</Link>
-          <Link href={walletHref || alertsHref || returnHref} className={styles.closePage} aria-label={walletHref ? "Close entry details and return to this transaction" : alertsHref ? "Close entry details and return to this update" : "Close entry details and return to My Activity"}><span aria-hidden="true">×</span></Link>
+          <EntryActivityReturnLink href={walletHref ?? alertsHref ?? returnHref} className={styles.topReturnButton}>{walletHref ? "Back to this transaction" : alertsHref ? "Back to this notification" : "Go to My Activity"}</EntryActivityReturnLink>
+          <EntryActivityReturnLink href={walletHref ?? alertsHref ?? returnHref} className={styles.closePage} aria-label={walletHref ? "Close entry details and return to this transaction" : alertsHref ? "Close entry details and return to this update" : "Close entry details and return to My Activity"}><span aria-hidden="true">×</span></EntryActivityReturnLink>
         </div>
       </div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
@@ -163,7 +163,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat(account.preferredLocale ?? "en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
+            <div><dt>Entered</dt><dd><SelectedEntryDate tickets={savedTickets} initial={initialTicket} /></dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
             <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)}><ProductShareButton product={shareItem} label="Share" className={styles.mobileShare} /></PrizeNumberCopy></div>
           </dl>
         </div>
@@ -175,7 +175,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
       <EntryTicketRail ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={initialTicket} returnFilter={returnFilter} walletOrigin={transactionOriginParams(query ?? {}) ?? undefined} alerts={notificationFilter(query?.alerts)} notice={validNotice(query?.notice) ? query.notice : undefined} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
@@ -184,7 +183,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         {invalidQuantity ? <p role="status" id="entry-review-quantity" tabIndex={-1}>The saved quantity is invalid. Choose how many additional entries you want below before reviewing.</p> : null}
         <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} ownerId={account.userId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} itemImage={item.image} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} transactionReturnHref={walletHref} notificationReturnHref={alertsHref} entryContext={entryContext} />
       </section>
-      </EntryTicketSelectionProvider>
     </div>
+    </EntryTicketSelectionProvider>
   </div></PreferenceSnapshot>;
 }

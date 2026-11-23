@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { checkCatalogRequestReceipt, submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
 import { catalogRequestDraftKey, readCatalogRequestDraft, writeCatalogRequestDraft, type CatalogRequestDraft } from "@/lib/catalog/request-draft";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const initialState: CatalogRequestState = { status: "idle" };
 
@@ -27,13 +28,14 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const [showFeedback, setShowFeedback] = useState(false);
   const [awaitingCheck, setAwaitingCheck] = useState(false);
   const restored = useRef(false);
+  const focusRestoredCheck = useRef(false);
   const sending = useRef(false);
   const submitButton = useRef<HTMLButtonElement>(null);
   const restoreSubmitFocus = useRef(false);
   const requestedItem = useRef<HTMLInputElement>(null);
   const confirmation = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (["#requested-item", "#product-request"].includes(window.location.hash)) {
+    if (!focusRestoredCheck.current && ["#requested-item", "#product-request"].includes(window.location.hash)) {
       requestedItem.current?.focus({ preventScroll: true });
       requestedItem.current?.scrollIntoView?.({ block: "nearest" });
     }
@@ -44,12 +46,22 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
     restored.current = true;
     const saved = readCatalogRequestDraft(draftKey);
     if (saved) {
+      focusRestoredCheck.current = Boolean(saved.requestKey);
       // Restore after hydration without reading browser storage on the server.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(saved);
       setAwaitingCheck(Boolean(saved.requestKey));
     }
   }, [draftKey]);
+  useEffect(() => {
+    if (!awaitingCheck || !focusRestoredCheck.current) return;
+    focusRestoredCheck.current = false;
+    const button = submitButton.current;
+    if (button && document.activeElement === document.body) {
+      button.focus({ preventScroll: true });
+      revealBelowHeader(button);
+    }
+  }, [awaitingCheck]);
   function changeDraft(change: Partial<CatalogRequestDraft>) {
     if (awaitingCheck || sending.current) return;
     const next = { ...draft, ...change };

@@ -61,6 +61,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
     <AccountSettingsLandingScroll target="account-settings-intro" />
     <AccountSettingsLandingScroll target="account-settings-sections" focusTarget="account-settings-sections" restrictToTargetHash allScreens />
     <AccountSettingsLandingScroll target="security-controls" focusTarget="security-heading" allScreens restrictToTargetHash />
+    <AccountSettingsLandingScroll target="change-password" focusTarget="change-password" allScreens restrictToTargetHash settleAfterNavigation />
     <AccountSettingsLandingScroll target="sign-out-everywhere" focusTarget="signout-heading" allScreens restrictToTargetHash />
     <div className={styles.shell}>
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}

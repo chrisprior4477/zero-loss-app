@@ -35,14 +35,15 @@ test("matches amount, date and direction shorthand without treating held or unre
   ];
   const search = (query: string) => searchLedger(entries, query, row => ledgerDescription(row.entry_type, row.product?.title),
     entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
-  for (const query of ["$1 debit", "1.00 USD debit", "debits of $1", "$1 or $2 paid", "US$1.00 spent"]) {
+  for (const query of ["$1 debit", "1.00 USD debit", "debits of $1", "$1 or $2 paid", "US$1.00 spent", "payment of $1"]) {
     expect(search(query), query).toEqual(["entry"]);
   }
   expect(search("$25 deposited")).toEqual(["deposit"]);
   expect(search("All entry payments")).toEqual(["entry", "title-only"]);
-  for (const query of ["posted on 11/05/2026", "transactions on November 5", "11-05-2026"]) {
+  for (const query of ["posted on 11/05/2026", "transactions on November 5", "11-05-2026", "11/5/26", "on Nov 5, 2026"]) {
     expect(search(query), query).toEqual(search("2026-11-05"));
   }
+  expect(search("paid on Nov 5, 2026")).toEqual(["entry", "netflix", "different-retailer", "netflix-other-amount", "title-only"]);
   for (const query of ["Nov 5, 2026 Netflix", "Netflix Nov 5, 2026", "Netflix on November 5, 2026"]) {
     expect(search(query), query).toEqual(["netflix", "netflix-other-amount", "title-only"]);
   }
@@ -74,6 +75,7 @@ test("keeps natural amount phrases scoped to posted values and transaction type"
   for (const query of ["minus twenty-five cents", "25 cents adjustment", "adjustment twenty-five cents"]) expect(search(query), query).toEqual(["negative-cents"]);
   expect(search("purchases $25, $50")).toEqual(["debit", "more"]);
   expect(search("deposits between $25 and $50")).toEqual(["fund", "larger"]);
+  expect(search("deposits $25 to $50")).toEqual(["fund", "larger"]);
   expect(search("deposit at least $25")).toEqual(["fund", "larger", "max"]);
   expect(search("transaction $25")).toEqual(["fund", "debit"]);
   expect(search("deposit US$25")).toEqual(["fund"]);

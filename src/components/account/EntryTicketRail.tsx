@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./entry-ticket-browser.module.css";
@@ -27,6 +27,20 @@ export function EntryTicketSelectionProvider({ initial, children }: { initial: s
 
 export function useSelectedEntryTicket() {
   return useContext(EntryTicketSelection);
+}
+
+export function SelectedEntryDate({ tickets, initial }: { tickets: readonly SavedTicket[]; initial: string }) {
+  const selected = useSelectedEntryTicket()?.selected ?? initial;
+  const ticket = tickets.find(ticket => ticket.entryId === selected);
+  return ticket?.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : "Date unavailable";
+}
+
+export function EntryActivityReturnLink({ href, ...props }: Omit<ComponentProps<typeof Link>, "href"> & { href: string }) {
+  const selected = useSelectedEntryTicket()?.selected;
+  if (!selected || !href.startsWith("/account/entries?viewed=")) return <Link href={href} {...props} />;
+  const url = new URL(href, "https://zeroloss.local");
+  url.searchParams.set("viewed", selected);
+  return <Link href={url.pathname + url.search + url.hash} {...props} />;
 }
 
 export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, returnFilter, walletOrigin, alerts, notice }:  {

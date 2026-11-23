@@ -18,6 +18,7 @@ const entryPricePattern = new RegExp([
   String.raw`\b(?:costing|costs?|for)\s+(?<toEnter>${entryAmount})\s+to enter\b`,
   String.raw`\b(?:with\s+)?entr(?:y|ies)\s+at\s+(?<each>${entryAmount})\s+each\b`,
   String.raw`(?:(?<ceiling>\b(?:up to|at most|no more than|less than|under|below)\s+)|\b(?:with|for|at)\s+)?(?<per>${entryAmount})(?<trailingCeiling>\s+or\s+(?:less|lower|under))?(?:\s+(?:per|a|each)\s+|\s*\/\s*|\s+)(?:entry|ticket)\b`,
+  String.raw`(?<ticketCost>(?:${currency.source}))\s+tickets?\b`,
 ].join("|"), "i");
 const excludedValuePattern = new RegExp(String.raw`\s*,?\s+(?:(?:and|but)\s+(?=(?:not|excluding|except|other than)\b))?(?:not|excluding|except(?: for)?|other than)\s+(?:the\s+)?((?:${currency.source}))(?:\s+ones?\b)?(?=\s|,|$)`, "gi");
 
@@ -254,21 +255,26 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
   return Number.isFinite(amount) ? { text: maximum.text, budget: { maximum: amount, inclusive: true } } : null;
 }
 
-const remainingTicketsPattern = /(?:^|[\s,]+)(?:and\s+)?(?:with\s+)?(?:between\s+(\d+)\s+and\s+(\d+)|(\d+)\s+to\s+(\d+)|(?:(fewer than|less than|at most|at least|more than|exactly)\s+)?(\d+))\s+(?:tickets?|entr(?:y|ies))\s+left(?=$|[\s,.!?])(?:\s+and(?=\s))?/i;
+const ticketCount = String.raw`(?:\d+|${words})`;
+const remainingTicketsPattern = new RegExp(String.raw`(?:^|[\s,]+)(?:and\s+)?(?:with\s+)?(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(fewer than|less than|no more than|at most|at least|more than|exactly)\s+)?(${ticketCount}))\s+(?:tickets?|entr(?:y|ies)|spots?)\s+(?:left|remaining)(?=$|[\s,.!?])(?:\s+and(?=\s))?`, "i");
 
 export function remainingTicketFilter(query: string) {
+  if (!/\b(?:left|remaining)\b/i.test(query)) return null;
   const match = remainingTicketsPattern.exec(query);
   if (!match) return null;
   const [, betweenFrom, betweenTo, rangeFrom, rangeTo, comparison, count] = match;
-  const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim();
+  const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim()
+    .replace(/^(?:all\s+)?(?:prizes?|products?|offers?)(?=\s|$)/i, "").trim();
+  const parseCount = (value: string) => /^\d+$/.test(value) ? Number(value) : spokenValue(value);
   if (betweenFrom || rangeFrom) return {
-    text, minimum: Math.max(1, Number(betweenFrom ?? rangeFrom)), maximum: Number(betweenTo ?? rangeTo),
+    text, minimum: Math.max(1, parseCount(betweenFrom ?? rangeFrom)), maximum: parseCount(betweenTo ?? rangeTo),
   };
-  const threshold = Number(count);
+  const threshold = parseCount(count);
   switch (comparison?.toLowerCase()) {
     case "fewer than":
     case "less than": return { text, minimum: 1, maximum: threshold - 1 };
-    case "at most": return { text, minimum: 1, maximum: threshold };
+    case "at most":
+    case "no more than": return { text, minimum: 1, maximum: threshold };
     case "at least": return { text, minimum: Math.max(1, threshold), maximum: Infinity };
     case "more than": return { text, minimum: threshold + 1, maximum: Infinity };
     default: return { text, minimum: Math.max(1, threshold), maximum: threshold };
@@ -298,7 +304,7 @@ export function searchDenominations(query: string, products: readonly { retailer
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
   if (screen) normalized = normalized.replace(screen[0], " ").replace(/\s+/g, " ").trim();
   const entryMatch = entryPricePattern.exec(normalized);
-  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees;
+  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees ?? entryMatch?.groups?.ticketCost;
   const exclusiveEntryPrice = /^(?:below|under|less than)\b/i.test(entryMatch?.groups?.labeledCeiling ?? entryMatch?.groups?.ceiling ?? "");
   const entryPrice = entryAmountText ? leadingAmount(entryAmountText)?.amount ?? null : null;
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);

@@ -48,3 +48,21 @@ test("closing this popup preserves an existing outer scroll lock", () => {
   fireEvent.click(screen.getByRole("button", { name: "Close product info" }));
   expect(document.body.style.overflow).toBe("hidden");
 });
+
+test("Forward reopens the popup before the prior native close event arrives", () => {
+  window.history.replaceState(null, "", "/items/playstation-5-slim");
+  render(<ProductInfoDialog title="Product info" label="Open product info"><p>Details</p></ProductInfoDialog>);
+  fireEvent.click(screen.getByRole("button", { name: "Open product info" }));
+  const dialog = screen.getByRole("dialog") as HTMLDialogElement;
+  dialog.close = () => { dialog.open = false; };
+  const opened = window.history.state;
+  act(() => {
+    window.history.replaceState(null, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.history.replaceState(opened, "");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    dialog.dispatchEvent(new Event("close"));
+  });
+  expect(dialog.open).toBe(true);
+  expect(screen.getByRole("button", { name: "Open product info" }).getAttribute("aria-expanded")).toBe("true");
+});

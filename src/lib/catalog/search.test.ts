@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
-import { searchDenominations } from "./search-denomination";
+import { matchesCatalogMerchant, searchDenominations } from "./search-denomination";
 
 describe("catalog search", () => {
   test.each([
@@ -661,4 +661,26 @@ test("keeps the retailer and gift-card scope for alternate amounts and few ticke
   expect(matches.length).toBeGreaterThan(0);
   expect(matches.every(product => product.retailer === "Amazon" && product.slug.endsWith("-gift-card")
     && [25, 50].includes(product.value) && product.capacity - product.sold < 5)).toBe(true);
+});
+
+test.each([
+  ["prizes with one ticket left", "1 ticket left"],
+  ["2–5 tickets remaining", "2 to 5 tickets left"],
+  ["no more than 5 spots remaining", "at most 5 tickets left"],
+  ["Walmart gift cards fewer than five tickets left", "Walmart gift cards fewer than 5 tickets left"],
+  ["Sony 1 dollar tickets", "Sony $1 per ticket"],
+])("normalizes %s without a prize-value constraint", (query, equivalent) => {
+  const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+  const matches = slugs(query);
+  expect(matches.length).toBeGreaterThan(0);
+  expect(matches).toEqual(slugs(equivalent));
+  expect(searchDenominations(query, demoProducts).values.size).toBe(0);
+});
+
+test("an excluded denomination applies to every retailer in the list", () => {
+  const first = searchCatalog(demoProducts, "gift cards excluding $25 from Walmart and Target");
+  const last = searchCatalog(demoProducts, "gift cards from Walmart and Target excluding $25");
+  expect(first.length).toBeGreaterThan(0);
+  expect(first.every(product => product.value !== 25 && ["Walmart", "Target"].some(retailer => matchesCatalogMerchant(product.retailer, retailer)))).toBe(true);
+  expect(first.map(product => product.slug).sort()).toEqual(last.map(product => product.slug).sort());
 });
