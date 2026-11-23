@@ -17,6 +17,7 @@ const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|tran
 const entryPaymentType = String.raw`entry\s+(?:payments?|debits?)`;
 const entryPayments = new RegExp(String.raw`^(?:all\s+)?(?:posted\s+)?${entryPaymentType}\b`, "i");
 const qualifiedEntryPayment = new RegExp(String.raw`^(.+?)\s+(?:posted\s+)?${entryPaymentType}(?:\s+(.+))?$`, "i");
+const entryPaymentAmountFirst = new RegExp(String.raw`^(\$\s*${dollars})\s+(.+)$`, "i");
 const paidWithScope = new RegExp(String.raw`^(.+?)\s+(\$\s*${dollars})\s+(?:paid|spent)$|^(.+?)\s+(?:paid|spent|charged)(?:\s+exactly)?\s+(\$\s*${dollars})$`, "i");
 const centsValue = String.raw`(\d+|${smallNumberWords})\s+cents?\b`;
 const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
@@ -286,7 +287,17 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const namedEntryPayment = qualifiedEntryPayment.exec(query);
   if (namedEntryPayment) {
     const [, prefix, details] = namedEntryPayment;
-    return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), details ? prefix + " " + details : prefix);
+    const typed = entries.filter(row => row.entry_type === "ENTRY_DEBIT");
+    if (details && amountOnly.test(details)) {
+      const matches = amountMatch(details);
+      return searchAgain(typed.filter(row => matches(row.amount)), prefix);
+    }
+    const amountFirst = !details && entryPaymentAmountFirst.exec(prefix);
+    if (amountFirst) {
+      const matches = amountMatch(amountFirst[1]);
+      return searchAgain(typed.filter(row => matches(row.amount)), amountFirst[2]);
+    }
+    return searchAgain(typed, details ? prefix + " " + details : prefix);
   }
   const namedPayment = paidWithScope.exec(query);
   if (namedPayment) {

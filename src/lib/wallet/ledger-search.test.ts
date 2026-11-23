@@ -16,6 +16,8 @@ test("a date and posted amount are separate filters, and gift-card purchases exc
   expect(search("gift card purchases from Walmart")).toEqual(["purchase"]);
   expect(search("Walmart gift card purchases")).toEqual(["purchase"]);
   expect(search("Walmart entry payments $1")).toEqual(["entry", "older-entry"]);
+  expect(search("Walmart entry payments $25")).toEqual([]);
+  expect(search("$25 Walmart entry payments")).toEqual([]);
 });
 
 test("matches amount, date and direction shorthand without treating held or unrelated amounts as charges", () => {
