@@ -20,7 +20,7 @@ import { buildProductMetadata } from "@/lib/catalog/product-metadata";
 import { randomUUID } from "node:crypto";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
-import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
+import { productBrowseReturnHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
@@ -84,9 +84,12 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   if (hiddenPool && ((!unavailable && !unverifiedSlugs?.has(product.slug)) || savedResult) && requestHead.ready && !requestHead.validating) {
     if (savedResult) {
       const origin = transactionOriginParams(query);
-      if (!origin) redirect(savedResult.href);
       const destination = new URL(savedResult.href, "https://navigation.invalid");
-      for (const [key, value] of Object.entries(origin)) destination.searchParams.set(key, value);
+      const shoppingReturn = productBrowseReturnPath(query.from);
+      if (!origin && shoppingReturn && destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId")) {
+        destination.searchParams.set("rewardBrowse", shoppingReturn);
+      }
+      for (const [key, value] of Object.entries(origin ?? {})) destination.searchParams.set(key, value);
       redirect(`${destination.pathname}${destination.search}${destination.hash}`);
     }
     const back = browseReturnHref.startsWith("/rewards/") && !browseReturnHref.includes("#") ? `${browseReturnHref}#reward-values` : browseReturnHref;

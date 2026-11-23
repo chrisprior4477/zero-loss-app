@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
+import { searchDenominations } from "./search-denomination";
 
 describe("catalog search", () => {
   test.each([
@@ -615,13 +616,44 @@ test.each([
 
 test.each([
   ["gift cards with 1 ticket left", "gift cards exactly 1 ticket left"],
+  ["gift cards with 1 entry left", "gift cards with 1 ticket left"],
   ["gift cards under $75 with fewer than 5 tickets left", "gift cards under $75 fewer than 5 tickets left"],
+  ["gift cards with fewer than 5 tickets left under $75", "gift cards under $75 with fewer than 5 tickets left"],
+  ["gift cards with 2 to 5 tickets left under $75", "gift cards under $75 with between 2 and 5 tickets left"],
+  ["gift cards from both Amazon and Walmart under $50", "gift cards from Amazon or Walmart under $50"],
+  ["gift cards from Amazon worth $25 or $50", "$25 or $50 gift cards from Amazon"],
   ["gift cards except Amazon below $50", "gift cards below $50 except Amazon"],
   ["$25 gift cards from Amazon or Walmart", "Amazon or Walmart $25 gift cards"],
 ])("keeps the constraints in %s", (query, equivalent) => {
   const matches = searchCatalog(demoProducts, query).map(product => product.slug).sort();
   expect(matches.length).toBeGreaterThan(0);
   expect(matches).toEqual(searchCatalog(demoProducts, equivalent).map(product => product.slug).sort());
+});
+
+test("an entry count has no prize-value filter", () => {
+  const query = "gift cards with at least 10 tickets left";
+  expect(searchDenominations(query, demoProducts).budget).toBeNull();
+  const matches = searchCatalog(demoProducts, query);
+  expect(matches.length).toBeGreaterThan(0);
+  expect(matches.every(product => product.capacity - product.sold >= 10)).toBe(true);
+});
+
+test.each([
+  ["gift cards from Amazon between $25 and $50", "gift cards between $25 and $50 from Amazon"],
+  ["gift cards from Walmart, Target, and Amazon", "gift cards from Walmart, Target, or Amazon"],
+  ["Nintendo Switch with $1 entry price", "Nintendo Switch $1 per entry"],
+])("keeps the requested scope in %s", (query, equivalent) => {
+  const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+  expect(slugs(query).length).toBeGreaterThan(0);
+  expect(slugs(query)).toEqual(slugs(equivalent));
+});
+
+test("a common budget applies to both named product alternatives", () => {
+  const first = searchCatalog(demoProducts, "PlayStation or Nintendo under $500");
+  const second = searchCatalog(demoProducts, "Nintendo or PlayStation under $500");
+  expect(first.map(product => product.slug).sort()).toEqual(second.map(product => product.slug).sort());
+  expect(first.length).toBeGreaterThan(0);
+  expect(first.every(product => product.value < 500)).toBe(true);
 });
 
 test("keeps the retailer and gift-card scope for alternate amounts and few tickets", () => {

@@ -194,6 +194,23 @@ function delayedSnapshot() {
   return { promise, resolve };
 }
 
+test("duplicate manual checks cannot overwrite the next successful favorite save", async () => {
+  const retry = delayedSnapshot();
+  mocks.getCurrentFavorites.mockResolvedValueOnce({ available: false, slugs: [], accountId: "customer" })
+    .mockReturnValueOnce(retry.promise);
+  mocks.setFavorite.mockResolvedValueOnce({ status: "error" }).mockResolvedValueOnce({ status: "saved" });
+  renderButtons();
+  const addHeart = () => screen.getAllByRole("button", { name: `Add ${productName} to favorites` })[0];
+  fireEvent.click(addHeart());
+  const check = await screen.findByRole("button", { name: "Check favorite" });
+  fireEvent.click(check);
+  fireEvent.click(check);
+  expect(mocks.getCurrentFavorites).toHaveBeenCalledTimes(2);
+  await act(async () => retry.resolve({ available: true, slugs: [], accountId: "customer" }));
+  fireEvent.click(addHeart());
+  await waitFor(() => expect(screen.getAllByRole("button", { name: `Remove ${productName} from favorites` })).toHaveLength(2));
+});
+
 test.each([true, false])("an older snapshot cannot reverse a confirmed favorite save=%s", async saved => {
   const initial = saved ? [] : [favoriteSlug];
   const result = saved ? [favoriteSlug] : [];

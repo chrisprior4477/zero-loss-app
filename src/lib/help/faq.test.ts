@@ -141,6 +141,8 @@ test.each([
   ["get unused funds back to my bank", "withdrawals"],
   ["can I buy something else with the reward", "reward-restrictions"],
   ["my voucher has expired", "reward-unavailable"],
+  ["expired gift card", "reward-unavailable"],
+  ["why was I charged twice", "funding-status"],
   ["can I use the website without an account", "enter-a-prize"],
   ["never got the confirmation message", "verification-email"],
   ["send me a new reset link", "password"],

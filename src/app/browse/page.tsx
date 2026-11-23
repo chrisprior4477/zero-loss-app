@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { demoProducts } from "@/lib/catalog/demo-products";
+import { demoProducts, type DemoProduct } from "@/lib/catalog/demo-products";
 import {
   marketplaceCategories,
   marketplaceCategoryId,
@@ -69,6 +69,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   });
   const rareFinds = query.collection === "rare-finds";
   const rareFindSlugs = new Set(["lg-oled-c6-65-tv", "playstation-5-slim", "dyson-v8-cordless-vacuum", "kitchenaid-artisan-5qt-mixer", "sony-wh-1000xm5-headphones", "nintendo-switch"]);
+  const inCollection = (product: DemoProduct) => !rareFinds || rareFindSlugs.has(product.slug);
   const searchTerm = conflictingSearch ? "" : query.q?.trim() ?? "";
   const searchTooLong = catalogSearchTooLong(searchTerm);
   const invalidSearch = Boolean(searchTerm) && !/[\p{L}\p{N}]/u.test(searchTerm);
@@ -94,7 +95,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     .map(product => ({ ...product, sold: product.capacity })) : [];
   const searchableProducts = [...availableProducts, ...unavailableDenominations];
   const categoryProducts = filterCatalogSubcategory((endingSoon ? availableProducts : searchableProducts).filter(
-    product => (!rareFinds || rareFindSlugs.has(product.slug)) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory);
+    product => inCollection(product) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory);
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
@@ -150,11 +151,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
+  const previewProducts = availableProducts.filter(inCollection);
   const previewMatches = searchTerm
-    ? searchTooLong ? [] : searchCatalogMatches(availableProducts, searchTerm, denomination, { includeLowerGiftCards: true }).map(match => match.product)
-    : availableProducts;
+    ? searchTooLong ? [] : searchCatalogMatches(previewProducts, searchTerm, denomination, { includeLowerGiftCards: true }).map(match => match.product)
+    : previewProducts;
   const exactEndingMatches = searchTerm && !searchTooLong && denomination.values.size
-    ? searchCatalogMatches(availableProducts, searchTerm, denomination, { includeLowerGiftCards: false }).map(match => match.product)
+    ? searchCatalogMatches(previewProducts, searchTerm, denomination, { includeLowerGiftCards: false }).map(match => match.product)
     : previewMatches;
   const previewCategoryIds: (MarketplaceCategoryId | "")[] = ["", ...marketplaceCategories.map(category => category.id)];
   const categoryPreviews = Object.fromEntries(previewCategoryIds.map(id => {

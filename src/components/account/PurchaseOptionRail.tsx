@@ -19,7 +19,7 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { holdAccountRefresh, notifyAccountChanged } from "@/lib/account/account-state-events";
 
-export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean }) {
+export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false, returnActivityHref = "/account/entries?filter=completion" }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean; returnActivityHref?: string }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set([initiallySelectedEntryId && options.some(option => option.entryId === initiallySelectedEntryId) ? initiallySelectedEntryId : options[0]?.entryId].filter((id): id is string => Boolean(id))));
@@ -199,7 +199,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
           {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setReviewedOptionIds(currentOptionIds); setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "start" }); }}>{count === 1 ? "Decline this offer" : "Decline all offers"}</button> : null}
         </div>
         {quantityPicker}
-        <Link href="/account/entries?filter=completion" className={styles.activityExit}>Go to My Activity</Link>
+        <Link href={returnActivityHref} className={styles.activityExit}>Go to My Activity</Link>
       </div>
     </section> : null}
     <section id="purchase-option-rail" tabIndex={-1} className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>

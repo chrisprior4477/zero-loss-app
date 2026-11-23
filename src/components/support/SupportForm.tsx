@@ -28,7 +28,7 @@ function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
   return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
 }
 
-type Props = { ownerId?: string; topic?: "email"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
+type Props = { ownerId?: string; topic?: "email" | "account" | "reward"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.topic}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
@@ -45,7 +45,7 @@ function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId,
     requestKey,
     subject: depositKey ? "Question about this deposit" : attachedOrder ? orderSubject : transactionId ? transactionSubject : rewardId ? "Question about this reward" : topic === "email" ? "Question about my email address" : "",
     body: "",
-    category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : topic === "email" ? "account" : "other",
+    category: attachedOrder || rewardId ? "reward" : transactionId || depositKey ? "wallet" : topic === "email" ? "account" : topic ?? "other",
     caseStatus: "awaiting_customer",
     uncertain: false,
   };
@@ -56,7 +56,7 @@ function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId,
   const pickedTransaction = record?.kind === "transaction" ? record.id : "";
   const pickedOrder = record?.kind === "order" ? record.id : "";
   const effectiveOrigin = pickedOrder ? "order:all" : pickedTransaction ? "wallet" : transactionOrigin;
-  const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : topic === "email" ? "account-email" : "new");
+  const draftKey = supportDraftKey(ownerId, caseId ? `reply:${caseId}:${staff}` : transactionId ? `transaction:${transactionId}` : rewardId ? `reward:${rewardId}` : depositKey ? `deposit:${depositKey}` : topic === "email" ? "account-email" : topic ? `topic:${topic}` : "new");
   const lengthErrorId = useId();
   const bodyLimit = 4000 - supportReferencePrefix(rewardId, deposit, effectiveOrigin).length;
   const extraCharacters = Math.max(0, Array.from(body.trim()).length - bodyLimit);

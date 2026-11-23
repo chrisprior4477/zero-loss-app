@@ -14,7 +14,7 @@ const entryAmount = String.raw`(?:${currency.source})|(?:\$\s*|\bUSD\s*)?\b${dig
 const entryPricePattern = new RegExp([
   String.raw`\b(?:with\s+|for\s+)?(?:an?\s+)?(?:entry\s+(?:price|fee|cost)s?|tickets?\s+cost)\s*:?\s*(?:of\s+)?(?<labeledCeiling>(?:up to|at most|no more than|below|under|less than)\s+)?(?<labeled>${entryAmount})`,
   String.raw`\b(?:with|paying)\s+(?<entryFees>${entryAmount})\s+(?:entry fees?|(?:per|each)\s+entry)\b`,
-  String.raw`\bwith\s+(?:an?\s+)?(?<single>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
+  String.raw`\b(?:with\s+)?(?:an?\s+)?(?<single>${entryAmount})\s+(?:entry|ticket)\s+(?:price|fee|cost)\b|\bwith\s+(?:an?\s+)?(?<singleEntry>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
   String.raw`\b(?:costing|costs?|for)\s+(?<toEnter>${entryAmount})\s+to enter\b`,
   String.raw`\b(?:with\s+)?entr(?:y|ies)\s+at\s+(?<each>${entryAmount})\s+each\b`,
   String.raw`(?:(?<ceiling>\b(?:up to|at most|no more than|less than|under|below)\s+)|\b(?:with|for|at)\s+)?(?<per>${entryAmount})(?<trailingCeiling>\s+or\s+(?:less|lower|under))?(?:\s+(?:per|a|each)\s+|\s*\/\s*|\s+)(?:entry|ticket)\b`,
@@ -191,16 +191,20 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
       budget: { minimum, maximum: null, inclusive: true },
     };
   }
-  const range = /^(.*?)(?:\b(?:priced|costing)\s+)?\b(between|from)\s+(.+)$/i.exec(normalized);
-  const first = range && leadingAmount(range[3]);
-  const connector = range?.[2].toLowerCase() === "from" ? /^(?:up to|to|through|thru)\s+/i : /^(?:and|&)\s+/i;
-  const upperText = first?.text.replace(connector, "") ?? "";
-  const exclusive = range?.[2].toLowerCase() === "from" && /^(?:under|below|less than)\s+/i.test(upperText);
-  const last = first && connector.test(first.text) ? leadingAmount(exclusive ? upperText.replace(/^(?:under|below|less than)\s+/i, "") : upperText) : null;
-  if (range && first && last) return {
-    text: `${range[1]} ${last.text.replace(/^(?:inclusive|total)\b/i, "")}`.trim(),
-    budget: { minimum: exclusive ? first.amount : Math.min(first.amount, last.amount), maximum: exclusive ? last.amount : Math.max(first.amount, last.amount), inclusive: !exclusive },
-  };
+  for (const range of normalized.matchAll(/\b(?:\b(?:priced|costing)\s+)?(between|from)\s+/gi)) {
+    const first = leadingAmount(normalized.slice(range.index + range[0].length));
+    if (!first) continue;
+    const from = range[1].toLowerCase() === "from";
+    const connector = from ? /^(?:up to|to|through|thru)\s+/i : /^(?:and|&)\s+/i;
+    if (!connector.test(first.text)) continue;
+    const upperText = first.text.replace(connector, "");
+    const exclusive = from && /^(?:under|below|less than)\s+/i.test(upperText);
+    const last = leadingAmount(exclusive ? upperText.replace(/^(?:under|below|less than)\s+/i, "") : upperText);
+    if (last) return {
+      text: `${normalized.slice(0, range.index)} ${last.text.replace(/^(?:inclusive|total)\b/i, "")}`.trim(),
+      budget: { minimum: exclusive ? first.amount : Math.min(first.amount, last.amount), maximum: exclusive ? last.amount : Math.max(first.amount, last.amount), inclusive: !exclusive },
+    };
+  }
   const bareRange = /^(.*?)(?:\b(?:between|from)\s+)?(\$?\d[\d,.]*)\s*(?:to|through|thru|-)\s*(\$?\d[\d,.]*)(?=\s|$)(.*)$/i.exec(normalized);
   if (bareRange && (bareRange[2].startsWith("$") || bareRange[3].startsWith("$") || /\bgift card\b/i.test(normalized))) {
     const low = leadingAmount(bareRange[2]);
@@ -250,15 +254,35 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
   return Number.isFinite(amount) ? { text: maximum.text, budget: { maximum: amount, inclusive: true } } : null;
 }
 
-export const remainingTicketsRange = /\s+(?:with\s+)?between\s+(\d+)\s+and\s+(\d+)\s+(?:tickets?|entries)\s+left[.!?]?$/i;
+const remainingTicketsPattern = /(?:^|[\s,]+)(?:and\s+)?(?:with\s+)?(?:between\s+(\d+)\s+and\s+(\d+)|(\d+)\s+to\s+(\d+)|(?:(fewer than|less than|at most|at least|more than|exactly)\s+)?(\d+))\s+(?:tickets?|entr(?:y|ies))\s+left(?=$|[\s,.!?])(?:\s+and(?=\s))?/i;
+
+export function remainingTicketFilter(query: string) {
+  const match = remainingTicketsPattern.exec(query);
+  if (!match) return null;
+  const [, betweenFrom, betweenTo, rangeFrom, rangeTo, comparison, count] = match;
+  const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim();
+  if (betweenFrom || rangeFrom) return {
+    text, minimum: Math.max(1, Number(betweenFrom ?? rangeFrom)), maximum: Number(betweenTo ?? rangeTo),
+  };
+  const threshold = Number(count);
+  switch (comparison?.toLowerCase()) {
+    case "fewer than":
+    case "less than": return { text, minimum: 1, maximum: threshold - 1 };
+    case "at most": return { text, minimum: 1, maximum: threshold };
+    case "at least": return { text, minimum: Math.max(1, threshold), maximum: Infinity };
+    case "more than": return { text, minimum: threshold + 1, maximum: Infinity };
+    default: return { text, minimum: Math.max(1, threshold), maximum: threshold };
+  }
+}
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
   const foreignCode = "(?:CAD|AUD|NZD|EUR|GBP|JPY|CHF|MXN|INR)";
   const unsupportedCurrency = new RegExp(String.raw`(?:\b${foreignCode}\s*\$?\s*\d|\d[\d.,]*\s*${foreignCode}\b|\b(?:CA|AU|NZ)\s*\$\s*\d|[€£¥]\s*\d)`, "i").test(query);
-  let normalized = query.trim().replace(remainingTicketsRange, "").replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
+  let normalized = (remainingTicketFilter(query)?.text ?? query.trim()).replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
     .replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b|\b(?:(?:grocery|fuel)\s+)?vouchers?\b/gi, "gift card")
     .replace(/\b(?:sony\s+)?playstation store cards?\b/gi, "Sony PlayStation gift card")
     .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")
+    .replace(/(\bgift card\b.*?)\s+worth\s+(?=\$\s*\d)/gi, "$1 ")
     .replace(/\bstrictly\s+(?=below|under|less than|above|over|more than)/gi, "")
     .replace(/\beither\s+(?=\$\s*\d)/gi, "");
   normalized = normalized
@@ -274,7 +298,7 @@ export function searchDenominations(query: string, products: readonly { retailer
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
   if (screen) normalized = normalized.replace(screen[0], " ").replace(/\s+/g, " ").trim();
   const entryMatch = entryPricePattern.exec(normalized);
-  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees;
+  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees;
   const exclusiveEntryPrice = /^(?:below|under|less than)\b/i.test(entryMatch?.groups?.labeledCeiling ?? entryMatch?.groups?.ceiling ?? "");
   const entryPrice = entryAmountText ? leadingAmount(entryAmountText)?.amount ?? null : null;
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);

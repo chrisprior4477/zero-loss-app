@@ -70,7 +70,10 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   }
   const clearUrl = new URL(clearHref, "https://zeroloss.local");
   const retainedSearch = searchDraft.trim();
-  if (retainedSearch && !invalidSearchDraft) clearUrl.searchParams.set("q", retainedSearch);
+  const appliedSearch = searchTerm.trim();
+  const clearedFilterSearch = !invalidSearchDraft ? retainedSearch
+    : catalogSearchTooLong(appliedSearch) || invalidCatalogSearch(appliedSearch) ? "" : appliedSearch;
+  if (clearedFilterSearch) clearUrl.searchParams.set("q", clearedFilterSearch);
   else clearUrl.searchParams.delete("q");
   const clearFiltersHref = `${clearUrl.pathname}${clearUrl.search}`;
   const collection = clearUrl.searchParams.get("collection");
@@ -230,8 +233,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setMode("all");
         setBounds({ minValue: "", maxValue: "" });
-        setLocalDraft(retainedSearch);
-        session?.setDraft(retainedSearch);
+        setLocalDraft(clearedFilterSearch);
+        session?.setDraft(clearedFilterSearch);
         if (onNavigate) { event.preventDefault(); onNavigate(`${clearFiltersHref}#search-results`); }
       }} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>

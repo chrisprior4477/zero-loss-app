@@ -3,9 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import type { DemoCard } from "@/lib/payments/demo-card";
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation, unstable_rethrow: () => {} }));
-vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), checkDemoDeposit: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
-import { completeDemoFunding, checkDemoDeposit, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
+vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), checkDemoDeposit: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn(), readDemoPaymentMethod: vi.fn() }));
+import { completeDemoFunding, checkDemoDeposit, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod, readDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+import { WalletPaymentMethods } from "./WalletPaymentMethods";
 
 function openMobileCards() {
   fireEvent.click(screen.getByRole("button", { name: "Manage saved cards", expanded: false }));
@@ -15,6 +16,56 @@ const refreshCards: DemoCard[] = [
   { token: "demo_card_4242", lastFour: "4242", isDefault: true, isDepositDefault: true },
   { token: "demo_card_5556", lastFour: "5556", isDefault: false, isDepositDefault: false },
 ];
+
+test.each(["phone", "desktop"])("browser Back closes saved cards and retains the funding draft on %s", async viewport => {
+  window.history.replaceState(null, "", "/account/wallet?view=history#add-funds");
+  vi.stubGlobal("matchMedia", () => ({ matches: viewport === "desktop" }));
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  try {
+    const href = "/items/playstation-5-slim?quantity=47#enter-entry";
+    render(<DemoFundingForm walletId="wallet-a" requestKey="saved_card_history_req_01" savedCards={refreshCards}
+      continueTo={{ title: "PlayStation", href }} />);
+    fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "42" } });
+    fireEvent.click(screen.getByRole("button", { name: "Manage saved cards" }));
+    expect(window.location.hash).toBe("#add-card");
+    const choose = screen.getByRole("radio", { name: /ending 5556 for this deposit/ });
+    fireEvent.click(choose);
+    window.history.back();
+    await waitFor(() => expect(window.location.hash).toBe("#add-funds"));
+    expect(screen.getByRole("button", { name: "Manage saved cards", expanded: false })).toBeTruthy();
+    expect(screen.getByLabelText("Add specific amount (USD)")).toHaveProperty("value", "$42");
+    window.history.forward();
+    await waitFor(() => expect(screen.getByRole("radio", { name: /ending 5556 for this deposit/ })).toHaveProperty("checked", true));
+  } finally {
+    cleanup();
+    window.history.replaceState(null, "", "/");
+    scroll.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});
+
+test.each(["methods", "funding"])("an uncertain default-card change verifies the reviewed card in %s", async section => {
+  window.history.replaceState(null, "", `/account/wallet?view=history#${section === "methods" ? "payment-methods" : "add-funds"}`);
+  const card = { ...refreshCards[1], revision: "2026-11-23T12:00:00Z" };
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValueOnce({ status: "pending", message: "Response uncertain" });
+  vi.mocked(readDemoPaymentMethod).mockResolvedValueOnce({ status: "loaded", card: { ...card, isDefault: true } });
+  try {
+    if (section === "methods") render(<WalletPaymentMethods enabled walletId="wallet-a" savedCards={[card]} />);
+    else {
+      render(<DemoFundingForm walletId="wallet-a" requestKey="default_card_pending_req_01" savedCards={[card]} />);
+      openMobileCards();
+    }
+    const choice = screen.getByRole("checkbox", { name: /default payment method/ });
+    fireEvent.click(choice);
+    expect(await screen.findByText("Your default card preference was saved.")).toBeTruthy();
+    expect(readDemoPaymentMethod).toHaveBeenCalledWith(card.token, "wallet-a");
+    expect(screen.getByRole("checkbox", { name: /default payment method/ })).toHaveProperty("checked", true);
+  } finally {
+    cleanup();
+    window.history.replaceState(null, "", "/");
+    vi.mocked(readDemoPaymentMethod).mockReset();
+  }
+});
 test("a background deposit-card change requires new approval before sending the new card", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   const props = { requestKey: "card_refresh_request_01", savedCards: refreshCards };

@@ -41,6 +41,7 @@ function normalizedDate(value: string) {
 }
 
 function dateBoundary(value: string, calendar: SearchCalendar) {
+  if (/[$€£¥]/.test(value)) return null;
   const iso = /^(\d{4})([-/])(\d{1,2})\2(\d{1,2})$/.exec(value);
   const numeric = /^(\d{1,2})([-/])(\d{1,2})\2(\d{4})$/.exec(value);
   let year: number | undefined;
@@ -162,6 +163,11 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       const matches = searchDate(entries, date.join(" "), calendar);
       if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, ""));
     }
+  }
+  const purchaseType = /^(?:gift[\s-]+card\s+purchases?(?:\s+from\s+(.+))?|(.+)\s+gift[\s-]+card\s+purchases?)$/i.exec(trimmed);
+  if (purchaseType) {
+    const merchantOrAmount = purchaseType[1] ?? purchaseType[2] ?? "";
+    return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), merchantOrAmount);
   }
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|=|equals\b)/i.test(trimmed) || /\s+exactly$/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)

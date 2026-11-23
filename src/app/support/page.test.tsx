@@ -76,6 +76,22 @@ test("a verified session can reach the general form when the linked transaction 
   expect(screen.queryByTestId("support-form")).toBeNull();
 });
 
+test.each(["transaction", "rewardId"] as const)("a temporary %s read failure keeps the exact retry", async key => {
+  const table = key === "transaction" ? "ledger_entries" : "customer_rewards";
+  mocks.from.mockImplementation(name => name === table ? query(null, { code: "57014" }) : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ [key]: caseId }) }));
+  expect(screen.getByRole("alert").textContent).toContain("right now");
+  expect(screen.getByRole("link", { name: "Check this record again" }).getAttribute("href")).toBe(`/support?${key}=${caseId}#report-problem`);
+  expect(screen.queryByTestId("support-form")).toBeNull();
+});
+
+test.each(["account", "reward"])("sign-in keeps the %s help topic", async topic => {
+  mocks.account.mockResolvedValue(null);
+  render(await SupportPage({ searchParams: Promise.resolve({ topic }) }));
+  expect(screen.getByRole("link", { name: "Sign in to get help" }).getAttribute("href"))
+    .toBe(`/login?next=${encodeURIComponent(`/support?topic=${topic}#report-problem`)}`);
+});
+
 test('sign-in preserves an exact reward support handoff',async()=>{
  mocks.account.mockResolvedValue(null);
  render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
@@ -97,7 +113,7 @@ test('reward prefill authorizes ownership and never uses a wallet transaction',a
 test.each([null,{data:null,error:{message:'Unavailable'}}])('a foreign or unavailable reward has no support form (%s)',async failure=>{
  mocks.from.mockImplementation(table=>table==='customer_rewards'?query(null,failure):query([]));
  render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
- expect(screen.queryByTestId('support-form')).toBeNull();expect(screen.getByRole('alert').textContent).toContain('reward is unavailable');
+ expect(screen.queryByTestId('support-form')).toBeNull();expect(screen.getByRole('alert').textContent).toContain(failure ? 'check this reward right now' : 'reward is unavailable');
  expect(screen.queryByRole('link',{name:'Back to this reward'})).toBeNull();
 });
 

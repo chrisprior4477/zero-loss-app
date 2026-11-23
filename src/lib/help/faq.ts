@@ -215,7 +215,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "gift-transfers", category: "rewards", question: "Can I send a reward or gift card to someone else?",
     answer: "Sending and transferring rewards is not enabled in the current MVP. Crew sharing shows activity; it does not transfer ownership of a reward. Do not send a gift-card number through Crew or support messages. Contact support if you need help with a reward.",
-    keywords: "gifting gift email friend transfer send recipient ownership", action: { label: "Ask about a reward", href: "/contact#message" },
+    keywords: "gifting gift email friend transfer send recipient ownership", action: { label: "Ask about a reward", href: "/support?topic=reward#report-problem" },
   },
   {
     id: "password", category: "account", question: "I cannot sign in. How do I reset my password?",
@@ -303,7 +303,7 @@ const faqIntents: readonly [RegExp, string][] = [
   [/\bundo\b.*\b(?:only|one)\b.*\b(?:entries|tickets)\b/, "undo-entry"],
   [/\bpay(?:ing)?\s+the\s+rest\b.*\bcombine\b.*\b(?:entries|tickets)\b/, "purchase-options"],
   [/\bhow long\b.*\bdeclined offer\b/, "decline-and-revive"],
-  [/\bdeposit\b.*\b(?:twice|duplicate|two times)\b|\bcharged\b.*\bno wallet credit\b/, "funding-status"],
+  [/\bdeposit\b.*\b(?:twice|duplicate|two times)\b|\b(?:charged|billed)\b.*\b(?:twice|two times|no wallet credit)\b/, "funding-status"],
   [/\b(?:change|update|edit)\b.*\b(?:delivery|mailing)\s+address\b/, "time-zone"],
   [/\bhide\b.*\bname search\b.*\bcrew\b/, "crew-discoverability"],
   [/\btake\b.*\bout of\b.*\b(?:my|own)\b.*\bgroup\b/, "group-members"],
@@ -323,7 +323,7 @@ const faqIntents: readonly [RegExp, string][] = [
   [/\btop[ -]?up\b.*\b(?:wallet|balance)\b/, "add-funds"],
   [/\b(?:unused|unspent)\s+funds\b.*\b(?:back|bank|withdraw)\b/, "withdrawals"],
   [/\bbuy\b.*\b(?:something else|a different item)\b.*\b(?:reward|gift[ -]?card)\b/, "reward-restrictions"],
-  [/\b(?:voucher|gift[ -]?card|reward)\b.*\bexpired\b/, "reward-unavailable"],
+  [/\b(?:(?:voucher|gift[ -]?card|reward)\b.*\bexpired|expired\s+(?:voucher|gift[ -]?card|reward))\b/, "reward-unavailable"],
   [/\b(?:add funds|deposit|funding)\b.*\b(?:minimum|\d+\.\d{2})\b|\bpaypal\b/, "add-funds"],
   [/\b(?:real card was charged|unexpected charge)\b/, "balance-discrepancy"],
   [/\b(?:money|balance)\b.*\b(?:missing|short)\b.*\bbalance\b|\b(?:wallet|playable)\s+balance\b.*\b(?:missing|short)\b/, "balance-discrepancy"],

@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
+type OfferQuery = Partial<Record<"option" | "activityEntry" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug: requestedSlug } = await params;
@@ -34,9 +34,11 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const raw = await searchParams;
   const resume = matchingQueryValue(raw.resume);
   const choice = matchingQueryValue(raw.choice);
+  const activityEntry = typeof raw.activityEntry === "string" && /^ent_[a-f0-9]{32}$/.test(raw.activityEntry) ? raw.activityEntry : undefined;
   const validChoice = choice && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(choice) ? choice : undefined;
   const query = {
     ...raw,
+    activityEntry,
     choice: validChoice,
     resume: resume === "wallet" && (raw.choice === undefined || validChoice) ? resume : undefined,
   };
@@ -46,9 +48,10 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const invalidOption = option !== undefined && (!selectedEntryId || !/^ent_[a-f0-9]{32}$/i.test(selectedEntryId));
   const optionId = typeof selectedEntryId === "string" && !invalidOption ? selectedEntryId.toLowerCase() : undefined;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
+  const activityReturn = activityEntry ? `/account/entries?viewed=${encodeURIComponent(activityEntry)}#my-activity-filters` : "/account/entries?filter=completion#my-activity-filters";
   const notificationReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const selectors = new URLSearchParams();
-  for (const key of ["option", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
+  for (const key of ["option", "activityEntry", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
     if (key === "option") {
       if (optionId) selectors.set(key, optionId);
       continue;
@@ -84,6 +87,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const destination = new URL(href, "https://navigation.invalid");
     const origin = transactionOriginParams(query);
     for (const [name, value] of Object.entries(origin ?? {})) destination.searchParams.set(name, value);
+    if (activityEntry && destination.pathname === prizePath) destination.searchParams.set("activityEntry", activityEntry);
     if (validNotice(query.notice)) {
       destination.searchParams.set("notice", query.notice);
       destination.searchParams.set("alerts", notificationFilter(query.alerts));
@@ -124,7 +128,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         <div className={styles.topActions}>
           <a href={returnPath} className={styles.shopping}>Try again</a>
           {originLinks}
-          <Link href="/account/entries?filter=completion" className={styles.return}>Go to My Activity</Link>
+          <Link href={activityEntry ? activityReturn : "/account/entries?filter=completion"} className={styles.return}>Go to My Activity</Link>
         </div>
       </div></div>
     </section>;
@@ -186,7 +190,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnTransactionHref={walletHref} notificationReturnHref={notificationReturn} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnActivityHref={activityReturn} activityEntryId={activityEntry} returnTransactionHref={walletHref} notificationReturnHref={notificationReturn} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
       ticketLabels={offerTicketLabels(options, activity)} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} legacyDeclineReturnHref={legacyDeclineReturnHref} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} cardsUnavailable={cards === null} creditedDeposits={requests?.filter(request => request.reconciliation === "reconciled").map(request => request.idempotencyKey)} fundingAvailable={account.fundingEnabled && cards !== null}
       pendingDeposits={requests?.filter(request => request.reconciliation !== "reconciled")
@@ -201,14 +205,14 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         <div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Purchase Options</h1><p className={styles.subtitle}>These are your {count} separate purchase {count === 1 ? "option" : "options"}.</p></div>
         <div className={styles.topActions}>
           <Link href="/" className={styles.shopping}>Continue shopping</Link>
-          <Link href="/account/entries?filter=completion" className={styles.return}>Return to My Activity <span aria-hidden="true">→</span></Link>
-          <Link href="/account/entries?filter=completion" className={styles.close} aria-label="Close purchase options and return to My Activity">×</Link>
+          <Link href={activityReturn} className={styles.return}>Return to My Activity <span aria-hidden="true">→</span></Link>
+          <Link href={activityReturn} className={styles.close} aria-label="Close purchase options and return to My Activity">×</Link>
         </div>
       </div>
 
       {notificationReturn && <Link href={notificationReturn} className={styles.return}>Back to this notification</Link>}
       {walletHref && <Link href={walletHref} className={styles.return}>Back to this transaction</Link>}
-      <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} showSummary />
+      <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} returnActivityHref={activityReturn} canBulkDecline={canBulkDecline} showSummary />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>

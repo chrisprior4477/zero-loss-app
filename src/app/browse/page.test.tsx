@@ -10,6 +10,28 @@ const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
 const availability = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailabilityReport: async () => ({ snapshot: await availability(), unverifiedSlugs: new Set(), incomplete: false }) }));
 
+test("a Rare Finds preview and its category destination contain the same products", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.open = true; });
+  try {
+    render(await BrowsePage({ searchParams: Promise.resolve({ collection: "rare-finds" }) }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Categories" })[0]);
+    const dialog = within(screen.getByRole("dialog"));
+    fireEvent.click(dialog.getByRole("button", { name: "Electronics" }));
+    const preview = within(dialog.getByRole("region", { name: "Electronics product preview" }));
+    const href = preview.getByRole("link", { name: /See all Electronics/ }).getAttribute("href")!;
+    const destination = new URL(href, "https://example.test");
+    expect(destination.searchParams.get("collection")).toBe("rare-finds");
+    const slugs = (links: HTMLElement[]) => links.map(link => new URL((link as HTMLAnchorElement).href).pathname)
+      .filter(path => path.startsWith("/items/")).sort();
+    const previewSlugs = slugs(preview.getAllByRole("link"));
+    expect(previewSlugs.length).toBeGreaterThan(0);
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve(Object.fromEntries(destination.searchParams)) }));
+    expect(slugs(screen.getAllByRole("link")).filter((slug, index, paths) => index === paths.indexOf(slug))).toEqual(previewSlugs);
+  } finally { cleanup(); showModal.mockRestore(); vi.unstubAllGlobals(); }
+});
+
 test("the Headphones menu filters Electronics and preserves its return path", async () => {
   render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", subcategory: "Headphones" }) }));
   expect(screen.getByRole("heading", { name: "Headphones" })).toBeTruthy();

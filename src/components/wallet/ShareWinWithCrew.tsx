@@ -35,27 +35,33 @@ export function ShareWinWithCrew({ rewardId, members, initialShared = noRecipien
         setShared(new Set(ids));
         setSelected(current => current.filter(id => !ids.includes(id)));
         setNeedsCheck(false);
-        return true;
+        return ids;
       }
     } catch { /* Keep the already-confirmed recipients visible. */ }
     setNeedsCheck(true);
-    return false;
+    return null;
   }
 
   function share() {
     if (!currentSelection.length || pending || needsCheck) return;
     setMessage("");
     startTransition(async () => {
-      try {
-        const result = await shareWinWithCrew(rewardId, currentSelection);
-        setError(!result.ok);
-        if (result.ok) { setShared(current => new Set([...current, ...currentSelection])); setSelected([]); }
-        else await checkSharedRecipients();
+      const result = await shareWinWithCrew(rewardId, currentSelection).catch(() => null);
+      if (result?.ok) {
+        setShared(current => new Set([...current, ...currentSelection]));
+        setSelected([]);
+        setError(false);
         setMessage(result.message);
-      } catch {
-        setError(true);
+        return;
+      }
+      const recipients = await checkSharedRecipients();
+      const verifiedCount = currentSelection.filter(id => recipients?.includes(id)).length;
+      setError(verifiedCount !== currentSelection.length);
+      if (verifiedCount === currentSelection.length) setMessage("Your win was shared with the selected Crew members.");
+      else if (verifiedCount) setMessage("Some shares were confirmed. You can retry for the recipients still selected.");
+      else if (recipients) setMessage(result?.message ?? "The selected shares weren’t saved. You can try again.");
+      else {
         setMessage("We couldn’t confirm the share. Check which shares were saved before trying again.");
-        await checkSharedRecipients();
       }
     });
   }

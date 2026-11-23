@@ -93,7 +93,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
             <ChangePasswordControl />
             <SecurityDetail icon="shield" title="Two-step verification" status="Status not available in this preview">
               <p>Two-step verification setup and status are not available here yet. We won’t show it as on without a verified status and recovery flow.</p>
-              <Link href="/support">Ask support about account protection <AccountIcon name="arrow" /></Link>
+              <Link href="/support?topic=account#report-problem">Ask support about account protection <AccountIcon name="arrow" /></Link>
             </SecurityDetail>
             <SecurityDetail icon="key" title="Passkeys" status="Not available yet">
               <p>Passkey registration is not available in this preview. Use the supported sign-in and account-recovery flow for now.</p>

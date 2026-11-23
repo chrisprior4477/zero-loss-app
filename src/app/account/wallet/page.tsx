@@ -20,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { entryFundingAmounts, entryReviewContext, entryReviewFundingHref, entryReviewHref, fundingHref, purchaseOptionHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
@@ -44,7 +45,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; order?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; panelUnavailable?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; entryFromOrders?: string | string[]; entryOrderFilter?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ prize?: string | string[]; reward?: string | string[]; rewardId?: string | string[]; order?: string | string[]; via?: string | string[]; rewardBrowse?: string | string[]; view?: string | string[]; panel?: string | string[]; panelUnavailable?: string | string[]; rewards?: string | string[]; expiredEntry?: string | string[]; expiredFocus?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; fromOrders?: string | string[]; from?: string | string[]; browse?: string | string[]; share?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; entryTransaction?: string | string[]; entryWalletView?: string | string[]; entryFromOrders?: string | string[]; entryOrderFilter?: string | string[]; landing?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; weeklyDeposit?: string | string[]; depositList?: string | string[]; alerts?: string | string[]; notice?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
   const rawQuery = await searchParams;
   const rewardId = matchingQueryValue(rawQuery.rewardId);
   const query = {
@@ -251,8 +252,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       const winFilter = query.via === "won" ? "prize" : query.via === "completed-win" ? "completed" : query.via === "activity-win" ? "all" : null;
       const notice = validNotice(query.notice) ? query.notice : undefined;
       const alerts = query.alerts === undefined ? sourceOrder?.status === "exception" ? "action" : "orders" : notificationFilter(query.alerts);
+      const shoppingReturn = productBrowseReturnPath(query.rewardBrowse);
       const returnLink = transactionId && typeof query.rewardId === "string" && (query.via === undefined || query.via === "purchase")
         ? { href: transactionOriginHref(query)!, label: "Back to this transaction" }
+        : query.via === "activity-purchase" && isPurchasedReward(reward) && reward.rewardId
+          ? { href: `/account/entries?viewedReward=${encodeURIComponent(reward.rewardId)}#${openEntriesAnchorId}`, label: "Back to My Activity" }
         : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.rewardId
           ? { href: reward.entryId ? completedActivityHref(reward.entryId) : "/account/entries?filter=completed&viewedReward=" + encodeURIComponent(reward.rewardId) + "#" + openEntriesAnchorId, label: "Back to this purchase" }
           : typeof query.rewardId === "string" && fromOrders && reward.rewardId
@@ -265,7 +269,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               ? { href: `/account/entries?filter=${winFilter}&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this win in My Activity" }
               : notice && query.alerts !== undefined && (query.via === undefined || query.via === "purchase")
                 ? { href: notificationHref(alerts, notice), label: "Back to notifications" }
-                : undefined;
+                : shoppingReturn ? { href: shoppingReturn, label: `Back to ${productBrowseReturnLabel(shoppingReturn)}` } : undefined;
       const fulfillmentReturn = sourceOrder
         ? exactOrderHref(sourceOrder.orderNumber, orderFilter, false, orderNotification, orderContext?.filter, notice)
         : orderContext ? fulfillmentHref(reward.rewardId ?? undefined, orderFilter, false, undefined, orderContext) : undefined;

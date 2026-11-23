@@ -65,8 +65,10 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnTransactionHref, notificationReturnHref, legacyDeclineReturnHref }:  {
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnActivityHref = "/account/entries?filter=completion#my-activity-filters", activityEntryId, returnTransactionHref, notificationReturnHref, legacyDeclineReturnHref }:  {
   cardsUnavailable?: boolean;
+  returnActivityHref?: string;
+  activityEntryId?: string;
   returnTransactionHref?: string;
   notificationReturnHref?: string;
   legacyDeclineReturnHref?: string;
@@ -204,8 +206,9 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     const url = new URL(href, "https://navigation.invalid");
     const context = new URLSearchParams(url.pathname === "/account/wallet" ? fundingContext : receiptContext);
     for (const [key, value] of context) url.searchParams.set(key, value);
+    if (activityEntryId && url.pathname.startsWith("/account/purchase-options/")) url.searchParams.set("activityEntry", activityEntryId);
     return url.pathname + url.search + url.hash;
-  }, [fundingContext, receiptContext]);
+  }, [activityEntryId, fundingContext, receiptContext]);
   const walletHref = keepAlert(depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId));
   const rememberSelectionFor = (href: string) => {
     rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff });
@@ -583,7 +586,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked || offerExpired} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
       {offerExpired ? <p role="status">A selected offer reached its deadline. <button type="button" className={styles.backLink} onClick={refreshExpired}>Check available offers</button></p> : null}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
-      <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href="/account/entries?filter=completion#my-activity-filters" scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
+      <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href={returnActivityHref} scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog ownerId={ownerId} item={item} offeredOptionIds={available} ticketLabels={ticketLabels} handleBrowserBack historyScope={declineDraft ? undefined : declineHistoryScope}

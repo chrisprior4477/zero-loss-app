@@ -35,6 +35,12 @@ const item: ActivityItem = {
 const nextRewardId = "22222222-2222-4222-8222-222222222222";
 const unclaimed = { ...item, rewardClaimedAt: null };
 
+test("a ready gift card opened from Reward history returns to the same view and card", () => {
+  render(<WalletRewardDetail item={item} claimedCode="123456789012" isPreview returnTile returnView="history" />);
+  expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href"))
+    .toBe(`/account/wallet?rewards=history&card=${item.rewardId}#ready-reward-${item.rewardId}`);
+});
+
 test.each(["succeeded", "verification_required"] as const)("a late claim result (%s) stays with the original reward", async status => {
   let finish!: (result: RewardClaimActionState) => void;
   mocks.claim.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));

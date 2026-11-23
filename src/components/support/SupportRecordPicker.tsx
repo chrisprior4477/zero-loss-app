@@ -84,7 +84,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     setOpen(true);
     closeButton.current?.focus({ preventScroll: true });
     if (restoreView) {
-      void load(kind, page, Boolean(record && record.kind === kind), record?.kind === kind ? record.id : undefined);
+      void load(kind, page, true);
       return;
     }
     const previous = attachedPage.current;

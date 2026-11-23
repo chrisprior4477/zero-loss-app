@@ -153,20 +153,27 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     const data = new FormData(); if (walletId) data.set("walletId", walletId); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
     data.set("cardRevision", card.revision);
     try {
-      const result = await saveDemoPaymentMethod({ status: "idle" }, data);
-      if (result.status === "error") {
+      const result = await saveDemoPaymentMethod({ status: "idle" }, data).catch(() => null);
+      if (result?.status === "error") {
         reportError(result.message);
         if (result.stale) router.refresh();
+        return;
       }
-      if (result.status === "succeeded") setMessage(result.message);
-      if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
-    } catch {
-      const latest = await readDemoPaymentMethod(card.token, walletId).catch(() => null);
-      if (latest?.status === "loaded" && latest.card?.isDefault === value) {
-        const saved = latest.card;
-        setCards(current => current.map(item => item.token === saved.token ? saved : value ? { ...item, isDefault: false } : item));
+      let saved = result?.status === "succeeded" ? result.card : undefined;
+      if (result?.status === "succeeded") setMessage(result.message);
+      else {
+        const latest = await readDemoPaymentMethod(card.token, walletId).catch(() => null);
+        if (latest?.status !== "loaded" || latest.card?.isDefault !== value) {
+          reportError("We couldn’t confirm your preference. Check your saved cards before trying again.");
+          router.refresh();
+          return;
+        }
+        saved = latest.card;
         setMessage("Your default card preference was saved.");
-      } else reportError("We couldn’t confirm your preference. Check your saved cards before trying again.");
+      }
+      setCards(current => current.map(item => item.token === card.token
+        ? saved ?? { ...item, isDefault: value }
+        : value ? { ...item, isDefault: false } : item));
       router.refresh();
     }
     finally { setBusy(false); }

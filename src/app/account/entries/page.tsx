@@ -64,11 +64,11 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const viewedEntryId = typeof query.viewed === "string" && account.activity.activity.some(item => item.entryId === query.viewed) ? query.viewed : undefined;
   const requestedRewardId = typeof query.viewedReward === "string" ? query.viewedReward.toLowerCase() : undefined;
-  const viewedRewardId = filter === "completed" && requestedRewardId && filterActivity(account.activity.activity, "completed")
+  const viewedRewardId = (filter === "completed" || filter === "all") && requestedRewardId && filterActivity(account.activity.activity, filter)
     .some(item => item.rewardId === requestedRewardId && (!completedPrize || item.slug === completedPrize)) ? requestedRewardId : undefined;
   const selectedItem = account.activity.incomplete && !selectedEntryId ? undefined : findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter);
   const missingSelection = query.entry !== undefined && (!selectedEntryId || !selectedItem) ? "entry"
-    : filter === "completed" && query.viewedReward !== undefined && !viewedRewardId ? "reward" : null;
+    : (filter === "completed" || filter === "all") && query.viewedReward !== undefined && !viewedRewardId ? "reward" : null;
   const selectionMessage = missingSelection ? account.activity.source === "unavailable" || account.activity.incomplete
     ? `We couldn’t check the selected ${missingSelection} right now.` : `The selected ${missingSelection} could not be opened. The available records are shown below.` : undefined;
   const checkoutItem = filter === "completed" && viewedEntryId

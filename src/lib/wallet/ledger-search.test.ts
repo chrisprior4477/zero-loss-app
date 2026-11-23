@@ -3,6 +3,20 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("a date and posted amount are separate filters, and gift-card purchases exclude entry charges", () => {
+  const product = { slug: "walmart-25-gift-card", title: "$25 Walmart Gift Card", retailer: "Walmart", image: "/card.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at: "2026-11-06T02:00:00Z", product },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-06T02:00:00Z", product },
+    { id: "older-entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-10-06T02:00:00Z", product },
+  ];
+  const search = (term: string) => searchLedger(entries, term, row => ledgerDescription(row.entry_type, row.product?.title)).map(row => row.id);
+  expect(search("November 2026 $1")).toEqual(["entry"]);
+  expect(search("$1 November 2026")).toEqual(["entry"]);
+  expect(search("gift card purchases from Walmart")).toEqual(["purchase"]);
+  expect(search("Walmart gift card purchases")).toEqual(["purchase"]);
+});
+
 test("matches amount, date and direction shorthand without treating held or unrelated amounts as charges", () => {
   const created_at = "2026-11-06T02:00:00Z";
   const later = "2026-11-07T12:00:00Z";

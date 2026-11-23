@@ -22,6 +22,15 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 
+test.each(["redeemed", "expired", "cancelled", "issuance_pending", "issuance_failed"] as const)("a winning card with status %s is not presented as ready", rewardStatus => {
+  const state = storedActivityFixture();
+  const win = state.activity.find(item => item.status === "prize")!;
+  state.activity = [{ ...win, rewardKind: "digital", rewardStatus }];
+  render(<MyZeroLossActivity state={state} filter="prize" />);
+  expect(screen.queryByText("Your digital reward is ready.")).toBeNull();
+  expect(screen.getByRole("link", { name: /View reward status/ })).toBeTruthy();
+});
+
 test("an older exact activity link opens the matching declined offer", () => {
   const state = storedActivityFixture();
   const item = { ...state.activity[2], entryId: "ent_1234", completionOptionStatus: "declined" as const, completionOptionId: "a0e941bf-8f2c-4bb9-905c-ebf1872f4d71" };
@@ -299,7 +308,7 @@ test("Completed contains purchased options and wins, with an orange purchase lab
   expect(purchaseCard.getAttribute("data-purchase-completed")).toBe("true");
   expect(within(purchaseCard).getByText("Purchase completed")).toBeTruthy();
   expect(within(purchaseCard).getByText("Open reward")).toBeTruthy();
-  expect(purchaseCard.getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes&rewardId=11111111-1111-4111-8111-111111111111");
+  expect(purchaseCard.getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes&rewardId=11111111-1111-4111-8111-111111111111&via=activity-purchase");
   expect(screen.getByRole("link", { name: "Completed2" })).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completed" />);
   expect(screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ }).getAttribute("href"))

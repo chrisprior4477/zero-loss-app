@@ -114,10 +114,11 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const readyCount = state.source === "unavailable" || state.incomplete ? null : ready.length;
   const accountReady = prize ? readyWalletRewards(state) : ready;
   const singleReady = accountReady.length === 1 && readyCount !== null ? accountReady[0] : null;
-  const readyTarget = (view === "all" || view === "ready") && focusCard
+  const readyFromHistory = view === "history" && Boolean(focusCard) && ready.some(item => item.rewardId === focusCard);
+  const readyTarget = (view === "all" || view === "ready" || readyFromHistory) && focusCard
     ? ready.some(item => item.rewardId === focusCard) ? `ready-reward-${focusCard}` : "ready-rewards"
     : undefined;
-  const historyTarget = focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
+  const historyTarget = !readyFromHistory && focusHistoryCard && (shown.some(item => (item.rewardId ?? item.entryId) === focusHistoryCard) ? `wallet-reward-${focusHistoryCard}` : "reward-history");
   const missingHistoryCard = Boolean(focusHistoryCard && historyTarget === "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
@@ -277,7 +278,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
   }
   const walletReturnHref = checkoutContext ? checkoutRewardsHref(item.slug, checkoutContext.receipt, checkoutContext.current.id)
     : returnTile && item.rewardId && available
-    ? `/account/wallet?${returnPrizeQuery}${returnView === "ready" ? "rewards=ready&" : ""}card=${encodeURIComponent(item.rewardId)}`
+    ? `/account/wallet?${returnPrizeQuery}${returnView && returnView !== "all" ? `rewards=${returnView}&` : ""}card=${encodeURIComponent(item.rewardId)}${returnView === "history" ? `#ready-reward-${encodeURIComponent(item.rewardId)}` : ""}`
     : returnHistory ? `/account/wallet?${returnPrizeQuery}${returnView && returnView !== "all" ? `rewards=${returnView}&` : ""}rewardHistory=1${item.rewardId ? `&card=${encodeURIComponent(item.rewardId)}#wallet-reward-${encodeURIComponent(item.rewardId)}` : "#reward-history"}`
       : returnView ? `/account/wallet?${returnPrizeQuery}rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}`
         : returnPrize ? `/account/wallet?prize=${encodeURIComponent(returnPrize)}#ready-rewards` : "/account/wallet";

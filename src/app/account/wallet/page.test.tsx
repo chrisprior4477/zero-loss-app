@@ -51,6 +51,8 @@ test("failed activity reads offer a full retry of the exact saved reward without
 
 test.each([
   [{ via: "completed" }, "Back to this purchase", `/account/entries?filter=completed&viewed=${purchaseEntry}#my-activity-filters`],
+  [{ via: "activity-purchase" }, "Back to My Activity", "/account/entries?viewedReward=11111111-1111-4111-8111-111111111111#my-activity-filters"],
+  [{ rewardBrowse: "/browse?category=electronics&q=Samsung#search-results" }, "Back to Electronics", "/browse?category=electronics&q=Samsung#search-results"],
   [{ transaction: "22222222-2222-4222-8222-222222222222", walletView: "1" }, "Back to this transaction", "/account/wallet?view=history&transaction=22222222-2222-4222-8222-222222222222&walletView=1#transaction-22222222-2222-4222-8222-222222222222"],
   [{ alerts: "activity", notice: "reward-ready-1" }, "Back to notifications", "/account/notifications?filter=activity&notice=reward-ready-1#notification-tickets-filters"],
   [{ via: "order-selection" }, "Back to this order", "/account/orders?order=ord_exact#order-ord_exact"],

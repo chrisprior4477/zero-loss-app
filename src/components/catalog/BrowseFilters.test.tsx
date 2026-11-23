@@ -8,6 +8,18 @@ const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 afterEach(cleanup);
 
+test("clearing filters keeps the applied query when the edited draft is invalid", () => {
+  const onNavigate = vi.fn();
+  render(<FilterForm id="invalid-clear-query"
+    filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: 100 }}
+    retailerGroups={[]} selectedRetailerGroup={null} selectedCategory={null} searchTerm="Sony" subcategory=""
+    clearHref="/browse?q=Sony" onNavigate={onNavigate} />);
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "!!!" } });
+  fireEvent.click(screen.getByRole("link", { name: "Clear filters" }));
+  expect(onNavigate).toHaveBeenCalledWith("/browse?q=Sony#search-results");
+  expect(screen.getByRole("searchbox")).toHaveProperty("value", "Sony");
+});
+
 test("Apply filters honors an explicit clear of the search term", () => {
   render(<FilterForm id="clear-query"
     filters={{ type: "all", retailer: "", availableOnly: true, sort: "fewest-left", minValue: null, maxValue: 100 }}

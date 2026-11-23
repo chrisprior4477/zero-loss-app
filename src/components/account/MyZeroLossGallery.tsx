@@ -43,7 +43,10 @@ function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
 }
 
 function action(item: ActivityItem) {
-  if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
+  if (item.status === "prize") {
+    if (item.rewardKind !== "digital") return "Claim prize";
+    return item.rewardStatus && item.rewardStatus !== "ready" ? "View reward status" : "Open reward";
+  }
   if (isPurchasedReward(item)) return "Open reward";
   if (item.completionOptionStatus === "declined") return "Review declined";
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
@@ -256,8 +259,8 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => (selectedId && entry.entryId === selectedId) || (viewedRewardId && entry.rewardId === viewedRewardId)));
         const item = group.entries[selectedIndex];
         const purchasedReward = isPurchasedReward(item);
-        const purchasedRewardNote = ({
-          ready: "Your purchased reward is ready.",
+        const rewardStatusNote = ({
+          ready: purchasedReward ? "Your purchased reward is ready." : "Your digital reward is ready.",
           redeemed: "Your gift card has been used.",
           issuance_pending: "Your gift card is being issued.",
           issuance_failed: "Your gift card needs attention.",
@@ -274,8 +277,9 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const completedPurchase = filter === "completed" && purchasedReward && item.rewardId;
         const checkoutCardHref = completedPurchase && item.rewardId && checkout?.rewardIds.includes(item.rewardId)
           ? purchasedRewardHref(item.rewardId, item.slug, checkout.receipt) : undefined;
-        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}`
+        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}${filter === "all" && item.entryId ? `?activityEntry=${encodeURIComponent(item.entryId)}` : ""}`
           : completedPurchase ? checkoutCardHref ?? `${activityCardHref}&via=completed`
+          : filter === "all" && purchasedReward && item.rewardId ? `${activityCardHref}&via=activity-purchase`
           : item.status === "prize" && !purchasedReward && item.rewardId && item.entryId && (filter === "prize" || filter === "completed" || filter === "all")
             ? `${activityCardHref}&via=${filter === "all" ? "activity-win" : filter === "completed" ? "completed-win" : "won"}` : activityCardHref;
         const featured = item.status === "prize" && index === 0;
@@ -305,7 +309,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}>{purchaseStamp ? <><RepeatPurchaseStamp {...purchaseStamp} /><span className={styles.srOnly}>Your purchased reward is ready.</span></> : purchaseOption ? <PurchaseOptionSummary options={group.entries} /> : <p className={styles.productNote}>{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? purchasedRewardNote : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? item.rewardStatus ? rewardStatusNote : "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? rewardStatusNote : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
                   : purchaseOption ? <><span>See My</span><span className={styles.optionActionCount} aria-hidden="true">{group.entries.length}</span><span>{group.entries.length === 1 ? "Purchase Option" : "Purchase Options"}</span><AccountIcon name="arrow" /></>

@@ -15,6 +15,7 @@ import Link from "next/link";
 import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { cardSaveMatches } from "@/lib/payments/card-save-review";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
 import { parseFundingDollars } from "@/lib/payments/funding-amount";
@@ -127,21 +128,51 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [manageCards, setManageCards] = useState(false);
   const cardEditorOpener = useRef<string | null>(null);
   const manageCardsOpener = useRef<HTMLElement | null>(null);
+  const savedCardsReturn = useRef<string | null>(null);
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
   const editorDraftKey = `${storageKey}:card-editor:${returnHref ?? "wallet"}`;
+  function rememberBalanceReturn() {
+    window.history.replaceState({ ...window.history.state, fundingBalanceDraft: {
+      href: window.location.href, walletId, returnHref, amount, customAmount, selectedToken,
+    } }, "");
+  }
+  const restoredBalanceDraft = useRef(false);
+  useLayoutEffect(() => {
+    if (!ready || recovered || restoredBalanceDraft.current) return;
+    const draft = window.history.state?.fundingBalanceDraft;
+    if (draft?.href !== window.location.href || draft.walletId !== walletId || draft.returnHref !== returnHref) return;
+    restoredBalanceDraft.current = true;
+    if (typeof draft.customAmount === "string" && typeof draft.amount === "string"
+      && (draft.amount === "" || (isFundingAmount(Number(draft.amount)) && Number(draft.amount) % 100 === 0))) {
+      // Restore only the funding draft. The customer still reviews and approves the deposit.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAmount(draft.amount);
+      setCustomAmount(draft.customAmount);
+    }
+    if (draft.selectedToken === null || visibleTokens.includes(draft.selectedToken)) setSelectedToken(draft.selectedToken);
+  }, [ready, recovered, returnHref, visibleTokens, walletId]);
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
   const cameraCard = cards.find(card => card.token === cameraToken);
   function openSavedCards(trigger?: HTMLElement) {
+    if (manageCards && trigger?.closest("#add-card")) {
+      const choices = document.querySelectorAll<HTMLInputElement>('#add-card input[name="cardChoice"]:enabled');
+      focusFundingControl(Array.from(choices).find(choice => choice.checked) ?? choices[0] ?? null);
+      return;
+    }
     manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
-    if (location.pathname === "/account/wallet") window.history.replaceState(window.history.state, "", "#add-card");
-    revealWalletSection("add-card", "add-card");
+    if (location.pathname === "/account/wallet") openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href });
+    else revealWalletSection("add-card", "add-card");
   }
   function closeSavedCards() {
     setManageCards(false);
+    if (window.history.state?.fundingSavedCardsReturn) {
+      window.history.back();
+      return;
+    }
     if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
       openWalletPanel(`#${amountSection}`, null, true);
     }
@@ -156,10 +187,6 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     revealBelowHeader(control);
   }
   useLayoutEffect(() => {
-    if (mobile && !manageCards && location.pathname === "/account/wallet" && window.location.hash === "#add-card") {
-      const frame = requestAnimationFrame(() => setManageCards(true));
-      return () => cancelAnimationFrame(frame);
-    }
     if (mobile && manageCards) {
       const heading = document.getElementById("funding-saved-cards-title");
       heading?.focus({ preventScroll: true });
@@ -292,10 +319,20 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
   useEffect(() => {
-    function syncEditor() {
+    function syncEditor(event?: Event) {
       if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
+        savedCardsReturn.current = window.history.state?.fundingSavedCardsReturn ?? null;
         setManageCards(true);
         revealWalletSection(window.location.hash.slice(1));
+      } else if (savedCardsReturn.current && window.location.hash !== fundingEditorHash) {
+        const returningToFunding = event?.type === "popstate" && window.location.href === savedCardsReturn.current;
+        savedCardsReturn.current = null;
+        setManageCards(false);
+        if (returningToFunding) {
+          const trigger = manageCardsOpener.current;
+          if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+          revealWalletSection(amountSection, amountSection);
+        }
       }
       if (window.location.hash !== fundingEditorHash) {
         setEditingCard(null);
@@ -329,7 +366,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     window.addEventListener("hashchange", syncEditor);
     window.addEventListener("popstate", syncEditor);
     return () => { window.removeEventListener("hashchange", syncEditor); window.removeEventListener("popstate", syncEditor); };
-  }, [fundingEditorHash, ready, recovered, locked, walletId, returnHref, editorDraftKey, cardUnavailable, cards, visibleTokens]);
+  }, [amountSection, fundingEditorHash, ready, recovered, locked, walletId, returnHref, editorDraftKey, cardUnavailable, cards, visibleTokens]);
   function reviewCardRemoval(token: DemoCardToken, deadline = Date.now() + 30_000) {
     setDeleteDeadline(deadline);
     setCardMessage("");
@@ -422,25 +459,28 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     if (existing?.revision) data.set("cardRevision", existing.revision);
     try {
-      const result = await saveDemoPaymentMethod({ status: "idle" }, data);
-      setCardMessage(result.status === "idle" ? "The sample card was not saved." : result.message);
-      if (result.status === "succeeded") {
-        const fixture = demoCardFixture(token)!;
-        const effectiveDefault = asDefault;
-        setCards(previous => [...previous.filter(card => card.token !== token).map(card => ({ ...card, isDefault: effectiveDefault ? false : card.isDefault })),
-          result.card ?? { ...previous.find(card => card.token === token), token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
-        if (effectiveDefault) setDefaultToken(token);
-        else if (defaultToken === token) setDefaultToken(null);
-        router.refresh();
+      const result = await saveDemoPaymentMethod({ status: "idle" }, data).catch(() => null);
+      if (result?.status === "error") {
+        setCardMessage(result.message);
+        if (result.stale) router.refresh();
+        return;
       }
-    } catch {
-      const latest = await readDemoPaymentMethod(token, walletId).catch(() => null);
-      if (latest?.status === "loaded" && latest.card?.isDefault === asDefault) {
-        const saved = latest.card;
-        setCards(current => current.map(card => card.token === token ? saved : asDefault ? { ...card, isDefault: false } : card));
-        setDefaultToken(current => asDefault ? token : current === token ? null : current);
-        setCardMessage("Your default card preference was saved.");
-      } else setCardMessage("We couldn’t confirm your preference. Check your saved cards before trying again.");
+      let saved = result?.status === "succeeded" ? result.card : undefined;
+      if (result?.status === "succeeded") setCardMessage(result.message);
+      else {
+        const latest = await readDemoPaymentMethod(token, walletId).catch(() => null);
+        if (latest?.status !== "loaded" || !latest.card || !cardSaveMatches(latest.card, data)) {
+          setCardMessage("We couldn’t confirm your card changes. Check your saved cards before trying again.");
+          router.refresh();
+          return;
+        }
+        saved = latest.card;
+        setCardMessage(existing && !data.has("artwork") ? "Your default card preference was saved." : "Card saved.");
+      }
+      const fixture = demoCardFixture(token)!;
+      setCards(previous => [...previous.filter(card => card.token !== token).map(card => ({ ...card, isDefault: asDefault ? false : card.isDefault })),
+        saved ?? { ...previous.find(card => card.token === token), token, lastFour: fixture.lastFour, isDefault: asDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
+      setDefaultToken(current => asDefault ? token : current === token ? null : current);
       router.refresh();
     }
     finally { setSavingCard(null); }
@@ -592,13 +632,13 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
-      <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={() => setManageCards(value => !value)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
+      <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
       {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => chooseDepositCard(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}
       <div hidden={!manageCards}>{cardPanel}</div>
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
       {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
-      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href="/account/wallet?view=history&landing=balance#balance" scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href="/account/wallet?view=history&landing=balance#balance" onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;
 }

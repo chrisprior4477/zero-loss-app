@@ -51,6 +51,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   const [slugs, setSlugs] = useState(initialSlugs);
   const [busySlugs, setBusySlugs] = useState<string[]>([]);
   const inFlight = useRef(new Set<string>());
+  const checking = useRef(new Set<string>());
   const confirmed = useRef(new Map<string, boolean>());
   const mutationGeneration = useRef(0);
   const [message, setMessage] = useState("");
@@ -190,7 +191,10 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   };
 
   async function checkFavorite(attempt: { slug: string; shouldSave: boolean }) {
+    if (checking.current.has(attempt.slug)) return;
+    checking.current.add(attempt.slug);
     const latest = await getCurrentFavorites().catch(() => null);
+    checking.current.delete(attempt.slug);
     if (!latest?.available || (accountId && latest.accountId !== accountId)) {
       setUnverifiedFavorites(current => ({ ...current, [attempt.slug]: attempt.shouldSave }));
       setMessage("We couldn’t confirm the change to Favorites. Check the saved favorite.");

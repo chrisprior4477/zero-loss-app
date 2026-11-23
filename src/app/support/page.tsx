@@ -145,7 +145,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const validDeposit = typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : null;
   const obsoleteView = query.view !== undefined && query.view !== "inbox";
   const returnQuery = obsoleteView ? { ...query, view: undefined } : query;
-  const next = accountPageReturnPath("/support", returnQuery, validCase ? "#conversation" : query.page || query.view === "inbox" ? "#case-list" : validTransaction || validReward || validDeposit ? "#report-problem" : "");
+  const topic = query.topic === "email" || query.topic === "account" || query.topic === "reward" ? query.topic : undefined;
+  const next = accountPageReturnPath("/support", returnQuery, validCase ? "#conversation" : query.page || query.view === "inbox" ? "#case-list" : validTransaction || validReward || validDeposit || topic ? "#report-problem" : "");
   const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} focusReport focusAnchor={validCase ? "conversation" : "case-list"} focusAnchorPrefix="support-message-" /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header>{obsoleteView ? <p role="status" className={`${note} mb-4`}>That saved Support view is unavailable. The current Support view is shown below.</p> : null}</>;
   if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><AuthDestinationLink page="/forgot-password" returnTo={next} className={button}>Reset your password →</AuthDestinationLink></div><div id="report-problem" tabIndex={-1} className={`${card} ${styles.anchor}`}><div id="case-list" tabIndex={-1} className={styles.anchor}>{!validCase && <MissingSupportConversation signedOut />}<div id={validCase ? "conversation" : undefined} tabIndex={validCase ? -1 : undefined} className={styles.anchor}><p>{validCase ? "Sign in to view this private support conversation." : "Sign in to report a problem or view your private support cases."}</p><AuthDestinationLink page="/login" returnTo={next} className={`${button} mt-4`}>Sign in to get help</AuthDestinationLink></div></div></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
@@ -304,8 +305,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     .range(casePage * pageSize, (casePage + 1) * pageSize) : null;
   const cases = inbox ? null : await loadOwnSupportCases(db, account.userId);
   const contextUnavailable = validDeposit && !deposit ? "We couldn’t verify that deposit for your account."
-    : validReward && (!reward?.data || reward.error) ? "That reward is unavailable for your account."
-    : validTransaction && (!transaction?.data || transaction.error) ? "That transaction is unavailable for your account." : null;
+    : validReward && reward?.error ? "We couldn’t check this reward right now. Try again."
+    : validTransaction && transaction?.error ? "We couldn’t check this transaction right now. Try again."
+    : validReward && !reward?.data ? "That reward is unavailable for your account."
+    : validTransaction && !transaction?.data ? "That transaction is unavailable for your account." : null;
   const lookupFailed = validDeposit && deposit === null || validReward && Boolean(reward?.error) || validTransaction && Boolean(transaction?.error);
   const selectedRecordReturn = !lookupFailed ? null : validDeposit ? depositRecoveryHref(validDeposit, depositList, false, checkoutReturn, entryReturn)
     : validReward ? rewardReturn ?? `/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`
@@ -318,7 +321,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         {contextUnavailable ? <div>
           <p role="alert">{contextUnavailable}</p>
           <div className={styles.navigation}>
-            <a className={button} href={next}>Check this record again</a>
+            <AccountReadRetryLink className={button} href={next}>Check this record again</AccountReadRetryLink>
             {selectedRecordReturn ? <Link className={button} href={selectedRecordReturn}>Check {validDeposit ? "deposit status" : validReward ? "reward status" : "transaction status"}</Link> : null}
             <Link className={button} href="/support#report-problem">Get general support</Link>
           </div>
@@ -343,7 +346,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             timeZone={account.timezone} status={depositStatuses[deposit.reconciliation]}
             reference={`Deposit reference: ${deposit.id}`}
             href={depositRecoveryHref(deposit.idempotencyKey, depositList, false, checkoutReturn, entryReturn)} returnLabel="Back to this deposit" /> : null}
-          <SupportForm ownerId={account.userId} topic={query.topic === "email" ? "email" : undefined} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} caseContext={returnOrder || (validReward && returnToDetails) ? `&from=order${orderContext}${returnToDetails ? "&details=1" : ""}${alertContext}` : `${walletContext}${walletOrdersContext}${walletView && validTransaction ? "&walletView=1" : ""}${deposit ? depositContext : ""}${alertContext}`} transactionOrigin={returnOrder || (validReward && returnToDetails) ? `order:${orderFilter}${returnToDetails && returnOrder ? ":details" : ""}` : rewardReturn ? `reward:${rewardReturn}` : ordersWalletFilter ? `wallet:orders:${ordersWalletFilter}` : walletContext ? "wallet" : undefined} allowRecordPicker={!validTransaction && !validReward && !validDeposit} timeZone={account.timezone} />
+          <SupportForm ownerId={account.userId} topic={topic} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} caseContext={returnOrder || (validReward && returnToDetails) ? `&from=order${orderContext}${returnToDetails ? "&details=1" : ""}${alertContext}` : `${walletContext}${walletOrdersContext}${walletView && validTransaction ? "&walletView=1" : ""}${deposit ? depositContext : ""}${alertContext}`} transactionOrigin={returnOrder || (validReward && returnToDetails) ? `order:${orderFilter}${returnToDetails && returnOrder ? ":details" : ""}` : rewardReturn ? `reward:${rewardReturn}` : ordersWalletFilter ? `wallet:orders:${ordersWalletFilter}` : walletContext ? "wallet" : undefined} allowRecordPicker={!validTransaction && !validReward && !validDeposit} timeZone={account.timezone} />
         </>}
       </section> : null}
       <section id="case-list" tabIndex={-1} className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 tabIndex={-1} className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
