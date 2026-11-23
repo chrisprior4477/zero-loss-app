@@ -263,6 +263,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }, [refining]);
   const collection = new URL(props.browseHref, "https://zeroloss.local").searchParams.get("collection");
   function navigateFromPanel(destination: string) {
+    if (panel === "categories" && openPanel && comparableBrowseHref(destination) !== comparableBrowseHref(props.browseHref)) {
+      rememberBrowseCategoryTrigger(openPanel.position);
+    }
     if (panel === "filters" && refining && openPanel) {
       const target = comparableBrowseHref(destination);
       if (target === comparableBrowseHref(props.browseHref)) { close(); return; }
@@ -311,11 +314,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         rememberPreview(comparableBrowseHref(href), value, openPanel.position);
         navigateFromPanel(href);
       } else setPreview(current => current === value ? null : value);
-    } else {
-      const destination = prizeCategoryHref(value);
-      if (openPanel && comparableBrowseHref(destination) !== comparableBrowseHref(props.browseHref)) rememberBrowseCategoryTrigger(openPanel.position);
-      navigateFromPanel(destination);
-    }
+    } else navigateFromPanel(prizeCategoryHref(value));
   }
   function searchDestination(value: string, allCategories = false) {
     const url = new URL(props.browseHref, "https://zeroloss.local");

@@ -217,7 +217,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             const exactRow = selectedId ? document.getElementById(`transaction-${selectedId}`) : null;
             for (const detail of list?.querySelectorAll("details") ?? []) {
               detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "")
-                || (detail.hasAttribute("data-transaction-stack") && (detail.contains(row) || detail.contains(exactRow) || postedAmountQuery.test(saved.query ?? "")));
+                || (detail.hasAttribute("data-transaction-stack") && (detail.contains(row) || detail.contains(exactRow)));
             }
             const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
             const top = row && (list?.contains(row) || supportReturn)
@@ -443,16 +443,17 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         const image = rows.find(row => row.product)?.product;
         const hold = stack.kind === "reservation" ? rows.find(row => row.entry_type === "ENTRY_HOLD") : undefined;
         const matchingAmounts = !hold && postedAmountQuery.test(query);
+        const sameAmount = matchingAmounts && rows.every(row => row.amount === first.amount);
         const label = hold ? "2 records" : `${rows.length} entries`;
         return <li id={stackId(first)} key={stackId(first)} className={styles.transactionStack}>
-          <details data-transaction-stack open={matchingAmounts || rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
+          <details data-transaction-stack open={rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
             <summary className={styles.stackSummary} data-layers={Math.min(3, rows.length - 1)}>
               <span className={styles.stackLayer} aria-hidden="true" />
               <span className={styles.stackFace}>
                 <time dateTime={first.created_at}>{dateLabel(first.created_at, timeZone, locale)}</time>
                 {image && <span className={styles.ledgerVisuals}><span className={styles.ledgerProduct}><Image src={image.image} alt="" width={43} height={43} sizes="43px" /></span></span>}
                 <span className={styles.ledgerDescription}>
-                  <strong>{hold ? "Entry reservation released" : matchingAmounts ? `${rows.length} matching entry purchases` : `${rows.length} entry purchases`}</strong>
+                  <strong>{hold ? "Entry reservation released" : matchingAmounts ? `${rows.length} matching entry purchases${sameAmount ? ` · ${formatUsdFromCents(first.amount)} each` : ""}` : `${rows.length} entry purchases`}</strong>
                   {image && <span>{image.title}</span>}
                   <span>{hold ? `${formatUsdFromCents(-hold.amount)} held → ${formatUsdFromCents(-hold.amount)} released` : image?.retailer}</span>
                 </span>

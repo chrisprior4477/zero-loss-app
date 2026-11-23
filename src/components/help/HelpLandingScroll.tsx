@@ -10,6 +10,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     let second = 0;
     let disposed = false;
     let interrupted = false;
+    const settlingTimers: number[] = [];
     const matchesFocusAnchor = (id: string) => typeof focusAnchor === "string" ? id === focusAnchor : focusAnchor?.includes(id);
     const matchesPrefix = (id: string) => typeof focusAnchorPrefix === "string" ? id.startsWith(focusAnchorPrefix) : focusAnchorPrefix?.some(prefix => id.startsWith(prefix));
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
@@ -49,7 +50,14 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     // Font metrics can rewrap the heading/navigation after hydration. Measure only
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
     const arrivalAnchor = window.location.hash.split("#").at(-1) ?? "";
-    if (matchesFocusAnchor(arrivalAnchor) || matchesPrefix(arrivalAnchor)) reveal();
+    if (matchesFocusAnchor(arrivalAnchor) || matchesPrefix(arrivalAnchor) || focusReport && arrivalAnchor === "report-problem") reveal();
+    if (focusReport && arrivalAnchor === "report-problem") {
+      const href = window.location.href;
+      for (const delay of [100, 350, 800]) settlingTimers.push(window.setTimeout(() => {
+        const active = document.activeElement;
+        if (window.location.href === href && (active === document.body || active?.id === "main-content")) reveal();
+      }, delay));
+    }
     if (document.fonts) void document.fonts.ready.then(reveal);
     else reveal();
     const navigate = () => { interrupted = false; reveal(); };
@@ -61,6 +69,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     window.addEventListener("keydown", stop);
     return () => {
       disposed = true; cancel();
+      settlingTimers.forEach(clearTimeout);
       window.removeEventListener("hashchange", navigate);
       window.removeEventListener("resize", measure);
       window.removeEventListener("pointerdown", stop);

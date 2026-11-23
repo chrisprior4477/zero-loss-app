@@ -26,7 +26,10 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
         if (action) {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           window.scrollTo({ top: Math.max(0, window.scrollY + action.getBoundingClientRect().top - header - 12), behavior: "instant" });
-          if (!focused) { action.focus({ preventScroll: true }); focused = true; }
+          if (!focused || document.activeElement === document.body || document.activeElement?.id === "main-content") {
+            action.focus({ preventScroll: true });
+            focused = true;
+          }
         } else {
           document.getElementById("product-entry-card")?.scrollIntoView?.({ block: "start", behavior: "instant" });
           if (!focused && hash === "#enter-entry" && source?.startsWith("/rewards/")) {

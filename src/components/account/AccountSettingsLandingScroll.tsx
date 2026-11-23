@@ -44,9 +44,10 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
           const bounds = destination.getBoundingClientRect();
           const delta = bounds.top - accountLandingTop(measure(), window.visualViewport?.height ?? window.innerHeight, bounds.height, destination.dataset.landingAlign === "center");
           if (Math.abs(delta) > 1) window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
-          if (focusTarget && !focused) {
-            document.getElementById(focusTarget)?.focus({ preventScroll: true });
-            focused = true;
+          if (focusTarget && (!focused || settleAfterNavigation && (document.activeElement === document.body || document.activeElement?.id === "main-content"))) {
+            const element = document.getElementById(focusTarget);
+            element?.focus({ preventScroll: true });
+            focused = Boolean(element);
           }
         });
       });
