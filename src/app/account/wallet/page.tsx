@@ -126,7 +126,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         ? { title: fromEntry.title, rewardSource: isPurchasedReward(fromEntry) ? "purchase" : fromEntry.rewardSource ?? "winner", href: `/account/wallet?${new URLSearchParams({ reward: fromEntry.slug, rewardId: fromEntry.rewardId, ...entryReviewContext(entryOrigin) })}#reward-pass`, label: "Open gift card" }
         : { title: fromEntry.title, href: fromEntry.status === "completion" ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice) ? `${purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice)}${Object.keys(entryReviewContext(entryOrigin)).length ? `&${new URLSearchParams(entryReviewContext(entryOrigin))}` : ""}` : activityHref(fromEntry) : activityHref(fromEntry), label: fromEntry.status === "completion" ? "Back to purchase option" : undefined }
     : undefined
-    : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse, query.share) } : undefined;
+    : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse, query.share).replace(/#enter-entry$/, "#entry-action") } : undefined;
   if (fundingReturn && forEntry) {
     if (invalidQuantity) {
       fundingReturn.invalidQuantity = true;

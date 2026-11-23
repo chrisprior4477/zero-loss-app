@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, LegalSection, ReviewNotice, legalCopy } from "@/components/legal/LegalPage";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalPage current="/terms" title="Terms of Service" description="A plain-language draft for the current Zero Loss preview. These terms do not replace approved Official Rules for any future live promotion.">
+      <AccountSettingsLandingScroll target="free-entry" focusTarget="free-entry-heading" allScreens restrictToTargetHash settleAfterNavigation />
       <ReviewNotice />
       <article className="mt-5 max-w-4xl">
         <LegalSection id="preview" title="1. Preview service and acceptance">

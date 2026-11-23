@@ -8,8 +8,10 @@ import styles from "./help-tickets.module.css";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { faqReturnKey, readFaqReturn, type FaqReturn } from "@/lib/help/faq-return";
 
-const productRequestReturnKey = "zero-loss-faq-product-request-return";
-const productRequestAnchor = "#faq-request-product";
+const explicitFaqReturns = {
+  "#faq-request-product": { pathname: "/contact/product-request", key: "zero-loss-faq-product-request-return" },
+  "#faq-free-entry": { pathname: "/free-entry", key: "zero-loss-faq-free-entry-return" },
+};
 
 export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
   const [query, setQuery] = useState("");
@@ -47,10 +49,11 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
         window.history.replaceState(window.history.state, "", `#faq-${answerId.id}`);
       }
       let saved = readFaqReturn(window.history.state, window.location.href);
-      if (!saved && window.location.hash === productRequestAnchor) {
+      const explicitReturn = explicitFaqReturns[window.location.hash as keyof typeof explicitFaqReturns];
+      if (!saved && explicitReturn) {
         try {
-          saved = readFaqReturn(JSON.parse(sessionStorage.getItem(productRequestReturnKey) ?? "null"), window.location.href);
-          sessionStorage.removeItem(productRequestReturnKey);
+          saved = readFaqReturn(JSON.parse(sessionStorage.getItem(explicitReturn.key) ?? "null"), window.location.href);
+          sessionStorage.removeItem(explicitReturn.key);
           if (saved) window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
         } catch { /* The direct answer link works without a recorded search. */ }
       }
@@ -114,10 +117,12 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
       scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0,
       answerLink: answer ? anchor.getAttribute("href") ?? undefined : undefined };
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
-    if (saved.answer === "request-product" && anchor.pathname === "/contact/product-request") {
+    const fragment = `#faq-${saved.answer}` as keyof typeof explicitFaqReturns;
+    const explicitReturn = explicitFaqReturns[fragment];
+    if (explicitReturn && anchor.pathname === explicitReturn.pathname) {
       try {
-        sessionStorage.setItem(productRequestReturnKey, JSON.stringify({
-          [faqReturnKey]: { ...saved, href: new URL("/faq" + productRequestAnchor, window.location.origin).href },
+        sessionStorage.setItem(explicitReturn.key, JSON.stringify({
+          [faqReturnKey]: { ...saved, href: new URL("/faq" + fragment, window.location.origin).href },
         }));
       } catch { /* Browser Back still has its own bookmark. */ }
     }
@@ -133,11 +138,14 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
     <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={changePassword && item.id === "password" ? { ...item, action: { label: "Open Change password", href: "/account/security#change-password" } } : item} expanded={searching ? !collapsed.includes(item.id) : expanded.includes(item.id)} onToggle={open => {
       if (searching && open === collapsed.includes(item.id)) {
         const next = open ? collapsed.filter(id => id !== item.id) : [...collapsed, item.id];
-        updateBookmark({ collapsed: next }); setCollapsed(next);
+        updateBookmark({ collapsed: next, answer: item.id, answerTop: document.getElementById(`faq-${item.id}`)?.getBoundingClientRect().top ?? 0 }); setCollapsed(next);
       } else if (!searching && open !== expanded.includes(item.id)) {
         const next = open ? expanded.includes(item.id) ? expanded : [...expanded, item.id] : expanded.filter(id => id !== item.id);
         // Ignore a native toggle caused by restoring the same controlled state.
-        if (next !== expanded) { updateBookmark({ expanded: next }); setExpanded(next); }
+        if (next !== expanded) {
+          updateBookmark({ expanded: next, answer: item.id, answerTop: document.getElementById(`faq-${item.id}`)?.getBoundingClientRect().top ?? 0 });
+          setExpanded(next);
+        }
       }
     }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{invalidSearch ? "Enter a word to search for answers." : otherTopicMatches ? "No matches in this topic." : query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>{otherTopicMatches ? "Other topics have answers for this search." : "Try different words or contact Support."}</p><div className="mt-4 flex flex-wrap gap-3">{otherTopicMatches ? <button type="button" onClick={() => { changeCategory("all");
       const field = document.getElementById("faq-search");

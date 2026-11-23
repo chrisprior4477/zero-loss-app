@@ -4,6 +4,19 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["how do i get a receipt for adding funds", "deposit-receipt"],
+  ["which card did i use for a deposit", "deposit-receipt"],
+  ["can i use a debit card", "add-funds"],
+  ["can i change my default bank card", "default-card"],
+  ["where do my declined options go", "decline-and-revive"],
+  ["how do I stop people finding me by phone", "crew-discoverability"],
+  ["turn off outcome emails", "email-alert-preferences"],
+  ["stop reminders about a purchase option", "email-alert-preferences"],
+  ["change email notification settings", "email-alert-preferences"],
+  ["i lost my order number", "order-receipt"],
+  ["where is my entry reference", "entry-reference"],
+  ["why do i have two $25 netflix cards", "matching-rewards"],
+  ["my birthdate is wrong", "birth-date"],
   ["i put the wrong card on my wallet", "delete-card"],
   ["why is my card declined", "funding-status"],
   ["payment went through but balance stayed the same", "balance-discrepancy"],

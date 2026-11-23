@@ -128,6 +128,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [manageCards, setManageCards] = useState(false);
   const cardEditorOpener = useRef<string | null>(null);
   const manageCardsOpener = useRef<HTMLElement | null>(null);
+  const returnToAmount = useRef(false);
   const savedCardsReturn = useRef<string | null>(null);
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
@@ -169,14 +170,28 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   }
   function closeSavedCards() {
     setManageCards(false);
-    if (window.history.state?.fundingSavedCardsReturn) {
+    const origin = window.history.state?.fundingSavedCardsReturn;
+    if (origin) {
+      if (returnToAmount.current) {
+        window.addEventListener("popstate", () => {
+          if (window.location.href !== origin) return;
+          window.history.replaceState({ ...window.history.state, fundingAmountReturnFocus: origin }, "");
+          requestAnimationFrame(() => {
+            if (window.location.href === origin) focusFundingControl(document.getElementById("demo-funding-custom-amount"));
+          });
+        }, { capture: true, once: true });
+      }
       window.history.back();
       return;
     }
     if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
-      openWalletPanel(`#${amountSection}`, null, true);
+      const hash = `#${amountSection}`;
+      openWalletPanel(hash, returnToAmount.current ? {
+        ...window.history.state, fundingAmountReturnFocus: new URL(hash, window.location.href).href,
+      } : null, true);
     }
     revealWalletSection(amountSection, amountSection);
+    if (returnToAmount.current) return;
     const trigger = manageCardsOpener.current;
     if (trigger?.isConnected) focusFundingControl(trigger);
     else document.getElementById("funding-manage-cards")?.focus({ preventScroll: true });
@@ -191,6 +206,14 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       const heading = document.getElementById("funding-saved-cards-title");
       heading?.focus({ preventScroll: true });
       if (heading) revealBelowHeader(heading);
+    } else if (mobile && (returnToAmount.current || window.history.state?.fundingAmountReturnFocus === window.location.href)) {
+      const frame = requestAnimationFrame(() => {
+        const amountField = document.getElementById("demo-funding-custom-amount");
+        if (!amountField) return;
+        returnToAmount.current = false;
+        focusFundingControl(amountField);
+      });
+      return () => cancelAnimationFrame(frame);
     }
   }, [mobile, manageCards]);
   function addCard(token?: DemoCardToken, trigger?: HTMLButtonElement) {
@@ -330,7 +353,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         setManageCards(false);
         if (returningToFunding) {
           const trigger = manageCardsOpener.current;
-          if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+          if (!returnToAmount.current && trigger?.isConnected) trigger.focus({ preventScroll: true });
           revealWalletSection(amountSection, amountSection);
         }
       }
@@ -545,7 +568,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       })}</div>
       {visibleTokens.length === 0 ? <p className={styles.cardMessage}>No card selected. Add a sample card above to continue.</p> : null}
       {!mobile && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
-      {mobile && <button type="button" className={`${paymentStyles.secondary} ${styles.backToAmount}`} onClick={closeSavedCards}>Back to amount</button>}
+      {mobile && <button type="button" className={`${paymentStyles.secondary} ${styles.backToAmount}`} onClick={() => { returnToAmount.current = true; closeSavedCards(); }}>Back to amount</button>}
     </section>;
   if (editingCard) return <WalletCardEditor walletId={walletId} key={editingCard} token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onAddCard={nextCard && cards.some(card => card.token === editingCard) ? () => addCard() : undefined} onCancel={() => {
     openWalletPanel("#add-funds", null, true);
@@ -576,7 +599,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly && !desktop && cardPanel}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
-    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash />}
+    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash skipForHistoryKey="fundingAmountReturnFocus" />}
     <div id={amountSection} className={styles.fundingAmountSection}>
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}

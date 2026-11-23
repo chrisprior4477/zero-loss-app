@@ -158,6 +158,9 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const focusAfterGroupRemoval = useRef(false);
   const groupToFocus = useRef<string | null>(null);
   const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}` : null;
+  const privacyDraftKey = available && ownerId && section !== "groups" ? `zero-loss:crew-discovery-draft:${ownerId}` : null;
+  const [loadedPrivacyDraft, setLoadedPrivacyDraft] = useState<string | null>(null);
+  const discoveryDirty = discoverable !== baseline.discoverable || !sameValue(discovery, baseline.discovery);
   const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const persistedGroupIds = new Set(baseline.groups.map(group => group.id));
   const latestGroups = new Map(server.groups.map(group => [group.id, group]));
@@ -193,6 +196,37 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     setEntryRules(nextRules);
     if (removingGroupId && !sameGroup(baselineGroups.get(removingGroupId), incoming.groups.find(group => group.id === removingGroupId))) setRemovingGroupId(null);
   }
+
+  useEffect(() => {
+    if (!privacyDraftKey || loadedPrivacyDraft === privacyDraftKey) return;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(privacyDraftKey) ?? "null");
+      if (typeof draft?.savedAt === "number" && Date.now() >= draft.savedAt && Date.now() - draft.savedAt < 86_400_000) {
+        // Restore the account-scoped tab draft after hydration.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (typeof draft.display === "boolean") setDiscoverable(draft.display);
+        setDiscovery(current => ({
+          real: typeof draft.real === "boolean" ? draft.real : current.real,
+          email: typeof draft.email === "boolean" ? draft.email : current.email,
+          phone: typeof draft.phone === "boolean" ? draft.phone : current.phone,
+        }));
+      }
+    } catch { /* A blocked storage API still allows editing and saving. */ }
+    setLoadedPrivacyDraft(privacyDraftKey);
+  }, [loadedPrivacyDraft, privacyDraftKey]);
+
+  useEffect(() => {
+    if (!privacyDraftKey || loadedPrivacyDraft !== privacyDraftKey || pending) return;
+    try {
+      if (!discoveryDirty) sessionStorage.removeItem(privacyDraftKey);
+      else sessionStorage.setItem(privacyDraftKey, JSON.stringify({
+        savedAt: Date.now(),
+        ...(discoverable !== baseline.discoverable && { display: discoverable }),
+        ...Object.fromEntries((["real", "email", "phone"] as const)
+          .filter(key => discovery[key] !== baseline.discovery[key]).map(key => [key, discovery[key]])),
+      }));
+    } catch { /* The form still holds the current draft. */ }
+  }, [baseline.discoverable, baseline.discovery, discoverable, discovery, discoveryDirty, loadedPrivacyDraft, pending, privacyDraftKey]);
 
   useEffect(() => {
     if (!groupDraftKey || loadedDraftKey === groupDraftKey) return;
@@ -506,7 +540,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
             <button ref={saveButton} type="button" disabled={privacyDisabled} onClick={save}>{pending ? "Saving…" : "OK · Save to my profile"}</button>
           </div>
         </div>
-        <p role="status" className={pending ? styles.saving : saved && message ? styles.success : undefined}>{pending ? "Privacy settings are temporarily locked while this save finishes." : saved ? message : null}</p>
+        <p role="status" className={pending ? styles.saving : saved && message ? styles.success : undefined}>{pending ? "Privacy settings are temporarily locked while this save finishes." : saved ? message : discoveryDirty ? "Your discovery changes are unsaved." : null}</p>
         {!pending && !saved && message ? <p ref={saveError} tabIndex={-1} role="alert" className={styles.error}>{message}</p> : null}
       </section> : null}
 

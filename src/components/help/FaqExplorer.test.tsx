@@ -87,6 +87,19 @@ test("a different FAQ history entry ignores a previous search bookmark", () => {
   expect(screen.getByRole("button", { name: "All questions" }).getAttribute("aria-pressed")).toBe("true");
 });
 
+test("the explicit return from Free Entry restores its FAQ search and answer", () => {
+  const page = render(<FaqExplorer />);
+  fireEvent.click(screen.getByRole("button", { name: "Entries & purchases" }));
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "free entry" } });
+  fireEvent.click(screen.getByRole("link", { name: "Read the free-entry instructions" }));
+  page.unmount();
+  window.history.replaceState({}, "", "/faq#faq-free-entry");
+  const returned = render(<FaqExplorer />);
+  expect(screen.getByRole("searchbox")).toHaveProperty("value", "free entry");
+  expect(screen.getByRole("button", { name: "Entries & purchases", pressed: true })).toBeTruthy();
+  expect(returned.container.querySelector('[data-faq-id="free-entry"]')).toHaveProperty("open", true);
+});
+
 
 test('search and topic changes after Back survive reload without restoring the old answer', () => {
   let page = render(<FaqExplorer />);
@@ -97,7 +110,8 @@ test('search and topic changes after Back survive reload without restoring the o
   expect(window.history.state[faqReturnKey]).toMatchObject({ query: 'password', answer: null });
   page.unmount(); page = render(<FaqExplorer />);
   expect(screen.getByRole('searchbox')).toHaveProperty('value', 'password');
-  expect(screen.getByRole('status').textContent).toContain('1 answer matching');
+  expect(screen.getByRole('link', { name: 'Reset my password' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Check funds & history' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
   fireEvent.click(screen.getByRole('button', { name: 'Wallet & funding' }));
   page.unmount(); render(<FaqExplorer />);

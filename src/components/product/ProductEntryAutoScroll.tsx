@@ -17,7 +17,7 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
       const scroll = () => {
         if (cancelled) return;
         let hash = window.location.hash;
-        if (/^#entry-action(?:#entry-action)+$/.test(hash)) {
+        if (/^#entry-action(?:#(?:entry-action|enter-entry))+$/.test(hash)) {
           hash = "#entry-action";
           window.history.replaceState(window.history.state, "", hash);
         }

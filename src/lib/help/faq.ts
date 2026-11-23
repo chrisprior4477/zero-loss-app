@@ -56,7 +56,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "email-alert-preferences", category: "account", question: "How do I stop email alerts?",
-    answer: "Open Email choices in Notifications. Turn off the email alerts you want to stop, then save each preference. In-app alerts have their own settings.",
+    answer: "Open Email choices in Notifications. Turn off the entry outcome or purchase-option deadline email you want to stop, then save that preference. In-app alerts have their own settings.",
     keywords: "unsubscribe stop turn off email alerts notification emails preferences",
     action: { label: "Open Email choices", href: "/account/notifications?section=email#email-choices" },
   },
@@ -86,9 +86,15 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "crew-discoverability", category: "account", question: "How do I hide my name from Crew search?",
-    answer: "Open Privacy in Your Crew. Under Can people find me?, turn off name discovery and save. You can manage searches by email and phone separately.",
+    answer: "Open Privacy in Your Crew. Under Can people find me?, turn off the name, email, or phone discovery setting you want to change. Choose Save to my profile to apply it.",
     keywords: "hide discoverability name search find private visibility",
     action: { label: "Open Crew Privacy", href: "/account/crew?tab=privacy#crew-privacy" },
+  },
+  {
+    id: "birth-date", category: "account", question: "How do I correct my date of birth?",
+    answer: "Open Personal details in Profile. Update the month, day, and year in Date of birth, then choose Save profile.",
+    keywords: "birthday birthdate date of birth correction incorrect age profile",
+    action: { label: "Open Personal details", href: "/account/profile?section=personal#personal-details-heading" },
   },
   {
     id: "time-zone", category: "account", question: "How do I change my time zone?",
@@ -165,7 +171,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. In this MVP, funding uses supplied sample cards and simulated money. Apple Pay and PayPal are unavailable. Do not enter real payment-card details.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. The demo uses supplied sample cards and simulated money. Real debit cards, credit cards, Apple Pay, and PayPal are unavailable.",
     keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
@@ -182,6 +188,12 @@ export const faqItems: FaqItem[] = [
     id: "wallet-history", category: "wallet", question: "Where can I see my wallet transactions?",
     answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund. To find purchases from last week, choose Purchases and enter the start and end dates.",
     keywords: "wallet ledger activity records history", action: { label: "Open transaction history", href: walletTransactionsHref },
+  },
+  {
+    id: "deposit-receipt", category: "wallet", question: "Where can I find my deposit receipt and the card I used?",
+    answer: "Open Payment deposits and expand the deposit by date and amount. Choose View deposit receipt for the saved confirmation and sample card. If a wallet credit is listed, View wallet credit opens its transaction.",
+    keywords: "deposit receipt funds added payment confirmation sample card last four funding",
+    action: { label: "Open Payment deposits", href: walletDepositsHref },
   },
   {
     id: "withdrawals", category: "wallet", question: "Can I withdraw a deposit or request a refund?",
@@ -201,6 +213,12 @@ export const faqItems: FaqItem[] = [
       { label: "Walmart gift-card terms", href: "https://www.walmart.com/help/article/gift-card-terms-and-conditions/90f9e217278146898946c1d786bedea3" },
       { label: "Best Buy gift-card terms", href: "https://www.bestbuy.com/site/gift-cards/gift-card-help/pcmcat203400050004.c" },
     ],
+  },
+  {
+    id: "matching-rewards", category: "rewards", question: "Why do I have two gift cards with the same name and value?",
+    answer: "Separate rewards can have the same retailer, title, and value. Open Reward history and compare each card’s reference and claim date to find the exact reward.",
+    keywords: "duplicate identical same gift cards multiple rewards compare card references claim date",
+    action: { label: "Open Reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
@@ -265,6 +283,12 @@ export const faqItems: FaqItem[] = [
     keywords: "entry receipt payment record proof ticket", action: { label: "Open Transaction history", href: "/account/wallet?view=history&panel=transactions#transactions" },
   },
   {
+    id: "entry-reference", category: "entries", question: "Where do I find my entry reference?",
+    answer: "Open My Activity and select the prize, then open the ticket you need. Use the reference on that ticket to identify the correct entry when contacting Support.",
+    keywords: "entry reference ticket number entry id saved entry support",
+    action: { label: "Open My Activity", href: "/account/entries#my-activity-filters" },
+  },
+  {
     id: "group-members", category: "account", question: "How do I remove someone from my Crew group?",
     answer: "If you manage the group, open Groups in Your Crew and edit its members. This leaves the person's Crew connection in place. To end the connection, open that person in Your Crew instead.",
     keywords: "remove person someone member group edit", action: { label: "Open Crew groups", href: "/account/crew?tab=groups#crew-groups" },
@@ -285,6 +309,16 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:deposit|adding funds|wallet funding)\b.*\breceipt\b|\breceipt\b.*\b(?:deposit|adding funds|wallet funding)\b|\b(?:what|which)\s+(?:sample\s+)?card\b.*\bdeposit\b/, "deposit-receipt"],
+  [/\b(?:can|may)\s+i\s+(?:pay|fund|deposit|use)\b.*\b(?:my|a|with)?\s*(?:debit|credit)\s+card\b/, "add-funds"],
+  [/\b(?:default|preferred)\s+(?:bank|credit|debit|payment|sample)\s+card\b/, "default-card"],
+  [/\b(?:where|find|view|see)\b.*\bdeclined\s+(?:offers?|(?:purchase\s+)?options?)\b/, "decline-and-revive"],
+  [/\b(?:stop|hide|prevent|disable|turn off)\b.*\b(?:find(?:ing)?|discover(?:y|ing)?)\b.*\b(?:phone|cell|mobile)(?:\s+number)?\b/, "crew-discoverability"],
+  [/\b(?:stop|disable|turn off|change|manage)\b.*\b(?:outcome emails?|(?:purchase(?: option)?|offer)\s+(?:deadline\s+)?reminders?|email notification settings)\b|\bstop\b.*\breminders?\s+about\b.*\bpurchase option\b/, "email-alert-preferences"],
+  [/\b(?:lost|forgot|missing)\b.*\border (?:number|ref(?:erence)?)\b/, "order-receipt"],
+  [/\b(?:where|find|see|view|copy)\b.*\b(?:entry reference|entry id|ticket number)\b/, "entry-reference"],
+  [/\b(?:duplicate|identical|same|two|multiple)\b.*\bgift[ -]?cards?\b|\bgift[ -]?cards?\b.*\b(?:duplicate|identical|same)\b|\b(?:two|multiple|duplicate)\b.*\$\d+\b.*\bcards\b/, "matching-rewards"],
+  [/\b(?:birth[ -]?date|birthday|date of birth)\b/, "birth-date"],
   [/\b(?:wrong|incorrect)\b.*\b(?:sample |payment |debit |credit )?card\b.*\b(?:wallet|saved|payment method)\b/, "delete-card"],
   [/\b(?:card|deposit|funding)\b.*\b(?:declined|rejected)\b/, "funding-status"],
   [/\bbalance\b.*\b(?:not updating|did not update|stayed the same|unchanged)\b/, "balance-discrepancy"],

@@ -189,7 +189,7 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
         />
       </div>
       <div>
-        <label htmlFor="request-notes" className="text-sm font-bold text-white">Anything else we should know? <span className="font-normal text-white/45">Optional</span></label>
+        <label htmlFor="request-notes" className="text-sm font-bold text-white">Anything else we should know? <span className="font-normal text-white/65">Optional</span></label>
         <textarea
           id="request-notes"
           name="notes"

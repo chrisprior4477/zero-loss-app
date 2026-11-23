@@ -18,6 +18,13 @@ test("combines statement language with exact dates, amount direction, and verifi
     row.id === "fund" ? "Chase ending 1117" : row.id === "other-card" ? "Discover ending 5556" : ""],
   entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
   expect(search("posted amount under $2")).toEqual(["fund", "entry"]);
+  expect(search("posted amounts under $2")).toEqual(["fund", "entry"]);
+  expect(search("transactions with posted amounts of $1")).toEqual(["fund", "entry"]);
+  expect(search("transactions posted after Nov 5 2026")).toEqual(["other-card"]);
+  expect(search("Netflix purchase on Nov 5")).toEqual(["purchase"]);
+  expect(search("paid $24 for Netflix")).toEqual(["purchase"]);
+  expect(search("$1 entry charges")).toEqual(["entry"]);
+  expect(search("one dollar entry charges")).toEqual(["entry"]);
   expect(search("transactions with a posted amount of $1")).toEqual(["fund", "entry"]);
   expect(search("amount of $1")).toEqual(search("amount: $1"));
   expect(search("on 11/5")).toEqual(search("11/5/26"));

@@ -4,6 +4,27 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 test.each([
+  ["$25 Walmart gift card or $75 Target gift card", ["walmart-25-gift-card", "target-75-gift-card"]],
+  ["Amazon $25 gift card or Target $25 gift card", ["amazon-25-gift-card", "target-25-gift-card"]],
+  ["gift cards at exactly $25 from either Amazon or Target", ["amazon-25-gift-card", "target-25-gift-card"]],
+  ["AirPods at Target or Best Buy", ["airpods-pro"]],
+  ["Sony earbuds or headphones", ["sony-wh-1000xm5-headphones"]],
+  ["TVs excluding Samsung and Sony", ["lg-oled-c6-65-tv"]],
+  ["Sony or LG televisions not sold at Walmart", ["lg-oled-c6-65-tv"]],
+  ["75-inch or 65-inch TVs under $3000", ["lg-oled-c6-65-tv"]],
+  ["65-inch or 75-inch TVs under $3000", ["lg-oled-c6-65-tv"]],
+  ["75-inch or 65-inch TVs under $1500", []],
+  ["65-inch or 75-inch TVs under $1500", []],
+  ["Sony WH-1000XM5 headphones $1 entry price", ["sony-wh-1000xm5-headphones"]],
+  ["show me Sony headphones that are available", ["sony-wh-1000xm5-headphones"]],
+])("keeps the product and all constraints together for %s", (query, expected) => {
+  const actual = searchCatalogMatches(demoProducts, query, undefined, { includeLowerGiftCards: true }).map(({ product }) => product.slug);
+  expect(actual.sort()).toEqual([...expected].sort());
+});
+
+test.each([
+  ["products with 2 or 3 entries open", "products with 2 or 3 entries left"],
+  ["where are your Sephora gift cards", "Sephora gift cards"],
   ["TV between 50 and 65 inches", "TVs from 50 to 65 inches"],
   ["TV with a 65-inch display", "65 inch TV"],
   ["Samsung and LG televisions up to $1000", "Samsung or LG TVs up to $1000"],

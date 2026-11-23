@@ -326,8 +326,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     }
     const dates = { from: nextFrom, through: nextThrough };
     setAppliedDates(dates);
-    setQuery(invalidSearchDraft ? query : draft.trim());
-    updateBookmark({ ...dates, query: invalidSearchDraft ? query : draft.trim(), draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
+    updateBookmark({ ...dates, draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
     batches.reset();
   }
   const historyIncomplete = typeof totalCount === "number" && totalCount > entries.length;

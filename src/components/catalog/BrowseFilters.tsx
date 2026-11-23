@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
@@ -33,8 +33,6 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
-  const selectingByKeyboard = useRef(false);
-  const applyingPreset = useRef(false);
   const session = useBrowseResultsSearch();
   const [localDraft, updateLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
   function setLocalDraft(value: string) { updateLocalDraft(value); onSearchDraft?.(value); }
@@ -101,14 +99,11 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     } else if (["25", "50", "75", "100"].includes(valueMode)) {
       params.set("maxValue", valueMode);
     }
-    const submitter = (event.nativeEvent as SubmitEvent).submitter;
-    const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort", "ticketsLeft"]) {
       const value = data.get(key)?.toString().trim() ?? "";
       const defaultSort = key === "sort" && value === "featured" && (selectedCategory !== "ending-soon" || (!filters.featuredExplicit && filters.sort === "featured"));
       if (value && !(key === "type" && value === "all") && !defaultSort) params.set(key, value);
     }
-    if (voice.busy && !filtersOnly) return;
     voice.cancel();
     session?.voice.cancel();
     session?.setDraft(params.get("q") ?? "");
@@ -129,21 +124,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
 
   return (
     <form action="/browse" method="get" noValidate onSubmit={submit}
-      onKeyDownCapture={event => {
-        if (event.target instanceof HTMLInputElement && event.target.type === "radio" && (event.key.startsWith("Arrow") || event.key === " ")) selectingByKeyboard.current = true;
-      }}
-      onPointerDownCapture={() => { selectingByKeyboard.current = false; }}
-      onChange={event => {
-        const target = event.target;
-        if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
-          && !(target instanceof HTMLInputElement && target.type === "radio" && selectingByKeyboard.current)
-          && !["q", "minValue", "maxValue"].includes(target.name)
-          && (target.name === "valueMode" ? target.value !== "custom" : mode !== "custom")) {
-          applyingPreset.current = true;
-          try { event.currentTarget.requestSubmit(); }
-          finally { applyingPreset.current = false; }
-        }
-      }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
+      className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
       {selectedCategory ? <input type="hidden" name="category" value={selectedCategory} /> : null}
       {selectedCategory === "ending-soon" && ticketsLeft ? <input type="hidden" name="ticketsLeft" value={ticketsLeft} /> : null}
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}

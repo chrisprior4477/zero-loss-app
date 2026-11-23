@@ -59,6 +59,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
 }) {
   const router = useRouter();
   const desktop = useMenuViewport() === "desktop";
+  const previousDesktop = useRef(desktop);
   const dialog = useRef<HTMLDialogElement>(null);
   const categoryList = useRef<HTMLDivElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -86,6 +87,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   const [preview, setPreview] = useState<string | null>(null);
   const [refineTarget, setRefineTarget] = useState<{ category: MarketplaceCategoryId | null; href: string } | null>(null);
+  const [refineVisit, setRefineVisit] = useState(0);
   const refining = panel === "filters" ? refineTarget : null;
   const [localSearch, setLocalSearch] = useState(props.searchTerm);
   const session = useBrowseResultsSearch();
@@ -161,6 +163,15 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       restoreDialogTrigger(opener.current);
     };
   }, [panelOpen]);
+
+  useLayoutEffect(() => {
+    const changed = previousDesktop.current !== desktop;
+    previousDesktop.current = desktop;
+    if (!changed || panel !== "categories" || dialog.current?.contains(document.activeElement)) return;
+    const category = Array.from(categoryList.current?.querySelectorAll<HTMLButtonElement>("[data-prize-category]") ?? [])
+      .find(button => button.dataset.prizeCategory === preview);
+    restoreDialogTrigger(category ?? pickerInput.current);
+  }, [desktop, panel, preview]);
 
   useLayoutEffect(() => {
     if (panel !== "categories" || preview === null) return;
@@ -375,7 +386,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     const current = category.id ? props.selectedCategory === category.id && !props.selectedRetailerGroup
       : !props.selectedCategory && !props.selectedRetailerGroup && !props.filters.retailer;
     return <button type="button" key={category.id} className={styles.choice}
-      aria-current={current ? "true" : undefined} aria-expanded={wideCategories ? preview === category.id : undefined}
+      data-prize-category={category.id} aria-current={current ? "true" : undefined} aria-expanded={wideCategories ? preview === category.id : undefined}
       onClick={() => choosePrizeCategory(category.id)}>
       <span>{category.label}{!wideCategories && category.id ? <small>Browse prizes</small> : null}</span>
       <span aria-hidden="true">{wideCategories ? preview === category.id ? "⌄" : "›" : "→"}</span>
@@ -411,6 +422,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         <button type="button" data-refine-preview onClick={() => {
           pickerVoice.cancel();
           setRefineTarget({ category: category.id || null, href });
+          setRefineVisit(visit => visit + 1);
           setInitialFilterDraft(undefined);
           setOpenPanel(current => current && { ...current, panel: "filters" });
         }}>Refine search</button>
@@ -533,7 +545,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
               ? <p className={styles.noMatches}>{invalidCatalogSearch(query) || catalogSearchTooLong(query.trim()) ? "" : query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
           </div>
         </> : null}
-        {panel === "filters" || refineTarget ? <div className={styles.filterBody} hidden={panel !== "filters"}><FilterForm key={refineTarget?.href ?? "filters"} {...filterProps} active={panel === "filters"} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div> : null}
+        {panel === "filters" || refineTarget ? <div className={styles.filterBody} hidden={panel !== "filters"}><FilterForm key={refineTarget ? refineVisit : "filters"} {...filterProps} active={panel === "filters"} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div> : null}
       </div>
     </dialog> : null}
   </div>

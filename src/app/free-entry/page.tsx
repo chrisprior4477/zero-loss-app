@@ -92,7 +92,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
     <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference}
       signInHref={account ? undefined : authNavigationHref("/login", freeEntryHref(product.slug, browseReturn, quantity, sharedToken) + "#free-entry-intro")} intro={<>
         <Link href={returnUrl.pathname + returnUrl.search + returnUrl.hash} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
-        <AccountSettingsLandingScroll target="free-entry-intro" focusTarget="free-entry-intro" visitKey={product.slug} restrictToTargetHash allScreens settleAfterNavigation />
+        <AccountSettingsLandingScroll target="free-entry-intro" focusTarget="free-entry-intro" visitKey={product.slug} restrictToTargetHash allScreens settleAfterNavigation skipForHistoryKey="zeroLossPrintInstructions" />
         <FreeEntryInstructions prizeSelected />
       </>} footer={
         <section className="print:hidden mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/65">

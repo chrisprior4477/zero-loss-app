@@ -126,8 +126,16 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   }, [anchor, phone]);
 
   useLayoutEffect(() => {
+    function keepFocus(event: FocusEvent) {
+      if (event.target instanceof Node && panel.current?.contains(event.target)) return;
+      close.current?.focus({ preventScroll: true });
+    }
     close.current?.focus({ preventScroll: true });
-    return () => { if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
+    document.addEventListener("focusin", keepFocus);
+    return () => {
+      document.removeEventListener("focusin", keepFocus);
+      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    };
   }, [anchor]);
 
   useLayoutEffect(() => {

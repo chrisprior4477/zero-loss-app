@@ -65,6 +65,8 @@ test("the wide picker expands one category and refines its own results with the 
   const filter = within(screen.getByRole("dialog", { name: "Filter & sort" }));
   expect(filter.getByRole("searchbox", { name: "Search Everyday Items" })).toHaveProperty("value", "Sony");
   fireEvent.click(filter.getByLabelText("$75 & below"));
+  expect(navigation.replace).not.toHaveBeenCalled();
+  fireEvent.click(filter.getByRole("button", { name: "Apply filters" }));
   expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=75&category=everyday-items&q=Sony#search-results", { scroll: false });
 });
 
@@ -76,6 +78,8 @@ test("typing on Browse before opening filters carries the same search into the f
   expect(filter.getByRole("searchbox")).toHaveProperty("value", "Sony");
   fireEvent.change(filter.getByRole("searchbox"), { target: { value: "PlayStation" } });
   fireEvent.click(filter.getByRole("radio", { name: "Highest prize value" }));
+  expect(navigation.replace).not.toHaveBeenCalled();
+  fireEvent.click(filter.getByRole("button", { name: "Apply filters" }));
   expect(navigation.replace).toHaveBeenCalledWith("/browse?q=PlayStation&partnerCategory=gas&sort=value-high#search-results", { scroll: false });
 });
 
@@ -212,6 +216,8 @@ test("fractional drafts cannot apply or prevent switching to a preset", () => {
   fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
   expect(navigation.push).not.toHaveBeenCalled();
   fireEvent.click(form.getByLabelText("$75 & below"));
+  expect(navigation.replace).not.toHaveBeenCalled();
+  fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
   expect(navigation.replace).toHaveBeenCalledWith("/browse?maxValue=75#search-results", { scroll: false });
 });
 

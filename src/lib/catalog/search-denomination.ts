@@ -14,7 +14,7 @@ const entryAmount = String.raw`(?:${currency.source})|(?:\$\s*|\bUSD\s*)?\b${dig
 const entryPricePattern = new RegExp([
   String.raw`\b(?:with\s+|for\s+)?(?:an?\s+)?(?:entry\s+(?:price|fee|cost)s?|tickets?\s+cost)\s*:?\s*(?:of\s+)?(?<labeledCeiling>(?:up to|at most|no more than|below|under|less than)\s+)?(?<labeled>${entryAmount})`,
   String.raw`\b(?:with|paying)\s+(?<entryFees>${entryAmount})\s+(?:entry fees?|(?:per|each)\s+entry)\b`,
-  String.raw`\b(?:with\s+)?(?:an?\s+)?(?<single>${entryAmount})\s+(?:entry|ticket)\s+(?:price|fee|cost)\b|\bwith\s+(?:an?\s+)?(?<singleEntry>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
+  String.raw`(?<!\S)(?:with\s+)?(?:an?\s+)?(?<single>${entryAmount})\s+(?:entry|ticket)\s+(?:price|fee|cost)\b|\bwith\s+(?:an?\s+)?(?<singleEntry>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
   String.raw`(?:\b(?:costing|costs?|for)\s+|(?<!\w))(?<toEnter>${entryAmount})\s+to enter\b`,
   String.raw`\b(?<spokenEntry>${words})[ -]+(?:dollars?|bucks?)\s+entries\s+for\b`,
   String.raw`\b(?:with\s+)?entr(?:y|ies)\s+at\s+(?<each>${entryAmount})\s+each\b`,
@@ -260,7 +260,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 
 const ticketCount = String.raw`(?:\d+|${words})`;
 const ticketNouns = String.raw`(?:tickets?|entr(?:y|ies)|spots?|slots?)`;
-const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?available|(?:before|until) (?:it is )?full)`;
+const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?(?:available|open)|(?:before|until) (?:it is )?full)`;
 const ticketUnits = String.raw`\s+(?:more\s+)?${ticketNouns}\s+${ticketAvailability}(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
 const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?`;
 const ticketComparison = "fewer than|less than|under|no more than|at most|at least|more than|exactly";
@@ -284,7 +284,7 @@ function ticketBounds(comparison: string | undefined, count: string) {
 }
 
 export function remainingTicketFilter(query: string) {
-  if (!/\b(?:left|remaining|available|before|until)\b/i.test(query)) return null;
+  if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;
   query = query.replace(ticketMaximum, "at most $1 tickets left");
   const compound = compoundTicketsPattern.exec(query);
   const choices = ticketChoices.exec(query);

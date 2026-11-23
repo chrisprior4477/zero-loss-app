@@ -81,7 +81,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const item = options[0];
   const singleOffer = options.length === 1;
   const offerDetailsId = useId();
-  const forwardReview = useRef<string | null>(null);
+  const forwardReview = useRef<{ details: string; stage: "purchase" | "fund" } | null>(null);
   const [refreshingReview, refreshReview] = useTransition();
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
   const offerDetailsTrigger = useRef<HTMLButtonElement>(null);
@@ -346,13 +346,13 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     setOverlay("purchase");
   }
   useDialogBack(overlay !== null && overlay !== "decline", () => {
-    forwardReview.current = overlay === "purchase" ? checkoutDetails : null;
+    forwardReview.current = overlay === "purchase" || overlay === "fund" ? { details: checkoutDetails, stage: overlay } : null;
     close();
   }, busy || checkingReceipt, true, false, offerDetailsId, () => {
     if (!forwardReview.current || overlay || locked) return;
-    const details = forwardReview.current;
+    const { details, stage } = forwardReview.current;
     forwardReview.current = null;
-    if (details !== checkoutDetails) {
+    if (details !== checkoutDetails || (stage === "fund") !== Boolean(shortfall)) {
       setNotice("Your purchase details changed. Review them again before confirming.");
       return;
     }

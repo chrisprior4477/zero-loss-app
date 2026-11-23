@@ -13,6 +13,8 @@ const CODE39: Record<string, string> = {
 };
 
 const printPreviewHash = "#print-entry-insert";
+const missingPrintName = "LEGAL NAME NEEDED";
+const missingPrintAccount = "VALID DEMO ACCOUNT NEEDED";
 
 function shortReference(value: string) {
   let hash = 2166136261;
@@ -50,6 +52,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const printTrigger = useRef<HTMLButtonElement>(null);
   const backButton = useRef<HTMLButtonElement>(null);
   const instructionScroll = useRef<number | null>(null);
+  const previewOrigin = useRef<{ top: number; hash: string } | null>(null);
   const latestDraft = useRef<PrintDraft | null>(null);
   const cleanAccountReference = accountReference.trim().toUpperCase();
   const validAccountReference = /^DEMO-[0-9A-Z]{3,12}$/i.test(cleanAccountReference);
@@ -76,7 +79,12 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
         setName(initialLegalName);
         setAccountReference(initialAccountReference);
       }
-      if (showingPrint && instructionScroll.current === null) instructionScroll.current = typeof saved?.scroll === "number" ? saved.scroll : window.scrollY;
+      if (showingPrint && instructionScroll.current === null) {
+        if (saved?.offering === offeringSlug && saved.owner === initialAccountReference && typeof saved.scroll === "number") {
+          previewOrigin.current = { top: saved.scroll, hash: saved.fromHash === "" ? "" : "#free-entry-intro" };
+        }
+        instructionScroll.current = previewOrigin.current?.top ?? window.scrollY;
+      }
       setPrintPreview(showingPrint);
     };
     const scrollRestoration = window.history.scrollRestoration;
@@ -111,9 +119,11 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   function openPrintPreview() {
     if (window.location.hash === printPreviewHash) return;
     instructionScroll.current = window.scrollY;
+    previewOrigin.current = { top: window.scrollY, hash: window.location.hash };
+    window.history.replaceState({ ...window.history.state, zeroLossPrintInstructions: window.location.href }, "");
     window.history.pushState({ ...window.history.state, zeroLossPrintPreview: true, zeroLossPrintDraft: {
       offering: offeringSlug, owner: initialAccountReference, name: name.slice(0, 80), account: accountReference.slice(0, 80),
-      revision: latestDraft.current?.revision ?? 0, scroll: instructionScroll.current,
+      revision: latestDraft.current?.revision ?? 0, scroll: instructionScroll.current, fromHash: previewOrigin.current.hash,
     } }, "", printPreviewHash);
     setPrintPreview(true);
   }
@@ -121,11 +131,14 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   function closePrintPreview() {
     if (window.history.state?.zeroLossPrintPreview) {
       window.history.back();
-      setPrintPreview(false);
       return;
     }
-    directReturn.current = true;
-    window.history.replaceState(window.history.state, "", "#free-entry-intro");
+    directReturn.current = !previewOrigin.current;
+    const { pathname, search } = window.location;
+    const href = pathname + search + (previewOrigin.current?.hash ?? "#free-entry-intro");
+    const state = { ...window.history.state };
+    if (previewOrigin.current) state.zeroLossPrintInstructions = new URL(href, window.location.origin).href;
+    window.history.replaceState(state, "", href);
     setPrintPreview(false);
   }
 
@@ -147,9 +160,12 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     }
   }, [printPreview]);
 
+  const printName = name.trim().slice(0, 80);
+  const blankSample = !printName || !validAccountReference;
+  const printAccount = validAccountReference ? cleanAccountReference : missingPrintAccount;
   if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
-    name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={validAccountReference ? cleanAccountReference : "VALID DEMO ACCOUNT NEEDED"}
-    reference={reference} blankSample={!name.trim() || !validAccountReference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
+    name={printName || missingPrintName} account={printAccount}
+    reference={reference} blankSample={blankSample} back={<button type="button" ref={backButton} onClick={closePrintPreview}
       className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to entry instructions</button>} />;
 
   return <div className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
@@ -221,7 +237,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       });
     }} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
 
-    <div className="amo-print-sheet" aria-hidden="true"><PrintableEntryInsert title={offeringTitle} name={name} account={cleanAccountReference} reference={reference} /></div>
+    <div className="amo-print-sheet" aria-hidden="true"><PrintableEntryInsert title={offeringTitle} name={printName || missingPrintName} account={printAccount} reference={reference} blankSample={blankSample} /></div>
     {footer}
     </div>
   </div>;
@@ -240,11 +256,11 @@ export function FreeEntryPrintSheet({ offering, title, name, account, reference,
       </div>
       <PrintSheetButton offering={offering} name={name} account={account} reference={reference} />
     </div>
-    <PrintableEntryInsert title={title} name={name} account={account} reference={reference} />
+    <PrintableEntryInsert title={title} name={name} account={account} reference={reference} blankSample={blankSample} />
   </div>;
 }
 
-function PrintableEntryInsert({ title, name, account, reference }: { title: string; name: string; account: string; reference: string }) {
+function PrintableEntryInsert({ title, name, account, reference, blankSample }: { title: string; name: string; account: string; reference: string; blankSample: boolean }) {
   return <section className="amo-paper-preview" aria-label="Letter-size print preview">
     <article className="amo-postcard-cutout">
       <div className="amo-postcard-inner">
@@ -259,7 +275,7 @@ function PrintableEntryInsert({ title, name, account, reference }: { title: stri
           <span className="mt-0.5 font-mono text-[8pt] font-bold">{reference}</span>
         </div>
         <p className="mt-1 text-center text-[6.5pt] leading-3 text-slate-600">Attach securely to a standard postcard. Keep the barcode flat, uncovered, and readable.</p>
-        <p className="mt-1 text-center text-[6.5pt] font-black uppercase tracking-[0.1em] text-[#b43d00]">Prototype — do not mail</p>
+        <p className="mt-1 text-center text-[6.5pt] font-black uppercase tracking-[0.1em] text-[#b43d00]">{blankSample ? "Blank sample — do not mail" : "Prototype — do not mail"}</p>
       </div>
       <span className="amo-cut-label">Cut along dotted line</span>
     </article>

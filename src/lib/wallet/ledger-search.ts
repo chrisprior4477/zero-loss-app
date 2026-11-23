@@ -14,7 +14,7 @@ const signedBareRange = new RegExp(String.raw`^([+−-]\s*\$?\s*${dollars})\s*(?
 const signedBound = new RegExp(String.raw`^(under|below|less than|over|above|more than|at least|at most)\s+([+−-]\s*\$?\s*${dollars})$`, "i");
 const labeledAlternatives = new RegExp(String.raw`([+−-]?\s*\$\s*${dollars}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
 const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|transactions?)\s+(?:of\s+|for\s+)?(?=\d|[$+−-]|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|cents?)\b)/gi;
-const entryPaymentType = String.raw`entry\s+(?:payments?|debits?|purchases?)`;
+const entryPaymentType = String.raw`entry\s+(?:payments?|debits?|purchases?|charges?)`;
 const entryPayments = new RegExp(String.raw`^(?:all\s+)?(?:posted\s+)?${entryPaymentType}\b`, "i");
 const qualifiedEntryPayment = new RegExp(String.raw`^(.+?)\s+(?:posted\s+)?${entryPaymentType}(?:\s+(.+))?$`, "i");
 const entryPaymentAmountFirst = new RegExp(String.raw`^(\$\s*${dollars})\s+(.+)$`, "i");
@@ -22,9 +22,9 @@ const paidWithScope = /^(?:exactly\s+)?(.+?)\s+(?:paid|spent|charged)\s+(.+)$/i;
 const centsValue = String.raw`(\d+|${smallNumberWords})\s+cents?\b`;
 const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
 const spokenCentsPattern = new RegExp(String.raw`(\b(?:dollars?|bucks?))\s+(?:and\s+)?${centsValue}`, "i");
-const amountLabel = /\b(?:posted\s+)?amount(?:\s*(?::|=|equals\b)\s*|\s+(?:of\s+)?)(?=[+−($\d-]|(?:[a-z]+[ -]+)+(?:dollars?|bucks?|cents?)\b)/gi;
-const amountComparisonLabel = /\b(?:posted\s+)?amount\s+(?=(?:under|below|over|above|at least|at most|less than|more than|between|from)\s+[+−-]?\s*\$)/gi;
-export const postedAmountQuery = /\bposted\s+amount(?=\s|:|=)/i;
+const amountLabel = /\b(?:posted\s+)?amounts?(?:\s*(?::|=|equals\b)\s*|\s+(?:of\s+)?)(?=[+−($\d-]|(?:[a-z]+[ -]+)+(?:dollars?|bucks?|cents?)\b)/gi;
+const amountComparisonLabel = /\b(?:posted\s+)?amounts?\s+(?=(?:under|below|over|above|at least|at most|less than|more than|between|from)\s+[+−-]?\s*\$)/gi;
+export const postedAmountQuery = /\bposted\s+amounts?(?=\s|:|=)/i;
 
 function amountCents(token: string) {
   const [whole, fraction = ""] = token.replace(/[^\d.]/g, "").split(".");
@@ -132,9 +132,11 @@ function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], 
 
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
-  const trimmed = rawQuery.trim();
+  const raw = rawQuery.trim();
+  const postedDate = /^transactions?\s+posted\s+(?=(?:on|before|after|older than|in)\b)/i;
+  const trimmed = raw.replace(postedDate, "transactions ");
   if (!trimmed) return entries;
-  if (postedAmountQuery.test(trimmed)) entries = entries.filter(entry => entry.entry_type !== "ENTRY_HOLD" && entry.entry_type !== "ENTRY_HOLD_RELEASE");
+  if (postedAmountQuery.test(trimmed) || postedDate.test(raw)) entries = entries.filter(entry => entry.entry_type !== "ENTRY_HOLD" && entry.entry_type !== "ENTRY_HOLD_RELEASE");
   const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
   if (reference) {
     const id = reference[1].toLowerCase();
@@ -228,7 +230,6 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       [dateParts.slice(-length), dateParts.slice(0, -length)],
     ]);
     for (const [date, remainder] of sides) {
-      if (!date.some(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word) || /^\d{1,2}[/-]\d{1,2}[/-]\d{2}$/.test(word))) continue;
       const matches = searchDate(entries, date.join(" "), calendar);
       if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, "").replace(/^(?:at\s+)(?=[+−-]?\s*\$)/i, ""));
     }
@@ -240,7 +241,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const explicitPostedAmount = [...trimmed.matchAll(amountLabel)].length > 0 || /\s+exactly$/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
-    .replace(/^(?:transactions?\s+)?with\s+(?:an?\s+)?(?=(?:posted\s+)?amount\b)/i, "")
+    .replace(/^(?:transactions?\s+)?with\s+(?:an?\s+)?(?=(?:posted\s+)?amounts?\b)/i, "")
     .replace(amountComparisonLabel, "")
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
@@ -357,7 +358,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const paid = /^(?:paid|spent)(?=\s|$)/i.exec(query);
   if (paid) {
-    return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), query.slice(paid[0].length).trim().replace(/^(\$[\d,.]+)\s+from\b/i, "$1"));
+    const detail = query.slice(paid[0].length).trim().replace(/^(\$\s*[\d,.]+)\s+(?:for|from|at|with)\b/i, "$1");
+    return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), detail);
   }
   const orders = /^(?:orders?(?:\s+for)?|bought)(?:\s+(.*))?$|^(.+?)\s+orders?$/i.exec(query);
   if (orders) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), orders[1] ?? orders[2] ?? "");

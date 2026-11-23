@@ -251,21 +251,22 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
       const viewKey = JSON.stringify([userId, window.location.href]);
       if (!event && restoredView.current === viewKey) return;
       restoredView.current = viewKey;
-      if (event?.type === "popstate" && !new URLSearchParams(window.location.search).has("notice")
-        && window.location.hash === "#notification-tickets-filters") {
-        cancelAnimationFrame(filterFocusFrame);
-        filterFocusFrame = requestAnimationFrame(() => {
-          if (document.activeElement === document.body) {
-            document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]')?.focus({ preventScroll: true });
-          }
-        });
-      }
+      const returningToFilter = !new URLSearchParams(window.location.search).has("notice")
+        && window.location.hash === "#notification-tickets-filters";
       let saved = readNotificationReturn(window.history.state, userId!, window.location.href);
       if (!saved) try {
         const key = `zero-loss-notification-view:${userId}:${new URL(window.location.href).searchParams.get("filter") ?? "all"}`;
         saved = readNotificationReturn(JSON.parse(sessionStorage.getItem(key) ?? "null"), userId!, window.location.href);
       } catch { /* The default feed remains available. */ }
       if (!saved) {
+        if (returningToFilter && event?.type === "popstate") {
+          cancelAnimationFrame(filterFocusFrame);
+          filterFocusFrame = requestAnimationFrame(() => {
+            if (document.activeElement === document.body) {
+              document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]')?.focus({ preventScroll: true });
+            }
+          });
+        }
         if (event?.type === "popstate") {
           const query = new URLSearchParams(window.location.search);
           setFilter(notificationFilter(query.get("filter")));
@@ -292,6 +293,18 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
             const link = document.getElementById(saved.linkId);
             const top = link && list?.contains(link) ? window.scrollY + link.getBoundingClientRect().top - saved.linkTop : saved.scrollY;
             window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+            if (returningToFilter && !saved.linkId) {
+              const filter = document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]');
+              const active = document.activeElement;
+              if (active !== document.body && active?.id !== "main-content" && active !== filter) return;
+              const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+              const visible = (element: HTMLElement) => {
+                const box = element.getBoundingClientRect();
+                return box.top >= header && box.top < window.innerHeight;
+              };
+              const update = Array.from(list?.querySelectorAll<HTMLElement>("article[tabindex]") ?? []).find(visible);
+              (filter && visible(filter) ? filter : update)?.focus({ preventScroll: true });
+            }
           });
         });
       };
