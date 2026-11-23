@@ -7,6 +7,7 @@ import { activityHelpReturnKey } from "@/components/layout/FooterHelpLink";
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   document.querySelectorAll("[data-scroll-fixture]").forEach(element => element.remove());
@@ -22,6 +23,7 @@ test("an exact activity Back bookmark takes priority over the mobile first-visit
 
 test("restores the footer Help Center link and scroll on browser Back", () => {
   const { scrollTo } = setup();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const link = document.createElement("a");
   link.dataset.scrollFixture = "";
   link.id = "footer-help-center";
@@ -31,6 +33,10 @@ test("restores the footer Help Center link and scroll on browser Back", () => {
   render(<MyActivityLandingScroll filter="active" revealControls={false} enabled />);
   expect(document.activeElement).toBe(link);
   expect(scrollTo).toHaveBeenCalledWith({ top: 1451, behavior: "instant" });
+  document.getElementById("my-activity-filters")?.setAttribute("tabindex", "-1");
+  document.getElementById("my-activity-filters")?.focus();
+  vi.advanceTimersByTime(925);
+  expect(document.activeElement).toBe(link);
   expect(window.history.state[activityHelpReturnKey]).toBeUndefined();
 });
 

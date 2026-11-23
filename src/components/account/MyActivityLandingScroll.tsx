@@ -22,20 +22,32 @@ export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabl
   useEffect(() => {
     const helpReturn = window.history.state?.[activityHelpReturnKey];
     if (helpReturn?.href === window.location.href && typeof helpReturn.top === "number" && Number.isFinite(helpReturn.top)) {
-      let settle = 0;
-      const frame = window.requestAnimationFrame(() => {
-        settle = window.requestAnimationFrame(() => {
-          if (window.location.href !== helpReturn.href || window.history.state?.[activityHelpReturnKey]?.href !== helpReturn.href) return;
-          const link = document.getElementById("footer-help-center");
-          if (!link) return;
-          link.focus({ preventScroll: true });
-          window.scrollTo({ top: helpReturn.top, behavior: "instant" });
-          const nextState = { ...window.history.state };
-          delete nextState[activityHelpReturnKey];
-          window.history.replaceState(nextState, "");
-        });
-      });
-      return () => { window.cancelAnimationFrame(frame); window.cancelAnimationFrame(settle); };
+      const isCurrent = () => window.location.href === helpReturn.href && window.history.state?.[activityHelpReturnKey]?.href === helpReturn.href;
+      function restore() {
+        const link = document.getElementById("footer-help-center");
+        if (!isCurrent() || !link) return;
+        link.focus({ preventScroll: true });
+        window.scrollTo({ top: helpReturn.top, behavior: "instant" });
+      }
+      function consume() {
+        if (!isCurrent()) return;
+        const nextState = { ...window.history.state };
+        delete nextState[activityHelpReturnKey];
+        window.history.replaceState(nextState, "");
+      }
+      const frame = window.requestAnimationFrame(restore);
+      // The mobile header and native hash restoration can settle after mount.
+      const timers = [150, 400, 900].map(delay => window.setTimeout(restore, delay));
+      timers.push(window.setTimeout(() => { consume(); stop(); }, 925));
+      const interaction = ["pointerdown", "wheel", "keydown", "touchstart"];
+      function stop() {
+        window.cancelAnimationFrame(frame);
+        for (const timer of timers) window.clearTimeout(timer);
+        for (const event of interaction) window.removeEventListener(event, interrupt);
+      }
+      function interrupt() { stop(); consume(); }
+      for (const event of interaction) window.addEventListener(event, interrupt, { passive: true, once: true });
+      return stop;
     }
     if (!enabled || (filter !== "active" && filter !== "completion" && !window.matchMedia?.("(max-width: 767px)").matches)) return;
     if (ownerId && readActivityViewReturn(window.history.state, ownerId, window.location.href, filter)) return;
