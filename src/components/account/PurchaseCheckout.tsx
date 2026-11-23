@@ -65,10 +65,11 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnActivityHref = "/account/entries?filter=completion#my-activity-filters", activityEntryId, returnTransactionHref, notificationReturnHref, legacyDeclineReturnHref }:  {
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, cardsUnavailable = false, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false, returnActivityHref = "/account/entries?filter=completion#my-activity-filters", activityEntryId, activityFilter, returnTransactionHref, notificationReturnHref, legacyDeclineReturnHref }:  {
   cardsUnavailable?: boolean;
   returnActivityHref?: string;
   activityEntryId?: string;
+  activityFilter?: "completion";
   returnTransactionHref?: string;
   notificationReturnHref?: string;
   legacyDeclineReturnHref?: string;
@@ -206,9 +207,12 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     const url = new URL(href, "https://navigation.invalid");
     const context = new URLSearchParams(url.pathname === "/account/wallet" ? fundingContext : receiptContext);
     for (const [key, value] of context) url.searchParams.set(key, value);
-    if (activityEntryId && url.pathname.startsWith("/account/purchase-options/")) url.searchParams.set("activityEntry", activityEntryId);
+    if (activityEntryId && url.pathname.startsWith("/account/purchase-options/")) {
+      url.searchParams.set("activityEntry", activityEntryId);
+      if (activityFilter) url.searchParams.set("activityFilter", activityFilter);
+    }
     return url.pathname + url.search + url.hash;
-  }, [activityEntryId, fundingContext, receiptContext]);
+  }, [activityEntryId, activityFilter, fundingContext, receiptContext]);
   const walletHref = keepAlert(depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId));
   const rememberSelectionFor = (href: string) => {
     rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview, freezeSelection: freezeHandoff });

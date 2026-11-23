@@ -106,6 +106,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           const top = window.innerWidth === saved.width ? saved.cardTop : Math.max(header + 12, saved.cardTop);
           window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - top), behavior: "instant" });
+          card.focus({ preventScroll: true });
           syncSwipe();
         }); });
       };
@@ -127,9 +128,9 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         .find(element => (viewedEntryId && element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId))
           || (viewedRewardId && element.dataset.activityRewardId === viewedRewardId));
       const completedPurchase = filter === "completed" && card?.dataset.purchaseCompleted === "true";
-      const returningFromReward = completedPurchase || card?.dataset.status === "prize";
-      card?.scrollIntoView?.({ block: returningFromReward ? "center" : "nearest", inline: "center", behavior: returningFromReward ? "instant" : "smooth" });
-      if (returningFromReward) card?.focus({ preventScroll: true });
+      const returningToTicket = completedPurchase || card?.dataset.status === "prize" || card?.dataset.status === "completion";
+      card?.scrollIntoView?.({ block: returningToTicket ? "center" : "nearest", inline: "center", behavior: returningToTicket ? "instant" : "smooth" });
+      if (returningToTicket) card?.focus({ preventScroll: true });
       setViewedEntry(viewedEntryId ?? null);
     });
     const timer = window.setTimeout(() => setViewedEntry(null), 15000);
@@ -277,7 +278,9 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const completedPurchase = filter === "completed" && purchasedReward && item.rewardId;
         const checkoutCardHref = completedPurchase && item.rewardId && checkout?.rewardIds.includes(item.rewardId)
           ? purchasedRewardHref(item.rewardId, item.slug, checkout.receipt) : undefined;
-        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}${filter === "all" && item.entryId ? `?activityEntry=${encodeURIComponent(item.entryId)}` : ""}`
+        const offerOrigin = purchaseOption && item.entryId && /^ent_[a-f0-9]{32}$/.test(item.entryId) && (filter === "all" || filter === "completion")
+          ? `?activityEntry=${encodeURIComponent(item.entryId)}${filter === "completion" ? "&activityFilter=completion" : ""}` : "";
+        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}${offerOrigin}`
           : completedPurchase ? checkoutCardHref ?? `${activityCardHref}&via=completed`
           : filter === "all" && purchasedReward && item.rewardId ? `${activityCardHref}&via=activity-purchase`
           : item.status === "prize" && !purchasedReward && item.rewardId && item.entryId && (filter === "prize" || filter === "completed" || filter === "all")

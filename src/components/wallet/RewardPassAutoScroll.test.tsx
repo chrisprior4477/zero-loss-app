@@ -12,6 +12,10 @@ function setup(matches: boolean) {
   const scrollIntoView = vi.fn();
   const pass = document.createElement("div");
   pass.id = "reward-pass";
+  const heading = document.createElement("h1");
+  heading.id = "reward-pass-title";
+  heading.tabIndex = -1;
+  pass.appendChild(heading);
   pass.scrollIntoView = scrollIntoView;
   document.body.appendChild(pass);
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches })));
@@ -19,7 +23,7 @@ function setup(matches: boolean) {
     callback(0);
     return 1;
   });
-  return { pass, scrollIntoView };
+  return { heading, pass, scrollIntoView };
 }
 
 test("mobile reward arrival scrolls every selected pass beneath the header", () => {
@@ -32,9 +36,10 @@ test("mobile reward arrival scrolls every selected pass beneath the header", () 
   pass.remove();
 });
 
-test("desktop reward arrival does not move the page", () => {
-  const { pass, scrollIntoView } = setup(false);
+test("desktop reward arrival focuses the pass without moving the page", () => {
+  const { heading, pass, scrollIntoView } = setup(false);
   render(<RewardPassAutoScroll rewardKey="reward" />);
   expect(scrollIntoView).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(heading);
   pass.remove();
 });

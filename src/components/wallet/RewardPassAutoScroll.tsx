@@ -2,17 +2,19 @@
 
 import { useEffect } from "react";
 
-/** Bring the actionable pass below the mobile sticky header on reward arrival. */
+/** Focus the selected pass and bring it below the sticky header on mobile. */
 export function RewardPassAutoScroll({ rewardKey }: { rewardKey: string }) {
   useEffect(() => {
-    if (!window.matchMedia?.("(max-width: 700px)").matches) return;
-
     // Let the destination layout and Next's navigation scroll settle first.
     let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
-        document.getElementById("reward-pass")?.scrollIntoView({ block: "start", behavior: "auto" });
-        if (document.activeElement === document.body) document.getElementById("reward-pass-title")?.focus({ preventScroll: true });
+        if (window.matchMedia?.("(max-width: 700px)").matches) {
+          document.getElementById("reward-pass")?.scrollIntoView({ block: "start", behavior: "auto" });
+        }
+        if (document.activeElement === document.body || document.activeElement?.tagName === "MAIN") {
+          document.getElementById("reward-pass-title")?.focus({ preventScroll: true });
+        }
       });
     });
 

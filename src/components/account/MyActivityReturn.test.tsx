@@ -24,6 +24,7 @@ test("opening a later activity ticket bookmarks and restores its gallery positio
   page.unmount();
   render(<MyZeroLossGallery {...props()} />);
   await waitFor(() => expect(screen.getByRole("region", { name: "Your products" }).scrollLeft).toBe(650));
+  expect(document.activeElement).toBe(screen.getByRole("region", { name: "Your products" }).querySelector("a[data-activity-return-key]"));
 });
 
 test.each(["other account", "different filter", "different URL", "removed record"])("does not restore an activity position for %s", async reason => {

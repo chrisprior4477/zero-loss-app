@@ -3,6 +3,30 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
+test.each([
+  ["gift cards $25 or $75 at Walmart and Target", "$25 or $75 gift cards from Walmart and Target"],
+  ["Nintendo gift cards no more than $75 except $25 and $50", "Nintendo gift cards up to $75 excluding $25 excluding $50"],
+  ["Walmart gift cards $25 to $75 excluding both $25 and $50", "Walmart gift cards $25 to $75 excluding $25 excluding $50"],
+  ["Sony headphones, $1 to enter", "Sony headphones $1 per entry"],
+  ["50 inch and 65 inch TVs", "50 inch or 65 inch TVs"],
+  ["TVs not made by Samsung", "TVs without Samsung"],
+  ["fewer than three slots left", "fewer than 3 tickets left"],
+  ["one to two more entries before full", "1 to 2 tickets left"],
+  ["price below $100 Nintendo gift card", "Nintendo gift card under $100"],
+  ["gift cards from Walmart with a value between $25 and $75", "Walmart gift cards between $25 and $75"],
+])("matches the same catalog results for %s", (query, baseline) => {
+  const expected = searchCatalog(demoProducts, baseline).map(product => product.slug).sort();
+  expect(expected.length).toBeGreaterThan(0);
+  expect(searchCatalog(demoProducts, query).map(product => product.slug).sort()).toEqual(expected);
+});
+
+test("limits combined denominations to the named retailers", () => {
+  const results = searchCatalog(demoProducts, "gift cards $25 or $75 at Walmart and Target");
+  expect(results.map(product => [product.retailer, product.value]).sort()).toEqual([
+    ["Target", 25], ["Target", 75], ["Walmart", 25], ["Walmart", 75],
+  ]);
+});
+
 describe("catalog search", () => {
   test("typing available filters out a sold-out product with the same search name", () => {
     const pictured = demoProducts.find(product => product.slug === "sony-wh-1000xm5-headphones")!;

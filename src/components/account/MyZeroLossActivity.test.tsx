@@ -361,7 +361,7 @@ test("ten purchase options for one product consolidate without combining their i
   const gallery = screen.getByRole("region", { name: "Your products" });
   const card = within(gallery).getByRole("link", { name: /See My 10 Purchase Options for Nike/ });
   expect(within(gallery).getAllByRole("link")).toHaveLength(1);
-  expect(card.getAttribute("href")).toBe("/account/purchase-options/nike-court-shot-shoes");
+  expect(card.getAttribute("href")).toBe(`/account/purchase-options/nike-court-shot-shoes?activityEntry=ent_${"1".padStart(32, "0")}&activityFilter=completion`);
   expect(within(card).getByText("10", { selector: "[class*='optionActionCount']" })).toBeTruthy();
   expect(within(card).getByText("remaining per option")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Purchase Options10" })).toBeTruthy();

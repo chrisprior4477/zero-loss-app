@@ -14,11 +14,14 @@ const signedBareRange = new RegExp(String.raw`^([+−-]\s*\$?\s*${dollars})\s*(?
 const signedBound = new RegExp(String.raw`^(under|below|less than|over|above|more than|at least|at most)\s+([+−-]\s*\$?\s*${dollars})$`, "i");
 const labeledAlternatives = new RegExp(String.raw`([+−-]?\s*\$\s*${dollars}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
 const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|transactions?)\s+(?:of\s+|for\s+)?(?=\d|[$+−-]|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|cents?)\b)/gi;
-const scopedEntryPayment = new RegExp(String.raw`^(\$\s*${dollars})\s+(.+?)\s+entry payments?$`, "i");
+const entryPaymentType = String.raw`entry\s+(?:payments?|debits?)`;
+const entryPayments = new RegExp(String.raw`^(?:all\s+)?(?:posted\s+)?${entryPaymentType}\b`, "i");
+const qualifiedEntryPayment = new RegExp(String.raw`^(.+?)\s+(?:posted\s+)?${entryPaymentType}(?:\s+(.+))?$`, "i");
 const paidWithScope = new RegExp(String.raw`^(.+?)\s+(\$\s*${dollars})\s+(?:paid|spent)$|^(.+?)\s+(?:paid|spent|charged)(?:\s+exactly)?\s+(\$\s*${dollars})$`, "i");
 const centsValue = String.raw`(\d+|${smallNumberWords})\s+cents?\b`;
 const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
 const spokenCentsPattern = new RegExp(String.raw`(\b(?:dollars?|bucks?))\s+(?:and\s+)?${centsValue}`, "i");
+const amountLabel = /\b(?:posted\s+)?amount(?:\s*(?::|=|equals\b)\s*|\s+)(?=[+−($\d-]|(?:[a-z]+[ -]+)+(?:dollars?|bucks?|cents?)\b)/gi;
 
 function amountCents(token: string) {
   const [whole, fraction = ""] = token.replace(/[^\d.]/g, "").split(".");
@@ -32,7 +35,7 @@ function amountMatch(token: string) {
 }
 
 type SearchCalendar = { timeZone: string; locale: string };
-const dateLimit = "on or after|after|on or before|before";
+const dateLimit = "on or after|after|on or before|before|older than";
 const oneDateLimit = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLimit})\\s+(.+)$`, "i");
 const twoDateLimits = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLimit})\\s+(.+?)\\s+and\\s+(${dateLimit})\\s+(.+)$`, "i");
 
@@ -93,7 +96,8 @@ function dateLimitMatches(date: string, operator: string, boundary: string) {
   switch (operator.toLowerCase()) {
     case "on or after": return comparable >= boundary;
     case "on or before": return comparable <= boundary;
-    case "before": return comparable < boundary;
+    case "before":
+    case "older than": return comparable < boundary;
     default: return comparable > boundary;
   }
 }
@@ -155,12 +159,13 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const formatter = localDateKey(calendar.timeZone);
     return entries.filter(entry => dateLimitMatches(formatter.format(new Date(entry.created_at)), after![1], exclusiveStart));
   }
-  const compactRange = /^([\p{L}.]+)\s+(\d{1,2})\s*[-–—]\s*(\d{1,2}),?\s+(\d{4})$/iu.exec(dateQuery);
+  const compactRange = /^([\p{L}.]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*[-–—]\s*|\s+(?:through|to)\s+(?:the\s+)?)(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/iu.exec(dateQuery);
   const rangeQuery = compactRange
     ? `from ${compactRange[1]} ${compactRange[2]}, ${compactRange[4]} to ${compactRange[1]} ${compactRange[3]}, ${compactRange[4]}`
     : dateQuery;
   const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(rangeQuery)
     ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(rangeQuery)
+    ?? /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*[-–—]\s*(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)$/.exec(rangeQuery)
     ?? /^(.+\d)\s*[-–—]\s*([\p{L}.]+\s+\d{1,2}(?:,?\s+\d{4})?)$/u.exec(rangeQuery);
   if (dateRange) {
     const first = dateBoundary(dateRange[1], calendar) ?? shortDateBoundary(dateRange[1], calendar);
@@ -204,7 +209,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     for (const [date, remainder] of sides) {
       if (!date.some(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word) || /^\d{1,2}[/-]\d{1,2}[/-]\d{2}$/.test(word))) continue;
       const matches = searchDate(entries, date.join(" "), calendar);
-      if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, ""));
+      if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, "").replace(/^(?:at\s+)(?=[+−-]?\s*\$)/i, ""));
     }
   }
   const purchaseType = /^(?:gift[\s-]+card\s+purchases?(?:\s+from\s+(.+))?|(.+)\s+gift[\s-]+card\s+purchases?)$/i.exec(trimmed);
@@ -212,7 +217,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const merchantOrAmount = purchaseType[1] ?? purchaseType[2] ?? "";
     return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), merchantOrAmount);
   }
-  const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|=|equals\b)/i.test(trimmed) || /\s+exactly$/i.test(trimmed);
+  const explicitPostedAmount = [...trimmed.matchAll(amountLabel)].length > 0 || /\s+exactly$/i.test(trimmed);
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
@@ -238,12 +243,13 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/\bUS\s*(?=\$)/gi, "")
     .replace(/\$\s*([+−-])\s*(?=\d)/g, "$1$$")
     .replace(/\b(minus|negative|plus|positive)\s+(?=\$)/gi, (_, sign: string) => /^(?:minus|negative)$/i.test(sign) ? "-" : "+")
-    .replace(/\b(?:posted\s+)?amount\s*(?::|=|equals\b)\s*(?=[+−($\d-])/gi, "")
+    .replace(amountLabel, "")
     .replace(new RegExp(String.raw`(^|\s|[()+−-])(${dollars})\s*\$(?=\s|$|\))`, "g"), "$1$$$2")
     .replace(/(^|\s)\$\s*(?=\()/g, "$1")
     .replace(/\(\s*[+−-]?\s*(\$?\s*\d[\d,.]*)\s*\)/g, "-$1")
     .replace(/\bfor\s+(?=[+−-]?\s*\$)/gi, "")
     .replace(typeAmount, "$1 ")
+    .replace(/^(deposits?|funding)\s+of\s+(?=at least\b|at most\b|more than\b|less than\b|under\b|over\b|between\b)/i, "$1 ")
     .replace(/^(?:wallet\s+)?(credits?|debits?|charges?)\s+(?:of|for)\s+/i, "$1 ")
     .replace(/^(.+?)\s+(debited|debits?|deposited|paid|spent)$/i, (whole, amount: string, type: string) => {
       if (!amount.split(/\s+or\s+/i).every(part => amountOnly.test(part))) return whole;
@@ -275,16 +281,12 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const released = /^(?:released\s+reservations?|entry\s+(?:holds?|reservations?)\s+released)\b/i.exec(query);
   if (released) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_HOLD_RELEASE"), query.slice(released[0].length).trim());
-  const entryPayments = /^(?:all\s+)?entry payments?\b/i.exec(query);
-  if (entryPayments) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), query.slice(entryPayments[0].length).trim());
-  const amountFirstEntryPayment = /^(.+?)\s+entry payments?$/i.exec(query);
-  if (amountFirstEntryPayment && amountOnly.test(amountFirstEntryPayment[1])) {
-    return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), amountFirstEntryPayment[1]);
-  }
-  const namedEntryPayment = scopedEntryPayment.exec(query);
+  const entryPayment = entryPayments.exec(query);
+  if (entryPayment) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), query.slice(entryPayment[0].length).trim());
+  const namedEntryPayment = qualifiedEntryPayment.exec(query);
   if (namedEntryPayment) {
-    const matches = amountMatch(namedEntryPayment[1]);
-    return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT" && matches(row.amount)), namedEntryPayment[2]);
+    const [, prefix, details] = namedEntryPayment;
+    return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), details ? prefix + " " + details : prefix);
   }
   const namedPayment = paidWithScope.exec(query);
   if (namedPayment) {

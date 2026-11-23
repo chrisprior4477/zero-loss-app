@@ -98,8 +98,8 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "change-email", category: "account", question: "Can I change my email address?",
-    answer: "Profile displays your current sign-in email. To request an address change in this MVP, contact Support from your signed-in account.",
-    keywords: "update replace edit login email", action: { label: "Ask Support about my email", href: "/support?topic=email#report-problem" },
+    answer: "If you can still sign in, contact Support from your signed-in account to request an email change. If you’re locked out and can’t access that inbox, recover the mailbox through your email provider first. Once you have access again, use Forgot password on the sign-in page if you need a reset link.",
+    keywords: "update replace edit login email lost access mailbox inbox", action: { label: "Ask Support about my email", href: "/support?topic=email#report-problem" },
   },
   {
     id: "balance-discrepancy", category: "wallet", question: "What if my wallet balance is wrong?",
@@ -285,6 +285,7 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:lost access to|(?:cannot|could not|no longer)\s+(?:access|open|use))\s+(?:(?:my|the|that|old)\s+)*(?:e-?mail|mailbox|inbox)\b/, "change-email"],
   [/\b(?:cancel|undo)\b(?=.*\b(?:tickets?|entr(?:y|ies))\b)(?=.*\b(?:accident|mistake|bought|purchased|entered)\b)/, "undo-entry"],
   [/\b(?:get|have|take)\b.*\b(?:deposit|deposited funds)\b.*\bback\b/, "withdrawals"],
   [/\b(?:took|deducted|charged|billed)\b.*\b(?:money|payment|wallet|card)\b.*\b(?:twice|two times)\b/, "funding-status"],

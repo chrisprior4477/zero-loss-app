@@ -35,6 +35,10 @@ export function purchaseOptionReturnPath(value: unknown): string | null {
     if (url.searchParams.has(key) && (url.searchParams.getAll(key).length !== 1 || validated[key] !== context[key])) return null;
     url.searchParams.delete(key);
   }
+  if (url.searchParams.has("activityEntry") && (url.searchParams.getAll("activityEntry").length !== 1 || !entryPattern.test(context.activityEntry))) return null;
+  if (url.searchParams.has("activityFilter") && (url.searchParams.getAll("activityFilter").length !== 1 || !context.activityEntry || context.activityFilter !== "completion")) return null;
+  url.searchParams.delete("activityEntry");
+  url.searchParams.delete("activityFilter");
   return !url.hash && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?(?:&choice=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?$/.test(url.pathname + url.search) ? value : null;
 }
 

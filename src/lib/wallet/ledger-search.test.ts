@@ -15,6 +15,7 @@ test("a date and posted amount are separate filters, and gift-card purchases exc
   expect(search("$1 November 2026")).toEqual(["entry"]);
   expect(search("gift card purchases from Walmart")).toEqual(["purchase"]);
   expect(search("Walmart gift card purchases")).toEqual(["purchase"]);
+  expect(search("Walmart entry payments $1")).toEqual(["entry", "older-entry"]);
 });
 
 test("matches amount, date and direction shorthand without treating held or unrelated amounts as charges", () => {
@@ -69,6 +70,15 @@ test("matches amount, date and direction shorthand without treating held or unre
   expect(search("wallet credit over $25")).toEqual(["credit"]);
   expect(search("-50¢")).toEqual(["adjustment"]);
   expect(search("Netflix card charge $24")).toEqual(["netflix"]);
+  expect(search("Nov 5 2026 at $1")).toEqual(search("Nov 5, 2026 $1"));
+  expect(search("11/5–11/6/26")).toEqual(search("between 11/5/26 and 11/6/26"));
+  expect(search("November 5th through the 6th, 2026")).toEqual(search("between 11/5/26 and 11/6/26"));
+  expect(search("posted amount: one dollar")).toEqual(["entry", "hold", "refund"]);
+  expect(search("amount 100 cents")).toEqual(["entry", "hold", "refund"]);
+  expect(search("deposit of at least $25")).toEqual(["deposit"]);
+  expect(search("transactions older than November 1, 2026")).toEqual(["released"]);
+  expect(search("posted entry payments")).toEqual(["entry", "title-only"]);
+  expect(search("$1 entry debit on 11/5/26")).toEqual(["entry"]);
 });
 
 test("keeps natural amount phrases scoped to posted values and transaction type", () => {

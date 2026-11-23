@@ -27,7 +27,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-type OfferQuery = Partial<Record<"option" | "activityEntry" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
+type OfferQuery = Partial<Record<"option" | "activityEntry" | "activityFilter" | "resume" | "choice" | "decline" | "receipt" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug: requestedSlug } = await params;
@@ -36,10 +36,12 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const resume = matchingQueryValue(raw.resume);
   const choice = matchingQueryValue(raw.choice);
   const activityEntry = typeof raw.activityEntry === "string" && /^ent_[a-f0-9]{32}$/.test(raw.activityEntry) ? raw.activityEntry : undefined;
+  const activityFilter = activityEntry && raw.activityFilter === "completion" ? "completion" : undefined;
   const validChoice = choice && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(choice) ? choice : undefined;
   const query = {
     ...raw,
     activityEntry,
+    activityFilter,
     choice: validChoice,
     resume: resume === "wallet" && (raw.choice === undefined || validChoice) ? resume : undefined,
   };
@@ -49,10 +51,9 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const invalidOption = option !== undefined && (!selectedEntryId || !/^ent_[a-f0-9]{32}$/i.test(selectedEntryId));
   const optionId = typeof selectedEntryId === "string" && !invalidOption ? selectedEntryId.toLowerCase() : undefined;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
-  const activityReturn = activityEntry ? `/account/entries?viewed=${encodeURIComponent(activityEntry)}#my-activity-filters` : "/account/entries?filter=completion#my-activity-filters";
   const notificationReturn = validNotice(query.notice) ? notificationHref(notificationFilter(query.alerts), query.notice) : undefined;
   const selectors = new URLSearchParams();
-  for (const key of ["option", "activityEntry", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
+  for (const key of ["option", "activityEntry", "activityFilter", "resume", "choice", "decline", "receipt", "transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
     if (key === "option") {
       if (optionId) selectors.set(key, optionId);
       continue;
@@ -89,6 +90,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const origin = transactionOriginParams(query);
     for (const [name, value] of Object.entries(origin ?? {})) destination.searchParams.set(name, value);
     if (activityEntry && destination.pathname === prizePath) destination.searchParams.set("activityEntry", activityEntry);
+    if (activityFilter && destination.pathname === prizePath) destination.searchParams.set("activityFilter", activityFilter);
     if (validNotice(query.notice)) {
       destination.searchParams.set("notice", query.notice);
       destination.searchParams.set("alerts", notificationFilter(query.alerts));
@@ -101,6 +103,10 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const account = await getAccountContext("report");
   if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", returnPath));
+  const returnEntry = activityEntry && account.activity.activity.some(item => item.entryId === activityEntry && item.slug === slug);
+  const activityReturn = returnEntry
+    ? `/account/entries?${activityFilter ? "filter=completion&" : ""}viewed=${encodeURIComponent(activityEntry)}#my-activity-filters`
+    : "/account/entries?filter=completion#my-activity-filters";
   if (typeof receipt === "string") {
     const result = await checkDemoPurchaseReceipt(receipt, slug);
     if (result.status === "succeeded") {
@@ -194,7 +200,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnActivityHref={activityReturn} activityEntryId={activityEntry} returnTransactionHref={walletHref} notificationReturnHref={notificationReturn} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", query?.choice, query?.resume, options.map(option => option.completionOptionId)])} returnActivityHref={activityReturn} activityEntryId={activityEntry} activityFilter={activityFilter} returnTransactionHref={walletHref} notificationReturnHref={notificationReturn} ownerId={account.userId} walletId={account.wallet.walletAccountId ?? undefined} options={options}
       ticketLabels={offerTicketLabels(options, activity)} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} legacyDeclineReturnHref={legacyDeclineReturnHref} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} cardsUnavailable={cards === null} creditedDeposits={requests?.filter(request => request.reconciliation === "reconciled").map(request => request.idempotencyKey)} fundingAvailable={account.fundingEnabled && cards !== null}
       pendingDeposits={requests?.filter(request => request.reconciliation !== "reconciled")

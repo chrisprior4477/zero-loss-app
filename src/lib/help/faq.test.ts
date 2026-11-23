@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["lost access to my email", "change-email"],
+  ["can’t access my email", "change-email"],
   ["I used up my balance can I still enter", "insufficient-balance"],
   ["how do I tell if a hold turned into a ticket", "entry-status"],
   ["where can I get an itemized receipt for one ticket", "entry-receipt"],

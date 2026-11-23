@@ -35,7 +35,7 @@ const routes: Record<string, ReturnRoute> = {
 
 function returnRoute(path: string): ReturnRoute | undefined {
   if (purchaseOptionsPath.test(path)) return {
-    query: { activityEntry: matches(/^ent_[a-f0-9]{32}$/), option: matches(/^ent_[a-f0-9]{32}$/), alerts: alertFilter, notice: validNotice, resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm", "undo"), receipt: matches(uuid), transaction: matches(uuid), walletView: oneOf("1"), fromOrders: oneOf("1"), orderFilter: oneOf("all", "processing", "fulfilled", "exceptions", "payment") },
+    query: { activityEntry: matches(/^ent_[a-f0-9]{32}$/), activityFilter: oneOf("completion"), option: matches(/^ent_[a-f0-9]{32}$/), alerts: alertFilter, notice: validNotice, resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm", "undo"), receipt: matches(uuid), transaction: matches(uuid), walletView: oneOf("1"), fromOrders: oneOf("1"), orderFilter: oneOf("all", "processing", "fulfilled", "exceptions", "payment") },
     hash: /^#purchase-option-rail$/,
   };
   return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {

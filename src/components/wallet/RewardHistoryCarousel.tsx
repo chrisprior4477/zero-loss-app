@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
+import { rememberAccountHistoryReturn } from "@/components/account/AccountHistoryReturn";
 import styles from "./gift-rewards-overview.module.css";
 
 type Drag = { pointerId: number; startX: number; startY: number; scrollLeft: number; moved: boolean };
@@ -49,7 +50,7 @@ export function RewardHistoryCarousel({ children, focusRow }: { children: ReactN
     if (reducedMotion || alreadySettled) restoreSnap(rail);
   }
 
-  return <div ref={railRef} className={styles.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}
+  return <div ref={railRef} data-reward-history-rail className={styles.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}
     onPointerDown={event => {
       suppressClick.current = false;
       const rail = event.currentTarget;
@@ -97,12 +98,17 @@ export function RewardHistoryCarousel({ children, focusRow }: { children: ReactN
       }
     }}
     onClickCapture={event => {
-      if (!suppressClick.current) return;
-      suppressClick.current = false;
       // Keyboard activation (detail 0) remains available after a mouse drag.
-      if (event.detail === 0) return;
-      event.preventDefault();
-      event.stopPropagation();
+      const dragged = suppressClick.current && event.detail !== 0;
+      suppressClick.current = false;
+      if (dragged) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[data-reward-history-link]") : null;
+      if (link && (!link.target || link.target === "_self")) rememberAccountHistoryReturn(link, event.currentTarget);
     }}
   >{children}</div>;
 }

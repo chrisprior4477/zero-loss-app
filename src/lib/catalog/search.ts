@@ -22,6 +22,9 @@ export function searchCatalogMatches(
     .replace(/\bfrom\s+(\$\s*\d+(?:\.\d{1,2})?)\s+and\s+up\b/gi, "at least $1")
     .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
     .replace(/\bnot sold by\s+/gi, "excluding from ")
+    .replace(/^(.+\b(?:tvs?|televisions?)|tvs?|televisions?)\s+not made by\s+/i, "$1 without ")
+    .replace(/^(\d+\s*[- ]?\s*inch(?:es)?(?:\s+and\s+\d+\s*[- ]?\s*inch(?:es)?)+)(\s+(?:tvs?|televisions?)\s*[.!?]?)$/i,
+      (_, sizes: string, type: string) => sizes.replace(/\s+and\s+/gi, " or ") + type)
     .replace(/\bneither\s+([^,;]+?)\s+nor\s+(.+)$/i, "excluding $1 and $2")
     .replace(/^(\$\s*\d+(?:\.\d{1,2})?)\s+or less in\s+(.+\bgift\s*cards?\b)[.!?]?$/i, "$2 up to $1")
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
@@ -98,7 +101,7 @@ export function searchCatalogMatches(
       return remaining.map(product => ({ product, kind: "product" }));
     }
   }
-  const retailerQuery = budget || excludedValues.size || entryPrice !== null ? denomination.text : query;
+  const retailerQuery = budget || excludedValues.size || values.size || entryPrice !== null ? denomination.text : query;
   const specificRetailers = /\bgift cards?\s+(?:for|from|at)\s+(?:both\s+|either\s+)?(.+)$/i.exec(retailerQuery);
   if (specificRetailers) {
     const names = specificRetailers[1].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(part => catalogMerchant(part, products));
