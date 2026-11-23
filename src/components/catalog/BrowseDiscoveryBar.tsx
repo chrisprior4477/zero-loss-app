@@ -396,6 +396,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     const products = props.previews?.[category.id] ?? [];
     // The preview was matched on the server using the applied search.
     const href = prizeCategoryHref(category.id);
+    const fullCategory = new URL(marketplaceCategoryHref(category.id), "https://zeroloss.local");
+    if (collection) fullCategory.searchParams.set("collection", collection);
+    const fullCategoryHref = fullCategory.pathname + fullCategory.search + "#search-results";
+    const seeAllHref = products.length ? href : fullCategoryHref;
+    const matchesFilters = products.length > 0 && (Boolean(search.trim()) || props.filters.type !== "all" || props.filters.availableOnly
+      || props.filters.minValue !== null || props.filters.maxValue !== null || category.id === "ending-soon" && Boolean(props.ticketsLeft));
+    const seeAllLabel = matchesFilters ? "See matching prizes" : category.id ? "See all " + category.label : "See all products";
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>
       <div className={styles.previewHeader}><h3>{category.label}{search.trim() !== props.searchTerm && props.searchTerm ? <> · “{props.searchTerm}”</> : null}</h3>{budgetLabel ? <span>{budgetLabel}</span> : null}</div>
       {products.length ? <div className={styles.previewProducts}>{products.map(product => {
@@ -416,8 +423,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         </Link>;
       })}</div> : <p className={styles.noMatches}>No matching prizes with these filters.</p>}
       <div className={styles.previewActions}>
-        <Link href={href} prefetch={false} scroll={false} onNavigate={event => { event.preventDefault(); navigateFromPanel(href); }}>
-          {category.id ? `See all ${category.label}` : "See all products"} <span aria-hidden="true">→</span>
+        <Link href={seeAllHref} prefetch={false} scroll={false} onNavigate={event => { event.preventDefault(); navigateFromPanel(seeAllHref); }}>
+          {seeAllLabel} <span aria-hidden="true">→</span>
         </Link>
         <button type="button" data-refine-preview onClick={() => {
           pickerVoice.cancel();
@@ -535,8 +542,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
                 All categories<span aria-hidden="true">→</span>
               </button> : null}{retailers.map(option => {
                 const hasScopedOffer = scopedOfferRetailers ? scopedOfferRetailers.has(option.value) : option.hasOffer;
+                const offerLabel = hasScopedOffer ? "View current offers" : option.hasOffer ? "No matches with your current search or filters" : "No current offers here";
                 return <div key={option.value}>
-                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value, props.ticketsLeft), true)}><span>{option.label}<small>{hasScopedOffer ? "View current offers" : "No current offers here"}</small></span><span aria-hidden="true">→</span></button>
+                  <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value, props.ticketsLeft), true)}><span>{option.label}<small>{offerLabel}</small></span><span aria-hidden="true">→</span></button>
                   {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
                     ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)} onNavigate={event => { event.preventDefault(); navigateFromPanel(allCategoriesRetailerHref(option.value)); }}>View {option.label} across all categories</Link> : null}
                 </div>;

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type D
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { scrollToCurrentSearch, searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { requestBrowseResultsFocus } from "@/components/catalog/SearchResultsAutoScroll";
 import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
 
 function HeaderMicrophoneIcon() {
@@ -94,7 +95,12 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         voice.cancel();
         inputRef.current?.blur();
         onSubmitted?.();
-        if (navigate) { event.preventDefault(); navigate(searchResultsHref(query)); }
+        if (navigate) {
+          event.preventDefault();
+          const href = searchResultsHref(query);
+          requestBrowseResultsFocus(href);
+          navigate(href);
+        }
       }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSuggestions(false); }}
       onKeyDown={event => {

@@ -18,7 +18,9 @@ export function SelectedOrderScroll({ targetId, onlyIfRepeated = false, focusSel
         const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
         const top = window.scrollY + target.getBoundingClientRect().top - headerBottom - 12;
         window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-        if (focusSelected && document.activeElement === document.body) target.querySelector("h2")?.focus({ preventScroll: true });
+        if (focusSelected && (document.activeElement === document.body || document.activeElement?.id === "your-orders-heading")) {
+          (target.querySelector<HTMLElement>("[data-order-ticket] h3") ?? target.querySelector("h2"))?.focus({ preventScroll: true });
+        }
       });
     });
     return () => {

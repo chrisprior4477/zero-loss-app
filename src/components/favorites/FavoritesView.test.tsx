@@ -43,6 +43,7 @@ test("declining moves the shared card to Declined and never changes personal fav
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
   fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
   await screen.findByRole("heading", { name: "No available shares" });
+  expect(screen.getByText("Declined. This item stays in Shared with You.")).toBeTruthy();
   expect(screen.getByRole("tab", { name: "Shared with You 1" })).toBeTruthy(); expect(screen.getByRole("tab", { name: "Your Favorites 1" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
   expect(screen.getByRole("button", { name: /View declined share/ })).toBeTruthy(); expect(mocks.toggle).not.toHaveBeenCalled();

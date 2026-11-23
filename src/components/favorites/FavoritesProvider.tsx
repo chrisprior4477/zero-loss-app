@@ -157,7 +157,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       const selection = draft?.slug === slug && isEntryQuantity(draft.quantity) ? { slug, quantity: draft.quantity } : null;
       const returnTo = pathname === "/browse" ? signInReturnPath(`${pathname}${search}#prize-${slug}`)
         : pathname === "/" ? signInReturnPath(sourceReturn) : currentProductEntryHref(pathname, search, selection);
-      return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`);
+      return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`) + "&focus=email#login-form";
     };
     if (!isSignedIn) {
       if (window.location.pathname === "/browse") {

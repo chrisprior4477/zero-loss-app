@@ -25,6 +25,25 @@ export type FaqItem = {
 // Keep these answers aligned with the server-enforced flows, not planned features.
 export const faqItems: FaqItem[] = [
   {
+    id: "unauthorized-transaction", category: "wallet", question: "How do I report a transaction I didn’t make?",
+    answer: "Open Transaction history, find the exact transaction, and choose Report a problem. The transaction is attached to your private Support message. If an unfamiliar charge appears on your payment card, check the charge with your card issuer. The Zero Loss demo uses simulated payments.",
+    keywords: "unrecognized suspicious unauthorized purchase payment charge",
+    action: { label: "Find the transaction", href: walletTransactionsHref },
+  },
+  {
+    id: "unrecognized-sign-in", category: "account", question: "What should I do about a sign-in I don’t recognize?",
+    answer: "Open Account & Security and review your latest recorded sign-in. If you can still sign in, use Change password to secure your account. Use Sign out everywhere to revoke existing sessions. You can report an unfamiliar sign-in through private Support.",
+    keywords: "unknown suspicious sign in logout log out devices sessions",
+    action: { label: "Review sign-out options", href: "/account/security#sign-out-everywhere" },
+    followUpAction: { label: "Report an account problem", href: "/support?topic=account#report-problem" },
+  },
+  {
+    id: "forgot-sign-in-email", category: "account", question: "What if I forgot which email I used to sign in?",
+    answer: "Check your inboxes for your Zero Loss verification email. If you’re still signed in on another device, open Profile to see your account email. If you still need help identifying the address, use Contact Us for private account-access help.",
+    keywords: "forgot login username account sign in email",
+    action: { label: "Get account-access help", href: "/contact#message" },
+  },
+  {
     id: "default-card", category: "wallet", question: "How do I change my default payment card?",
     answer: "Open Payment methods and choose the default payment method on the saved sample card you want to use. You can still choose a different card when adding demo funds.",
     keywords: "set choose change switch default preferred card funding",
@@ -181,7 +200,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
-    answer: "If a deposit is pending, declined, or interrupted, check the existing request in Wallet & Transactions first. Use Finish / check or Retry same request when offered. If the request needs review or the balance still looks wrong, open Support from that transaction before starting another deposit.",
+    answer: "If a deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. Use Finish / check or Retry same request when offered. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
@@ -309,6 +328,11 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:i (?:did not|didn't|never) (?:make|authorize|recognize)|(?:unrecognized|unauthorized|unfamiliar))\b.*\b(?:purchase|transaction|charge|payment|deposit)\b/, "unauthorized-transaction"],
+  [/\b(?:funds|money|balance)\b.*\b(?:taken|deducted|charged)\s+(?:twice|two times)\b/, "funding-status"],
+  [/\b(?:unrecognized|unfamiliar|unknown|suspicious)\b.*\b(?:sign[ -]?in|log[ -]?in)\b|\b(?:sign|log)\b.*\bout\b.*\b(?:all|other|every)\s+devices?\b/, "unrecognized-sign-in"],
+  [/\b(?:forgot|forget|cannot remember|can't remember)\b.*\b(?:sign[ -]?in|log[ -]?in|account)\s+(?:e-?mail|address)\b/, "forgot-sign-in-email"],
+  [/\b(?:export|download|copy|request)\b.*\bpersonal (?:information|data)\b/, "privacy-requests"],
   [/\b(?:deposit|adding funds|wallet funding)\b.*\breceipt\b|\breceipt\b.*\b(?:deposit|adding funds|wallet funding)\b|\b(?:what|which)\s+(?:sample\s+)?card\b.*\bdeposit\b/, "deposit-receipt"],
   [/\b(?:can|may)\s+i\s+(?:pay|fund|deposit|use)\b.*\b(?:my|a|with)?\s*(?:debit|credit)\s+card\b/, "add-funds"],
   [/\b(?:default|preferred)\s+(?:bank|credit|debit|payment|sample)\s+card\b/, "default-card"],

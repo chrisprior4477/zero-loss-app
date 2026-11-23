@@ -15,9 +15,6 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (rawQuery.length > maxCatalogSearchLength) return [];
-  const availableOnly = /^\s*available\s+(.+)$/i.exec(rawQuery)
-    ?? /^\s*(.+?)\s+(?:that (?:are|is)|which (?:are|is)|still)\s+available\s*[.!?]?\s*$/i.exec(rawQuery);
-  if (availableOnly) return searchCatalogMatches(products.filter(product => product.sold < product.capacity), availableOnly[1], undefined, { includeLowerGiftCards });
   const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
     .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
@@ -33,8 +30,44 @@ export function searchCatalogMatches(
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
+  const availableOnly = /^\s*available\s+(.+)$/i.exec(query)
+    ?? /^\s*(.+?)\s+(?:(?:that (?:are|is)|which (?:are|is)|still)\s+)?available\s*[.!?]?\s*$/i.exec(query);
+  if (availableOnly && !/\b(?:tickets?|entr(?:y|ies)|spots?|slots?)$/i.test(availableOnly[1].trim())) {
+    return searchCatalogMatches(products.filter(product => product.sold < product.capacity), availableOnly[1], undefined, { includeLowerGiftCards });
+  }
   const multiBrandTelevisions = /^(\S+)\s+(?:and|or|&)\s+(\S+)\s+((?:\d+\s*[- ]?\s*(?:inch(?:es)?|in\b|")\s+)?(?:tvs?|televisions?)\b.*)$/i.exec(query.trim());
   const hasBrand = (name: string) => products.some(product => normalizeSearch(product.brand) === normalizeSearch(name));
+  const televisionPairs = /^(.+?\s+(?:and|or|&)\s+.+?)\s+(tvs?|televisions?)\b(.*)$/i.exec(query.trim());
+  if (televisionPairs) {
+    const [, choices, kind, tail] = televisionPairs;
+    const pairs = choices.split(/\s+(?:and|or|&)\s+/i).map(choice => {
+      const sizeFirst = /^(\d+)\s*[- ]?\s*(?:inch(?:es)?|["″])\s+(.+)$/i.exec(choice);
+      if (sizeFirst) return { size: sizeFirst[1], brand: sizeFirst[2] };
+      const brandFirst = /^(.+?)\s+(\d+)\s*[- ]?\s*(?:inch(?:es)?|["″])$/i.exec(choice);
+      return brandFirst ? { size: brandFirst[2], brand: brandFirst[1] } : null;
+    });
+    if (pairs.length > 1 && pairs.every(pair => pair && hasBrand(pair.brand))) {
+      const matches = new Map<string, CatalogSearchMatch>();
+      for (const pair of pairs) {
+        if (!pair) continue;
+        const { size, brand } = pair;
+        const scoped = products.filter(product => normalizeSearch(product.brand) === normalizeSearch(brand) && !isGiftCardListing(product));
+        for (const match of searchCatalogMatches(scoped, size + " inch " + kind + tail)) {
+          matches.set(match.product.slug, match);
+        }
+      }
+      return [...matches.values()];
+    }
+  }
+  const audioBrands = /^(.+?)\s+(headphones?|earbuds?|earphones?|headsets?)\b(.*)$/i.exec(query.trim());
+  if (audioBrands) {
+    const brands = audioBrands[1].split(/\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or|&)\s+/i);
+    if (brands.length > 1 && brands.some(hasBrand) && brands.every(brand => /^[\p{L}\d][\p{L}\d -]*$/u.test(brand))) {
+      const names = new Set(brands.map(normalizeSearch));
+      const scoped = products.filter(product => names.has(normalizeSearch(product.brand)) && !isGiftCardListing(product));
+      return searchCatalogMatches(scoped, audioBrands[2] + audioBrands[3]);
+    }
+  }
   const retailerChoices = /^(.+?)\s+(?:at|from|sold by)\s+(.+\s+(?:or|and|&)\s+.+)$/i.exec(query.trim());
   if (retailerChoices && !/\bgift card\b/.test(normalizeSearch(retailerChoices[1]))
     && queryWords(searchDenominations(retailerChoices[1], products).text).length > 0) {
@@ -129,6 +162,17 @@ export function searchCatalogMatches(
         return searchCatalogMatches(remaining, scope, budget ? { ...denomination, text: scope, merchant: null } : undefined, { includeLowerGiftCards });
       }
       return remaining.map(product => ({ product, kind: "product" }));
+    }
+    if (!retailerSpecified && positive && !qualified && !/\b(?:and|or)\b|,/.test(names)) {
+      const omitted = queryWords(names);
+      const containsOmitted = (product: DemoProduct) => {
+        const terms = new Set(queryWords(product.title + " " + product.brand));
+        return omitted.length > 0 && omitted.every(word => terms.has(word));
+      };
+      if (products.some(containsOmitted)) {
+        return searchCatalogMatches(products.filter(product => !containsOmitted(product)), positive,
+          budget ? { ...denomination, text: positive, merchant: null } : undefined, { includeLowerGiftCards });
+      }
     }
   }
   const retailerQuery = budget || excludedValues.size || values.size || entryPrice !== null ? denomination.text : query;
@@ -290,7 +334,7 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
   if (qualifiedGifts) return qualifiedGifts;
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (giftCards) query = query.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
-  const orSeparator = /(?<!\bat)\s+or\s+(?=(?:under|below|over|above)\s+\$)|\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b)/i;
+  const orSeparator = /(?<!\bat)\s+or\s+(?=(?:under|below|over|above)\s+\$)|\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b|(?:larger|bigger)\b(?!\s+than\b))/i;
   const hasOr = orSeparator.test(query);
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
   const clauses = query.split(hasOr ? new RegExp(/\s*,(?!\d)\s*(?:or\s+)?/.source + "|" + orSeparator.source, "i") : /\s+(?:and|&)\s+/i);

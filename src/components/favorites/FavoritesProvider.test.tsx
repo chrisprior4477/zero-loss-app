@@ -85,7 +85,7 @@ test("another tab restoring the original favorites updates the count and hearts 
 test("guest favorite tap requests sign-in without pretending to save", () => {
   renderButtons(false);
   fireEvent.click(screen.getAllByRole("button", { name: `Sign in to save ${productName} to favorites` })[0]);
-  expect(mocks.push).toHaveBeenCalledWith("/login?next=%2Faccount%2Ffavorites%3Fitem%3Ddyson-v8-cordless-vacuum");
+  expect(mocks.push).toHaveBeenCalledWith("/login?next=%2Faccount%2Ffavorites%3Fitem%3Ddyson-v8-cordless-vacuum&focus=email#login-form");
   expect(mocks.setFavorite).not.toHaveBeenCalled();
   expect(JSON.parse(sessionStorage.getItem("zero-loss-pending-favorite-v1") ?? "{}").slug).toBe("dyson-v8-cordless-vacuum");
 });

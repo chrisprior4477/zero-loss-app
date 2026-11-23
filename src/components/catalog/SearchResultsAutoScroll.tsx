@@ -3,6 +3,7 @@
 import { useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { revealBelowHeader } from "@/lib/account/landing-position";
+import { hasFooterPolicyReturn } from "@/components/account/AccountHistoryReturn";
 
 type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request" | "categories-top" | "categories-bottom";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
@@ -118,6 +119,7 @@ export function SearchResultsAutoScroll({
     const renderedSearch = window.location.search;
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
+      if (hasFooterPolicyReturn() && !requestedFocus) return;
       const favorite = window.history.state?.zeroLossBrowseFavoriteReturn;
       if (favorite?.href === window.location.href && typeof favorite.slug === "string"
         && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(favorite.slug) && Number.isFinite(favorite.top)) {

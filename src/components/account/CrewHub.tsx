@@ -131,6 +131,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
   useDialogBack(finding && initialTab !== "add", closeCrewSearch, false, true, false, "crew-quick-finder", () => setFinding(true));
   const lastSharePicker = useRef<{ recipientId?: string } | null>(null);
+  const cancelShareHandOff = useRef<(() => void) | null>(null);
+  useEffect(() => () => cancelShareHandOff.current?.(), []);
   const endSharePicker = useDialogBack(Boolean(sharing), () => {
     lastSharePicker.current = sharing;
     setSharing(null);
@@ -138,10 +140,31 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     if (tab === "crew" && shareOpener.current?.isConnected) setSharing(lastSharePicker.current);
   });
   function handOffShare(product: CrewActivityPick & { recipientId?: string }) {
-    const dispatch = () => requestAnimationFrame(() => {
+    cancelShareHandOff.current?.();
+    const href = window.location.href;
+    let frame = 0;
+    function cancel() {
+      window.removeEventListener("popstate", dispatch);
+      window.removeEventListener("keydown", escape, true);
+      cancelAnimationFrame(frame);
+      cancelShareHandOff.current = null;
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      cancel();
       shareOpener.current?.focus({ preventScroll: true });
-      window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product }));
-    });
+    }
+    function dispatch() {
+      frame = requestAnimationFrame(() => {
+        cancel();
+        if (window.location.href !== href || !shareOpener.current?.isConnected) return;
+        shareOpener.current.focus({ preventScroll: true });
+        window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product }));
+      });
+    }
+    cancelShareHandOff.current = cancel;
+    window.addEventListener("keydown", escape, true);
     if (window.history.state?.["zeroLossDialog-crew-find-to-share"]) {
       window.addEventListener("popstate", dispatch, { once: true });
       endSharePicker();

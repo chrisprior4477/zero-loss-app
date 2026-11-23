@@ -5,29 +5,38 @@ import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew))$/;
 const stateKey = "zeroLossAccountHistoryReturn";
+const returnLinks = "main a[href], footer a[data-footer-policy]";
 
 export function hasAccountHistoryReturn() {
   return history.state?.[stateKey]?.source === location.href;
 }
 
+export function hasFooterPolicyReturn() {
+  return hasAccountHistoryReturn() && history.state[stateKey].footer === true;
+}
+
 export function rememberAccountHistoryReturn(anchor: HTMLAnchorElement, rail?: HTMLElement) {
   const href = anchor.getAttribute("href");
-  const identical = [...document.querySelectorAll("main a[href]")].filter(link => link.getAttribute("href") === href);
+  const identical = [...document.querySelectorAll(returnLinks)].filter(link => link.getAttribute("href") === href);
+  const footer = anchor.hasAttribute("data-footer-policy");
   history.replaceState({ ...history.state, [stateKey]: {
     source: location.href, href, index: identical.indexOf(anchor),
     ...(rail ? { left: rail.scrollLeft } : {}),
-    ...(rail || anchor.hasAttribute("data-deposit-credit") ? { top: scrollY } : {}),
+    ...(footer ? { footer: true } : {}),
+    ...(rail || footer || anchor.hasAttribute("data-deposit-credit") ? { top: scrollY } : {}),
   } }, "");
 }
 
-export function AccountHistoryReturn() {
+export function AccountHistoryReturn({ accountLinks = true }: { accountLinks?: boolean }) {
   useEffect(() => {
     let timers: number[] = [];
     const stop = () => { timers.forEach(clearTimeout); timers = []; };
     function remember(event: MouseEvent) {
-      if (!pages.test(location.pathname) || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("main a[href]") : null;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(returnLinks) : null;
       if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.pathname + anchor.search === location.pathname + location.search) return;
+      if (anchor.hasAttribute("data-footer-policy")) { rememberAccountHistoryReturn(anchor); return; }
+      if (!accountLinks || !pages.test(location.pathname)) return;
       if (!/^(?:←\s*)?(?:Back to Account & Security|Edit profile|Continue shopping|View fulfillment status|Add funds)/i.test(anchor.textContent?.trim() ?? "")
         && !/^(?:Ask Support about my email|Account updates|Add to Crew|Manage Crew|Contact us|Open Wallet)/i.test(anchor.textContent?.trim() ?? "")
         && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit") && !anchor.hasAttribute("data-deposit-credit")) return;
@@ -39,7 +48,7 @@ export function AccountHistoryReturn() {
       if (!saved || saved.source !== location.href || typeof saved.href !== "string") return;
       const align = () => {
         if (saved.source !== location.href) return;
-        const links = [...document.querySelectorAll<HTMLAnchorElement>("main a[href]")].filter(link => link.getAttribute("href") === saved.href);
+        const links = [...document.querySelectorAll<HTMLAnchorElement>(returnLinks)].filter(link => link.getAttribute("href") === saved.href);
         const link = links[saved.index] ?? links[0];
         if (!link?.getClientRects().length || link.closest("[inert]")) return;
         const rail = link.closest<HTMLElement>("[data-reward-history-rail]");
@@ -73,6 +82,6 @@ export function AccountHistoryReturn() {
       window.removeEventListener("keydown", stop);
       window.removeEventListener("wheel", stop);
     };
-  }, []);
+  }, [accountLinks]);
   return null;
 }

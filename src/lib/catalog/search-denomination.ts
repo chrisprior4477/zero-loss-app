@@ -12,6 +12,7 @@ const currency = new RegExp(String.raw`(?:\$\s*|\bUSD\s*)(${digits})(?:[ -]+(?:d
 
 const entryAmount = String.raw`(?:${currency.source})|(?:\$\s*|\bUSD\s*)?\b${digits}`;
 const entryPricePattern = new RegExp([
+  String.raw`\bentr(?:y|ies)\s+with\s+(?:an?\s+)?(?<standaloneFee>${entryAmount})\s+fees?\b`,
   String.raw`\b(?:with\s+|for\s+)?(?:an?\s+)?(?:entry\s+(?:price|fee|cost)s?|tickets?\s+cost)\s*:?\s*(?:of\s+)?(?<labeledCeiling>(?:up to|at most|no more than|below|under|less than)\s+)?(?<labeled>${entryAmount})`,
   String.raw`\b(?:with|paying)\s+(?<entryFees>${entryAmount})\s+(?:entry fees?|(?:per|each)\s+entry)\b`,
   String.raw`(?<!\S)(?:with\s+)?(?:an?\s+)?(?<single>${entryAmount})\s+(?:entry|ticket)\s+(?:price|fee|cost)\b|\bwith\s+(?:an?\s+)?(?<singleEntry>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
@@ -268,6 +269,8 @@ const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\
 const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 const ticketMaximum = new RegExp(String.raw`\b(${ticketCount})(?:\s+or fewer${ticketUnits}|${ticketUnits}\s+or fewer\b)`, "i");
 const ticketChoices = new RegExp(String.raw`${ticketPrefix}(?:only\s+)?(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
+const repeatedTicketChoice = new RegExp(String.raw`(\b${ticketCount})${ticketUnits}(?=\s+or\s+${ticketCount}${ticketUnits})`, "gi");
+const ticketPlusMinimum = new RegExp(String.raw`\b(\d+)\+\s+(?=${ticketNouns}\s+${ticketAvailability}\b)`, "gi");
 
 function ticketBounds(comparison: string | undefined, count: string) {
   const value = /^\d+$/.test(count) ? Number(count) : spokenValue(count);
@@ -285,7 +288,9 @@ function ticketBounds(comparison: string | undefined, count: string) {
 
 export function remainingTicketFilter(query: string) {
   if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;
-  query = query.replace(ticketMaximum, "at most $1 tickets left");
+  query = query.replace(ticketMaximum, "at most $1 tickets left")
+    .replace(ticketPlusMinimum, "at least $1 ")
+    .replace(repeatedTicketChoice, "$1");
   const compound = compoundTicketsPattern.exec(query);
   const choices = ticketChoices.exec(query);
   const match = compound ?? choices ?? remainingTicketsPattern.exec(query);
@@ -338,12 +343,13 @@ export function searchDenominations(query: string, products: readonly { retailer
   const screenRange = dimensions ? { low: Math.min(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])), high: Math.max(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])) } : null;
   if (dimensions) normalized = normalized.replace(dimensions[0], " ").trim();
   if (isTelevision) normalized = normalized.replace(/^(.*?)\s+(?:with\s+)?(?:an?\s+)?(\d+)\s*[- ]?\s*inch\s+(?:screen|display)\b/i, "$2 inch $1");
+  if (isTelevision) normalized = normalized.replace(/\b(?:that\s+(?:are|is)\s+)?(\d+(?:\.\d+)?)\s*(inch(?:es)?\b|["″])\s+(?:or\s+(?:larger|bigger|more)|and\s+up)\b/i, "at least $1 $2");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;
   const screen = /\b(?:tvs?|televisions?)\b/i.test(normalized) ? screenComparison.exec(normalized) : null;
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
   if (screen) normalized = normalized.replace(screen[0], " ").replace(/\s+/g, " ").trim();
   const entryMatch = entryPricePattern.exec(normalized);
-  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees ?? entryMatch?.groups?.ticketCost ?? entryMatch?.groups?.spokenEntry;
+  const entryAmountText = entryMatch?.groups?.standaloneFee ?? entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees ?? entryMatch?.groups?.ticketCost ?? entryMatch?.groups?.spokenEntry;
   const exclusiveEntryPrice = /^(?:below|under|less than)\b/i.test(entryMatch?.groups?.labeledCeiling ?? entryMatch?.groups?.ceiling ?? "");
   const entryPrice = entryAmountText ? leadingAmount(entryAmountText)?.amount ?? null : null;
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);

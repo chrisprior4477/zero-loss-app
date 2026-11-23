@@ -58,7 +58,7 @@ test("the wide picker expands one category and refines its own results with the 
   const opening = preview.getByRole("link", { name: /Sony Starter Kit/ }).getAttribute("href");
   expect(new URL(opening!, "https://example.test").searchParams.get("from"))
     .toBe("/browse?category=electronics&maxValue=25&q=Sony#category-preview~top~everyday-items~sample-sony");
-  expect(preview.getByRole("link", { name: /See all Everyday Items/ }).getAttribute("href"))
+  expect(preview.getByRole("link", { name: "See matching prizes" }).getAttribute("href"))
     .toBe("/browse?category=everyday-items&maxValue=25&q=Sony#search-results");
   expect(navigation.replace).not.toHaveBeenCalled();
   fireEvent.click(preview.getByRole("button", { name: "Refine search" }));

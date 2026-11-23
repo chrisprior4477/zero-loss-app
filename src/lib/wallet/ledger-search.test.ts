@@ -213,6 +213,33 @@ test("searches the printed transaction date in the account's time zone", () => {
   expect(search("between November 6 and November 10")).toEqual([]);
 });
 
+test("composes Wallet date, scope, and exact debit queries", () => {
+  const product = { title: "PlayStation 5 Slim Model", slug: "playstation-5-slim", retailer: "Best Buy", image: "/item.png" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 16000, created_at: "2026-11-06T02:05:00Z" },
+    { id: "old", entry_type: "DEPOSIT", amount: 2000, created_at: "2026-10-10T15:00:00Z" },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at: "2026-11-14T20:00:00Z", product },
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at: "2026-11-21T20:00:00Z", product },
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -9900, created_at: "2026-11-18T15:00:00Z", product },
+  ];
+  const search = (query: string) => searchLedger(entries, query, row => [
+    ...ledgerDescription(row.entry_type, row.product?.title), row.product?.retailer ?? "",
+  ], entries, { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-23T20:00:00Z") }).map(row => row.id);
+
+  expect(search("Nov 5 at 9:05 PM PST")).toEqual([]);
+  expect(search("Nov 5 at 6:05 PM PST")).toEqual(["deposit"]);
+  expect(search("deposits on Nov 5, 2026 at 9:05 PM")).toEqual(["deposit"]);
+  expect(search("deposits from Nov 2 to Nov 5")).toEqual(["deposit"]);
+  expect(search("PlayStation from Nov 5 to Nov 21")).toEqual(["hold", "release", "purchase"]);
+  expect(search("spent $99 on Best Buy")).toEqual(["purchase"]);
+  expect(search("last 30 days")).toEqual(["deposit", "hold", "release", "purchase"]);
+  expect(search("all transactions before November 5, 2026")).toEqual(["old"]);
+  expect(search("transactions on or after 11/5")).toEqual(["deposit", "hold", "release", "purchase"]);
+  expect(search("Nov 5 or Nov 21")).toEqual(["deposit", "release"]);
+  expect(search("entry reservations")).toEqual(["hold"]);
+  expect(search("entry reservation releases")).toEqual(["release"]);
+});
+
 test("searches natural posted-amount and entry date wording", () => {
   const created_at = "2026-11-06T02:00:00Z";
   const product = { title: "PlayStation 5 Slim Model", slug: "playstation-5-slim", retailer: "Best Buy", image: "/item.png" };

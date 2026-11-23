@@ -17,6 +17,13 @@ test.each([
   ["65-inch or 75-inch TVs under $1500", []],
   ["Sony WH-1000XM5 headphones $1 entry price", ["sony-wh-1000xm5-headphones"]],
   ["show me Sony headphones that are available", ["sony-wh-1000xm5-headphones"]],
+  ["show me available Sony headphones", ["sony-wh-1000xm5-headphones"]],
+  ["Sony headphones available", ["sony-wh-1000xm5-headphones"]],
+  ["Sony or Bose headphones", ["sony-wh-1000xm5-headphones"]],
+  ["TVs 55 inches or larger", ["lg-oled-c6-65-tv"]],
+  ["50 inch Samsung and 65 inch LG TVs", ["samsung-m70h-tv", "lg-oled-c6-65-tv"]],
+  ["Sony but not PlayStation", ["sony-wh-1000xm5-headphones"]],
+  ["entries with a $1.00 fee", demoProducts.filter(product => product.entryPrice === 1).map(product => product.slug)],
 ])("keeps the product and all constraints together for %s", (query, expected) => {
   const actual = searchCatalogMatches(demoProducts, query, undefined, { includeLowerGiftCards: true }).map(({ product }) => product.slug);
   expect(actual.sort()).toEqual([...expected].sort());
@@ -91,6 +98,8 @@ describe("catalog search", () => {
     expect(remainingTicketFilter("at most five and more than two tickets left")).toEqual({ text: "", minimum: 3, maximum: 5 });
     expect(remainingTicketFilter("prizes that have fewer than 3 tickets left")).toEqual({ text: "", minimum: 1, maximum: 2 });
     expect(remainingTicketFilter("15 to 20 spots still available")).toEqual({ text: "", minimum: 15, maximum: 20 });
+    expect(remainingTicketFilter("prizes with 200+ tickets left")).toEqual({ text: "", minimum: 200, maximum: Infinity });
+    expect(remainingTicketFilter("1 ticket left or 2 tickets left")?.counts).toEqual(new Set([1, 2]));
     expect(searchDenominations("at least 2 and at most 5 entries remaining", demoProducts).budget).toBeNull();
   });
 

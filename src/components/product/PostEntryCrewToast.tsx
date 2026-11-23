@@ -161,6 +161,14 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     setGroupHistory(true);
     go("audience");
   });
+  const groupEditorReturn = useRef<Step | null>(null);
+  useDialogBack(step === "group" || history.current.includes("group"), () => {
+    if (step !== "group") { back(); return true; }
+    groupEditorReturn.current = history.current.at(-1) ?? "home";
+    back();
+  }, busy, true, true, "product-share-group-editor", () => {
+    if (groupEditorReturn.current === step) go("group");
+  });
   const url = origin && linkReady ? productShareUrl(origin, item.slug, shareToken) : "";
   const text = productShareText(item.title, item);
   const body = url ? `${text}\n${url}` : "";
@@ -853,7 +861,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <h3>Choose connected Crew members</h3>
           <div className={styles.field}><label htmlFor={`${id}-group-search`}>Find people in your Crew</label><input id={`${id}-group-search`} value={groupFilter} onChange={event => setGroupFilter(event.target.value)} placeholder="Search your Crew" /></div>
           <div className={styles.groupMemberPicker}>{members.filter(member => member.name.toLowerCase().includes(groupFilter.trim().toLowerCase())).map(member => <div className={styles.memberRow} key={member.id}><label className={styles.choice}><input type="checkbox" checked={groupMembers.includes(member.id)} disabled={busy} onChange={event => setGroupMembers(current => event.target.checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} /><span>{member.name}</span></label><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button></div>)}</div>
-          {!members.length ? <p className={styles.note}>Create the group now, then add connected Crew members.</p> : null}
+          {!members.length ? <p className={styles.note}>{editingGroup ? "This group has no connected Crew members yet. Use Find someone to add a person to your Crew." : "Create the group now, then add connected Crew members."}</p> : null}
           <button type="submit" className={styles.primary} disabled={busy || groupConflict}>{busy ? "Saving…" : "Save group"}</button>
         </form>
         {groupConflict ? <button type="button" disabled={busy} onClick={() => void reviewSavedGroup()}>Load saved group and discard draft</button> : null}

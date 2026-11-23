@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["I did not make this purchase", "unauthorized-transaction"],
+  ["funds taken twice", "funding-status"],
+  ["report an unrecognized sign-in", "unrecognized-sign-in"],
+  ["sign me out of all devices", "unrecognized-sign-in"],
+  ["forgot my sign-in email", "forgot-sign-in-email"],
+  ["export my personal information", "privacy-requests"],
   ["how do i get a receipt for adding funds", "deposit-receipt"],
   ["which card did i use for a deposit", "deposit-receipt"],
   ["can i use a debit card", "add-funds"],
