@@ -104,6 +104,10 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   // authorized records visible too, with their existing activity destination.
   const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => (!prize || item.slug === prize) && item.completionOptionStatus === "expired" && !allRewards.includes(item))];
   const rewardInView = (item: ActivityItem) => scopedHistory(`${walletRewardHref(item)}${view === "all" ? "" : `&rewards=${view}`}`);
+  const expiredInView = (entryId: string) => {
+    const history = view === "expired" && !prize && !transactionReturn ? "" : "&rewardHistory=1";
+    return scopedHistory(`/account/wallet?rewards=${view}${history}&expiredEntry=${encodeURIComponent(entryId)}#reward-history`);
+  };
   const history = records.filter(item => !ready.includes(item));
   const used = allRewards.filter(item => rewardState(item) === "redeemed");
   const expired = records.filter(item => rewardState(item) === "expired");
@@ -196,7 +200,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view} focusRow={historyTarget || undefined}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId || item.entryId ? `wallet-reward-${item.rewardId ?? item.entryId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : item.entryId ? scopedHistory(`/account/wallet?rewards=${view}&rewardHistory=1&expiredEntry=${encodeURIComponent(item.entryId)}#reward-history`) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId || item.entryId ? `wallet-reward-${item.rewardId ?? item.entryId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : item.entryId ? expiredInView(item.entryId) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
             <span>{rewardDate(item.rewardClaimedAt, timeZone, locale)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><span className="min-w-0"><strong>{item.title}</strong>{repeatedCardRef(item) ? <small className="block">Card ref. {repeatedCardRef(item)}</small> : null}</span></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}

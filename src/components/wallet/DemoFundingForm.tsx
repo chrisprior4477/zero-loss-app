@@ -576,7 +576,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly && !desktop && cardPanel}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
-    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} landingAlias="add-funds" settleAfterNavigation restrictToTargetHash />}
+    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash />}
     <div id={amountSection} className={styles.fundingAmountSection}>
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
