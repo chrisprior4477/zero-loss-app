@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -24,7 +25,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const notificationDestination = section === "alerts"
     ? listPath + (listPath.includes("?") ? "&" : "?") + "section=alerts#alert-settings"
     : listPath + (section === "email" ? "#email-choices" : "#notification-tickets-filters");
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) {
     redirect(authNavigationHref("/login", notificationDestination) + "&focus=email#login-form");
   }
@@ -53,6 +55,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
     readAvailable={snapshot.readAvailable}
     ordersAvailable={snapshot.ordersAvailable}
     initialAlertPreferences={snapshot.preferences}
+    preferencesReadAt={snapshot.preferencesReadAt}
     outcomeEmailEnabled={outcomeEmailError || typeof outcomeEmailEnabled !== "boolean" ? null : outcomeEmailEnabled}
     favoriteAlertEmailEnabled={favoriteAlertEmailError || typeof favoriteAlertEmailEnabled !== "boolean" ? null : favoriteAlertEmailEnabled}
     purchaseOptionEmailEnabled={purchaseOptionEmailError || typeof purchaseOptionEmailEnabled !== "boolean" ? null : purchaseOptionEmailEnabled}

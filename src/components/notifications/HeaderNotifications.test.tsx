@@ -51,7 +51,7 @@ test.each([
   mock.unread = [make("one",tone,{itemTitle:"One product"}),make("two",tone,{itemTitle:"Another product"}),make("support-1","account")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   fireEvent.click(screen.getByRole("button",{name:new RegExp(`One product.*${button}`)}));
-  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&grouped=1&fromUpdates=1#my-activity-filters`));
+  await waitFor(()=>expect(mock.replace).toHaveBeenCalledWith(`/account/entries?filter=${filter}&grouped=1&fromUpdates=1&updateCategory=${tone === "reward" ? "wins" : "options"}#my-activity-filters`));
   expect(mock.markRead).toHaveBeenCalledExactlyOnceWith(["one"]);
 });
 test("open products consolidate into ticket totals and open the unread ticket before acknowledging it", async () => {

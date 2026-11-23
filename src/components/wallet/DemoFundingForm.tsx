@@ -352,7 +352,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     if (!deleteToken || deletingCard) return;
     setDeletingCard(true);
     try {
-      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(deleteToken, deleteRevision.current) : deleteDemoPaymentMethod(deleteToken));
+      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(deleteToken, deleteRevision.current, walletId) : deleteDemoPaymentMethod(deleteToken, undefined, walletId));
       setCardMessage(result.message);
       if (result.status === "succeeded") {
         const remainingVisible = visibleTokens.filter(token => token !== deleteToken);
@@ -379,7 +379,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   async function refreshDeletion(token: DemoCardToken) {
     setDeletingCard(true);
     try {
-      const latest = await readDemoPaymentMethod(token);
+      const latest = await readDemoPaymentMethod(token, walletId);
       if (latest.status === "loaded" && latest.card === null) {
         const remainingCards = cards.filter(card => card.token !== token);
         setCards(remainingCards);
@@ -407,6 +407,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     setSavingCard(token);
     setCardMessage("");
     const data = new FormData();
+    data.set("walletId", walletId);
     data.set("paymentMethod", token);
     data.set("makeDefault", String(asDefault));
     const existing = cards.find(card => card.token === token);
@@ -433,7 +434,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         router.refresh();
       }
     } catch {
-      const latest = await readDemoPaymentMethod(token).catch(() => null);
+      const latest = await readDemoPaymentMethod(token, walletId).catch(() => null);
       if (latest?.status === "loaded" && latest.card?.isDefault === asDefault) {
         const saved = latest.card;
         setCards(current => current.map(card => card.token === token ? saved : asDefault ? { ...card, isDefault: false } : card));
@@ -482,7 +483,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
   }} className={styles.demoCardsPanel} data-collapsed={!manageCards} hidden={mobile && !manageCards}>
       <div className={styles.demoCardsHeading}><div><h3 id="funding-saved-cards-title" tabIndex={-1}>{mobile || allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
-        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={event => addCard(undefined, event.currentTarget)}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
+        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={event => addCard(undefined, event.currentTarget)}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera walletId={walletId} token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
@@ -506,7 +507,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {!mobile && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {mobile && <button type="button" className={`${paymentStyles.secondary} ${styles.backToAmount}`} onClick={closeSavedCards}>Back to amount</button>}
     </section>;
-  if (editingCard) return <WalletCardEditor key={editingCard} token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onAddCard={nextCard && cards.some(card => card.token === editingCard) ? () => addCard() : undefined} onCancel={() => {
+  if (editingCard) return <WalletCardEditor walletId={walletId} key={editingCard} token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onAddCard={nextCard && cards.some(card => card.token === editingCard) ? () => addCard() : undefined} onCancel={() => {
     openWalletPanel("#add-funds", null, true);
     requestAnimationFrame(() => {
       focusFundingControl(document.getElementById(cardEditorOpener.current ?? "funding-add-card-trigger"));
@@ -540,7 +541,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera walletId={walletId} token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={chooseDepositCard} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}

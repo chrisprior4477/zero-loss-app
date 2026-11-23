@@ -10,7 +10,8 @@ import { resolvedCatalogSlugs } from "./demo-visibility";
 
 /** One request-scoped view for customer discovery. Saved results are read separately. */
 export const getShoppingCatalog = cache(async () => {
-  const [account, report] = await Promise.all([getAccountContext(), getOfferingAvailabilityReport()]);
+  const [accountResult, report] = await Promise.all([getAccountContext("report"), getOfferingAvailabilityReport()]);
+  const account = accountResult === "unavailable" ? null : accountResult;
   const availability = report.snapshot;
   const hidden = new Set(resolvedCatalogSlugs(account?.activity));
   const usesLivePools = isPreviewDataEnvironment() || availability !== null;
@@ -20,7 +21,7 @@ export const getShoppingCatalog = cache(async () => {
       : product.capacity - product.sold;
     if (remaining <= 0) hidden.add(product.slug);
   }
-  return { hidden, availability, account, unavailable: usesLivePools && !availability,
+  return { hidden, availability, account, accountUnavailable: accountResult === "unavailable", unavailable: usesLivePools && !availability,
     unverifiedSlugs: report.unverifiedSlugs, availabilityIncomplete: report.incomplete };
 });
 

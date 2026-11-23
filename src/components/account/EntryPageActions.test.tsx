@@ -191,7 +191,7 @@ test("an unknown outcome can recover the original request after its hold reduces
   expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
   await screen.findByRole("button", { name: "Undo all 24 entries" });
-  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey);
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey, undefined);
   expect(createPreviewEntry).toHaveBeenCalledOnce();
 });
 
@@ -209,7 +209,7 @@ test("reload restores the exact interrupted entry and checks it without another 
   render(<EntryPageActions {...props} ownerId={ownerId} remaining={0} balanceCents={0} requestKey="new-key-after-reload" />);
   fireEvent.click(await screen.findByRole("button", { name: "Check saved submission" }));
   await screen.findByRole("button", { name: "Undo all 24 entries" });
-  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey);
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, props.requestKey, ownerId);
   expect(createPreviewEntry).toHaveBeenCalledOnce();
   expect(sessionStorage.getItem(storageKey)).toBeNull();
 });
@@ -286,7 +286,7 @@ test("checking for a missing large submission preserves the key and requires app
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledTimes(2));
   const first = createPreviewEntry.mock.calls[0][1] as FormData;
   const retry = createPreviewEntry.mock.calls[1][1] as FormData;
-  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, first.get("idempotencyKey"));
+  expect(checkSavedPreviewEntry).toHaveBeenCalledWith(props.slug, first.get("idempotencyKey"), undefined);
   expect(retry.get("idempotencyKey")).toBe(first.get("idempotencyKey"));
   expect(retry.get("quantity")).toBe("101");
 });

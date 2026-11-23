@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { useActionState, useRef, type ReactNode } from "react";
 import { signOutAction } from "@/lib/auth/actions";
 import { currentProductEntryHref, readEntryIntent } from "@/lib/entries/return-intent";
@@ -8,7 +9,13 @@ export function SignOutForm({ children, className }: { children: ReactNode; clas
   const returnField = useRef<HTMLInputElement>(null);
 
   const [feedback, action, pending] = useActionState(
-    async (_previous: { message: string } | null, data: FormData) => signOutAction(data), null,
+    async (_previous: { message: string } | null, data: FormData) => {
+      try { return await signOutAction(data); }
+      catch (error) {
+        unstable_rethrow(error);
+        return { message: "We couldn’t confirm sign-out. Reload to check your session, or try again." };
+      }
+    }, null,
   );
 
   return <form action={action} aria-busy={pending} aria-describedby={feedback ? "sign-out-error" : undefined} className={className} onSubmit={() => {

@@ -502,7 +502,7 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
   expect(document.documentElement.style.overflow).toBe("");
   fireEvent.click(screen.getAllByRole("button", { name: /^Delete Card .+ ending \d{4}$/ })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
-  await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242"));
+  await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242", undefined, "test"));
   await waitFor(() => expect(container.querySelectorAll("article")).toHaveLength(1));
   expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
   expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");

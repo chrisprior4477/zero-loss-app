@@ -5,6 +5,7 @@ import { crewPickReturnPath } from "../crew/view-return";
 import { isEntryQuantity } from "../entries/quantity";
 import { groceryThemes } from "./grocery-themes";
 import { parseEndingSoonTicketRange } from "./ending-soon-ticket-ranges";
+import { notificationFilter, validNotice } from "../account/notification-return";
 import { catalogSearchTooLong } from "./search-text";
 
 // Covers a validated Browse return after it is escaped as a nested query field.
@@ -26,6 +27,19 @@ export function productBrowseReturnPath(value: unknown): string | null {
   if (/^\/account\/entries\/ent_[a-f0-9]{32}#entry-crew-share$/i.test(value)) return value;
   const transaction = /^\/account\/wallet\?view=history&transaction=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:&walletView=1)?(?:&panel=transactions&fromOrders=1&orderFilter=(?:all|processing|fulfilled|exceptions|payment))?#transaction-\1$/i;
   if (transaction.test(value)) return value;
+  if (value.startsWith("/account/wallet?")) {
+    const url = new URL(value, "https://zeroloss.local");
+    const { searchParams } = url;
+    const alerts = searchParams.getAll("alerts");
+    const notices = searchParams.getAll("notice");
+    if (alerts.length === 1 && notificationFilter(alerts[0]) === alerts[0] &&
+        notices.length <= 1 && (!notices.length || validNotice(notices[0]))) {
+      searchParams.delete("alerts");
+      searchParams.delete("notice");
+      if (transaction.test(url.pathname + url.search + url.hash)) return value;
+    }
+  }
+  if (/^\/\?recent-winner=[a-z0-9]+(?:-[a-z0-9]+)*#recent-winners$/.test(value)) return value;
   if (/^\/\?marketplace-prize=[a-z0-9]+(?:-[a-z0-9]+)*#marketplace-mosaic-title$/.test(value)) return value;
   const crew = crewPickReturnPath(value);
   if (crew) return crew;
@@ -108,6 +122,7 @@ export function freeEntryHref(slug: string, browseReturn: unknown, quantity?: nu
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
+  if (url.pathname === "/" && url.hash === "#recent-winners") return "Someone just won";
   if (url.pathname === "/" && url.hash === "#marketplace-activity") return "Marketplace activity";
   if (url.pathname === "/" && url.hash === "#social-activity-title") return "Social Activity";
   if (url.pathname === "/" && url.hash === "#find-your-crew-heading") return "Crew picks";

@@ -64,15 +64,18 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   });
   function closeUpdates() { endUpdatesHistory(); value?.setOpen(false); }
   useEffect(() => {
-    const openSupport = () => setSelected("support");
-    window.addEventListener("zero-loss-open-support-updates", openSupport);
-    return () => window.removeEventListener("zero-loss-open-support-updates", openSupport);
+    const restoreCategory = (event: Event) => {
+      const matched = headerCategories.find(item => item.key === (event as CustomEvent<unknown>).detail);
+      if (matched) setSelected(matched.key);
+    };
+    window.addEventListener("zero-loss-restore-update-category", restoreCategory);
+    return () => window.removeEventListener("zero-loss-restore-update-category", restoreCategory);
   }, []);
-  const prefetch = useCallback((href: string) => {
+  const prefetch = useCallback((href: string, category?: HeaderCategory) => {
     if (!href.startsWith("/account/entries")) return;
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
-    const destination = notificationDestination(href);
+    const destination = notificationDestination(href, category);
     if (Date.now() - (warmed.current.get(destination) ?? 0) < 30000) return;
     warmed.current.set(destination, Date.now());
     // This Next version requires FULL to warm authenticated dynamic page data.
@@ -145,7 +148,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     : (["wins", "options"] as const).flatMap(category => groupedActivityUpdates(all, unread, category).slice(0, 1).map(group => group.href))).join("\n");
   useEffect(() => {
     if (!active || !preloadKey) return;
-    const timer = window.setTimeout(() => preloadKey.split("\n").forEach(prefetch), value?.open ? 0 : 500);
+    const timer = window.setTimeout(() => preloadKey.split("\n").forEach(href => prefetch(href)), value?.open ? 0 : 500);
     return () => window.clearTimeout(timer);
   }, [active, preloadKey, prefetch, value?.open]);
   const currentBanner = bannerVisible ? messages.find(message => message.category === bannerCategory) ?? messages[0] : undefined;
@@ -170,7 +173,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       <div ref={list} className={styles.items} id="header-update-sections">
         <section className={styles.section} aria-label={categoryInfo.label}>
           <div className={styles.sectionHeading}><h3>{categoryInfo.label}</h3>{activityCategory ? <button type="button" disabled={busy} onClick={() => void act(headerCategoryIds(unread, activityCategory), headerDestinations[activityCategory])}>View all →</button> : current === "shared" ? <button type="button" onClick={() => void act([], items.some(item => item.crewRequestId) ? items.every(item => item.crewRequestId) ? "/account/crew?tab=requests" : "/account/notifications?filter=crew#notification-tickets-filters" : "/account/favorites?tab=shared")}>View all →</button> : null}</div>
-          {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href)} onFocus={() => prefetch(group.href)} onClick={() => void act(activityCategory === "entries" || !group.targetId || !unread.some(item => item.id === group.targetId) ? [] : [group.targetId], group.href)}>
+          {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href, current)} onFocus={() => prefetch(group.href, current)} onClick={() => void act(activityCategory === "entries" || !group.targetId || !unread.some(item => item.id === group.targetId) ? [] : [group.targetId], group.href)}>
               {group.image ? <Image src={group.image} alt="" width={44} height={44} unoptimized /> : null}
               <span><strong>{group.title}</strong><b>{actions[activityCategory]} →</b></span><span className={styles.ticketCount} aria-label={`${group.count} ${activityCategory === "entries" ? "tickets" : activityCategory === "wins" ? "wins" : "purchase options"}`}>{group.count}</span>
             </button>) : <p className={styles.empty}>Nothing here yet. View all to see your activity.</p>) : items.length ? items.map(n => <button type="button" key={n.id} disabled={busy} onClick={() => void act([n.id], n.href)} className={styles.entry} data-color={categoryInfo.color}>
@@ -196,7 +199,8 @@ export function ReturnToUpdates() {
   const value = useNotifications();
   if (search.get("fromUpdates") !== "1" || !value) return null;
   return <div className={styles.return}><button type="button" onClick={() => {
-    if (search.get("updateCategory") === "support") window.dispatchEvent(new Event("zero-loss-open-support-updates"));
+    const category = search.get("updateCategory");
+    if (category) window.dispatchEvent(new CustomEvent("zero-loss-restore-update-category", { detail: category }));
     value.setOpen(true);
   }}>← Back to updates</button></div>;
 }

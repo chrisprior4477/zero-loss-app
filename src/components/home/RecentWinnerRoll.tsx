@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { recentWinnerDemoItems } from "@/lib/home/demo-data";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useVisibleMotion } from "@/components/home/useVisibleMotion";
 
 export function RecentWinnerRoll() {
@@ -12,7 +13,15 @@ export function RecentWinnerRoll() {
   const canAnimate = useVisibleMotion(sectionRef);
 
   useEffect(() => {
-    if (!canAnimate) return;
+    const selected = new URLSearchParams(location.search).get("recent-winner");
+    const index = recentWinnerDemoItems.findIndex(item => item.href === `/items/${selected}`);
+    // The return URL is read after hydration so the first render matches the server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (index >= 0) setActiveIndex(index);
+  }, []);
+
+  useEffect(() => {
+    if (!canAnimate || new URLSearchParams(location.search).has("recent-winner")) return;
     const interval = window.setInterval(() => {
       if (sectionRef.current?.contains(document.activeElement)) return;
       setActiveIndex((current) => (current + 1) % recentWinnerDemoItems.length);
@@ -22,9 +31,10 @@ export function RecentWinnerRoll() {
   }, [canAnimate]);
 
   const winner = recentWinnerDemoItems[activeIndex];
+  const slug = winner.href.slice("/items/".length);
 
   return (
-    <section ref={sectionRef} aria-label="Someone just won" className="overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+    <section id="recent-winners" ref={sectionRef} aria-label="Someone just won" className="scroll-mt-[calc(var(--site-header-height,140px)+12px)] overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
       <div className="hidden items-center justify-between border-b border-white/8 px-5 py-3 sm:flex">
         <div className="flex items-center gap-2.5">
           <span className="relative grid h-7 w-7 place-items-center rounded-full bg-[#72e82e]/15 text-[14px] text-[#7df33c]">
@@ -36,7 +46,7 @@ export function RecentWinnerRoll() {
         <span className="rounded-full border border-cyan-300/30 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300">Demo activity</span>
       </div>
 
-      <Link key={`${winner.name}-${activeIndex}`} href={winner.href} className="winner-cylinder-entry group relative flex min-h-[92px] items-center gap-3 overflow-hidden px-4 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[118px] sm:py-4">
+      <Link key={`${winner.name}-${activeIndex}`} href={productHrefWithBrowseReturn(slug, `/?recent-winner=${slug}#recent-winners`)} className="winner-cylinder-entry group relative flex min-h-[92px] items-center gap-3 overflow-hidden px-4 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[118px] sm:py-4">
         <span aria-hidden="true" className="absolute -right-8 -top-16 h-44 w-44 rounded-full bg-cyan-300/10 blur-3xl" />
         <span style={{ width: 68, height: 68, minWidth: 68, minHeight: 68 }} className="relative block shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/55 bg-white shadow-[0_0_22px_rgba(0,185,255,.25)]">
           <Image src={winner.avatar} alt="" aria-hidden="true" fill sizes="68px" className="object-cover object-top" />

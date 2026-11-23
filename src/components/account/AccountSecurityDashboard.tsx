@@ -122,7 +122,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
           <section className={styles.signOutTicket} id="sign-out-everywhere" aria-labelledby="signout-heading">
             <span className={styles.signOutIcon}><AccountIcon name="signout" /></span>
             <div><h2 id="signout-heading" tabIndex={-1}>Sign out everywhere</h2><p>Revoke sign-in sessions on this and other devices.</p></div>
-            <SignOutEverywhereControl />
+            <SignOutEverywhereControl ownerId={accountId} />
           </section>
         </aside>
       </div>

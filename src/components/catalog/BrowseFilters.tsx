@@ -73,12 +73,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   if (retainedSearch && !invalidSearchDraft) clearUrl.searchParams.set("q", retainedSearch);
   else clearUrl.searchParams.delete("q");
   const clearFiltersHref = `${clearUrl.pathname}${clearUrl.search}`;
+  const collection = clearUrl.searchParams.get("collection");
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     if (invalidSearchDraft || voice.busy) { form.querySelector<HTMLInputElement>('input[name="q"]')?.focus(); return; }
     const data = new FormData(form);
     const params = new URLSearchParams();
+    if (collection === "rare-finds") params.set("collection", collection);
     const valueMode = data.get("valueMode")?.toString() ?? "all";
     if (valueMode === "custom") {
       if (issue) {
@@ -164,7 +166,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
               <Link key={group.id} href={discoveryCategoryHref(group.id, mode === "custom" && issue ? filters : { ...filters, type: productType, availableOnly, sort, minValue: draftedMinimum, maxValue: draftedMaximum }, selectedCategory, "", ticketsLeft,
-                retainedSearch)} onClick={event => {
+                retainedSearch, collection)} onClick={event => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 const form = event.currentTarget.closest("form");
                 if (form && mode === "custom" && issue) { event.preventDefault(); focusIssue(form); return; }

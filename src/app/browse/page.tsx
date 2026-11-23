@@ -208,6 +208,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     || filters.minValue !== null || filters.maxValue !== null
     || filters.sort !== "featured" || filters.featuredExplicit === true;
   const clearHrefParams = new URLSearchParams();
+  if (rareFinds) clearHrefParams.set("collection", "rare-finds");
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
   if (selectedRetailerGroup && !(selectedCategory && filters.retailer)) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
   if (searchTerm) clearHrefParams.set("q", searchTerm);

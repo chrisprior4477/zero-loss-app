@@ -40,7 +40,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
     data-landing-align={fromCheckout ? "center" : undefined} aria-labelledby="purchase-deposit-heading">
     <AccountSettingsLandingScroll target="purchase-deposit" focusTarget="purchase-deposit-heading" initialTarget={fromCheckout ? "purchase-deposit" : undefined}
       visitKey={fromCheckout ? `${requestKey}:${credited ? "credited" : "check"}` : requestKey} allScreens settleAfterNavigation />
-    {verified && !fromCheckout && <DepositCreditedToast amount={verified.amount} />}
+    {credited && verified && !fromCheckout && <DepositCreditedToast amount={verified.amount} />}
     <div className={paymentStyles.editor}>
       <h2 id="purchase-deposit-heading" tabIndex={-1}>{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
       {continuation && <p>{continuation.title}</p>}

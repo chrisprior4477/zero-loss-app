@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CrewDisplaySettings } from "@/components/account/CrewDisplaySettings";
@@ -11,7 +12,8 @@ import { defaultCrewVisibilityRule, isCrewVisibilityGroup, isCrewVisibilityRule,
 export const metadata: Metadata = { title: "How to display my picks" };
 
 export default async function CrewDisplayPage() {
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", "/account/crew/display#account-settings-sections"));
   const db = await createClient();
   const [profileResult, settingsResult, membersResult, sharesResult, entriesResult] = await Promise.all([

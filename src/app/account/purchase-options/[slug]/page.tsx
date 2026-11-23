@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
@@ -92,7 +93,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const legacyDeclineSelectors = new URLSearchParams(selectors);
   legacyDeclineSelectors.delete("decline");
   const legacyDeclineReturnHref = legacyDeclineSelectors.size ? `${prizePath}?${legacyDeclineSelectors}` : prizePath;
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", returnPath));
   if (typeof receipt === "string") {
     const result = await checkDemoPurchaseReceipt(receipt, slug);

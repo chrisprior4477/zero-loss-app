@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
@@ -37,7 +38,8 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   const selectedHref = accountPageReturnPath("/account/declined-offers", { ...query, offer: offerId, filter: filter === "all" ? undefined : filter }, offerId ? `#declined-offer-${offerId}` : "");
   const noticeReturn = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
   const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", selectedHref));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId) && (Boolean(offerId) || !prize || item.slug === prize));

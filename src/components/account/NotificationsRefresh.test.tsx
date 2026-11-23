@@ -67,6 +67,16 @@ test("local preference stays pending across refresh, then yields to later extern
   expect(screen.getByRole("checkbox", { name: "Wallet activity in-app alerts" })).toHaveProperty("checked", true);
 });
 
+test("a newer verified preference wins even if the tab missed the previous acknowledgment", async () => {
+  m.preference.mockResolvedValue({ ok: true, message: "Saved", savedAt: 20 });
+  const view = render(<NotificationsCenter {...base} initialReadIds={[]} preferencesReadAt={10} initialAlertPreferences={{ wallet_updates: true }} />);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Wallet activity in-app alerts" }));
+  await screen.findByText("Saved");
+  expect(screen.queryByText(note.title)).toBeNull();
+  view.rerender(<NotificationsCenter {...base} initialReadIds={[]} preferencesReadAt={30} initialAlertPreferences={{ wallet_updates: true }} />);
+  expect(screen.getByText(note.title)).toBeTruthy();
+});
+
 test.each(["rejected", "lost response"])("a %s save restores the latest confirmed preference and leaves the screen usable", async kind => {
   let finish!: (value: unknown) => void;
   let fail!: (error: Error) => void;

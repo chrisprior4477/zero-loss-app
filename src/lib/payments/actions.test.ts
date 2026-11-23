@@ -116,6 +116,17 @@ test("a forged nested browse address cannot become a payment redirect", async ()
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.redirect).not.toHaveBeenCalled();
 });
+test.each([
+  "/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry&alerts=activity&notice=entry-test#additional-entry-checkout",
+  "/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry&transaction=11111111-1111-4111-8111-111111111111&walletView=1#additional-entry-checkout",
+  "/account/purchase-options/amazon-25-gift-card?option=ent_11111111111111111111111111111111&resume=wallet&alerts=action&notice=option-test",
+])("confirmed credit continues to the saved review with its origin %s", async destination => {
+  const f = form();
+  f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).toHaveBeenCalledWith(destination);
+});
+
 test("confirmed credit redirects to the exact saved purchase option", async () => {
   const destination = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";
   const f = form(); f.set("returnTo", destination);

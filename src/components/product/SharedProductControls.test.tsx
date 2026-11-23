@@ -93,13 +93,13 @@ test("a refresh cannot reverse the action in an already open Leave confirmation"
   expect(mocks.receiving).toHaveBeenCalledExactlyOnceWith(context.token, false, null);
 });
 
-test("a failed save unlocks the same sharing draft for retry", async () => {
+test("an unresolved save preserves the draft and offers a status check", async () => {
   mocks.receiving.mockRejectedValueOnce(new Error("Connection interrupted"));
   render(<SharedProductControls slug={context.slug} initial={context} signedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /Receive shared picks/ }));
   fireEvent.click(screen.getByRole("button", { name: "Save choices" }));
-  await screen.findByText("Your choice could not be saved. Check the current settings before retrying.");
+  await screen.findByText("We couldn’t confirm your choice. Check the saved setting before retrying.");
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("disabled", false);
   expect(screen.getByRole("button", { name: "Close sharing options" })).toHaveProperty("disabled", false);

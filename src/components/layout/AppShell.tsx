@@ -10,6 +10,7 @@ import { InstallAppPrompt } from "@/components/layout/InstallAppPrompt";
 import { SiteBreadcrumbs } from "@/components/layout/SiteBreadcrumbs";
 import { PendingEntryNotice } from "@/components/product/PendingEntryNotice";
 import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
+import { accountSession } from "@/lib/account/session";
 import { getAccountContext } from "@/lib/account/context";
 import { getFavoriteSnapshot } from "@/lib/favorites/reader";
 import { MenuLayoutProvider } from "./MenuLayoutProvider";
@@ -30,6 +31,7 @@ type AppShellProps = {
 
 export async function AppShell({ children }: AppShellProps) {
   const account = await getAccountContext();
+  const sessionUnavailable = !account && (await accountSession()).status === "unavailable";
   const [favorites, notifications, availability] = await Promise.all([
     account ? getFavoriteSnapshot(account.userId) : Promise.resolve({ slugs: [], available: true }),
     account ? getNotificationSnapshot() : Promise.resolve(null),
@@ -59,6 +61,7 @@ export async function AppShell({ children }: AppShellProps) {
       <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <Suspense fallback={null}><ReturnToUpdates /></Suspense>
       <main id="main-content" tabIndex={-1} className="flex-1 scroll-mt-[calc(var(--site-header-height,140px)+12px)] focus:outline-none">
+        {sessionUnavailable ? <p role="status" className="mx-auto max-w-6xl px-4 py-2 text-sm text-amber-100">Account details couldn’t be verified. Refresh to check your session.</p> : null}
         {children}
       </main>
       <SiteFooter demoSharing={isPreviewDataEnvironment() && account?.wallet?.scope === "demo"} />

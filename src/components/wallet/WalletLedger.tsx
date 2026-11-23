@@ -316,8 +316,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     }
     const dates = { from: nextFrom, through: nextThrough };
     setAppliedDates(dates);
-    setQuery(draft.trim());
-    updateBookmark({ ...dates, query: draft.trim(), draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
+    setQuery(invalidSearchDraft ? query : draft.trim());
+    updateBookmark({ ...dates, query: invalidSearchDraft ? query : draft.trim(), draftFrom: nextFrom, draftThrough: nextThrough, offset: 0 });
     batches.reset();
   }
   const historyIncomplete = typeof totalCount === "number" && totalCount > entries.length;
@@ -419,7 +419,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <p aria-live="polite">Showing {firstRecord > 0 || lastRecord < matching.length ? `${firstRecord + 1}–${lastRecord}` : lastRecord} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, query: draft.trim(), offset: 0 }); setQuery(draft.trim()); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { const nextQuery = invalidSearchDraft ? query : draft.trim(); updateBookmark({ filter: key, query: nextQuery, offset: 0 }); setQuery(nextQuery); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : ({ funding: "No funding transactions", entries: "No entry transactions", purchases: "No gift-card purchases", refunds: "No refunds" })[filter]}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}

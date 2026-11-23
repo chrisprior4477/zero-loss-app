@@ -612,3 +612,21 @@ test.each([
 ])("finds the expected listing for %s", (query, slug) => {
   expect(searchCatalog(demoProducts, query)[0]?.slug).toBe(slug);
 });
+
+test.each([
+  ["gift cards with 1 ticket left", "gift cards exactly 1 ticket left"],
+  ["gift cards under $75 with fewer than 5 tickets left", "gift cards under $75 fewer than 5 tickets left"],
+  ["gift cards except Amazon below $50", "gift cards below $50 except Amazon"],
+  ["$25 gift cards from Amazon or Walmart", "Amazon or Walmart $25 gift cards"],
+])("keeps the constraints in %s", (query, equivalent) => {
+  const matches = searchCatalog(demoProducts, query).map(product => product.slug).sort();
+  expect(matches.length).toBeGreaterThan(0);
+  expect(matches).toEqual(searchCatalog(demoProducts, equivalent).map(product => product.slug).sort());
+});
+
+test("keeps the retailer and gift-card scope for alternate amounts and few tickets", () => {
+  const matches = searchCatalog(demoProducts, "Amazon gift cards $25 or $50 with fewer than 5 tickets left");
+  expect(matches.length).toBeGreaterThan(0);
+  expect(matches.every(product => product.retailer === "Amazon" && product.slug.endsWith("-gift-card")
+    && [25, 50].includes(product.value) && product.capacity - product.sold < 5)).toBe(true);
+});

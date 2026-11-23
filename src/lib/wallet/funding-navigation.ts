@@ -26,7 +26,16 @@ export type FundingContinuation = { title: string; rewardSource?: "winner" | "pu
 
 /** Only an exact option selector is accepted; the purchase page rechecks ownership. */
 export function purchaseOptionReturnPath(value: unknown): string | null {
-  return typeof value === "string" && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?(?:&choice=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?$/.test(value) ? value : null;
+  if (typeof value !== "string" || !value.startsWith("/account/purchase-options/") || /[\\\s]/.test(value)) return null;
+  const url = new URL(value, "https://zeroloss.local");
+  if (url.pathname !== value.split(/[?#]/, 1)[0]) return null;
+  const context = Object.fromEntries(url.searchParams);
+  const validated = entryReviewContext(context);
+  for (const key of ["transaction", "walletView", "fromOrders", "orderFilter", "alerts", "notice"] as const) {
+    if (url.searchParams.has(key) && (url.searchParams.getAll(key).length !== 1 || validated[key] !== context[key])) return null;
+    url.searchParams.delete(key);
+  }
+  return !url.hash && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?(?:&choice=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?$/.test(url.pathname + url.search) ? value : null;
 }
 
 export function purchaseOptionHref(slug: string, entryId: string, choice?: unknown): string | null {

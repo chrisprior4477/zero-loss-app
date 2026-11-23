@@ -30,7 +30,6 @@ export function ProductEntrySelection({ slug, initialQuantity, invalidBookmark =
     catch { /* The visible selection still updates. */ }
   }, invalidDraft, draft => {
     setInvalidDraft(draft);
-    if (draft === null) return;
     try { history.replaceState({ ...history.state, freeEntryDraft: { slug, quantity, invalidDraft: draft, href: location.pathname + location.search } }, ""); }
     catch { /* The visible edit remains available. */ }
   }] }}>{children}</EntrySelection.Provider>;

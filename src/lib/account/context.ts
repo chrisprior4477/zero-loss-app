@@ -1,7 +1,7 @@
 import "server-only";
 import { bannerStyleOrDefault, bannerSpeedOrDefault, bannerDisplaySecondsOrDefault, notificationPopupStyleOrDefault } from "./banner-style";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { accountSession } from "./session";
 import { getWalletSnapshot } from "@/lib/wallet/balance";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { customerDisplayName, customerInitials } from "./profile-name";
@@ -19,10 +19,11 @@ import { completeMailingAddress } from "./address-requirements";
 import { profileFields, type ProfileSavedFields } from "./profile-edit";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
-export const getAccountContext = cache(async () => {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
+const readAccountContext = cache(async () => {
+  const session = await accountSession();
+  if (session.status === "unavailable") return "unavailable" as const;
+  if (session.status !== "signed_in") return null;
+  const { db: supabase, user } = session;
   let provisioningAvailable = true;
   if (isPreviewDataEnvironment()) {
     try {
@@ -85,3 +86,11 @@ export const getAccountContext = cache(async () => {
     orders,
   };
 });
+
+type AccountContext = Exclude<Awaited<ReturnType<typeof readAccountContext>>, "unavailable">;
+export function getAccountContext(): Promise<AccountContext>;
+export function getAccountContext(status: "report"): Promise<AccountContext | "unavailable">;
+export async function getAccountContext(status?: "report") {
+  const result = await readAccountContext();
+  return result === "unavailable" && status !== "report" ? null : result;
+}

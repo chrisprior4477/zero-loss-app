@@ -3,6 +3,7 @@
 import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Image from "next/image";
 import Link from "next/link";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useRouter } from "next/navigation";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -80,7 +81,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const railDrag = useRef<{ pointerId: number; startX: number; scrollLeft: number } | null>(null);
   const sampleNames = useSampleCrewPreviews();
   const sampleNamesKey = sampleNames.join("|");
-  const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
+  const [crewSelection, setSelectedCrew] = useState<string[]>([]);
   const [demoAlertPrepared, setDemoAlertPrepared] = useState(false);
   const [crewSharePending, setCrewSharePending] = useState(false);
   const [crewShareMessage, setCrewShareMessage] = useState("");
@@ -253,7 +254,11 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     ...sampleCrewPeople.filter(person => sampleNames.includes(person.name)).map(person => ({ id: `sample:${person.name}`, name: person.name, avatarUrl: person.photo as string, sample: true })),
   ];
 
+  const selectedCrew = crewSelection.filter(id => displayCrew.some(member => member.id === id));
+  if (selectedCrew.length !== crewSelection.length) setSelectedCrew(selectedCrew);
+
   async function sendCrewShare() {
+    if (!selectedCrew.length) return;
     const realRecipientIds = selectedCrew.filter(id => !id.startsWith("sample:"));
     if (!realRecipientIds.length) {
       setDemoAlertPrepared(true);
@@ -276,8 +281,9 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   }
 
   async function submitInlineEntry() {
-    if (busy || (!uncertain && (!canEnter || !approved || insufficientBalance || !quantityAvailable || invalidQuantity !== null))) return;
+    if (busy || (result.status === "error" && result.code === "sign_in") || (!uncertain && (!canEnter || !approved || insufficientBalance || !quantityAvailable || invalidQuantity !== null))) return;
     const form = uncertain && attemptedForm.current ? attemptedForm.current : new FormData();
+    if (ownerId) form.set("ownerId", ownerId);
     if (!uncertain || !attemptedForm.current) {
       form.set("offeringSlug", slug);
       form.set("quantity", String(quantity));
@@ -297,13 +303,13 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
     }
     try {
       const response = uncertain
-        ? await checkSavedPreviewEntry(slug, String(form.get("idempotencyKey") ?? ""))
+        ? await checkSavedPreviewEntry(slug, String(form.get("idempotencyKey") ?? ""), ownerId)
         : await createPreviewEntry({ status: "idle" }, form);
-      if (submissionStorageKey && !(response.status === "error" && response.code === "outcome_unknown")) try {
+      if (submissionStorageKey && !(response.status === "error" && ["outcome_unknown", "sign_in"].includes(response.code ?? ""))) try {
         const saved = JSON.parse(sessionStorage.getItem(submissionStorageKey) ?? "null");
         if (saved?.key === form.get("idempotencyKey")) sessionStorage.removeItem(submissionStorageKey);
       } catch { /* The verified result is still usable. */ }
-      if (uncertain && response.status === "error" && !response.code) setApprovedQuote(null);
+      if (response.status === "error" && (response.code === "sign_in" || (uncertain && !response.code))) setApprovedQuote(null);
       setResult(response);
       if (response.status === "error" && (response.code === "insufficient_balance" || response.code === "price_changed")) {
         setApprovedQuote(null);
@@ -322,7 +328,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
       } else if (response.status === "succeeded") {
         attemptedForm.current = null;
         setSubmissionKey(crypto.randomUUID());
-        const destination = resultInActivity(response.href, closingRequest.current)
+        const destination = (uncertain ? response.href : resultInActivity(response.href, closingRequest.current))
           ?? (resumeReview ? ticketHref : null);
         if (destination) router.replace(destination);
         else router.refresh();
@@ -430,10 +436,11 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
             {receipt?.status === "cancelled" || receipt?.status === "rejected" ? <p role="status" className={styles.checkoutError}>This submission was not entered. Any reservation was released.</p> : null}
             {result.status === "succeeded" ? <p role="status" className={styles.checkoutSuccess}>{result.message} You can stay on this page.</p> : null}
             {result.status === "error" && result.code !== "insufficient_balance" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
+            {result.status === "error" && result.code === "sign_in" && crewReturnEntry ? <Link className={styles.addAgain} href={authNavigationHref("/login", entryReviewHref(crewReturnEntry, quantity, activityFilter, entryContext))}>Sign in to check this entry</Link> : null}
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {reviewing ? <>
               <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => approveQuote(event.target.checked)} disabled={working || invalidQuantity !== null} />I approve this demo entry transaction.</label>
-              <button type="button" className={styles.checkoutConfirm} disabled={working || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
+              <button type="button" className={styles.checkoutConfirm} disabled={working || (result.status === "error" && result.code === "sign_in") || (!uncertain && (!approved || !canEnter || insufficientBalance || !quantityAvailable || invalidQuantity !== null))} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
             {(receipt && receipt.status !== "pending") || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); latestReceipt.current = null; activeRequestId.current = null; setResult({ status: "idle" }); setApprovedQuote(null); setQuantity(Math.max(1, Math.min(quantity, maxQuantity))); setCheckoutOpen(false); requestAnimationFrame(() => reviewControl.current?.focus({ preventScroll: true })); if (ticketHref) window.history.replaceState(window.history.state, "", ticketHref); }}>{receipt?.status === "cancelled" || receipt?.status === "rejected" ? "Review entries again" : "Add another entry"}</button> : null}
           </div> : null}

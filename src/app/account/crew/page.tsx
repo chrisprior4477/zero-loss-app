@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CrewHub } from "@/components/account/CrewHub";
@@ -31,9 +32,10 @@ export type CrewMember = { memberId: string; name: string; avatarUrl: string | n
 type CrewQuery = Partial<Record<"member" | "pick" | "request" | "invite" | "design" | "entry" | "filter" | "transaction" | "walletView" | "fromOrders" | "orderFilter" | "alerts" | "notice", string>> & { tab?: string | string[] };
 
 export default async function CrewPage({ searchParams }: { searchParams: Promise<CrewQuery> }) {
-  const { account, hidden, availability } = await getShoppingCatalog();
+  const { account, accountUnavailable, hidden, availability } = await getShoppingCatalog();
   const raw = await searchParams;
   const params = { ...raw, tab: matchingQueryValue(raw.tab) };
+  if (accountUnavailable) return <AccountSessionRetry />;
   if (!account) {
     let section = params.pick ? "#crew-intro" : "";
     if (params.tab === "add") section = "#crew-search";
@@ -93,6 +95,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   const entryParams = new URLSearchParams({ ...(params.filter === "active" ? { filter: "active" } : {}), ...entryReviewContext(params) });
   return <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={[...hidden]}><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
     invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
+    lookupFailed={Boolean(params.request && invitationsResult.error)}
     unavailable={Boolean(params.request) && (!incoming || Boolean(invitationsResult.error))} />
   <CrewHub
     visibility={crewVisibilitySnapshot(settingsResult.data, new Set((membersResult.data ?? []).map((member: { member_id: string }) => member.member_id)))}

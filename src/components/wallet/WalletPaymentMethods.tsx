@@ -150,7 +150,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     const reportError = (message: string) => setDefaultError({ token: card.token, message });
     setBusy(true); setMessage(""); setDefaultError(null);
     if (!card.revision) { reportError("Refresh your saved cards before changing the default."); setBusy(false); router.refresh(); return; }
-    const data = new FormData(); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
+    const data = new FormData(); if (walletId) data.set("walletId", walletId); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
     data.set("cardRevision", card.revision);
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
@@ -161,7 +161,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (result.status === "succeeded") setMessage(result.message);
       if (result.status === "succeeded") { setCards(current => current.map(item => (item.token === card.token && result.card ? result.card : { ...item, isDefault: item.token === card.token ? value : value ? false : item.isDefault }))); router.refresh(); }
     } catch {
-      const latest = await readDemoPaymentMethod(card.token).catch(() => null);
+      const latest = await readDemoPaymentMethod(card.token, walletId).catch(() => null);
       if (latest?.status === "loaded" && latest.card?.isDefault === value) {
         const saved = latest.card;
         setCards(current => current.map(item => item.token === saved.token ? saved : value ? { ...item, isDefault: false } : item));
@@ -175,7 +175,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     setBusy(true);
     setDeleteMessage("");
     try {
-      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(token, deleteRevision.current) : deleteDemoPaymentMethod(token));
+      const result = await (deleteRevision.current ? deleteDemoPaymentMethod(token, deleteRevision.current, walletId) : walletId ? deleteDemoPaymentMethod(token, undefined, walletId) : deleteDemoPaymentMethod(token));
       if (result.status !== "succeeded") { setDeleteMessage(result.message); return; }
       setMessage(result.message);
       const index = cards.findIndex(card => card.token === token);
@@ -193,7 +193,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   async function refreshDeletion(token: DemoCardToken) {
     setBusy(true);
     try {
-      const latest = await readDemoPaymentMethod(token);
+      const latest = await readDemoPaymentMethod(token, walletId);
       if (latest.status === "loaded" && latest.card === null) {
         setCards(current => current.filter(card => card.token !== token));
         if (expanded === token) selectPreview();
@@ -222,7 +222,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {checkoutReturn ? <Link href={checkoutReturn.href} className="font-bold underline">← {checkoutReturn.label ?? "Back to checkout"}</Link> : null}
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. <AccountReadRetryButton label="Retry saved cards" className="font-bold underline" /></p> : null}
-    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
+    {editorToken ? <WalletCardEditor walletId={walletId} key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
       openWalletPanel("#payment-methods", window.history.state, true);
       requestAnimationFrame(() => document.getElementById(target)?.focus());
@@ -235,7 +235,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
       {!availableToken && enabled && !unavailable ? <p className={styles.notice}><span>All five sample cards are saved. Choose a saved card to edit.</span>{" "}The camera here updates the {demoCardFixture(cameraToken)?.issuer} card ending {demoCardFixture(cameraToken)?.lastFour}.</p> : null}
-        <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" id="wallet-add-card-trigger" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
+        <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" id="wallet-add-card-trigger" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera walletId={walletId} token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
       </div>
       <div className={styles.cards}>{cards.map(card => {
         const cardLabel = `${demoCardFixture(card.token)?.issuer ?? "Sample card"} ending ${card.lastFour}`;

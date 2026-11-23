@@ -24,6 +24,7 @@ import compactStyles from "./product-entry-layout.module.css";
 
 type Props = {
   productSlug: string;
+  ownerId?: string;
   browseReturnHref?: string;
   requestKey: string;
   requestHead: EntryRequestHead;
@@ -50,6 +51,7 @@ type Props = {
 
 export function DemoParticipationPanel({
   productSlug,
+  ownerId,
   browseReturnHref,
   requestKey,
   requestHead,
@@ -480,6 +482,7 @@ export function DemoParticipationPanel({
           // Never describe an in-flight or uncertain submission as "Not submitted".
           clearEntryIntent(productSlug);
         }}>
+          {ownerId && <input type="hidden" name="ownerId" value={ownerId} />}
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={submissionKey} />
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
@@ -509,6 +512,7 @@ export function DemoParticipationPanel({
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (
         <div role="status" className={`mt-4 rounded-xl border p-4 text-sm leading-6 ${state.status === "error" ? "border-[#ff796c]/50 bg-[#4b1c25]" : "border-[#31e800]/40 bg-[#0b412b]"}`}>
           <strong>{state.message}</strong>
+          {state.status === "error" && state.code === "sign_in" ? <Link className="block underline" href={entryLoginHref} onClick={() => rememberEntry(quantity, "sign-in")}>Sign in to review your entry</Link> : null}
           {state.status === "succeeded" ? <span className="block text-white/65">Opening the stored result for {productTitle}…</span> : null}
         </div>
       ) : null}

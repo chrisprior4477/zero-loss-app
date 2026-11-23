@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FavoritesView } from "@/components/favorites/FavoritesView";
@@ -22,9 +23,13 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
     tab: tab === "shared" ? tab : undefined, view: invalidSharedView ? undefined : params.view,
     watch: invalidWatch ? undefined : params.watch, item: item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item) ? item : undefined, share: safeShare,
   }, tab === "shared" ? "#saved-items-heading" : "");
-  const { account, hidden, availability, unavailable, unverifiedSlugs } = await getShoppingCatalog();
+  const { account, accountUnavailable, hidden, availability, unavailable, unverifiedSlugs } = await getShoppingCatalog();
+  if (accountUnavailable) return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", returnPath));
   const db = await createClient();
+  // Timestamp this request's read before fetching preferences so a stale response cannot replace a newer save.
+  // eslint-disable-next-line react-hooks/purity
+  const alertsReadAt = Date.now();
   const [alerts, preference, shares] = await Promise.all([
     db.from("customer_favorites").select("product_slug,email_almost_full_enabled").eq("customer_id", account.userId),
     db.rpc("get_favorite_alert_email_enabled"),
@@ -40,6 +45,7 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
     initialFavoriteFilter={params.watch === "1" ? "watching" : "all"}
     initialTab={tab} initialShareId={safeShare ?? (typeof params.share === "string" ? params.share : undefined)} initialItem={item}
     initialShares={savedShares} sharesIncomplete={shareList?.incomplete}
+    alertsReadAt={alertsReadAt}
     initialAlerts={alerts.error ? null : Object.fromEntries((alerts.data ?? []).map(row => [row.product_slug, row.email_almost_full_enabled === true]))}
     emailEnabled={preference.error ? null : preference.data === true} />;
 }

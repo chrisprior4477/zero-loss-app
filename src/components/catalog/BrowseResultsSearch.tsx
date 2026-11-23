@@ -29,7 +29,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   const [pendingTerm, setPendingTerm] = useState<string | null>(null);
   if (lastApplied !== searchTerm) {
     setLastApplied(searchTerm);
-    if (pendingTerm === null || draft === pendingTerm) setDraft(searchTerm);
+    if (pendingTerm === null || draft === pendingTerm || draft === lastApplied) setDraft(searchTerm);
     setPendingTerm(null);
   }
   useEffect(() => {

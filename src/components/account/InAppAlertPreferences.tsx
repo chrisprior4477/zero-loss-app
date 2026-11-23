@@ -17,7 +17,7 @@ const choices: readonly { key: NotificationPreferenceKey; label: string; descrip
   { key: "pool_progress", label: "Open entries and pools", description: "Your active entries and pool progress." },
 ];
 
-export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnabled = true }: { supportEnabled?: boolean; initialPreferences: NotificationPreferences | null; onSaved: (key: NotificationPreferenceKey, enabled: boolean) => void }) {
+export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnabled = true }: { supportEnabled?: boolean; initialPreferences: NotificationPreferences | null; onSaved: (key: NotificationPreferenceKey, enabled: boolean, savedAt?: number) => void }) {
   const [pendingChoice, setPendingChoice] = useState<{ key: NotificationPreferenceKey; enabled: boolean } | null>(null);
   const [message, setMessage] = useState("");
   const [saving, startTransition] = useTransition();
@@ -42,7 +42,7 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
     startTransition(async () => {
       try {
         const result = await setInAppAlertPreference(key, enabled);
-        if (result.ok) onSaved(key, enabled);
+        if (result.ok) onSaved(key, enabled, result.savedAt);
         else setFailedChoice(key);
         setMessage(result.message);
       } catch {

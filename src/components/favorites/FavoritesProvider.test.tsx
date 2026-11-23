@@ -46,7 +46,7 @@ test("failed save leaves the heart unchanged and reports the problem", async () 
   mocks.setFavorite.mockResolvedValue({ status: "error", message: "Favorites could not be updated." });
   renderButtons();
   fireEvent.click(screen.getAllByRole("button", { name: `Add ${productName} to favorites` })[0]);
-  await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Favorites could not be updated."));
+  await waitFor(() => expect(screen.getByRole("status").textContent).toContain("We couldn’t confirm the change to Favorites."));
   expect(screen.getAllByRole("button", { name: `Add ${productName} to favorites` })).toHaveLength(2);
 });
 
@@ -124,7 +124,7 @@ test('a quick second product save is accepted and each product unlocks only when
   for (const button of screen.getAllByRole('button')) expect(button).toHaveProperty("ariaBusy", "false");
 });
 
-test('one failed favorite does not cancel another save or leave either product locked', async () => {
+test('a favorite with an unverified result can be checked and retried without canceling another save', async () => {
   const first = delayedReply(), second = delayedReply();
   mocks.setFavorite.mockImplementation((slug: string) => slug === secondSlug ? second.promise : first.promise);
   twoProducts();
@@ -133,6 +133,10 @@ test('one failed favorite does not cancel another save or leave either product l
   await act(async () => { first.resolve({ status: 'error', message: 'Please try again.' }); second.resolve({ status: 'saved' }); });
   expect(screen.getByRole('button', { name: `Remove ${secondName} from favorites` })).toHaveProperty("ariaBusy", "false");
   expect(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })).toHaveLength(2);
+  mocks.getCurrentFavorites.mockResolvedValueOnce({ available: true, slugs: [secondSlug], accountId: "customer" });
+  fireEvent.click(screen.getByRole("button", { name: "Check favorite" }));
+  await screen.findByText("Showing the current saved favorite. The requested change wasn’t found.");
+  expect(mocks.setFavorite).toHaveBeenCalledTimes(2);
   mocks.setFavorite.mockResolvedValueOnce({status:'saved'});
   fireEvent.click(screen.getAllByRole('button', { name: `Add ${productName} to favorites` })[0]);
   await screen.findAllByRole('button', { name: `Remove ${productName} from favorites` });

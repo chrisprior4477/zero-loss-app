@@ -2,7 +2,8 @@
 
 import { startTransition, useActionState, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { cardSaveMatches } from "@/lib/payments/card-save-review";
+import { readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
@@ -30,8 +31,9 @@ export function revealWalletSection(id: string, mobileId = id === "add-funds" ? 
 }
 
 /** Both entry points save through the existing server action; visible card details never leave the browser. */
-export function WalletCardEditor({ token, savedCard, displayName = "", initialArtwork, depositLabel, disabled = false, onSaved, onCancel, onAddCard }: {
+export function WalletCardEditor({ token, walletId, savedCard, displayName = "", initialArtwork, depositLabel, disabled = false, onSaved, onCancel, onAddCard }: {
   token: DemoCardToken;
+  walletId?: string;
   savedCard?: DemoCard;
   displayName?: string;
   initialArtwork?: Artwork;
@@ -85,7 +87,22 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     if (editorUrl.current === window.location.href) onSaved(card, source);
     else router.refresh();
   }
+  const saveAttempt = useRef<FormData | null>(null);
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof saveDemoPaymentMethod>>, data: FormData) => {
+    if (data.has("checkCardSave")) {
+      const original = saveAttempt.current;
+      if (!original) return previous;
+      const latest = await readDemoPaymentMethod(String(original.get("paymentMethod")), walletId).catch(() => null);
+      if (!latest || latest.status !== "loaded") return { status: "pending" as const, message: "We still couldn’t check this saved card. Try checking again." };
+      const card = latest.card;
+      if (card && cardSaveMatches(card, original)) {
+        completeSave(card);
+        return { status: "succeeded" as const, message: "Card saved.", card };
+      }
+      router.refresh();
+      return { status: "error" as const, message: "The saved card doesn’t match your changes. Review it before saving again." };
+    }
+    saveAttempt.current = data;
     try {
       const result = await saveDemoPaymentMethod(previous, data);
       if (result.status === "succeeded") {
@@ -95,7 +112,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         completeSave(result.card ?? { token: savedFixture.token, lastFour: savedFixture.lastFour, isDefault: data.get("makeDefault") === "true", isDepositDefault: data.get("makeDepositDefault") === "true", ...(artwork ? { artwork } : {}) });
       }
       return result;
-    } catch { return { status: "error" as const, message: "The card could not be saved. Please try again." }; }
+    } catch { return { status: "pending" as const, message: "We couldn’t confirm the card save. Check the saved card before retrying." }; }
   }, { status: "idle" });
   const saveError = useRef<HTMLParagraphElement>(null);
   useLayoutEffect(() => {
@@ -115,7 +132,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       {!savedCard || onAddCard ? <button type="button" className={styles.primary} disabled={disabled || pending} onClick={onAddCard ?? (() => nameInput.current?.focus())}>Add Card</button> : null}
-      <MobileCardCamera token={savedCard?.token ?? enteredFixture?.token ?? token} savedCard={savedCard} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={card => completeSave(card, "camera")} />
+      <MobileCardCamera walletId={walletId} token={savedCard?.token ?? enteredFixture?.token ?? token} savedCard={savedCard} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={card => completeSave(card, "camera")} />
     </div>
     <form noValidate aria-label="Save payment method" onChange={() => { setError(""); setInvalidField(undefined); setShowSaveResult(false); }} onSubmit={event => {
       event.preventDefault();
@@ -158,7 +175,9 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         setDepositChoice(null);
         return;
       }
+      if (state.status === "pending") return;
       const data = new FormData(event.currentTarget);
+      if (walletId) data.set("walletId", walletId);
       if (savedCard?.revision) {
         data.set("cardRevision", savedCard.revision);
         if (!defaultChoice || makeDefault === savedDefault) data.delete("makeDefault");
@@ -171,19 +190,23 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       <input type="hidden" name="makeDefault" value={String(makeDefault)} />
       <input type="hidden" name="makeDepositDefault" value={String(makeDepositDefault)} />
       {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
-      <label>Cardholder name<input ref={nameInput} {...fieldError("name")} autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={disabled || pending} /></label>
-      <label>Card number<input ref={numberInput} {...fieldError("number")} inputMode="numeric" autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} disabled={disabled || pending} /></label>
+      <label>Cardholder name<input ref={nameInput} {...fieldError("name")} autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
+      <label>Card number<input ref={numberInput} {...fieldError("number")} inputMode="numeric" autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
       <p className={styles.issuer}>{enteredFixture?.issuer ?? "Sample card"}</p>
       <div className={styles.fields}>
-        <label>Expiry<input ref={expiryInput} {...fieldError("expiry")} autoComplete="off" value={expiry} onChange={event => setExpiry(event.target.value)} disabled={disabled || pending} /></label>
-        <label>Security code<input ref={codeInput} {...fieldError("code")} inputMode="numeric" autoComplete="off" value={code} onChange={event => setCode(event.target.value)} disabled={disabled || pending} /></label>
+        <label>Expiry<input ref={expiryInput} {...fieldError("expiry")} autoComplete="off" value={expiry} onChange={event => setExpiry(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
+        <label>Security code<input ref={codeInput} {...fieldError("code")} inputMode="numeric" autoComplete="off" value={code} onChange={event => setCode(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
       </div>
       <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setDefaultChoice({ checked: event.target.checked, original: savedDefault })} disabled={disabled || pending} />Use this card for future transactions</label>
       <label className={styles.choice}><input type="checkbox" checked={makeDepositDefault} onChange={event => setDepositChoice({ checked: event.target.checked, original: savedDepositDefault })} disabled={disabled || pending} />Use this card for deposits</label>
-      {error || (showSaveResult && !pending && state.status === "error") ? <p ref={saveError} tabIndex={-1} id={validationId} role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
+      {error || (showSaveResult && !pending && (state.status === "error" || state.status === "pending")) ? <p ref={saveError} tabIndex={-1} id={validationId} role="alert" className={styles.error}>{error || (state.status === "error" || state.status === "pending" ? state.message : "")}</p> : null}
       {updated ? <p role="status" className={styles.notice}>Card updated.</p> : null}
       <div className={`${styles.actions} ${styles.editorActions}`}>
-        <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
+        {state.status === "pending" && <button type="button" disabled={pending} className={styles.secondary} onClick={() => {
+          const check = new FormData(); check.set("checkCardSave", "1");
+          startTransition(() => action(check));
+        }}>Check whether this card saved</button>}
+        <button type="submit" disabled={disabled || pending || state.status === "pending"} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
         <button type="button" disabled={pending} className={styles.secondary} onClick={onCancel}>{updated ? "Back to payment methods" : "Cancel"}</button>
         <button type="button" className={styles.secondary} aria-expanded={showCard} aria-controls={previewId} onClick={() => setShowCard(value => !value)}>{showCard ? "Hide card" : "See card"}</button>
         {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <a className={styles.secondary} href="#balance">Back to wallet</a>}

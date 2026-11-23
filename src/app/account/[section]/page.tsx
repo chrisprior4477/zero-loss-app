@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -76,7 +77,8 @@ export default async function LiveAccountSection({
     const anchor = typeof query.order === "string" ? `#order-${query.order}` : query.rewardId ? "#fulfillment-records" : "#order-status-filters";
     redirect(accountPageReturnPath("/account/orders", { ...query, filter: undefined, filterReset: "1" }, anchor));
   }
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) {
     const anchor = section === "orders" && query && (query.order || query.rewardId || query.filter)
       ? typeof query.order === "string" ? `#order-${query.order}` : "#fulfillment-records" : query?.filterReset === "1" ? "#order-status-filters" : "";

@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
@@ -46,7 +47,8 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const destination = accountPageReturnPath(`/account/entries/${entryId}`,
     invalidQuantity ? { ...query, review: undefined, quantity: undefined } : query,
     invalidQuantity ? "#add-entries-title" : query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");
-  const account = await getAccountContext();
+  const account = await getAccountContext("report");
+  if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", destination));
   if (account.activity.source === "unavailable") {
     console.warn("[entry-details] Account activity unavailable; showing retry instead of not found.");

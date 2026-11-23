@@ -257,7 +257,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       const draft = JSON.parse(sessionStorage.getItem(extraDraftKey) ?? "null");
       if (!draft || draft.choice !== (query.get("choice")?.toLowerCase() ?? "") || draft.checkout !== checkoutDetails
         || typeof draft.savedAt !== "number" || draft.savedAt > Date.now() || Date.now() - draft.savedAt > 86_400_000
-        || typeof draft.extra !== "string" || !/^\d+$/.test(draft.extra)) return;
+        || typeof draft.extra !== "string") return;
       // This restores an unsubmitted amount. The current shortfall and the user's approval remain separate.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExtra(draft.extra);
@@ -265,7 +265,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   }, [checkoutDetails, extraDraftKey]);
   function keepExtra(next: string, choice: string, savedAt: number) {
     try {
-      if (!next || !/^\d+$/.test(next)) sessionStorage.removeItem(extraDraftKey);
+      if (!next) sessionStorage.removeItem(extraDraftKey);
       else sessionStorage.setItem(extraDraftKey, JSON.stringify({ choice, checkout: checkoutDetails, extra: next, savedAt }));
     } catch { /* The amount remains editable in this tab. */ }
   }
@@ -374,6 +374,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     setDepositMissing(false);
     setDepositAttempt(original);
     saveAttempt({ deposit: original });
+    if (walletId) form.set("walletId", walletId);
     form.set("idempotencyKey", original.key); form.set("amountCents", String(original.amount)); form.set("currency", "USD");
     form.set("paymentMethod", original.token); form.set("makeDefault", String(original.makeDefault)); form.set("fundingPolicy", "funding-confirmation-v1");
     try {
@@ -503,7 +504,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   }
   // Full navigation clears the locked checkout response and reads current offers.
   // The saved selection is reconciled on mount; a paid exact ticket opens its reward.
-  const refreshOffersHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
+  const refreshOffersHref = keepAlert(`/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`);
   const purchaseReceipt = recovery === "purchase" && purchaseRequest && !overlay ? <section className={styles.recoveryReceipt} data-state={busy ? "checking" : receipt?.status} aria-labelledby="purchase-receipt-heading">
     <div className={styles.receiptDetails} role="status">
       <div><h2 id="purchase-receipt-heading" ref={receiptHeading} tabIndex={-1}>Purchase receipt</h2><strong>{usd(receipt?.status === "ready" ? receipt.totalCents : purchaseRequest.totalCents)}</strong></div>
@@ -611,7 +612,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
           const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId);
           if (href) rememberSelectionFor(href);
-          keepExtra(validDeposit ? extra : "", handoffId ?? "", Date.now());
+          keepExtra(extra, handoffId ?? "", Date.now());
         }}>Add a card in your wallet</Link> : null}
         <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => changeExtra(value ? String(value) : "", Date.now())}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
         <div className={styles.extraEquation}><h3>Add a different amount</h3>{required !== shortfall ? <p>Purchase shortfall: {usd(shortfall)}</p> : null}<div><span><small>Minimum deposit</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => changeExtra(event.target.value.replace(/^\$/, ""), Date.now())} /></label></div></div>

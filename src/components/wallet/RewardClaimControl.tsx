@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import { useDeadline } from "@/components/account/useDeadline";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -24,6 +26,7 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref, 
       return { status: "error", recovery: "check", message: "We couldn’t confirm whether your reward was claimed. Check its saved status before trying again." };
     }
   }, initialState);
+  const needsSignIn = state.status === "error" && state.recovery === "sign_in";
   const needsCheck = state.status === "error" && state.recovery === "check";
   const [introOpen, setIntroOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
@@ -85,10 +88,11 @@ export function RewardClaimControl({ rewardId, previewShown = false, checkHref, 
   return <><form ref={form} action={action} onSubmit={event => { if (Date.now() >= deadline) event.preventDefault(); }} className="mt-5 rounded-xl border border-[#00a31d]/25 bg-white/70 p-4 text-center">
     <input type="hidden" name="rewardId" value={rewardId} />
     <p className="text-sm font-bold text-[#173d5e]">{previewShown ? "Claim this reward to open its saved gift-card number. The sample above is for demonstration only." : "Claim this retailer gift card to reveal its barcode and number."}</p>
-    <button ref={claimButton} type="submit" disabled={expired || pending || state.status === "succeeded" || needsCheck} className="mt-4 min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-base font-black text-[#062218] disabled:opacity-60">
+    <button ref={claimButton} type="submit" disabled={expired || pending || state.status === "succeeded" || needsSignIn || needsCheck} className="mt-4 min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-base font-black text-[#062218] disabled:opacity-60">
       {expired ? "Claim deadline passed" : pending ? "Claiming…" : state.status === "succeeded" ? "Reward claimed" : "Claim reward"}
     </button>
     {state.status !== "idle" ? <p ref={claimStatus} tabIndex={-1} role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
+    {needsSignIn ? <Link className="mt-3 inline-block text-sm font-bold underline" href={authNavigationHref("/login", checkHref ?? `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`)}>Sign in to check this reward</Link> : null}
     {expired || needsCheck ? <AccountReadRetryLink className="mt-3 inline-block text-sm font-bold text-[#0069b3] underline" href={checkHref ?? `/account/wallet?rewardId=${encodeURIComponent(rewardId)}#reward-pass`}>Check this reward →</AccountReadRetryLink> : null}
   </form>{introOpen ? <ClaimIdentityIntro historyScope={introScope} busy={skipping} error={skipError} onSkipDemo={previewShown ? skipDemoAndClaim : undefined} onClose={closeClaimReview} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
   {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} historyScope={verificationScope} onClose={closeClaimReview} onComplete={() => {

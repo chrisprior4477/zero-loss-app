@@ -2,10 +2,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SavedProductShare } from "@/lib/sharing/saved-shares";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
-const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn(), slugs: ["nike-court-shot-shoes"] }));
+const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), readState: vi.fn(), alert: vi.fn(), slugs: ["nike-court-shot-shoes"] }));
 vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: mocks.slugs, available: true, isSignedIn: true, busySlugs: [], toggle: mocks.toggle }) }));
 vi.mock("./FavoritesLandingScroll", () => ({ FavoritesLandingScroll: () => null }));
-vi.mock("@/lib/sharing/saved-share-actions", () => ({ setReceivedProductState: mocks.state }));
+vi.mock("@/lib/sharing/saved-share-actions", () => ({ setReceivedProductState: mocks.state, readReceivedProductState: mocks.readState }));
 vi.mock("@/lib/favorites/alert-actions", () => ({ setFavoriteCapacityAlert: mocks.alert, readFavoriteCapacityAlert: async () => true }));
 vi.mock("next/image", () => ({ default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} /> }));
 import { FavoritesView } from "./FavoritesView";
@@ -14,6 +14,7 @@ function show(props: Partial<React.ComponentProps<typeof FavoritesView>> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.slugs = ["nike-court-shot-shoes"];
+  mocks.readState.mockResolvedValue(null);
   window.history.replaceState({}, "", "/account/favorites");
   vi.stubGlobal("scrollTo", vi.fn());
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -228,6 +229,15 @@ test("a successful watch choice survives stale snapshots until acknowledged, the
   expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", false);
 });
 
+test("a newer alert snapshot wins without an intermediate acknowledgment", async () => {
+  mocks.alert.mockResolvedValue({ ok: true, message: "Saved", savedAt: 20 });
+  const view = show({ alertsReadAt: 10, initialAlerts: { "nike-court-shot-shoes": false } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /Email me when/ }));
+  await screen.findByText("Saved");
+  view.rerender(<FavoritesView availability={null} alertsReadAt={30} initialAlerts={{ "nike-court-shot-shoes": false }} emailEnabled initialShares={[share]} />);
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", false);
+});
+
 test("fresh decline and restore states remain authoritative after a local response is acknowledged", async () => {
   window.history.replaceState({}, "", "/account/favorites?tab=shared");
   const viewedAt = "2026-11-06T12:01:00Z";
@@ -387,9 +397,10 @@ test("undo decline waits for a confirmed save and moves the share into Available
   fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
   expect(screen.getByRole("button", { name: "Saving…" })).toHaveProperty("disabled", true);
   await act(async () => finish({ ok: false, message: "Please try again." }));
-  expect(screen.getByText("Please try again.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Undo decline" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
+  expect(screen.getByText("We couldn’t confirm this change. Check the saved share.")).toBeTruthy();
+  mocks.readState.mockResolvedValueOnce({ viewedAt: "today", declinedAt: "today" });
+  fireEvent.click(screen.getByRole("button", { name: "Check saved share" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Undo decline" }));
   await act(async () => finish({ ok: true, viewedAt: "today", declinedAt: null, message: "Restored." }));
   expect(screen.getByRole("heading", { name: "No declined shares" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Available 1" }));

@@ -10,7 +10,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 export type PurchaseOptionActionState =
   | { status: "idle" }
   | { status: "succeeded"; message: string; href?: string }
-  | { status: "error"; message: string; recovery?: "balance" | "check" };
+  | { status: "error"; message: string; recovery?: "balance" | "check" | "sign_in" };
 
 export type RewardClaimActionState = PurchaseOptionActionState | { status: "verification_required"; message: string };
 
@@ -228,13 +228,15 @@ export async function claimReward(
   if (!uuidPattern.test(rewardId)) return { status: "error", message: "This reward is invalid." };
   const db = await createClient();
   const { data: { user }, error: authError } = await db.auth.getUser();
-  if (authError || !user) return { status: "error", message: "Your session expired. Sign in again before claiming this reward." };
+  if (authError || !user) return { status: "error", recovery: "sign_in", message: "Your session expired. Sign in again before claiming this reward." };
   const { error } = await db.rpc("claim_preview_reward", {
     p_reward_id: rewardId,
     p_idempotency_key: `claim_${rewardId.replaceAll("-", "")}`,
   });
   if (error?.code === "P0001" && error.details === "identity_verification_required") return { status: "verification_required", message: "Complete the demo identity check to claim your prize." };
-  if (error) return { status: "error", message: error.code === "P0001" ? error.message : "Your reward could not be claimed. Refresh and try again." };
+  if (error) return error.code === "P0001" || error.code === "42501" || error.code === "22023"
+    ? { status: "error", message: error.code === "P0001" ? error.message : "This reward could not be claimed." }
+    : { status: "error", recovery: "check", message: "We couldn’t confirm whether your reward was claimed. Check its saved status before trying again." };
   revalidatePath("/", "layout");
   revalidatePath("/account/wallet");
   return { status: "succeeded", message: "Reward claimed. Its retailer gift card is now ready to open." };

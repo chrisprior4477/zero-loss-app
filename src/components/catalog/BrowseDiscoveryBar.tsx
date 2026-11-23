@@ -261,6 +261,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (!refining) return;
     restoreDialogTrigger(dialog.current?.querySelector<HTMLInputElement>('input[name="q"]'));
   }, [refining]);
+  const collection = new URL(props.browseHref, "https://zeroloss.local").searchParams.get("collection");
   function navigateFromPanel(destination: string) {
     if (panel === "filters" && refining && openPanel) {
       const target = comparableBrowseHref(destination);
@@ -277,6 +278,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function choose(href: string, preserveSubcategory = false, replacementSearch = props.searchTerm) {
     const url = new URL(href, "https://zeroloss.local");
+    if (collection) url.searchParams.set("collection", collection);
     if (replacementSearch) url.searchParams.set("q", replacementSearch);
     if (preserveSubcategory && props.subcategory) url.searchParams.set("subcategory", props.subcategory);
     const destination = `${url.pathname}${url.search}#search-results`;
@@ -284,6 +286,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function prizeCategoryHref(value: string, term = search) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
+    if (collection) url.searchParams.set("collection", collection);
     if (props.filters.type !== "all") url.searchParams.set("type", props.filters.type);
     if (props.filters.availableOnly) url.searchParams.set("available", "1");
     if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
@@ -425,7 +428,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     selectedCategory: refineTarget.category, selectedRetailerGroup: null, subcategory: "",
     ticketsLeft: refineTarget.category === "ending-soon" ? props.ticketsLeft : null,
     filters: parseBrowseFilterState(Object.fromEntries(new URL(refineTarget.href, "https://zeroloss.local").searchParams), []),
-    clearHref: refineTarget.category ? marketplaceCategoryHref(refineTarget.category) : "/browse",
+    clearHref: (() => {
+      const url = new URL(refineTarget.category ? marketplaceCategoryHref(refineTarget.category) : "/browse", "https://zeroloss.local");
+      if (collection) url.searchParams.set("collection", collection);
+      return url.pathname + url.search;
+    })(),
   } : props;
 
   const controls = (position: ControlsPosition) => <>

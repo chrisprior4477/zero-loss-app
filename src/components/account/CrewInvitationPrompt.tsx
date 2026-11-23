@@ -13,7 +13,7 @@ import styles from "@/components/product/post-entry-crew-toast.module.css";
 export type CrewInvitationPromptData = { id: string; name: string; status: "pending" | "accepted" | "declined" | "removed" };
 
 /** The server supplies only invitations addressed to the signed-in recipient. */
-export function CrewInvitationPrompt({ invitation, unavailable = false }: { invitation: CrewInvitationPromptData | null; unavailable?: boolean }) {
+export function CrewInvitationPrompt({ invitation, unavailable = false, lookupFailed = false }: { invitation: CrewInvitationPromptData | null; unavailable?: boolean; lookupFailed?: boolean }) {
   const router = useRouter();
   // Preserve the decision/success screen when the action revalidates this page.
   const request = invitation;
@@ -70,9 +70,10 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
         <p className={styles.messagePreview}>{request.name} invited you to connect on Zero Loss. Your past entries, wallet, and payment details won’t be shared.</p>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => void respond(true)}>{busy ? "Saving…" : "Join Crew"}</button>
         <button type="button" disabled={busy} onClick={() => void respond(false)}>Decline invitation</button>
-      </> : !result?.ok ? <p className={styles.note}>{request?.status === "accepted" ? `You and ${request.name} are already in each other’s Crew.` : "This invitation isn’t available for this account. Sign in with the account that received the email, or check your Crew requests."}</p> : null}
+      </> : !result?.ok ? <p className={styles.note}>{request?.status === "accepted" ? `You and ${request.name} are already in each other’s Crew.` : lookupFailed ? "We couldn’t check this invitation right now." : "This invitation isn’t available for this account. Sign in with the account that received the email, or check your Crew requests."}</p> : null}
       {request?.status === "accepted" && !result?.ok ? <><p className={styles.note}>Choose whether to share your own picks back, or leave this connection at any time.</p><button type="button" disabled={busy} onClick={() => void changeConnection(false)}>Allow my shared picks</button><button type="button" disabled={busy} onClick={() => void changeConnection(true)}>Leave connection</button></> : null}
       {result ? <p role={result.ok ? "status" : "alert"} className={`${styles.feedback} ${result.ok ? "" : styles.error}`}>{result.message}</p> : null}
+      {lookupFailed && <button className={styles.primary} type="button" onClick={() => router.refresh()}>Retry this invitation</button>}
       <button type="button" className={styles.later} onClick={close} disabled={busy}>{result?.ok || !canRespond ? "Done" : "Not now"}</button>
       <Link className={styles.manage} href={request?.status === "pending" ? "/account/crew?tab=requests" : "/account/crew"} onClick={event => { if (busy) event.preventDefault(); else close(); }}>View your Crew →</Link>
       <p className={styles.privacy}>Only picks you choose to share become visible to your Crew.</p>

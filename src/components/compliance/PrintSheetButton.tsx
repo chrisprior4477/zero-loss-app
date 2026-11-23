@@ -11,6 +11,11 @@ export function PrintSheetButton({ offering, name, account, reference }: {
   const [closedOffering, setClosedOffering] = useState(false);
   const [pdfLink, setPdfLink] = useState("");
   const inFlight = useRef<{ controller: AbortController; popup: Window | null } | null>(null);
+  const printCheck = useRef<AbortController | null>(null);
+  useEffect(() => () => {
+    printCheck.current?.abort();
+    printCheck.current = null;
+  }, [offering]);
   const fallbackUrl = useRef("");
   const fallbackLink = useRef<HTMLAnchorElement>(null);
   useEffect(() => () => {
@@ -84,19 +89,29 @@ export function PrintSheetButton({ offering, name, account, reference }: {
   }
 
   async function printPage() {
+    if (printCheck.current) return;
+    const controller = new AbortController();
+    printCheck.current = controller;
+    const deadline = window.setTimeout(() => controller.abort("print-deadline"), 10000);
     setCheckingPrint(true);
     setError("");
     try {
       const response = await fetch("/api/free-entry-pdf", {
-        method: "POST", body: new URLSearchParams({ offering, intent: "check" }), cache: "no-store",
+        method: "POST", body: new URLSearchParams({ offering, intent: "check" }), cache: "no-store", signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (response.status === 204) window.print();
       else if (response.status === 410 || response.redirected) {
         setClosedOffering(true);
         setError("This offering is closed or unavailable for free entry.");
       } else setError("Prize availability couldn’t be checked. Try again before printing.");
-    } catch { setError("Prize availability couldn’t be checked. Try again before printing."); }
-    finally { setCheckingPrint(false); }
+    } catch {
+      if (!controller.signal.aborted || controller.signal.reason === "print-deadline") setError("Prize availability couldn’t be checked. Try again before printing.");
+    } finally {
+      window.clearTimeout(deadline);
+      if (printCheck.current === controller) printCheck.current = null;
+      if (!controller.signal.aborted || controller.signal.reason === "print-deadline") setCheckingPrint(false);
+    }
   }
 
   return (

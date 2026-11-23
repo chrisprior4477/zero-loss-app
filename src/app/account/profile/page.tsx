@@ -1,3 +1,4 @@
+import { AccountSessionRetry } from "@/components/account/AccountSessionRetry";
 import { NotificationBannerPicker } from "@/components/account/NotificationBannerPicker";
 import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import { accountLanguage } from "@/lib/account/locale";
@@ -23,7 +24,8 @@ export default async function ProfilePage({ searchParams }: { searchParams?: Pro
   const section = (await searchParams)?.section;
   const heading = section === "contact" ? "#contact-details-heading" : section === "personal" ? "#personal-details-heading"
     : section === "appearance" ? "#personalize-menu-heading" : section === "mailing" ? "#mailing-address-heading" : "";
-  const { account, hidden, availability } = await getShoppingCatalog();
+  const { account, accountUnavailable, hidden, availability } = await getShoppingCatalog();
+  if (accountUnavailable) return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", "/account/profile" + heading));
   const t = accountLanguage(account.preferredLocale);
   const overview = { balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity };

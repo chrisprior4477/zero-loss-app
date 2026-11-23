@@ -54,6 +54,8 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   const confirmed = useRef(new Map<string, boolean>());
   const mutationGeneration = useRef(0);
   const [message, setMessage] = useState("");
+  const [unverifiedFavorites, setUnverifiedFavorites] = useState<Record<string, boolean>>({});
+  const uncheckedSlug = Object.keys(unverifiedFavorites)[0];
   const [lastSavedSlug, setLastSavedSlug] = useState<string | null>(null);
   const syncedPending = useRef(false);
   const [handoffError, setHandoffError] = useState(false);
@@ -101,10 +103,10 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   }, [initialSlugs, available, accountId, busySlugs]);
 
   useEffect(() => {
-    if (!message || handoffError) return;
+    if (!message || handoffError || uncheckedSlug) return;
     const timer = window.setTimeout(() => setMessage(""), 5000);
     return () => window.clearTimeout(timer);
-  }, [message, handoffError]);
+  }, [message, handoffError, uncheckedSlug]);
 
   useEffect(() => {
     if (isSignedIn) return;
@@ -164,6 +166,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       return;
     }
     if (!available) { setMessage("Favorites are temporarily unavailable. Please try again later."); return; }
+    if (Object.hasOwn(unverifiedFavorites, slug)) { void checkFavorite({ slug, shouldSave: unverifiedFavorites[slug] }); return; }
     const shouldSave = !slugs.includes(slug);
     if (!beginChange(slug)) return;
     startTransition(() => {
@@ -181,24 +184,35 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
           const destination = new URL(login, location.origin).searchParams.get("next") ?? undefined;
           rememberFavorite({ slug, save: shouldSave, owner: accountId ?? undefined, destination });
           router.push(login);
-        } else setMessage(result.message ?? "Favorites could not be updated.");
-      }).catch(async () => {
-        const latest = await getCurrentFavorites().catch(() => null);
-        if (latest?.available && latest.slugs.some(savedSlug => savedSlug === slug) === shouldSave) {
-          confirmed.current.set(slug, shouldSave);
-          setSlugs(current => shouldSave ? [...new Set([slug, ...current])] : current.filter(item => item !== slug));
-          setLastSavedSlug(shouldSave ? slug : null);
-          setMessage(shouldSave ? "Saved to Favorites." : "Removed from Favorites.");
-          notifyAccountChanged();
-        } else setMessage("We couldn’t confirm the change to Favorites. Refresh to check.");
-      }).finally(() => finishChange(slug));
+        } else throw new Error(result.message ?? "Favorites could not be updated.");
+      }).catch(() => checkFavorite({ slug, shouldSave })).finally(() => finishChange(slug));
     });
   };
+
+  async function checkFavorite(attempt: { slug: string; shouldSave: boolean }) {
+    const latest = await getCurrentFavorites().catch(() => null);
+    if (!latest?.available || (accountId && latest.accountId !== accountId)) {
+      setUnverifiedFavorites(current => ({ ...current, [attempt.slug]: attempt.shouldSave }));
+      setMessage("We couldn’t confirm the change to Favorites. Check the saved favorite.");
+      return;
+    }
+    const saved = latest.slugs.some(slug => slug === attempt.slug);
+    confirmed.current.set(attempt.slug, saved);
+    setSlugs(current => saved ? [...new Set([attempt.slug, ...current])] : current.filter(item => item !== attempt.slug));
+    setUnverifiedFavorites(current => {
+      const next = { ...current };
+      delete next[attempt.slug];
+      return next;
+    });
+    setLastSavedSlug(saved && saved === attempt.shouldSave ? attempt.slug : null);
+    setMessage(saved === attempt.shouldSave ? saved ? "Saved to Favorites." : "Removed from Favorites." : "Showing the current saved favorite. The requested change wasn’t found.");
+    notifyAccountChanged();
+  }
 
   return <FavoritesContext.Provider value={{ slugs, isSignedIn, available, busySlugs, toggle }}>
     {children}
     {message ? <div role="status" className={`${popupStyles.notice} ${popupStyles.favoriteNotice} fixed bottom-4 left-4 right-4 z-[250] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-[#052b4c] px-4 py-3 text-sm font-bold text-white shadow-2xl sm:left-auto sm:right-5`}>
-      <span>{message}</span>{handoffError ? <button type="button" className="shrink-0 text-cyan-300 underline" onClick={() => {
+      <span>{message}</span>{uncheckedSlug ? <button type="button" className="shrink-0 text-cyan-300 underline" onClick={() => void checkFavorite({ slug: uncheckedSlug, shouldSave: unverifiedFavorites[uncheckedSlug] })}>Check favorite</button> : handoffError ? <button type="button" className="shrink-0 text-cyan-300 underline" onClick={() => {
         syncedPending.current = false; setHandoffError(false); setMessage(""); setHandoffAttempt(attempt => attempt + 1);
       }}>Retry favorite</button> : message === "Saved to Favorites." && lastSavedSlug ? <Link href={`${accountRoutes.favorites}?item=${encodeURIComponent(lastSavedSlug)}`} className="shrink-0 text-cyan-300 underline">View</Link> : null}
     </div> : null}

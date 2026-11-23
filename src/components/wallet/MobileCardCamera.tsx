@@ -3,7 +3,8 @@
 import { useId, useEffect, useRef, useState } from "react";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { DEMO_CARD_COLORS, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
-import { saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { cardSaveMatches } from "@/lib/payments/card-save-review";
+import { readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import styles from "./mobile-card-camera.module.css";
@@ -37,8 +38,8 @@ async function sampleColors(file: File): Promise<number[]> {
   } finally { photo.src = ""; canvas.width = 0; canvas.height = 0; URL.revokeObjectURL(url); }
 }
 
-export function MobileCardCamera({ token, savedCard, disabled, displayName, makeDefault = savedCard?.isDefault ?? true, makeDepositDefault = savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true, onSaved }: {
-  token: DemoCardToken; savedCard?: DemoCard; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
+export function MobileCardCamera({ token, walletId, savedCard, disabled, displayName, makeDefault = savedCard?.isDefault ?? true, makeDepositDefault = savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true, onSaved }: {
+  token: DemoCardToken; walletId?: string; savedCard?: DemoCard; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
 }) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -63,6 +64,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   const [back, setBack] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uncertain, setUncertain] = useState<FormData | null>(null);
   function stopCamera() {
     stream.current?.getTracks().forEach(track => track.stop()); stream.current = null;
     if (video.current) video.current.srcObject = null;
@@ -117,7 +119,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
         : "The live camera couldn’t open. Try again, or use your phone’s camera or a photo below.");
     }
   }
-  function reset() { captureVersion.current++; decodingVersion.current = null; stopCamera(); setFront(null); setArtwork(null); setBack(false); setBusy(false); setError(""); if (input.current) input.current.value = ""; }
+  function reset() { setUncertain(null); captureVersion.current++; decodingVersion.current = null; stopCamera(); setFront(null); setArtwork(null); setBack(false); setBusy(false); setError(""); if (input.current) input.current.value = ""; }
   function close() {
     if (savingRef.current) return true;
     reset();
@@ -171,11 +173,12 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     finally { canvas.width = 0; canvas.height = 0; }
   }
   async function saveCard() {
-    if (!artwork || savingRef.current || disabled) return;
+    if (!artwork || savingRef.current || disabled || uncertain) return;
     savingRef.current = true; setSaving(true); setError("");
     const fixture = demoCardFixture(cameraToken)!;
     const data = new FormData();
     data.set("paymentMethod", fixture.token);
+    if (walletId) data.set("walletId", walletId);
     const saved = reviewedCard.current;
     if (saved?.revision) data.set("cardRevision", saved.revision);
     if (!saved?.revision || futureTransactions !== saved.isDefault) data.set("makeDefault", String(futureTransactions));
@@ -183,10 +186,33 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     data.set("artwork", JSON.stringify(artwork));
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
+      if (result.status === "pending") setUncertain(data);
       if (result.status !== "succeeded") { setError(result.status === "idle" ? "The card was not saved. Please try again." : result.message); return; }
       const card: DemoCard = result.card ?? { token: fixture.token, lastFour: fixture.lastFour, isDefault: futureTransactions, isDepositDefault: futureDeposits, artwork };
       savingRef.current = false; setSaving(false); close(); onSaved(card);
-    } catch { setError("The card could not be saved. Your preview is still here—please try again."); }
+    } catch {
+      setUncertain(data);
+      setError("We couldn’t confirm the card save. Check the saved card before retrying.");
+    }
+    finally { savingRef.current = false; setSaving(false); }
+  }
+  async function checkCardSave() {
+    if (!uncertain || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const latest = await readDemoPaymentMethod(String(uncertain.get("paymentMethod")), walletId);
+      if (latest.status !== "loaded") { setError("We still couldn’t check this saved card. Try checking again."); return; }
+      setUncertain(null);
+      if (latest.card && cardSaveMatches(latest.card, uncertain)) {
+        savingRef.current = false;
+        close();
+        onSaved(latest.card);
+      } else {
+        reviewedCard.current = latest.card ?? undefined;
+        setError("The saved card doesn’t match your changes. Review your choices before saving again.");
+      }
+    } catch { setError("We still couldn’t check this saved card. Try checking again."); }
     finally { savingRef.current = false; setSaving(false); }
   }
   const cameraLabel = savedCard ? `Use camera to update ${demoCardFixture(token)?.issuer ?? "sample card"} ending ${savedCard.lastFour}` : "Use camera";
@@ -224,11 +250,12 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
         finally { if (version === captureVersion.current) { decodingVersion.current = null; setBusy(false); } }
       }} />
       {artwork ? <div className={styles.preferences}>
-        <label><input type="checkbox" checked={futureTransactions} disabled={saving} onChange={event => setFutureTransactions(event.target.checked)} />Use this card for future transactions</label>
-        <label><input type="checkbox" checked={futureDeposits} disabled={saving} onChange={event => setFutureDeposits(event.target.checked)} />Use this card for deposits</label>
+        <label><input type="checkbox" checked={futureTransactions} disabled={saving || Boolean(uncertain)} onChange={event => setFutureTransactions(event.target.checked)} />Use this card for future transactions</label>
+        <label><input type="checkbox" checked={futureDeposits} disabled={saving || Boolean(uncertain)} onChange={event => setFutureDeposits(event.target.checked)} />Use this card for deposits</label>
       </div> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      <button type="button" className={styles.primary} disabled={busy || saving || disabled || cameraStatus === "starting"} onClick={() => { if (artwork) void saveCard(); else if (cameraStatus === "live") capturePhoto(); else void startCamera(); }}>{saving ? "Saving card…" : busy ? "Creating sample colors…" : artwork ? "Save this card" : cameraStatus === "starting" ? "Opening camera…" : cameraStatus !== "live" ? "Start camera" : front ? "Take back photo" : "Take front photo"}</button>
+      {uncertain && <button type="button" className={styles.primary} disabled={saving} onClick={() => void checkCardSave()}>Check whether this card saved</button>}
+      <button type="button" className={styles.primary} disabled={Boolean(uncertain) || busy || saving || disabled || cameraStatus === "starting"} onClick={() => { if (artwork) void saveCard(); else if (cameraStatus === "live") capturePhoto(); else void startCamera(); }}>{saving ? "Saving card…" : busy ? "Creating sample colors…" : artwork ? "Save this card" : cameraStatus === "starting" ? "Opening camera…" : cameraStatus !== "live" ? "Start camera" : front ? "Take back photo" : "Take front photo"}</button>
       {!artwork ? <button type="button" className={styles.cancel} disabled={busy || saving} onClick={() => { captureVersion.current++; stopCamera(); input.current?.click(); }}>Use phone camera / choose photo</button> : null}
       <button type="button" className={styles.cancel} disabled={saving} onClick={artwork || front ? () => { reset(); void startCamera(); requestAnimationFrame(() => captureHeading.current?.focus()); } : close}>{artwork || front ? "Start again" : "Cancel"}</button>
       <p className={styles.note}>Saves this sample card to your wallet. No funds are added. No original photo or real card details are stored.</p>

@@ -22,7 +22,7 @@ type Props = {
   hiddenSlugs?: string[];
   availabilityUnavailable?: boolean;
   unverifiedSlugs?: string[];
-  availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
+  availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; alertsReadAt?: number; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
   sharesIncomplete?: boolean;
   initialSharedView?: SharedView;
@@ -62,7 +62,7 @@ function restoreListPosition(target?: string, top?: number, artwork = false) {
   }));
 }
 
-export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailable = false, unverifiedSlugs, initialAlerts, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailable = false, unverifiedSlugs, initialAlerts, alertsReadAt, emailEnabled, initialShares, sharesIncomplete, initialTab = "favorites", initialShareId, initialItem, initialSharedView = "available", initialFavoriteFilter = "all", obsoleteFilter }: Props) {
   const timeZone = useAccountTimeZone();
   const locale = useAccountLocale();
   const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
@@ -115,9 +115,13 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
   }, [requestedFavoriteUnavailable, selection?.slug]);
   const latestAlerts = useRef(initialAlerts);
   useEffect(() => { latestAlerts.current = initialAlerts; }, [initialAlerts]);
-  const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
-  const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
+  const [alertOverrides, setAlertOverrides] = useState<Record<string, { enabled: boolean; savedAt?: number }>>({});
+  const alerts = useMemo(() => ({
+    ...initialAlerts,
+    ...Object.fromEntries(Object.entries(alertOverrides).map(([slug, choice]) => [slug, choice.enabled])),
+  }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
+  const [uncheckedShare, setUncheckedShare] = useState<{ id: string; state: "declined" | "restore" } | null>(null);
   const [shareBusy, setShareBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
@@ -153,13 +157,14 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
 
   useEffect(() => {
     if (initialAlerts === null) return;
-    // A stale refresh must not reverse a just-saved alert before acknowledgment.
+    // A fresh server snapshot takes precedence over the temporary save receipt.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAlertOverrides(current => {
-      const remaining = Object.entries(current).filter(([slug, enabled]) => Boolean(initialAlerts[slug]) !== enabled);
+      const remaining = Object.entries(current).filter(([slug, choice]) => Boolean(initialAlerts[slug]) !== choice.enabled &&
+        !(choice.savedAt !== undefined && alertsReadAt !== undefined && alertsReadAt > choice.savedAt));
       return remaining.length === Object.keys(current).length ? current : Object.fromEntries(remaining);
     });
-  }, [initialAlerts, alertOverrides]);
+  }, [initialAlerts, alertsReadAt, alertOverrides]);
   // Let Next.js copy its internal state so a server action keeps the active tab URL.
   function location(href: string, push = false) {
     if (push && new URL(href, window.location.origin).href !== window.location.href) window.history.pushState(null, "", href);
@@ -279,13 +284,23 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
     location(href);
     restoreListPosition(target);
   }
-  async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
-    if (shareBusy) return;
+  async function changeShare(share: SavedProductShare, state: "declined" | "restore", checkOnly = false) {
+    if (shareBusy || (uncheckedShare?.id === share.id && !checkOnly)) return;
     const previewHref = window.location.href;
     const snapshotAtStart = shareSnapshot.current;
     setShareBusy(share.id); setMessage("");
     try {
-      let result = await setReceivedProductState(share.id, state);
+      let result = checkOnly ? null : await setReceivedProductState(share.id, state).catch(() => null);
+      if (!result?.ok) {
+        const latest = await readReceivedProductState(share.id).catch(() => null);
+        setUncheckedShare(latest ? null : { id: share.id, state });
+        if (latest) setShareOverrides(current => ({ ...current, [share.id]: { declinedAt: latest.declinedAt, viewedAt: latest.viewedAt } }));
+        if (window.location.href === previewHref) {
+          setMessage(latest ? "Showing the saved share status." : "We couldn’t confirm this change. Check the saved share.");
+          if (latest && Boolean(latest.declinedAt) === (state === "declined")) back(true);
+        }
+        return;
+      }
       if (result.ok && shareSnapshot.current !== snapshotAtStart) {
         const beforeRead = shareSnapshot.current;
         const verified = await readReceivedProductState(share.id).catch(() => null);
@@ -308,14 +323,6 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
         back(true);
       }
     }
-    catch {
-      const latest = await readReceivedProductState(share.id).catch(() => null);
-      if (latest) setShareOverrides(current => ({ ...current, [share.id]: { declinedAt: latest.declinedAt, viewedAt: latest.viewedAt } }));
-      if (window.location.href === previewHref) {
-        setMessage(latest ? "Showing the saved share status." : "We couldn’t confirm this change. Refresh to check.");
-        if (latest && Boolean(latest.declinedAt) === (state === "declined")) back(true);
-      }
-    }
     finally { setShareBusy(null); }
   }
   function toggleAlert(slug: string) {
@@ -333,7 +340,7 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
           if (confirmed === null) { setMessage("The alert changed in another tab. Refresh to check the saved setting."); return; }
           saved = confirmed;
         }
-        setAlertOverrides(current => ({ ...current, [slug]: saved }));
+        setAlertOverrides(current => ({ ...current, [slug]: { enabled: saved, savedAt: result.savedAt } }));
         setMessage(saved === enabled ? result.message : "This alert changed in another tab. The current setting is shown.");
       }
       catch { setMessage("We couldn’t confirm this change. Refresh and try again."); }
@@ -412,7 +419,10 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
                 </div>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={() => back()}>Back to list</button></div>
               </div>
-              {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? detailHref ? "Reopen the prize to look again, or undo your decline to move it to Available." : "Undo your decline to move this share to Available." : "Declining moves this share to Declined. You can revisit it while its pool is open."}</p></> : null}
+              {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => {
+                if (uncheckedShare?.id === selectedShare.id) void changeShare(selectedShare, uncheckedShare.state, true);
+                else void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined");
+              }}>{shareBusy === selectedShare.id ? "Saving…" : uncheckedShare?.id === selectedShare.id ? "Check saved share" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? detailHref ? "Reopen the prize to look again, or undo your decline to move it to Available." : "Undo your decline to move this share to Available." : "Declining moves this share to Declined. You can revisit it while its pool is open."}</p></> : null}
             </div>
           </article>
         </> : tab === "favorites" ? <>

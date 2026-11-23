@@ -1,6 +1,7 @@
 import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
 import Image from "next/image";
 import Link from "next/link";
+import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { accountLocale } from "@/lib/account/locale";
 import { safeTimeZone } from "@/lib/account/timezone";
 import { supportRewardContext } from "@/lib/support/references";
@@ -141,8 +142,8 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         <section id="ready-rewards" className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
           {invalidView && <p id="outdated-reward-filter" tabIndex={-1} role="status" className={overview.message}>That reward filter is unavailable. Showing all rewards. <Link className="underline" href={prize ? `/account/wallet?prize=${encodeURIComponent(prize)}#ready-rewards` : "/account/wallet#ready-rewards"}>Clear the outdated filter</Link></p>}
           <div className={overview.sectionHeading}><h2 id="ready-heading" tabIndex={-1}>Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p>{readyCount !== null && ready.length > 0 ? <p><strong>{readyToUseCount} ready to use · {toClaimCount} to claim</strong></p> : null}</div>
-          {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
-            <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
+          {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now. <AccountReadRetryButton label="Retry ready rewards" className="font-bold underline" /></p> : ready.length === 0 ? <div className={overview.empty}>
+            <h3>{state.incomplete ? "We couldn’t verify all ready gift cards" : "No ready gift cards yet"}</h3><p>{state.incomplete ? "Try again to check your ready rewards." : "Won and purchased retailer gift cards will appear here when they are ready."}</p>{state.incomplete && <AccountReadRetryButton label="Retry ready rewards" className="font-bold underline" />}<Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
             {ready.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `ready-reward-${item.rewardId}` : undefined}
               href={item.rewardId ? `${rewardInView(item)}&tile=1` : walletRewardHref(item)} className={overview.rewardCard}>

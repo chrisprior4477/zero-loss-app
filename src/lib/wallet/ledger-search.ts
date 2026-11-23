@@ -56,7 +56,7 @@ function dateBoundary(value: string, calendar: SearchCalendar) {
     if (words.length < 2 || words.length > 3) return null;
     const name = words.find(word => /^[a-z]+$/.test(word));
     if (!name) return null;
-    year = Number(words.find(word => /^\d{4}$/.test(word))) || undefined;
+    year = Number(words.find(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word))) || undefined;
     const dayWord = words.find(word => /^\d{1,2}$/.test(word));
     day = dayWord === undefined ? undefined : Number(dayWord);
     if (day === 0) return null;
@@ -153,14 +153,14 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const searchAgain = (rows: T[], text: string) => searchLedger(rows, text, describe, fullLedger, calendar);
   const dateParts = dateQuery.split(/\s+/);
   if (dateParts.length > 2) {
-    const sides = [
-      [dateParts.slice(0, 2), dateParts.slice(2)],
-      [dateParts.slice(-2), dateParts.slice(0, -2)],
-    ];
+    const sides = [3, 2, 1].filter(length => dateParts.length > length).flatMap(length => [
+      [dateParts.slice(0, length), dateParts.slice(length)],
+      [dateParts.slice(-length), dateParts.slice(0, -length)],
+    ]);
     for (const [date, remainder] of sides) {
-      if (!date.some(word => /^\d{4}$/.test(word))) continue;
+      if (!date.some(word => /(?:^|[-/])\d{4}(?:$|[-/])/.test(word))) continue;
       const matches = searchDate(entries, date.join(" "), calendar);
-      if (matches) return searchAgain(matches, remainder.join(" "));
+      if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, ""));
     }
   }
   const explicitPostedAmount = /\b(?:posted\s+)?amount\s*(?::|=|equals\b)/i.test(trimmed) || /\s+exactly$/i.test(trimmed);

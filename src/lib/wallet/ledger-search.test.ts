@@ -29,6 +29,9 @@ test("matches amount, date and direction shorthand without treating held or unre
   for (const query of ["posted on 11/05/2026", "transactions on November 5", "11-05-2026"]) {
     expect(search(query), query).toEqual(search("2026-11-05"));
   }
+  for (const query of ["Nov 5, 2026 Netflix", "Netflix Nov 5, 2026", "Netflix on November 5, 2026"]) {
+    expect(search(query), query).toEqual(["netflix", "netflix-other-amount", "title-only"]);
+  }
   expect(search("after Nov 5, 2026")).toEqual(["credit"]);
   expect(search("from 2026-11-01 until 2026-11-10")).toEqual(entries.map(row => row.id));
   expect(search("amount = -$1")).toEqual(["entry", "hold"]);

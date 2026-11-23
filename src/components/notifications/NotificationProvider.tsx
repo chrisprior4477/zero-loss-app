@@ -6,7 +6,7 @@ import { notificationIsEnabled, type AccountNotification, type NotificationPrefe
 import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
-type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean; ordersAvailable?: boolean };
+type Snapshot = { preferencesReadAt?: number; notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean; ordersAvailable?: boolean; activityAvailable?: boolean; walletAvailable?: boolean; crewAvailable?: boolean; supportAvailable?: boolean };
 type Value = { sessionExpired?: boolean; liveSnapshot: Snapshot | null; receiveConfirmed: (notification: AccountNotification, isRead: boolean) => void; preferencesPreviewActive: boolean; setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
 const Context = createContext<Value | null>(null);
 export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
@@ -62,6 +62,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     setSnapshot(current => mergeReads(initial && {
       ...initial,
       preferences: initial.preferences ?? current?.preferences ?? null,
+      preferencesReadAt: initial.preferences ? initial.preferencesReadAt : current?.preferencesReadAt,
       readIds: initial.readAvailable ? initial.readIds : current?.readIds ?? initial.readIds,
       readAvailable: initial.readAvailable || Boolean(current?.readAvailable),
     }));
@@ -98,6 +99,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
           setSnapshot(current => mergeReads({
             ...next,
             preferences: next.preferences ?? current?.preferences ?? null,
+            preferencesReadAt: next.preferences ? next.preferencesReadAt : current?.preferencesReadAt,
             readIds: next.readAvailable ? next.readIds : current?.readIds ?? next.readIds,
             readAvailable: next.readAvailable || Boolean(current?.readAvailable),
           }));

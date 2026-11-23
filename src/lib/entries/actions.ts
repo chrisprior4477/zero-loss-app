@@ -10,7 +10,7 @@ import { isEntryQuantity } from "./quantity";
 
 export type PreviewEntryActionState =
   | { status: "idle" }
-  | { status: "error"; message: string; code?: "insufficient_balance" | "outcome_unknown" | "price_changed" }
+  | { status: "error"; message: string; code?: "insufficient_balance" | "outcome_unknown" | "price_changed" | "sign_in" }
   | { status: "request"; message: string; request: EntryRequest }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
@@ -97,8 +97,10 @@ export async function createPreviewEntry(
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
     if (authError || !user?.email_confirmed_at) {
-      return { status: "error", message: "Sign in with a confirmed preview account to enter." };
+      return { status: "error", code: "sign_in", message: "Sign in with a confirmed preview account to enter." };
     }
+    const owner = formData.get("ownerId");
+    if (owner !== null && owner !== user.id) return { status: "error", message: "Your signed-in account changed. Reload and review your entry again." };
     await ensurePreviewCustomer(db, user);
     const { data, error } = await db.rpc("submit_reviewed_preview_entries", {
       p_entry_price_cents: reviewedPrice,
@@ -159,22 +161,38 @@ export async function acknowledgeEntryReceipt(requestId: string): Promise<{ erro
   }
 }
 
-export async function checkSavedPreviewEntry(slug: string, key: string): Promise<PreviewEntryActionState> {
+export async function checkSavedPreviewEntry(slug: string, key: string, ownerId?: string): Promise<PreviewEntryActionState> {
   const unavailable: PreviewEntryActionState = { status: "error", code: "outcome_unknown", message: "We couldn’t check this saved submission. Try again when your connection returns." };
   if (!isPreviewDataEnvironment() || !slugPattern.test(slug) || !keyPattern.test(key)) return unavailable;
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
-    if (authError || !user?.email_confirmed_at) return unavailable;
-    const { data, error } = await db.from("entry_requests").select("id,status")
+    if ((authError?.status ?? 0) >= 500) return unavailable;
+    if (!user?.email_confirmed_at) return { status: "error", code: "sign_in", message: "Sign in again to check this saved submission." };
+    if (ownerId && ownerId !== user.id) return { status: "error", code: "sign_in", message: "Sign back into the account that started this submission." };
+    const { data, error } = await db.from("entry_requests").select("id,status,preview_batch_id")
       .eq("customer_id", user.id).eq("offering_slug", slug).eq("idempotency_key", key).maybeSingle();
     if (error) return unavailable;
     if (!data) return { status: "error", message: "No saved submission was found. Review and approve the entry again to retry the same request." };
     const reservations = await db.rpc("list_preview_entry_requests");
-    if (reservations.error || !Array.isArray(reservations.data)) return unavailable;
-    const request = reservations.data.map(parseEntryRequest).find((item: EntryRequest | null) => item?.requestId === data.id);
-    if (request) return { status: "request", request: { ...request, duplicate: true }, message: "Found your saved entry submission." };
-    if (data.status === "accepted") return { status: "succeeded", outcome: "active", href: "/account/entries", message: "This submission is already saved. Open My Activity to see the outcome." };
+    const request = !reservations.error && Array.isArray(reservations.data)
+      ? reservations.data.find((item: { requestId?: string }) => item?.requestId === data.id)
+      : null;
+    if (request) return { status: "request", request: { ...parseEntryRequest(request), duplicate: true }, message: "Found your saved entry submission." };
+    if (data.status === "accepted" && data.preview_batch_id) {
+      const { data: entries, error: receiptError } = await db.from("customer_entries")
+        .select("entry_id,outcome_status,entry_outcomes(outcome),customer_rewards(id)")
+        .eq("customer_id", user.id).eq("preview_batch_id", data.preview_batch_id)
+        .order("created_at").order("id");
+      if (receiptError || !entries?.length) return unavailable;
+      type ReceiptRow = { entry_id: string; outcome_status: string; entry_outcomes: { outcome: string } | { outcome: string }[] | null; customer_rewards: { id: string } | { id: string }[] | null };
+      const rows = entries as unknown as ReceiptRow[];
+      const outcomes = rows.map(row => (Array.isArray(row.entry_outcomes) ? row.entry_outcomes[0] : row.entry_outcomes)?.outcome ?? row.outcome_status);
+      const outcome = outcomes.includes("winner") ? "winner" : outcomes.every(value => value === "not_selected") ? "not_selected" : "active";
+      const reward = rows.flatMap(row => row.customer_rewards ?? [])[0];
+      if (outcome === "winner" && !reward) return unavailable;
+      return { status: "succeeded", outcome, href: entryReceiptHref({ status: outcome, entryId: rows[0].entry_id, rewardId: reward?.id }, slug), message: "Found your saved entry submission." };
+    }
     if (data.status === "cancelled" || data.status === "rejected") return { status: "error", message: "The saved submission was not entered. Return to My Activity before starting another entry." };
     return unavailable;
   } catch { return unavailable; }

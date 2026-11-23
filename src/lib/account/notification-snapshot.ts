@@ -14,6 +14,7 @@ export const getNotificationSnapshot = cache(async () => {
   if (!account) return null;
   const db = await createClient();
   const supportEnabled = true;
+  const preferencesReadAt = Date.now();
   const [crew, support, actionableSupport, visibility, alertPreferences, shares, orders, ledger] = await Promise.all([
     db.from("crew_invitations").select("id,requester_name,created_at,status,automatic_connection").eq("recipient_id", account.userId).or("status.eq.pending,and(status.eq.accepted,automatic_connection.eq.true)").order("created_at", { ascending: false }),
     // Keep explicit ownership even for members who can staff the support inbox.
@@ -78,5 +79,5 @@ export const getNotificationSnapshot = cache(async () => {
   // Claim/purchase completion is already persisted by the authoritative account
   // action. Derive acknowledgement from that record, including older rewards.
   const readIds = [...new Set([...(readRows ?? []).map(row => row.notification_id), ...notifications.filter(n => n.resolved).map(n => n.id)])];
-  return { notifications, readIds, readAvailable: !readError, preferences: alertPreferences.error ? null : parseNotificationPreferences(alertPreferences.data), supportEnabled, supportAvailable: !support.error && !actionableSupport.error && !replies?.error, crewAvailable: !crewError && !shares.error && Array.isArray(shares.data) && !catalog?.unavailable && !catalog?.availabilityIncomplete, ordersAvailable: Boolean(orders && orders.source !== "unavailable" && !orders.incomplete) };
+  return { notifications, readIds, preferencesReadAt, activityAvailable: account.activity.source !== "unavailable" && !account.activity.incomplete, walletAvailable: Boolean(account.wallet && ledger), readAvailable: !readError, preferences: alertPreferences.error ? null : parseNotificationPreferences(alertPreferences.data), supportEnabled, supportAvailable: !support.error && !actionableSupport.error && !replies?.error, crewAvailable: !crewError && !shares.error && Array.isArray(shares.data) && !catalog?.unavailable && !catalog?.availabilityIncomplete, ordersAvailable: Boolean(orders && orders.source !== "unavailable" && !orders.incomplete) };
 });

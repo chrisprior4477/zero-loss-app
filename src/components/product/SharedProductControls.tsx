@@ -29,6 +29,7 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
   const receive = receiveDraft ?? reviewChoice.receiving;
   const shareBack = shareBackDraft ?? reviewChoice.shareBack;
   const saveAttempt = useRef(0);
+  const [unconfirmedChoice, setUnconfirmedChoice] = useState<{ receiving: boolean | null; sharing: boolean | null } | null>(null);
   const [dialogKind, setDialogKind] = useState<"leave" | "rejoin" | "options" | null>(() => {
     if (!signedIn || initial?.own || saveOnReturn) return null;
     if (reviewOnReturn === "membership" && initial) return initial.receiving ? "leave" : "rejoin";
@@ -120,28 +121,28 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
   function openChoices() {
     setReviewSnapshot({ source: initial, receiving: context?.receiving ?? true, shareBack: context?.shareBack ?? false });
     setReceiveDraft(null); setShareBackDraft(null);
-    setLegacyCrew(false); setSaveFailed(false); setChoiceFailed(false); setMessage("");
+    setLegacyCrew(false); setSaveFailed(false); setChoiceFailed(false);
+    setMessage(unconfirmedChoice ? "Check your previous save before changing these choices." : "");
     setDialogKind("options");
   }
-  async function save(receiving: boolean | null, sharing: boolean | null) {
-    if (!context || busy) return;
+  async function save(receiving: boolean | null, sharing: boolean | null, checkOnly = false) {
+    if (!context || busy || (unconfirmedChoice && !checkOnly)) return;
     if (receiving === null && sharing === null) { setDialogKind(null); return; }
     saveAttempt.current += 1;
     setBusy(true); setChoiceFailed(false); setMessage("");
     try {
-      const result = await updateSharedProductReceiving(context.token, receiving, sharing);
-      setMessage(result.message);
-      if (!result.context) setChoiceFailed(true);
-      if (result.context) {
+      const result = checkOnly ? null : await updateSharedProductReceiving(context.token, receiving, sharing).catch(() => null);
+      if (result?.context) {
+        setMessage(result.message);
         setSaved({ source: initial, context: result.context });
         setDialogKind(null);
         window.dispatchEvent(new Event("zero-loss-notifications-read"));
         notifyAccountChanged();
         router.refresh();
+        return;
       }
-    }
-    catch {
       const latest = await readSharedProductReceiving(slug, context.token).catch(() => null);
+      setUnconfirmedChoice(latest ? null : { receiving, sharing });
       if (latest) {
         setSaved({ source: initial, context: latest });
         setReviewSnapshot({ source: initial, receiving: latest.receiving, shareBack: latest.shareBack });
@@ -155,7 +156,7 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
         router.refresh();
       } else {
         setChoiceFailed(true);
-        setMessage("Your choice could not be saved. Check the current settings before retrying.");
+        setMessage(latest ? "Your choice wasn’t saved. The current setting is shown." : "We couldn’t confirm your choice. Check the saved setting before retrying.");
       }
     }
     finally { setBusy(false); }
@@ -173,12 +174,13 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
     <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!busy) setDialogKind(null); }} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
       <div className={styles.heading}><h2 id="shared-choice-heading">{membershipChoice ? `${leaving ? "Leave" : "Rejoin"} ${scope}?` : "Sharing options"}</h2><button type="button" aria-label="Close sharing options" disabled={busy} onClick={() => setDialogKind(null)}>×</button></div>
       {context?.demo ? <p>This demo saves your choices for this sample share only. It does not contact anyone or share your picks.</p> : null}
-      {membershipChoice ? <><p>{leaving ? "Stop receiving shares from this Crew or group. Items already sent to you stay in Shared with You, and you can rejoin from this link." : "Receive the picks they share with you again. This does not share your own picks."}</p><button ref={choiceSubmit} className={styles.save} type="button" disabled={busy || !context} onClick={() => void save(!leaving, null)}>{busy ? "Saving…" : leaving ? "Leave" : "Rejoin"}</button></> : context ? <>
+      {membershipChoice ? <><p>{leaving ? "Stop receiving shares from this Crew or group. Items already sent to you stay in Shared with You, and you can rejoin from this link." : "Receive the picks they share with you again. This does not share your own picks."}</p><button ref={choiceSubmit} className={styles.save} type="button" disabled={busy || !context || Boolean(unconfirmedChoice)} onClick={() => void save(!leaving, null)}>{busy ? "Saving…" : leaving ? "Leave" : "Rejoin"}</button></> : context ? <>
         <label><input type="checkbox" checked={receive} disabled={busy} onChange={e => setReceiveDraft(e.target.checked === reviewChoice.receiving ? null : e.target.checked)} /><span>Receive shared picks from {scope}</span></label>
         <label><input type="checkbox" checked={shareBack} disabled={busy} onChange={e => setShareBackDraft(e.target.checked === reviewChoice.shareBack ? null : e.target.checked)} /><span>Let {context.sender} see picks I choose to share with my Crew</span></label>
         <p>Receiving is separate from sharing. Your private picks and wallet are never shared. Your existing audience settings still apply.</p>
-        <button ref={choiceSubmit} className={styles.save} type="button" disabled={busy} onClick={() => void save(receiveDraft, shareBackDraft)}>{busy ? "Saving…" : "Save choices"}</button>
+        <button ref={choiceSubmit} className={styles.save} type="button" disabled={busy || Boolean(unconfirmedChoice)} onClick={() => void save(receiveDraft, shareBackDraft)}>{busy ? "Saving…" : "Save choices"}</button>
       </> : <p>This link has no Crew details. <Link href="/account/crew/display#account-settings-sections">Open your sharing preferences →</Link></p>}
+      {unconfirmedChoice && <button type="button" className={styles.save} disabled={busy} onClick={() => void save(unconfirmedChoice.receiving, unconfirmedChoice.sharing, true)}>Check saved choices</button>}
       {message ? <p role={choiceFailed ? "alert" : "status"}>{message}</p> : null}
     </dialog>
   </section>;

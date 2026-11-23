@@ -58,7 +58,7 @@ function updatePendingReads(key: string, ids: string[], remove = false) {
   } catch { /* Saving a read receipt still works without storage. */ }
 }
 
-export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, supportAvailable = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; supportAvailable?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFilter = false, initialNotice, supportEnabled = true, supportAvailable = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, preferencesReadAt: serverPreferencesReadAt, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; obsoleteFilter?: boolean; initialNotice?: string; supportEnabled?: boolean; supportAvailable?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; preferencesReadAt?: number; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const notificationContext = useNotifications();
   const live = notificationContext?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
@@ -66,6 +66,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const notifications = live ? live.notifications : serverNotifications;
   const initialReadIds = live ? live.readIds : serverReadIds;
   const initialAlertPreferences = live ? live.preferences : serverAlertPreferences;
+  const preferencesReadAt = live?.preferencesReadAt ?? serverPreferencesReadAt;
   const readAvailable = live ? live.readAvailable : serverReadAvailable;
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
   useEffect(() => {
@@ -78,8 +79,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const focusedReturn = useRef<string | undefined>(undefined);
   const noticeFallback = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
-  const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);
+  const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<Partial<Record<NotificationPreferenceKey, { enabled: boolean; savedAt?: number }>>>({});
+  const alertPreferences = useMemo(() => ({
+    ...initialAlertPreferences,
+    ...Object.fromEntries(Object.entries(savedPreferenceOverrides).map(([key, value]) => [key, value.enabled])),
+  }), [initialAlertPreferences, savedPreferenceOverrides]);
   const router = useRouter();
   const [responding, startTransition] = useTransition();
   const [crewFeedback, setCrewFeedback] = useState<Record<string, CrewRequestFeedback>>({});
@@ -181,7 +185,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const currentOrderNotice = orderNoticePrefix ? enabledNotifications.find(item => item.id.startsWith(orderNoticePrefix + "-")) : undefined;
   const supportCaseId = focusedNotice?.match(/^support-([a-f0-9-]{36})-/i)?.[1];
   const movedNotice = focusedNotice && noticeIndex < 0 ? enabledNotifications.find(notice => notice.id === focusedNotice) : undefined;
-  const incompleteFeed = !preferencesKnown || !activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || live?.ordersAvailable === false || (supportEnabled && !supportAvailable);
+  const incompleteFeed = !preferencesKnown || !(live?.activityAvailable ?? activityAvailable) || !(live?.walletAvailable ?? walletAvailable) || !(live?.crewAvailable ?? crewAvailable) || !(live?.ordersAvailable ?? ordersAvailable) || (supportEnabled && !(live?.supportAvailable ?? supportAvailable));
   useEffect(() => {
     if (!focusedNotice || focusedReturn.current === focusedNotice) return;
     if (noticeIndex < 0) {
@@ -220,14 +224,15 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
 
   useEffect(() => {
     if (initialAlertPreferences === null) return;
-    // Discard only overrides the server has acknowledged. An older refresh must
-    // not reverse a successful local choice while its fresh response is arriving.
+    // A new verified snapshot can represent a more recent save from another tab.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSavedPreferenceOverrides(current => {
-      const remaining = Object.entries(current).filter(([key, enabled]) => (initialAlertPreferences[key as NotificationPreferenceKey] !== false) !== enabled);
+      const remaining = Object.entries(current).filter(([key, choice]) =>
+        (initialAlertPreferences[key as NotificationPreferenceKey] !== false) !== choice.enabled &&
+        !(choice.savedAt !== undefined && preferencesReadAt !== undefined && preferencesReadAt > choice.savedAt));
       return remaining.length === Object.keys(current).length ? current : Object.fromEntries(remaining);
     });
-  }, [initialAlertPreferences, savedPreferenceOverrides]);
+  }, [initialAlertPreferences, preferencesReadAt, savedPreferenceOverrides]);
 
   useLayoutEffect(() => {
     if (!userId) return;
@@ -611,7 +616,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
       <AccountSettingsLandingScroll target="email-preferences" focusTarget="outcome-email-heading" allScreens restrictToTargetHash />
       <AccountSettingsLandingScroll target="email-choices" focusTarget="email-choices" allScreens restrictToTargetHash />
       <div id="alert-settings" className={styles.settingsBlock}>
-        <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
+        <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key, enabled, savedAt) => setSavedPreferenceOverrides(current => ({ ...current, [key]: { enabled, savedAt } }))} />
         <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2 id="email-choices" tabIndex={-1}>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>

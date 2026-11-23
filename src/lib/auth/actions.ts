@@ -182,8 +182,8 @@ export async function signUpAction(
   });
 
   if (error) {
-    if (error.status === 429) return { ok: false, message: "Too many sign-in attempts. Wait a few minutes and try again." };
-    if (!error.status || error.status >= 500) return { ok: false, message: "Sign-in is temporarily unavailable. Please try again in a moment." };
+    if (error.status === 429) return { ok: false, message: "Too many sign-in attempts. Wait a few minutes and try again.", values };
+    if (!error.status || error.status >= 500) return { ok: false, message: "Sign-in is temporarily unavailable. Please try again in a moment.", values };
     const lowered = error.message.toLowerCase();
     if (
       lowered.includes("already registered") ||
@@ -461,15 +461,15 @@ export async function signOutEverywhereAction(
   _previous: SignOutEverywhereState,
   _formData: FormData,
 ): Promise<SignOutEverywhereState> {
-  // Keep the React action-state signature; this action needs no form fields.
   void _previous;
-  void _formData;
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
     return { status: "error", message: "Your session expired. Sign in again to manage your sessions." };
   }
 
+  const owner = _formData.get("ownerId");
+  if (owner !== null && owner !== user.id) return { status: "error", message: "Your signed-in account changed. Reload and review sign-out again." };
   const { error } = await supabase.auth.signOut({ scope: "global" });
   if (error) {
     return { status: "error", message: "We could not sign out your sessions. Please try again." };

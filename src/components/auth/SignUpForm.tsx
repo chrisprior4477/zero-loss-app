@@ -153,6 +153,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
     <form
       key={formKey}
       action={formAction}
+      inert={pending || undefined}
       onInvalidCapture={event => {
         const field = event.target;
         if (!(field instanceof HTMLElement) || event.currentTarget.querySelector(":invalid") !== field) return;

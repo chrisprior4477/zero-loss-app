@@ -28,7 +28,7 @@ async function fundingProvider(expectedWallet?: FormDataEntryValue | null, readO
   const db = await createClient();
   const { data: { user }, error } = await db.auth.getUser();
   if (error || !user?.email_confirmed_at) throw new FundingFailure("42501", "Sign in with your confirmed test account.");
-  if (!readOnly) await ensurePreviewCustomer(db, user);
+  if (!readOnly && expectedWallet == null) await ensurePreviewCustomer(db, user);
   const { data, error: walletError } = await db.rpc("get_wallet_snapshot");
   const wallet = walletError ? null : parseWalletSnapshot(data);
   const allowed = readOnly ? wallet?.scope === "demo" && Boolean(wallet.walletAccountId) : demoFundingAllowed(wallet, Boolean(user.email_confirmed_at));
@@ -76,7 +76,12 @@ function fundingContinuation(value: unknown): string | null {
   const product = entryReturnPath(value);
   if (product) return fundedProductEntryHref(product);
   const account = accountReturnPath(value);
-  return account && (account.startsWith("/account/entries?item=") || /^\/account\/entries\/ent_[a-f0-9]{32}\?quantity=[1-9]\d*&review=entry(?:&filter=active)?#(?:add-entries-title|additional-entry-checkout)$/.test(account)) ? account : null;
+  if (!account) return null;
+  const url = new URL(account, "https://zeroloss.local");
+  if (account.startsWith("/account/entries?item=")) return account;
+  return /^\/account\/entries\/ent_[a-f0-9]{32}$/.test(url.pathname) &&
+    url.searchParams.get("review") === "entry" && url.searchParams.has("quantity") &&
+    ["#add-entries-title", "#additional-entry-checkout"].includes(url.hash) ? account : null;
 }
 
 export async function completeDemoFunding(
@@ -154,7 +159,7 @@ export async function saveDemoPaymentMethod(
   }
   let result: DemoFundingActionState;
   try {
-    const provider = await fundingProvider();
+    const provider = await fundingProvider(formData.get("walletId"));
     const card = typeof revision === "string"
       ? await provider.updateReviewedCard(fixture.token, revision,
         makeDefault === null ? null : makeDefault === "true", makeDepositDefault === null ? null : makeDepositDefault === "true", artwork)
@@ -168,25 +173,25 @@ export async function saveDemoPaymentMethod(
     result = error instanceof FundingFailure && error.code === "PT409" ? { status: "error", message: error.message, stale: true } : failure(error);
   }
   updateWalletViews();
-  return result;
+  return result.status === "pending" ? { status: "pending", message: "We couldn’t confirm the card save. Check the saved card before trying again." } : result;
 }
 
-export async function readDemoPaymentMethod(paymentMethod: string) {
+export async function readDemoPaymentMethod(paymentMethod: string, walletId?: string) {
   const fixture = demoCardFixture(paymentMethod);
   if (!fixture) return { status: "unavailable" as const };
   try {
-    const cards = await (await fundingProvider(null, true)).getPaymentMethods();
+    const cards = await (await fundingProvider(walletId, true)).getPaymentMethods();
     return { status: "loaded" as const, card: cards.find(card => card.token === fixture.token) ?? null };
   } catch {
     return { status: "unavailable" as const };
   }
 }
 
-export async function deleteDemoPaymentMethod(paymentMethod: string, revision?: string): Promise<{ status: "succeeded" | "error"; message: string }> {
+export async function deleteDemoPaymentMethod(paymentMethod: string, revision?: string, walletId?: string): Promise<{ status: "succeeded" | "error"; message: string }> {
   const fixture = demoCardFixture(paymentMethod);
   if (!fixture) return { status: "error", message: "Only supplied preview test cards can be removed." };
   try {
-    await (await fundingProvider()).deletePaymentMethod(fixture.token, revision);
+    await (await fundingProvider(walletId)).deletePaymentMethod(fixture.token, revision);
     updateWalletViews();
     return { status: "succeeded", message: `Test card •••• ${fixture.lastFour} removed. Earlier deposit records remain unchanged.` };
   } catch (error) {

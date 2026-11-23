@@ -122,8 +122,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const matchingLink = singleLinkAudience && preparedLink?.slug === shareSlug && preparedLink.groupId === shareGroupId ? preparedLink : null;
   const shareToken = matchingLink?.token ?? null;
   const publicLinkAllowed = singleLinkAudience && !shareGroupId && !preparedLink?.token;
-  const linkReady = publicLinkAllowed || Boolean(matchingLink && (!shareGroupId || shareToken));
-  const copyReady = linkReady && (!restoreManualHistory || Boolean(matchingLink));
+  const linkReady = (!restoreManualHistory && publicLinkAllowed) || Boolean(matchingLink && (!shareGroupId || shareToken));
+  const copyReady = linkReady;
   const linkFailed = singleLinkAudience && failedLink?.slug === shareSlug && failedLink.groupId === shareGroupId && failedLink.attempt === linkRetry;
   useEffect(() => {
     if (!singleLinkAudience) return;
@@ -714,7 +714,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <p role="status">That person is no longer available in your Crew.</p>}
       </div> : null}
       {step === "home" ? <div className={styles.actions}>
-        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
+        <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy || !linkReady} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
         <button type="button" className={styles.back} disabled={busy} onClick={() => void openFinder()}>Find &amp; add someone</button>
