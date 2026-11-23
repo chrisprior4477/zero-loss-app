@@ -4,8 +4,9 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export const accountSession = cache(async () => {
+  // Let Next.js handle request-bound cookies before catching authentication failures.
+  const db = await createClient();
   try {
-    const db = await createClient();
     const { data, error } = await db.auth.getUser();
     if (isAuthRetryableFetchError(error) || (error?.status ?? 0) === 429 || (error?.status ?? 0) >= 500) {
       return { status: "unavailable" } as const;
