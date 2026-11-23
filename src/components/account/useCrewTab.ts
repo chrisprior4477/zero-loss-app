@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { crewTabFromUrl, crewTabHref, type CrewTab } from "@/lib/crew/navigation";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const sectionChanged = "zero-loss-crew-section";
 function subscribe(onChange: () => void) {
@@ -35,11 +36,14 @@ export function useCrewTab(initialTab: CrewTab) {
       setInvalidTab(invalid || window.history.state?.zeroLossCrewInvalidTab === true);
       if (event?.type !== "popstate" || !changed) return;
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        if (document.activeElement === document.body) {
-          document.querySelector<HTMLElement>('[data-crew-tab="' + next + '"]')?.focus({ preventScroll: true });
+      frame = requestAnimationFrame(() => { frame = requestAnimationFrame(() => {
+        const button = document.querySelector<HTMLElement>('[data-crew-tab="' + next + '"]');
+        if (!button || window.location.href !== url.href) return;
+        if (document.activeElement === document.body || document.activeElement?.hasAttribute("data-crew-tab")) {
+          button.focus({ preventScroll: true });
+          revealBelowHeader(button);
         }
-      });
+      }); });
     }
     restore();
     window.addEventListener("popstate", restore);

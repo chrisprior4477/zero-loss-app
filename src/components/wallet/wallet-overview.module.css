@@ -138,7 +138,7 @@
 .ledger li time { grid-area: date; min-width: 0; color: #425f7f; font-size: 13px; font-weight: 750; }
 .transactionValue { grid-area: amount; display: flex; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; overflow-wrap: anywhere; text-align: right; }
 .amount, .positive { justify-self: center; font-size: 19px; font-weight: 850; font-variant-numeric: tabular-nums; }
-.positive { color: #008b2d; }
+.positive { color: #007b29; }
 .amount { color: #b63a13; }
 .posted { grid-area: status; justify-self: end; padding: 4px 8px; border-radius: 8px; background: #bbf6cd; color: #0a5b34; font-size: 11px; font-weight: 850; text-align: center; text-transform: uppercase; }
 .reportLink { display: flex; align-items: center; justify-content: center; color: #0a1940; }

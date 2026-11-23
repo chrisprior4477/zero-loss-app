@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { readLedgerReturn, readLedgerSupportReturn } from "@/lib/wallet/ledger-return";
+import { openWalletPanel, revealWalletSection } from "./WalletCardEditor";
+import { AccountIcon } from "@/components/account/AccountIcon";
+
+export function WalletTransactionsLink({ className }: { className?: string }) {
+  return <a href="#transactions" className={className} onClick={event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    openWalletPanel("#transactions");
+    revealWalletSection("transactions", "transactions", true);
+  }}>View transactions <AccountIcon name="arrow" /></a>;
+}
 
 function subscribeToHistory(callback: () => void) {
   window.addEventListener("popstate", callback);

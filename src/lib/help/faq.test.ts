@@ -4,6 +4,23 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["i put the wrong card on my wallet", "delete-card"],
+  ["why is my card declined", "funding-status"],
+  ["payment went through but balance stayed the same", "balance-discrepancy"],
+  ["what is my refund policy", "withdrawals"],
+  ["can i cancel my last entry", "undo-entry"],
+  ["why are my tickets missing", "entry-status"],
+  ["I clicked enter but nothing happened", "entry-status"],
+  ["missing a purchase option", "purchase-options"],
+  ["a purchase option expired can I revive it", "decline-and-revive"],
+  ["do I lose my money if I decline", "decline-and-revive"],
+  ["copy my order number", "order-receipt"],
+  ["the gift card says used but I never used it", "reward-unavailable"],
+  ["get a gift card for someone else", "gift-transfers"],
+  ["where can I see replies to my support ticket", "support-case"],
+  ["can I add more detail to my support request", "support-case"],
+  ["unsubscribe from prize emails", "email-alert-preferences"],
+  ["hide my real name from crew", "crew-discoverability"],
   ["lost access to my email", "change-email"],
   ["can’t access my email", "change-email"],
   ["I used up my balance can I still enter", "insufficient-balance"],

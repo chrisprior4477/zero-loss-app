@@ -2,7 +2,7 @@
 
 import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -17,7 +17,8 @@ import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { ledgerReturnKey, readLedgerReturn, readLedgerSupportReturn, rememberLedgerSupportReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
-import { searchLedger } from "@/lib/wallet/ledger-search";
+import { postedAmountQuery, searchLedger } from "@/lib/wallet/ledger-search";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { transactionDateRange } from "@/lib/wallet/date-presets";
@@ -66,7 +67,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter, initialSearch = "" }: { initialSearch?: string; ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter, initialSearch = "" }: { initialSearch?: string; ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number; cardLabel?: string }> }) {
   const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
@@ -96,7 +97,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, appliedDates.from, appliedDates.through, timeZone), [displayEntries, appliedDates, compact, timeZone]);
-  const searched = useMemo(() => searchLedger(dated, query, description, entries, { timeZone, locale }), [dated, query, entries, timeZone, locale]);
+  const searchDescription = useCallback((entry: LedgerEntryRow) => {
+    const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
+    return deposit?.cardLabel && deposit.amount === entry.amount ? [...description(entry), deposit.cardLabel] : description(entry);
+  }, [depositsByLedgerId]);
+  const searched = useMemo(() => searchLedger(dated, query, searchDescription, entries, { timeZone, locale }), [dated, query, searchDescription, entries, timeZone, locale]);
   const matching = useMemo(() => filter === "all" ? searched : searched.filter(entry => category(entry) === filter), [searched, filter]);
   const groups = useMemo(() => ledgerGroups(matching, !compact), [matching, compact]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(groups.length, desktop ? 6 : 5, groups.findIndex(group => group.rows.some(row => row.id === selectedId)), "pages");
@@ -193,7 +198,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setAppliedDates({ from: saved.from, through: saved.through });
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
-      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description, savedEntries, { timeZone, locale });
+      const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", searchDescription, savedEntries, { timeZone, locale });
       const savedGroups = ledgerGroups(savedMatches);
       const rowIndex = savedGroups.findIndex(group => stackId(group.rows[0]) === saved.rowId || group.rows.some(entry => `transaction-${entry.id}` === saved.rowId));
       const savedOffset = savedGroups.findLastIndex(group => group.offset <= saved.offset);
@@ -212,13 +217,18 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             const exactRow = selectedId ? document.getElementById(`transaction-${selectedId}`) : null;
             for (const detail of list?.querySelectorAll("details") ?? []) {
               detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "")
-                || (detail.hasAttribute("data-transaction-stack") && (detail.contains(row) || detail.contains(exactRow)));
+                || (detail.hasAttribute("data-transaction-stack") && (detail.contains(row) || detail.contains(exactRow) || postedAmountQuery.test(saved.query ?? "")));
             }
             const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
             const top = row && (list?.contains(row) || supportReturn)
               ? window.scrollY + row.getBoundingClientRect().top - (supportReturn ? Math.max(headerBottom + 12, saved.rowTop) : saved.rowTop)
               : saved.scrollY;
             window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+            if (saved.filterFocus && document.activeElement !== searchInput.current) {
+              const control = document.querySelector<HTMLElement>(`#wallet-transaction-list-filters [data-ledger-filter="${saved.filter}"]`);
+              control?.focus({ preventScroll: true });
+              if (control) revealBelowHeader(control);
+            }
           });
         });
       };
@@ -243,7 +253,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       window.removeEventListener("wheel", interrupt);
       window.removeEventListener("keydown", interrupt);
     };
-  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, locale, cancelVoice, bookmarkKey]);
+  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, locale, cancelVoice, bookmarkKey, searchDescription]);
 
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
@@ -363,6 +373,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           <Link data-weekly-deposit-back="mobile" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(weeklyDeposit)}#payment-deposits`}>← Back to Payment deposits</Link>
         </> : null}
         {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
+        {selected && depositList && !weeklyDeposit && deposit && deposit.amount === entry.amount && <Link href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(deposit.requestKey)}#payment-deposits`}>← Back to this deposit</Link>}
         {links.length === 1 ? <Link href={links[0].href} aria-label={links[0].label === "View entry" ? links[0].label + " for " + (entry.product?.title ?? "this prize") + ", reference ending " + links[0].id.slice(-8).toUpperCase() : undefined}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
         {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
           <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
@@ -422,7 +433,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <p aria-live="polite">Showing {firstRecord > 0 || lastRecord < matching.length ? `${firstRecord + 1}–${lastRecord}` : lastRecord} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
       </div>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { const nextQuery = invalidSearchDraft ? query : draft.trim(); updateBookmark({ filter: key, query: nextQuery, offset: 0 }); setQuery(nextQuery); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" data-ledger-filter={key} aria-label={label} aria-describedby={`${dateErrorId}-count-${key}`} aria-pressed={filter === key} onClick={() => { const nextQuery = invalidSearchDraft ? query : draft.trim(); updateBookmark({ filter: key, filterFocus: true, query: nextQuery, offset: 0 }); setQuery(nextQuery); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b id={`${dateErrorId}-count-${key}`}>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{historyIncomplete ? "No matches in loaded transactions" : displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : ({ funding: "No funding transactions", entries: "No entry transactions", purchases: "No gift-card purchases", refunds: "No refunds" })[filter]}</h3><p>{historyIncomplete ? "Retry full history to search older activity." : displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
@@ -431,21 +442,22 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         if (!stack) return renderRecord(first);
         const image = rows.find(row => row.product)?.product;
         const hold = stack.kind === "reservation" ? rows.find(row => row.entry_type === "ENTRY_HOLD") : undefined;
+        const matchingAmounts = !hold && postedAmountQuery.test(query);
         const label = hold ? "2 records" : `${rows.length} entries`;
         return <li id={stackId(first)} key={stackId(first)} className={styles.transactionStack}>
-          <details data-transaction-stack open={rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
+          <details data-transaction-stack open={matchingAmounts || rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
             <summary className={styles.stackSummary} data-layers={Math.min(3, rows.length - 1)}>
               <span className={styles.stackLayer} aria-hidden="true" />
               <span className={styles.stackFace}>
                 <time dateTime={first.created_at}>{dateLabel(first.created_at, timeZone, locale)}</time>
                 {image && <span className={styles.ledgerVisuals}><span className={styles.ledgerProduct}><Image src={image.image} alt="" width={43} height={43} sizes="43px" /></span></span>}
                 <span className={styles.ledgerDescription}>
-                  <strong>{hold ? "Entry reservation released" : `${rows.length} entry purchases`}</strong>
+                  <strong>{hold ? "Entry reservation released" : matchingAmounts ? `${rows.length} matching entry purchases` : `${rows.length} entry purchases`}</strong>
                   {image && <span>{image.title}</span>}
                   <span>{hold ? `${formatUsdFromCents(-hold.amount)} held → ${formatUsdFromCents(-hold.amount)} released` : image?.retailer}</span>
                 </span>
                 <span className={styles.transactionValue}><strong className={hold ? styles.positive : styles.amount}>{formatUsdFromCents(stack.amount)}</strong></span>
-                <span className={styles.posted}>{hold ? "Net" : "Posted"}</span>
+                <span className={styles.posted}>{hold ? "Net" : matchingAmounts ? "Total matched" : "Posted"}</span>
                 <span className={`${styles.transactionActions} ${styles.stackAction}`}>
                   <span className={styles.stackShow}>Show {label} ↓</span><span className={styles.stackHide}>Hide {label} ↑</span>
                 </span>

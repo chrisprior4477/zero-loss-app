@@ -3,6 +3,42 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("combines statement language with exact dates, amount direction, and verified descriptions", () => {
+  const product = { slug: "netflix-25-gift-card", title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/card.png" };
+  const created_at = "2026-11-06T02:25:30Z";
+  const entries: LedgerEntryRow[] = [
+    { id: "fund", entry_type: "DEPOSIT", amount: 100, created_at },
+    { id: "other-card", entry_type: "DEPOSIT", amount: 2500, created_at: "2026-11-07T02:00:00Z" },
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product: { ...product, title: "PlayStation 5", retailer: "Best Buy" } },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at },
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at: "2026-11-06T04:00:00Z" },
+  ];
+  const search = (query: string) => searchLedger(entries, query, row => [...ledgerDescription(row.entry_type, row.product?.title),
+    row.id === "fund" ? "Chase ending 1117" : row.id === "other-card" ? "Discover ending 5556" : ""],
+  entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
+  expect(search("posted amount under $2")).toEqual(["fund", "entry"]);
+  expect(search("transactions with a posted amount of $1")).toEqual(["fund", "entry"]);
+  expect(search("amount of $1")).toEqual(search("amount: $1"));
+  expect(search("on 11/5")).toEqual(search("11/5/26"));
+  expect(search("from Nov 5 to 6, 2026")).toEqual(entries.map(row => row.id));
+  expect(search("transactions in November 2026")).toEqual(entries.map(row => row.id));
+  expect(search("Thursday November 5 2026")).toEqual(search("11/5/26"));
+  expect(search("Friday November 5 2026")).toEqual([]);
+  expect(search("5th of November 2026")).toEqual(search("11/5/26"));
+  expect(search("deposits before November 6, 2026")).toEqual(["fund"]);
+  expect(search("entries since Nov 5 2026")).toEqual(["entry"]);
+  expect(search("Nov 5 2026 at 9:25 PM")).toEqual(["fund", "purchase", "entry", "hold"]);
+  expect(search("Nov 5 2026 at 9:26 PM")).toEqual([]);
+  for (const query of ["exactly $24 paid Netflix", "Netflix was charged $24", "Netflix card charge of $24", "Netflix paid exactly twenty-four dollars", "Netflix orders", "bought Netflix"]) {
+    expect(search(query), query).toEqual(["purchase"]);
+  }
+  for (const query of ["Chase deposits", "Chase ending 1117"]) expect(search(query), query).toEqual(["fund"]);
+  expect(search("all wallet debits")).toEqual(["purchase", "entry"]);
+  expect(search("entry purchases for PlayStation 5")).toEqual(["entry"]);
+  expect(search("reversed holds")).toEqual(["release"]);
+});
+
 test("a date and posted amount are separate filters, and gift-card purchases exclude entry charges", () => {
   const product = { slug: "walmart-25-gift-card", title: "$25 Walmart Gift Card", retailer: "Walmart", image: "/card.png" };
   const entries: LedgerEntryRow[] = [
@@ -75,7 +111,7 @@ test("matches amount, date and direction shorthand without treating held or unre
   expect(search("Nov 5 2026 at $1")).toEqual(search("Nov 5, 2026 $1"));
   expect(search("11/5–11/6/26")).toEqual(search("between 11/5/26 and 11/6/26"));
   expect(search("November 5th through the 6th, 2026")).toEqual(search("between 11/5/26 and 11/6/26"));
-  expect(search("posted amount: one dollar")).toEqual(["entry", "hold", "refund"]);
+  expect(search("posted amount: one dollar")).toEqual(["entry", "refund"]);
   expect(search("amount 100 cents")).toEqual(["entry", "hold", "refund"]);
   expect(search("deposit of at least $25")).toEqual(["deposit"]);
   expect(search("transactions older than November 1, 2026")).toEqual(["released"]);

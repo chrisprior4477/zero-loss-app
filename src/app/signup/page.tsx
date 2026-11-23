@@ -31,7 +31,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
     return (
       <div className="min-h-[calc(100vh-163px)] max-w-[100vw] overflow-x-hidden bg-[radial-gradient(circle_at_90%_10%,rgba(0,185,255,.14),transparent_28%),linear-gradient(145deg,#00132e,#031b44)] px-3 py-5 sm:px-6 sm:py-10 lg:px-8">
         <HelpLandingScroll target="business-signup-heading" focusOnArrival />
-        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm key={owner ?? "guest"} owner={owner} record={record} personalSignupHref={authNavigationHref("/signup", returnTo === businessSignupPath ? null : returnTo)} /></div>
+        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm key={owner ?? "guest"} owner={owner} record={record} personalSignupHref={authNavigationHref("/signup", returnTo === businessSignupPath ? null : returnTo) + "#personal-signup-heading"} /></div>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
           </div>
         </section>
         <section className="bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:p-9 lg:p-12">
-          {returnTo ? <HelpLandingScroll target="personal-signup-heading" focusOnArrival /> : null}
+          <HelpLandingScroll target={returnTo ? "personal-signup-heading" : ""} focusOnArrival={Boolean(returnTo)} focusAnchor="personal-signup-heading" />
           {verify === "resend" ? <>
             <AccountSettingsLandingScroll target="resend-verification" initialTarget="resend-verification" focusTarget="resend-email" allScreens />
             <ResendVerificationRecovery returnTo={returnTo} />

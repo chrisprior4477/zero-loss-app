@@ -72,6 +72,7 @@ export type LedgerReturn = {
   rowId: string;
   rowTop: number;
   expandedRows: string[];
+  filterFocus?: boolean;
 };
 
 /** A per-history-entry bookmark, never account data or a global wallet preference. */

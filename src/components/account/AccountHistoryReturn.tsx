@@ -15,7 +15,8 @@ export function rememberAccountHistoryReturn(anchor: HTMLAnchorElement, rail?: H
   const identical = [...document.querySelectorAll("main a[href]")].filter(link => link.getAttribute("href") === href);
   history.replaceState({ ...history.state, [stateKey]: {
     source: location.href, href, index: identical.indexOf(anchor),
-    ...(rail ? { left: rail.scrollLeft, top: scrollY } : {}),
+    ...(rail ? { left: rail.scrollLeft } : {}),
+    ...(rail || anchor.hasAttribute("data-deposit-credit") ? { top: scrollY } : {}),
   } }, "");
 }
 
@@ -29,7 +30,7 @@ export function AccountHistoryReturn() {
       if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.pathname + anchor.search === location.pathname + location.search) return;
       if (!/^(?:←\s*)?(?:Back to Account & Security|Edit profile|Continue shopping|View fulfillment status|Add funds)/i.test(anchor.textContent?.trim() ?? "")
         && !/^(?:Ask Support about my email|Account updates|Add to Crew|Manage Crew|Contact us|Open Wallet)/i.test(anchor.textContent?.trim() ?? "")
-        && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit")) return;
+        && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit") && !anchor.hasAttribute("data-deposit-credit")) return;
       rememberAccountHistoryReturn(anchor);
     }
     function restore() {
@@ -42,13 +43,13 @@ export function AccountHistoryReturn() {
         const link = links[saved.index] ?? links[0];
         if (!link?.getClientRects().length || link.closest("[inert]")) return;
         const rail = link.closest<HTMLElement>("[data-reward-history-rail]");
-        if (rail && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+        if (rail && Number.isFinite(saved.left)) {
           rail.scrollLeft = saved.left;
           const railBox = rail.getBoundingClientRect();
           const card = link.getBoundingClientRect();
           if (card.right <= railBox.left || card.left >= railBox.right) rail.scrollLeft += card.left - railBox.left;
-          window.scrollTo({ top: saved.top, behavior: "instant" });
         }
+        if (Number.isFinite(saved.top)) window.scrollTo({ top: saved.top, behavior: "instant" });
         link.focus({ preventScroll: true });
         const box = link.getBoundingClientRect();
         const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;

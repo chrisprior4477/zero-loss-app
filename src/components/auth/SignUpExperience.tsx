@@ -22,7 +22,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
     const timers: number[] = [];
     function cancelRestore() { timers.splice(0).forEach(clearTimeout); }
     function restoreChoice() {
-      if (!businessChoice.current) return;
+      if (!businessChoice.current || window.location.hash === "#personal-signup-heading") return;
       let restore = Boolean(window.history.state?.zeroLossBusinessSignupReturn);
       try {
         const saved = JSON.parse(sessionStorage.getItem(businessSignupReturnKey) ?? "null");

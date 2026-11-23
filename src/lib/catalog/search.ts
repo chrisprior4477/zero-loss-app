@@ -18,10 +18,11 @@ export function searchCatalogMatches(
   const availableOnly = /^\s*available\s+(.+)$/i.exec(rawQuery);
   if (availableOnly) return searchCatalogMatches(products.filter(product => product.sold < product.capacity), availableOnly[1], undefined, { includeLowerGiftCards });
   const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
+    .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*any\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/\bfrom\s+(\$\s*\d+(?:\.\d{1,2})?)\s+and\s+up\b/gi, "at least $1")
     .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
-    .replace(/\bnot sold by\s+/gi, "excluding from ")
+    .replace(/\bnot sold (?:by|at)\s+/gi, "excluding from ")
     .replace(/^(.+\b(?:tvs?|televisions?)|tvs?|televisions?)\s+not made by\s+/i, "$1 without ")
     .replace(/^(\d+\s*[- ]?\s*inch(?:es)?(?:\s+and\s+\d+\s*[- ]?\s*inch(?:es)?)+)(\s+(?:tvs?|televisions?)\s*[.!?]?)$/i,
       (_, sizes: string, type: string) => sizes.replace(/\s+and\s+/gi, " or ") + type)
@@ -30,7 +31,7 @@ export function searchCatalogMatches(
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
-  const multiBrandTelevisions = /^(\S+)\s+(?:and|or|&)\s+(\S+)\s+(\d+\s*[- ]?\s*(?:inch(?:es)?|in\b|")\s+(?:tvs?|televisions?))\s*[.!?]?$/i.exec(query.trim());
+  const multiBrandTelevisions = /^(\S+)\s+(?:and|or|&)\s+(\S+)\s+((?:\d+\s*[- ]?\s*(?:inch(?:es)?|in\b|")\s+)?(?:tvs?|televisions?)\b.*)$/i.exec(query.trim());
   const hasBrand = (name: string) => products.some(product => normalizeSearch(product.brand) === normalizeSearch(name));
   if (multiBrandTelevisions && hasBrand(multiBrandTelevisions[1]) && hasBrand(multiBrandTelevisions[2])) {
     const scoped = products.filter(product => !isGiftCardListing(product) && [multiBrandTelevisions[1], multiBrandTelevisions[2]]
@@ -45,7 +46,7 @@ export function searchCatalogMatches(
   if (ticketFilter) {
     const scoped = products.filter(product => {
       const left = product.capacity - product.sold;
-      return left >= ticketFilter.minimum && left <= ticketFilter.maximum;
+      return left >= ticketFilter.minimum && left <= ticketFilter.maximum && (!ticketFilter.counts || ticketFilter.counts.has(left));
     });
     return ticketFilter.text ? searchCatalogMatches(scoped, ticketFilter.text, undefined, { includeLowerGiftCards })
       : scoped.map(product => ({ product, kind: "product" }));
@@ -102,6 +103,15 @@ export function searchCatalogMatches(
     }
   }
   const retailerQuery = budget || excludedValues.size || values.size || entryPrice !== null ? denomination.text : query;
+  const sharedGiftCard = values.size && !budget && /^\s*\$\s*\d+(?:[.,]\d+)*\s+/.test(query)
+    ? /^(.+?)\s+gift cards?$/i.exec(denomination.text.trim()) : null;
+  if (sharedGiftCard) {
+    const retailers = sharedGiftCard[1].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(name => catalogMerchant(name, products));
+    if (retailers.length > 1 && retailers.every((name): name is string => Boolean(name))) {
+      const scoped = products.filter(product => isGiftCardListing(product) && retailers.some(name => matchesCatalogMerchant(product.retailer, name)));
+      return searchCatalogMatches(scoped, "gift card", { ...denomination, text: "gift card", merchant: null, exactOnly: true }, { includeLowerGiftCards: false });
+    }
+  }
   const specificRetailers = /\bgift cards?\s+(?:for|from|at)\s+(?:both\s+|either\s+)?(.+)$/i.exec(retailerQuery);
   if (specificRetailers) {
     const names = specificRetailers[1].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(part => catalogMerchant(part, products));

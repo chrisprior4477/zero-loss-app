@@ -225,9 +225,9 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
       if (nextTab === "favorites") setFavoriteFilter(nextFavoriteFilter);
       if (!restoreScroll) return;
-      if (!nextSelected && filterControl) {
+      if (!nextSelected && (filterControl || restoreTabFocus && nextTab === "favorites" && nextFavoriteFilter === "watching")) {
         requestAnimationFrame(() => requestAnimationFrame(() => {
-          if (document.activeElement !== filterControl && document.activeElement !== document.body) return;
+          if (document.activeElement !== filterControl && document.activeElement !== document.body && !tabs.current?.contains(document.activeElement)) return;
           const selected = document.querySelector<HTMLElement>("#saved-products-panel [data-saved-filter][aria-pressed=true]");
           selected?.focus({ preventScroll: true });
           if (selected) revealBelowHeader(selected);

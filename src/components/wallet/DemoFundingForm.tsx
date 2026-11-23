@@ -850,9 +850,10 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
       const row = document.getElementById(`deposit-row-${focusId}`);
       if (!row || focusedRow.current === row) return;
       focusedRow.current = row;
-      row.focus({ preventScroll: true });
+      const action = row.querySelector<HTMLElement>("[data-deposit-credit]") ?? row;
+      action.focus({ preventScroll: true });
       row.scrollIntoView?.({ block: "nearest", behavior: "instant" });
-      revealWalletSection(row.id);
+      revealBelowHeader(action);
     });
     return () => cancelAnimationFrame(frame);
   }, [end, focusId, focusIndex, receipt]);

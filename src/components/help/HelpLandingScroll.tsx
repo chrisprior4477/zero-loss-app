@@ -4,13 +4,14 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string | readonly string[]; focusAnchorPrefix?: string; missingAnchorTarget?: string; focusOnArrival?: boolean }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string | readonly string[]; focusAnchorPrefix?: string | readonly string[]; missingAnchorTarget?: string; focusOnArrival?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
     let disposed = false;
     let interrupted = false;
     const matchesFocusAnchor = (id: string) => typeof focusAnchor === "string" ? id === focusAnchor : focusAnchor?.includes(id);
+    const matchesPrefix = (id: string) => typeof focusAnchorPrefix === "string" ? id.startsWith(focusAnchorPrefix) : focusAnchorPrefix?.some(prefix => id.startsWith(prefix));
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
     const stop = () => { interrupted = true; cancel(); };
     const measure = () => {
@@ -30,15 +31,16 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           const anchor = anchors.at(-1) ?? "";
           const id = anchor && anchor !== landingAlias && !focusOnArrival ? anchor : target;
           if (anchors.length > 1 && !anchors.every(value => value === anchor || matchesFocusAnchor(value))) return;
-          const prefixed = Boolean(focusAnchorPrefix && id.startsWith(focusAnchorPrefix));
-          if (focusAnchorPrefix && !prefixed && !matchesFocusAnchor(id)) return;
-          const destinationId = prefixed && missingAnchorTarget && !document.getElementById(id) ? missingAnchorTarget : id;
+          const prefixed = matchesPrefix(id);
+          const report = focusReport && id === "report-problem";
+          if (focusAnchorPrefix && !prefixed && !matchesFocusAnchor(id) && !report && !focusOnArrival) return;
+          const destinationId = prefixed && missingAnchorTarget && !document.getElementById(id) && !id.startsWith("faq-") ? missingAnchorTarget : id;
           const element = document.getElementById(destinationId);
           if (!element) return;
           if (anchors.length > 1 || destinationId !== id) window.history.replaceState(window.history.state, "", `#${destinationId}`);
           if (prefixed && element instanceof HTMLDetailsElement) element.open = true;
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
-          if (focusOnArrival || (focusReport && id === "report-problem") || (anchor && matchesFocusAnchor(id)) || prefixed) {
+          if (focusOnArrival || report || (anchor && matchesFocusAnchor(id)) || prefixed) {
             (element.querySelector<HTMLElement>("summary, h2[tabindex]") ?? element).focus({ preventScroll: true });
           }
         });
@@ -47,7 +49,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     // Font metrics can rewrap the heading/navigation after hydration. Measure only
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
     const arrivalAnchor = window.location.hash.split("#").at(-1) ?? "";
-    if (matchesFocusAnchor(arrivalAnchor) || focusAnchorPrefix && arrivalAnchor.startsWith(focusAnchorPrefix)) reveal();
+    if (matchesFocusAnchor(arrivalAnchor) || matchesPrefix(arrivalAnchor)) reveal();
     if (document.fonts) void document.fonts.ready.then(reveal);
     else reveal();
     const navigate = () => { interrupted = false; reveal(); };

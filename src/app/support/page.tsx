@@ -257,7 +257,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       ? await new DemoPaymentProvider(db).getRequests().then(requests => requests.find(request => request.id === depositId)).catch(() => undefined)
       : undefined;
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
-      {contactOrigin ? <Link href="/contact#recent-conversations-heading" scroll={false} className={button}>Back to Contact Us conversations</Link> : null}
+      {contactOrigin ? <Link href={`/contact#contact-case-${supportCase.id}`} scroll={false} className={button}>Back to Contact Us conversations</Link> : null}
       {notice && ownerCase && <Link href={notificationHref(alerts ?? "all", notice)} className={button}>Back to this update</Link>}
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
       <h2 tabIndex={-1} className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>

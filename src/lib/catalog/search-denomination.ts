@@ -16,12 +16,15 @@ const entryPricePattern = new RegExp([
   String.raw`\b(?:with|paying)\s+(?<entryFees>${entryAmount})\s+(?:entry fees?|(?:per|each)\s+entry)\b`,
   String.raw`\b(?:with\s+)?(?:an?\s+)?(?<single>${entryAmount})\s+(?:entry|ticket)\s+(?:price|fee|cost)\b|\bwith\s+(?:an?\s+)?(?<singleEntry>${entryAmount})\s+(?:entr(?:y|ies)|tickets?)\b`,
   String.raw`(?:\b(?:costing|costs?|for)\s+|(?<!\w))(?<toEnter>${entryAmount})\s+to enter\b`,
+  String.raw`\b(?<spokenEntry>${words})[ -]+(?:dollars?|bucks?)\s+entries\s+for\b`,
   String.raw`\b(?:with\s+)?entr(?:y|ies)\s+at\s+(?<each>${entryAmount})\s+each\b`,
-  String.raw`(?:(?<ceiling>\b(?:up to|at most|no more than|less than|under|below)\s+)|\b(?:with|for|at)\s+)?(?<per>${entryAmount})(?<trailingCeiling>\s+or\s+(?:less|lower|under))?(?:\s+(?:per|a|each)\s+|\s*\/\s*|\s+)(?:entry|ticket)\b`,
+  String.raw`(?:(?<ceiling>\b(?:up to|at most|no more than|less than|under|below)\s+)|\b(?:that\s+costs?|with|for|at)\s+)?(?<per>${entryAmount})(?<trailingCeiling>\s+or\s+(?:less|lower|under))?(?:\s+(?:per|an?|each)\s+|\s*\/\s*|\s+)(?:entry|ticket)\b`,
   String.raw`(?<ticketCost>(?:${currency.source}))\s+tickets?\b`,
 ].join("|"), "i");
-const excludedValue = String.raw`(?:${currency.source})(?:\s+ones?\b)?`;
-const excludedValuePattern = new RegExp(String.raw`\s*,?\s+(?:(?:and|but)\s+(?=(?:not|excluding|except|other than)\b))?(?:not|excluding|except(?: for)?|other than)\s+(?:the\s+)?(?:both\s+)?(${excludedValue}(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+)${excludedValue})*)(?=\s|,|$)`, "gi");
+const excludedValue = String.raw`(?:${currency.source})(?:\s+(?:ones?|denominations?)\b)?`;
+const valueExclusion = String.raw`(?:not|no|without|excluding|except(?: for)?|other than)`;
+const excludedValuePattern = new RegExp(String.raw`\s*,?\s+(?:(?:and|but)\s+(?=${valueExclusion}\b))?${valueExclusion}\s+(?:(?:a|the|both)\s+)*(${excludedValue}(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+)${excludedValue})*)(?=\s|,|$)`, "gi");
+const spokenExcludedValues = new RegExp(String.raw`\b(${valueExclusion})\s+(${words}(?:\s+(?:and|or)\s+${words})+)\s+(?:dollars?|bucks?)\b`, "gi");
 
 const initialCurrency = new RegExp(`^(?:${currency.source})`, "i");
 const initialDigits = new RegExp(`^(${digits})(?=\\s|$)`, "i");
@@ -69,7 +72,7 @@ function extractValues(query: string, products: readonly { retailer: string }[])
   const joinedValues = /\bgift card\b/i.test(query)
     ? new RegExp(String.raw`(?:^|\s)(\$?\s*${digits}(?:(?:${listSeparator.source})\$?\s*${digits})+)(?=\s|$)`, "i").exec(query)
     : null;
-  if (joinedValues && joinedValues[1].includes("$")) {
+  if (joinedValues && !/^\s+(?:dollars?|bucks?|USD)\b/i.test(query.slice(joinedValues.index + joinedValues[0].length))) {
     for (const value of joinedValues[1].split(listSeparator)) values.add(Number(value.replace(/[$,\s]/g, "")));
     return { text: query.replace(joinedValues[0], " ").trim(), values };
   }
@@ -147,8 +150,8 @@ function leadingAmount(text: string) {
 const inclusiveLowerPhrases = "greater than or equal to|more than or equal to|at or above|at least|no less than|not less than|no lower than|not below|not under|starting at";
 const inclusiveUpperPhrases = "less than or equal to|at or below|no more than|no higher than|no greater than|not exceeding|not over|not above|not more than|up to|at most|with a maximum of|max(?:imum)?";
 const lowerBound = inclusiveLowerPhrases + "|above|over|more than|greater than";
-const upperBound = inclusiveUpperPhrases + "|under|below|less than|cheaper than";
-const boundPattern = new RegExp(`\\b(?:(?:prize\\s+value|price|priced)\\s*:?\\s+)?(${upperBound}|${lowerBound})\\s+`, "i");
+const upperBound = inclusiveUpperPhrases + "|under|below|less than|lower than|cheaper than";
+const boundPattern = new RegExp(`\\b(?:(?:prize\\s+value|price|priced)\\s*:?\\s+)?(${upperBound}|${lowerBound})\\s+(?:prize value\\s+(?:of\\s+)?)?`, "i");
 const upperBoundPattern = new RegExp(`^(?:${upperBound})$`, "i");
 const inclusiveLower = new RegExp(`^(?:${inclusiveLowerPhrases})$`, "i");
 const inclusiveUpper = new RegExp(`^(?:${inclusiveUpperPhrases})$`, "i");
@@ -228,8 +231,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
     let remaining = firstBound.text;
     while (remaining) {
       const joined = /^(?:,\s*(?:(?:and|but)\s+)?|(?:and|but)\s+)/i.exec(remaining);
-      if (!joined) break;
-      const next = remaining.slice(joined[0].length);
+      const next = joined ? remaining.slice(joined[0].length) : remaining;
       const phrase = boundPattern.exec(next);
       const amount = phrase?.index === 0 && leadingAmount(next.slice(phrase[0].length));
       if (!phrase || !amount) break;
@@ -257,11 +259,15 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 }
 
 const ticketCount = String.raw`(?:\d+|${words})`;
-const ticketUnits = String.raw`\s+(?:more\s+)?(?:tickets?|entr(?:y|ies)|spots?|slots?)\s+(?:left|remaining|still available|before (?:it is )?full)(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
+const ticketNouns = String.raw`(?:tickets?|entr(?:y|ies)|spots?|slots?)`;
+const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?available|(?:before|until) (?:it is )?full)`;
+const ticketUnits = String.raw`\s+(?:more\s+)?${ticketNouns}\s+${ticketAvailability}(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
 const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?`;
 const ticketComparison = "fewer than|less than|under|no more than|at most|at least|more than|exactly";
 const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
 const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
+const ticketMaximum = new RegExp(String.raw`\b(${ticketCount})(?:\s+or fewer${ticketUnits}|${ticketUnits}\s+or fewer\b)`, "i");
+const ticketChoices = new RegExp(String.raw`${ticketPrefix}(?:only\s+)?(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
 
 function ticketBounds(comparison: string | undefined, count: string) {
   const value = /^\d+$/.test(count) ? Number(count) : spokenValue(count);
@@ -278,9 +284,11 @@ function ticketBounds(comparison: string | undefined, count: string) {
 }
 
 export function remainingTicketFilter(query: string) {
-  if (!/\b(?:left|remaining|still available|before (?:it is )?full)\b/i.test(query)) return null;
+  if (!/\b(?:left|remaining|available|before|until)\b/i.test(query)) return null;
+  query = query.replace(ticketMaximum, "at most $1 tickets left");
   const compound = compoundTicketsPattern.exec(query);
-  const match = compound ?? remainingTicketsPattern.exec(query);
+  const choices = ticketChoices.exec(query);
+  const match = compound ?? choices ?? remainingTicketsPattern.exec(query);
   if (!match) return null;
   const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim()
     .replace(/^(?:all\s+)?(?:prizes?|products?|offers?)(?=\s|$)/i, "").trim();
@@ -288,6 +296,10 @@ export function remainingTicketFilter(query: string) {
     const first = ticketBounds(compound[1], compound[2]);
     const second = ticketBounds(compound[3], compound[4]);
     return { text, minimum: Math.max(first.minimum, second.minimum), maximum: Math.min(first.maximum, second.maximum) };
+  }
+  if (choices) {
+    const counts = new Set(choices[1].split(/\s+or\s+/i).map(value => ticketBounds(undefined, value).maximum).filter(count => count > 0));
+    return { text, minimum: 1, maximum: Math.max(...counts), counts };
   }
   const [, betweenFrom, betweenTo, rangeFrom, rangeTo, comparison, count] = match;
   if (betweenFrom || rangeFrom) return {
@@ -310,31 +322,35 @@ export function searchDenominations(query: string, products: readonly { retailer
   normalized = normalized
     .replace(/\bno cheaper than\b/gi, "at least")
     .replace(/\bup to but not including\b/gi, "under")
+    .replace(/\bup to and including\b/gi, "up to")
     .replace(/\bsomewhere\s+(?=between\b)/gi, "")
     .replace(/(\$\s*\d[\d.]*)\s+or less,\s*including\s+\1\b/gi, "up to $1")
     .replace(new RegExp("\\b(" + words + ")\\s+(to|through)\\s+(" + words + ")\\s+(?:dollars?|bucks?)\\b", "gi"),
       (_, low: string, join: string, high: string) => "$" + spokenValue(low) + " " + join + " $" + spokenValue(high));
   if (/\bgift card\b/i.test(normalized)) {
     normalized = normalized.replace(/\b(?:from|for)\s+grocery stores?\b/gi, "grocery")
+      .replace(/\bfor\s+(?:auto|automotive)\s+expenses\b/gi, "automotive")
       .replace(/\bsports\s+(?:and|&)\s+fitness\b/gi, "sporting goods");
   }
   if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const isTelevision = /\b(?:tvs?|televisions?)\b/i.test(normalized);
-  const dimensions = isTelevision ? /\b(?:from\s+)?(\d+)\s*(?:inch(?:es)?|["″])?\s*(?:to|through|-)\s*(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
-  const screenRange = dimensions ? { low: Math.min(Number(dimensions[1]), Number(dimensions[2])), high: Math.max(Number(dimensions[1]), Number(dimensions[2])) } : null;
+  const dimensions = isTelevision ? /\b(?:(?:from\s+)?(\d+)\s*(?:inch(?:es)?|["″])?\s*(?:to|through|-)|between\s+(\d+)\s*(?:inch(?:es)?|["″])?\s+and)\s*(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
+  const screenRange = dimensions ? { low: Math.min(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])), high: Math.max(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])) } : null;
   if (dimensions) normalized = normalized.replace(dimensions[0], " ").trim();
-  if (isTelevision) normalized = normalized.replace(/^(.*?)\s+(?:with\s+)?(?:an?\s+)?(\d+)\s*[- ]?\s*inch\s+screen\s*$/i, "$2 inch $1");
+  if (isTelevision) normalized = normalized.replace(/^(.*?)\s+(?:with\s+)?(?:an?\s+)?(\d+)\s*[- ]?\s*inch\s+(?:screen|display)\b/i, "$2 inch $1");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;
   const screen = /\b(?:tvs?|televisions?)\b/i.test(normalized) ? screenComparison.exec(normalized) : null;
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
   if (screen) normalized = normalized.replace(screen[0], " ").replace(/\s+/g, " ").trim();
   const entryMatch = entryPricePattern.exec(normalized);
-  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees ?? entryMatch?.groups?.ticketCost;
+  const entryAmountText = entryMatch?.groups?.labeled ?? entryMatch?.groups?.per ?? entryMatch?.groups?.single ?? entryMatch?.groups?.singleEntry ?? entryMatch?.groups?.each ?? entryMatch?.groups?.toEnter ?? entryMatch?.groups?.entryFees ?? entryMatch?.groups?.ticketCost ?? entryMatch?.groups?.spokenEntry;
   const exclusiveEntryPrice = /^(?:below|under|less than)\b/i.test(entryMatch?.groups?.labeledCeiling ?? entryMatch?.groups?.ceiling ?? "");
   const entryPrice = entryAmountText ? leadingAmount(entryAmountText)?.amount ?? null : null;
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);
   if (entryMatch) normalized = normalized.replace(entryMatch[0], " ").trim().replace(/(?:\s+\b(?:and|for|with)|[,;])$/i, "").trim().replace(/\s+/g, " ");
   const excludedValues = new Set<number>();
+  if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(spokenExcludedValues, (_, marker: string, list: string) =>
+    marker + " " + list.split(/\s+(?:and|or)\s+/i).map(value => "$" + spokenValue(value)).join(" and "));
   normalized = normalized.replace(excludedValuePattern, (_match, list: string) => {
     for (const [amount] of list.matchAll(currency)) {
       const parsed = leadingAmount(amount);
@@ -365,7 +381,7 @@ export function searchDenominations(query: string, products: readonly { retailer
   const decimalDenomination = !budget && values.size > 0 && /\bgift card\b/i.test(normalized)
     && [...normalized.matchAll(/\b(\d+(?:,\d{3})*\.\d+)\b/g)].some(([, amount]) => values.has(Number(amount.replaceAll(",", ""))));
   const text = amountText
-    .replace(budget ? /\b(?:with\s+(?:a\s+)?values?(?:\s+of)?|prize value|price|priced)\s*$/i : /$^/, "")
+    .replace(budget ? /\b(?:with\s+(?:a\s+)?values?(?:\s+of)?|prize value|price|priced|retail)\s*$|^\s*(?:prize|retail)\s+value\s+(?:of\s+)?/i : /$^/, "")
     .replace(budget || values.size ? /\s+\b(?:retail value|prize value|price)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:price\s+range|range|each)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:with values?|ranging|in the range of|worth|priced|in(?: the)?|within(?: the)?|costing)\s*$/i : /$^/, "")

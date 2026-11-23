@@ -4,6 +4,36 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 test.each([
+  ["TV between 50 and 65 inches", "TVs from 50 to 65 inches"],
+  ["TV with a 65-inch display", "65 inch TV"],
+  ["Samsung and LG televisions up to $1000", "Samsung or LG TVs up to $1000"],
+  ["Sony headphones priced lower than $500", "Sony headphones below $500"],
+  ["Nike shoes under $125 retail", "Nike shoes under $125"],
+  ["under $100 prize value Nintendo gift card", "Nintendo gift card under $100"],
+  ["25, 50 or 75 gift cards from Target", "Target $25 or $50 or $75 gift cards"],
+  ["$25 Target or Walmart gift cards but no $50", "Target $25 gift card or Walmart $25 gift card"],
+  ["gift cards not sold at Amazon or Walmart", "gift cards except Amazon and Walmart"],
+  ["Walmart gift cards without a $100 denomination", "Walmart gift cards excluding $100"],
+  ["Amazon gift cards no more than $75 except twenty-five and fifty dollars", "Amazon gift cards up to $75 excluding $25 excluding $50"],
+  ["Walmart gift cards over $25 up to $75", "Walmart gift cards over $25 and up to $75"],
+  ["gift cards up to and including $75 from Walmart", "Walmart gift cards up to $75"],
+  ["at most 2 entries available", "at most 2 entries left"],
+  ["between 1 and 2 more tickets until full", "1 to 2 tickets left"],
+  ["prizes with 2 tickets left or fewer", "at most 2 tickets left"],
+  ["products with two or fewer tickets remaining", "products with at most two tickets remaining"],
+  ["Best Buy gift cards with only 1 or 2 entries left", "Best Buy gift cards with one to two entries left"],
+  ["Nike shoes that cost $1 a ticket", "Nike shoes $1 per entry"],
+  ["one-dollar entries for Sony headphones", "Sony headphones $1 per entry"],
+  ["search for Sony headphones", "Sony headphones"],
+  ["$50 gift cards for auto expenses", "$50 automotive gift cards"],
+])("recognizes %s without broadening its filters", (query, baseline) => {
+  const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+  const expected = slugs(baseline);
+  expect(expected.length).toBeGreaterThan(0);
+  expect(slugs(query)).toEqual(expected);
+});
+
+test.each([
   ["gift cards $25 or $75 at Walmart and Target", "$25 or $75 gift cards from Walmart and Target"],
   ["Nintendo gift cards no more than $75 except $25 and $50", "Nintendo gift cards up to $75 excluding $25 excluding $50"],
   ["Walmart gift cards $25 to $75 excluding both $25 and $50", "Walmart gift cards $25 to $75 excluding $25 excluding $50"],

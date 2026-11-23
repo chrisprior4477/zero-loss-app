@@ -6,7 +6,7 @@ import { readyWalletRewards, walletRewardHref, type AccountActivity } from "@/li
 import { accountRoutes } from "@/lib/account/navigation";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
-import { DEMO_CARD_FIXTURES, type DemoCard } from "@/lib/payments/demo-card";
+import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard } from "@/lib/payments/demo-card";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { AccountReadRetryButton } from "@/components/account/AccountReadRetryButton";
 import { StatusTicket } from "@/components/account/StatusTicket";
@@ -14,7 +14,7 @@ import stripStyles from "@/components/account/account-status-strip.module.css";
 import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { WalletHistoryLandingScroll } from "./WalletLandingScroll";
+import { WalletHistoryLandingScroll, WalletTransactionsLink } from "./WalletLandingScroll";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { PurchaseDepositRecovery } from "./PurchaseDepositRecovery";
 import { WeeklyDeposits } from "./WeeklyDeposits";
@@ -65,11 +65,12 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const addFundsHref = recoveryKey && requests?.find(request => request.idempotencyKey === recoveryKey)?.reconciliation === "reconciled"
     ? "/account/wallet?view=history&panel=funding#add-funds" : "#add-funds";
   const canResetHistory = canFund && demoHistoryVisibility != null;
-  const depositsByLedgerId = new Map<string, { requestKey: string; amount: number }>();
+  const depositsByLedgerId = new Map<string, { requestKey: string; amount: number; cardLabel?: string }>();
   const resetDeposits = new Set(demoHistoryVisibility?.fullReset ? demoHistoryVisibility.fundingSessionIds : []);
   if (demo) for (const request of requests ?? []) {
     if (request.ledgerId && request.reconciliation === "reconciled" && depositRequestKeyPattern.test(request.idempotencyKey) && !resetDeposits.has(request.id)) {
-      depositsByLedgerId.set(request.ledgerId, { requestKey: request.idempotencyKey, amount: request.amount });
+      const card = demoCardFixture(request.sampleCard);
+      depositsByLedgerId.set(request.ledgerId, { requestKey: request.idempotencyKey, amount: request.amount, cardLabel: card ? `${card.issuer} ending ${card.lastFour}` : undefined });
     }
   }
   const requestedEntry = selectedTransaction?.entry;
@@ -78,7 +79,6 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const ready = activity && activity.source !== "unavailable" && !activity.incomplete ? readyWalletRewards(activity) : null;
   const optionCount = activity && activity.source !== "unavailable" && !activity.incomplete ? activity.activity.filter(item => item.status === "completion").length : null;
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : ready?.length ? "/account/wallet?rewards=ready#ready-rewards" : accountRoutes.rewards;
-  const sourceDeposit = depositList && selected ? depositsByLedgerId.get(selected.id) : undefined;
 
   return <div className={styles.page}>
     <AccountSettingsLandingScroll target="balance" initialTarget={landOnBalance ? "balance" : undefined} focusTarget="balance" settleAfterNavigation allScreens restrictToTargetHash />
@@ -118,7 +118,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
                 {canFund ? <Link href={allCardsSaved ? "#payment-methods" : "#wallet-add-card"} className={styles.cardAction}><AccountIcon name="wallet" />{allCardsSaved ? "Choose saved card" : "Add Card"}</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
                 {demo && !cardUnavailable ? <Link href="#payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
               </div>
-              <a href="#transactions" className={styles.transactionsLink}>View transactions <AccountIcon name="arrow" /></a>
+              <WalletTransactionsLink className={styles.transactionsLink} />
             </div>
           </div>
         </article>
@@ -132,7 +132,6 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{ordersReturnHref ? <Link className="font-bold text-[#126bbb] hover:underline" href={ordersReturnHref}>← Back to Orders &amp; Fulfillment</Link> : null}</div>
-        {sourceDeposit ? <Link className="font-bold text-[#126bbb] underline" href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(sourceDeposit.requestKey)}#payment-deposits`}>← Back to this deposit</Link> : null}
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selected ? <div className={styles.alert}><p id="unavailable-transaction" tabIndex={-1} role="status">{selectedTransaction.failed ? "We couldn’t check this transaction right now. Try again or review the available history below." : "That transaction could not be opened for this account. Your available history is shown below."}</p>{selectedTransaction.failed && transactionRetryHref ? <a href={transactionRetryHref}>Check this transaction again</a> : null}{notificationReturnHref ? <Link href={notificationReturnHref}>← Back to this update</Link> : null}</div> : null}
         {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger ordersFilter={ordersFilter} notificationReturnHref={notificationReturnHref} depositList={depositList} weeklyDeposit={weeklyDeposit} timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}

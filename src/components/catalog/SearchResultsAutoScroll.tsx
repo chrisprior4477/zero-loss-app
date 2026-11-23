@@ -2,9 +2,15 @@
 
 import { useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
-type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request";
+type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request" | "categories-top" | "categories-bottom";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
+let categoryDeparture: { href: string; target: "categories-top" | "categories-bottom" } | null = null;
+
+export function rememberBrowseCategoryTrigger(position: "top" | "bottom") {
+  categoryDeparture = { href: window.location.href, target: position === "bottom" ? "categories-bottom" : "categories-top" };
+}
 
 function takeBrowseFocus() {
   if (!requestedFocus) return null;
@@ -25,10 +31,12 @@ function focusBrowseResults(target: BrowseFocusTarget) {
     ? document.querySelector<HTMLElement>('[aria-label="Tickets remaining"] [aria-current="true"]')
     : target === "top-search" ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]')
     : target === "first-prize" ? document.querySelector<HTMLElement>("article[id^=prize-]")
-    : target === "product-request" ? document.getElementById("request-a-product") : null;
+    : target === "product-request" ? document.getElementById("request-a-product")
+    : target === "categories-top" || target === "categories-bottom" ? document.querySelector<HTMLElement>(`[data-browse-categories="${target.slice(11)}"]`) : null;
   const targetElement = destination ?? document.getElementById("grocery-inspiration-heading") ?? document.getElementById("browse-results-heading");
   if (destination && (target === "first-prize" || target === "product-request")) destination.scrollIntoView?.({ block: "start", behavior: "instant" });
   targetElement?.focus({ preventScroll: true });
+  if (destination && (target === "categories-top" || target === "categories-bottom")) revealBelowHeader(destination);
 }
 
 export function requestBrowseResultsFocus(href: string, target: BrowseFocusTarget = "heading") {
@@ -167,9 +175,13 @@ export function SearchResultsAutoScroll({
       let focusResults: BrowseFocusTarget | null = null;
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
       const groceryNotice = invalidGroceryIdea ? document.getElementById("unavailable-grocery-idea") : null;
-      if (event?.type === "popstate" && window.location.pathname === "/browse" && window.location.hash === "#search-results"
-        && window.location.search !== renderedSearch) {
-        requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
+      if (event?.type === "popstate" && window.location.pathname === "/browse") {
+        if (categoryDeparture?.href === window.location.href) {
+          requestedFocus = { ...categoryDeparture, expires: Date.now() + 5000 };
+          categoryDeparture = null;
+        } else if (window.location.hash === "#search-results" && window.location.search !== renderedSearch) {
+          requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
+        }
       }
       const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (pager ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
         ? document.getElementById(target) : null);
@@ -177,7 +189,7 @@ export function SearchResultsAutoScroll({
       const scroll = () => {
         if (cancelled) return;
         if (!focused && window.location.search === renderedSearch) focusResults = takeBrowseFocus() ?? focusResults;
-        if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request"))) {
+        if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request" && focusResults !== "categories-top" && focusResults !== "categories-bottom"))) {
           document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }
         if ((focusTarget || focusResults) && !focused) {

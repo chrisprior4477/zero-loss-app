@@ -12,6 +12,7 @@ import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
 import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
 import { containDialogTab, restoreDialogTrigger } from "./dialog-keyboard";
+import { rememberAccountHistoryReturn } from "./AccountHistoryReturn";
 import { useDialogBack } from "./useDialogBack";
 import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
 import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
@@ -456,9 +457,11 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fro
     }
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest("a[href]")) return;
-    const ticket = target.closest("[data-order-ticket]");
+    const link = target?.closest<HTMLAnchorElement>("a[href]");
+    if (!link || link.target && link.target !== "_self") return;
+    const ticket = link.closest("[data-order-ticket]");
     rememberPage(ticket?.id.replace(/^reward-/, "") ?? opened?.id ?? pageAnchor);
+    if (link.hasAttribute("data-order-reward-action")) rememberAccountHistoryReturn(link);
   }}>
     <div className={styles.galleryBody}>
       <div className={styles.ticketWindow}>

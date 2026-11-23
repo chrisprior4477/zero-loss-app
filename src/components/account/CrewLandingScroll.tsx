@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { readCrewPickDestination, readCrewViewReturn } from "@/lib/crew/view-return";
 
 /** Mobile Crew visits start at the heading, without overriding request or sharing links. */
@@ -24,6 +25,8 @@ export function CrewLandingScroll({ enabled, ownerId, groups = false }: { enable
       firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
           if (!canScroll()) return;
+          const activeTab = document.activeElement?.closest<HTMLElement>("[data-crew-tab]");
+          if (groups && activeTab?.dataset.crewTab === "groups") { revealBelowHeader(activeTab); return; }
           const heading = document.getElementById(target);
           if (!heading) return;
           const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;

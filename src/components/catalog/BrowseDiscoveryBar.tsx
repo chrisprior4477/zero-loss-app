@@ -21,7 +21,7 @@ import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 import { BrowseSearchScope, useBrowseResultsSearch } from "./BrowseResultsSearch";
-import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
+import { rememberBrowseCategoryTrigger, requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
@@ -311,7 +311,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         rememberPreview(comparableBrowseHref(href), value, openPanel.position);
         navigateFromPanel(href);
       } else setPreview(current => current === value ? null : value);
-    } else navigateFromPanel(prizeCategoryHref(value));
+    } else {
+      const destination = prizeCategoryHref(value);
+      if (openPanel && comparableBrowseHref(destination) !== comparableBrowseHref(props.browseHref)) rememberBrowseCategoryTrigger(openPanel.position);
+      navigateFromPanel(destination);
+    }
   }
   function searchDestination(value: string, allCategories = false) {
     const url = new URL(props.browseHref, "https://zeroloss.local");
@@ -436,7 +440,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   } : props;
 
   const controls = (position: ControlsPosition) => <>
-    <button ref={position === "top" ? topCategories : bottomCategories} type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
+    <button ref={position === "top" ? topCategories : bottomCategories} data-browse-categories={position} type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
       <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
     </button>
     <button type="button" data-browse-filter={position} className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters" && openPanel?.position === position} onClick={event => open("filters", position, event.currentTarget)}>

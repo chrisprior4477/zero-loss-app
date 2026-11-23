@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description: "Contact Zero Loss, continue a private support conversation, or suggest a product.",
 };
 const contactFocusAnchors = ["message", "recent-conversations-heading"] as const;
+const contactFocusPrefixes = ["faq-", "contact-case-"] as const;
 
 export default async function ContactPage() {
   const { account, accountUnavailable } = await getAccountContext()
@@ -39,7 +40,7 @@ export default async function ContactPage() {
   const quickAnswers = faqItems.filter(item => ["open-reward", "purchase-options", "undo-entry", "password"].includes(item.id));
   const panel = "rounded-2xl border border-cyan-300/30 bg-[#052344] p-5 sm:p-7";
   return <PageContainer>
-    <HelpLandingScroll target="" focusAnchor={contactFocusAnchors} focusAnchorPrefix="faq-" />
+    <HelpLandingScroll target="" focusAnchor={contactFocusAnchors} focusAnchorPrefix={contactFocusPrefixes} missingAnchorTarget="recent-conversations-heading" />
     <header><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-300">Let’s get you to the right place</p><ContactHeading /><p className="mt-4 max-w-2xl leading-7 text-white/70">A question, a missing update, or something that doesn’t look right? Find a quick answer or send us a message right here.</p></header>
     <HelpShortcuts activity={account?.activity} />
     <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_1fr]">
@@ -52,7 +53,7 @@ export default async function ContactPage() {
         </>}
       </section>
       <div className="space-y-6">
-        {account && enabled ? <section className={panel} aria-labelledby="recent-conversations-heading"><h2 id="recent-conversations-heading" tabIndex={-1} className="scroll-mt-[calc(var(--site-header-height,149px)+12px)] text-xl font-black">Continue a conversation</h2><p className="mt-2 text-sm leading-6 text-white/65">Add details to the same case instead of starting over.</p>{casesUnavailable ? <p role="status" className="mt-4 text-sm">We couldn’t load your recent cases. <AccountReadRetryLink className="font-bold underline" href="/contact#recent-conversations-heading">Try loading recent cases again</AccountReadRetryLink></p> : cases.length ? <ul className="mt-4 space-y-3">{cases.map(item => <li key={item.id}><Link href={`/support?case=${item.id}&from=contact#conversation`} className="block rounded-xl border border-cyan-300/25 px-4 py-3 hover:border-cyan-300"><strong className="block break-words text-cyan-100">{item.subject}</strong><span className="mt-1 block text-xs text-white/65">{item.status === "resolved" ? "Resolved" : item.status === "awaiting_customer" ? "Waiting for your reply" : item.status === "open" ? "Awaiting review" : "Check status"}<span aria-hidden="true"> →</span></span></Link></li>)}</ul> : <p className="mt-4 text-sm text-white/65">No conversations yet. Your first message will appear here once saved.</p>}<Link href="/support#case-list" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300">All my support cases →</Link></section> : null}
+        {account && enabled ? <section className={panel} aria-labelledby="recent-conversations-heading"><h2 id="recent-conversations-heading" tabIndex={-1} className="scroll-mt-[calc(var(--site-header-height,149px)+12px)] text-xl font-black">Continue a conversation</h2><p className="mt-2 text-sm leading-6 text-white/65">Add details to the same case instead of starting over.</p>{casesUnavailable ? <p role="status" className="mt-4 text-sm">We couldn’t load your recent cases. <AccountReadRetryLink className="font-bold underline" href="/contact#recent-conversations-heading">Try loading recent cases again</AccountReadRetryLink></p> : cases.length ? <ul className="mt-4 space-y-3">{cases.map(item => <li key={item.id}><Link id={`contact-case-${item.id}`} href={`/support?case=${item.id}&from=contact#conversation`} className="block rounded-xl border border-cyan-300/25 px-4 py-3 hover:border-cyan-300"><strong className="block break-words text-cyan-100">{item.subject}</strong><span className="mt-1 block text-xs text-white/65">{item.status === "resolved" ? "Resolved" : item.status === "awaiting_customer" ? "Waiting for your reply" : item.status === "open" ? "Awaiting review" : "Check status"}<span aria-hidden="true"> →</span></span></Link></li>)}</ul> : <p className="mt-4 text-sm text-white/65">No conversations yet. Your first message will appear here once saved.</p>}<Link href="/support#case-list" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300">All my support cases →</Link></section> : null}
         <section aria-labelledby="quick-answers-heading"><h2 id="quick-answers-heading" className="mb-4 text-xl font-black">You might not need to wait</h2><div className="space-y-3">{quickAnswers.map(item => <FaqAnswer key={item.id} item={item.id === "password" ? { ...item, action: { ...item.action, href: authNavigationHref("/forgot-password", "/contact#message") } } : item} />)}</div><Link href="/faq" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300">Search all questions →</Link></section>
       </div>
     </div>

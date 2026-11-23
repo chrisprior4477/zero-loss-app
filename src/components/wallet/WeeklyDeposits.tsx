@@ -30,7 +30,7 @@ export function DepositCreditLink({ request, restoreLedgerView = false, fromDepo
   if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
   const transaction = walletSupportReturnHref(id, restoreLedgerView, fromDeposits);
   const href = fromWeek ? transaction.replace("#", `&weeklyDeposit=${encodeURIComponent(request.idempotencyKey)}#`) : transaction;
-  return <Link href={href} onNavigate={fromWeek ? () => {
+  return <Link href={href} data-deposit-credit={fromDeposits || undefined} onNavigate={fromWeek ? () => {
     window.history.replaceState({ ...window.history.state, weeklyDepositReceipt: request.idempotencyKey }, "");
   } : undefined} aria-label={"View wallet credit for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View wallet credit →</Link>;
 }

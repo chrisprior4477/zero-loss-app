@@ -32,7 +32,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "delete-card", category: "wallet", question: "How do I delete a saved payment card?",
-    answer: "Open Payment methods, find the card by its name and last four digits, and choose Delete Card. Review the card before confirming.",
+    answer: "Open Payment methods and find the saved sample card by its name and last four digits. To remove it, choose Delete Card and review the card before confirming. If you meant to use a different saved card, choose it in Add funds or change your default payment method.",
     keywords: "delete remove saved payment debit credit card",
     action: { label: "Manage saved cards", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
@@ -103,17 +103,17 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "balance-discrepancy", category: "wallet", question: "What if my wallet balance is wrong?",
-    answer: "Compare your balance with Transaction history. If a deposit is missing, check Payment deposits for its status. To report an unexpected charge or credit, choose Report a problem on that exact transaction.",
+    answer: "Compare your balance with Transaction history. If a deposit is missing or your balance didn’t update, open its receipt in Payment deposits and select View wallet credit when available. To report an unexpected charge or credit, choose Report a problem on that exact transaction.",
     keywords: "wrong balance incorrect discrepancy missing deposit credit", action: { label: "Check transaction history", href: walletTransactionsHref },
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date for that item. Use the copy control where it is available.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. Use Copy order number on an order or copy the reward reference on a win.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
     id: "decline-and-revive", category: "entries", question: "What happens if I decline an offer?",
-    answer: "The offer moves to Declined Offers and the entry payment stays in your history. You can undo during the countdown or revive the offer for free before its original deadline.",
+    answer: "The offer moves to Declined Offers and the entry payment stays in your history. You can undo during the countdown or revive a declined offer for free before its original deadline. After that deadline, the offer can no longer be revived.",
     keywords: "decline declined restore revive purchase option undo refund", action: { label: "Open Declined Offers", href: "/account/declined-offers" },
   },
   {
@@ -175,7 +175,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
-    answer: "Check the funding request in Wallet & Transactions first. Use Finish / check or Retry same request when offered, so the existing request is checked rather than creating another one. If it needs review or still looks wrong, open support from that transaction.",
+    answer: "If a deposit is pending, declined, or interrupted, check the existing request in Wallet & Transactions first. Use Finish / check or Retry same request when offered. If the request needs review or the balance still looks wrong, open Support from that transaction before starting another deposit.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
@@ -204,7 +204,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
-    answer: "Open its details to check the current status and any claim deadline. Rewards that are redeemed, expired, cancelled, or still being issued stay in reward history. A pending or unavailable reward does not have a usable code; contact support if the status needs attention.",
+    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. Redeemed, expired, cancelled, and pending rewards stay in reward history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
     keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
@@ -285,6 +285,20 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:wrong|incorrect)\b.*\b(?:sample |payment |debit |credit )?card\b.*\b(?:wallet|saved|payment method)\b/, "delete-card"],
+  [/\b(?:card|deposit|funding)\b.*\b(?:declined|rejected)\b/, "funding-status"],
+  [/\bbalance\b.*\b(?:not updating|did not update|stayed the same|unchanged)\b/, "balance-discrepancy"],
+  [/\brefund\s+policy\b/, "withdrawals"],
+  [/\bcancel\b.*\b(?:my|last|recent|previous)\b.*\b(?:entr(?:y|ies)|tickets?)\b/, "undo-entry"],
+  [/\b(?:tickets?|entr(?:y|ies))\b.*\b(?:missing|nothing happened)\b|\b(?:clicked|pressed|tapped)\s+enter\b.*\bnothing happened\b/, "entry-status"],
+  [/\b(?:missing|cannot find)\b.*\bpurchase options?\b/, "purchase-options"],
+  [/\b(?:purchase options?|offers?)\b.*\b(?:expired|revive)\b|\blose\b.*\bmoney\b.*\bdecline\b/, "decline-and-revive"],
+  [/\b(?:find|where|copy|view)\b.*\border (?:number|ref(?:erence)?)\b/, "order-receipt"],
+  [/\bgift[ -]?card\b.*\b(?:says used|i never used|does(?:n't| not) work)\b/, "reward-unavailable"],
+  [/\b(?:get|send|buy|give)\b.*\bgift[ -]?card\b.*\b(?:for|to)\s+(?:someone else|another person|a friend)\b/, "gift-transfers"],
+  [/\b(?:see|read|find|view)\b.*\breplies?\b.*\b(?:support|case|ticket)\b|\badd (?:more )?details?\b.*\b(?:support|case|ticket)\b/, "support-case"],
+  [/\b(?:unsubscribe|opt out)\b.*\b(?:e-?mails?|email alerts?)\b/, "email-alert-preferences"],
+  [/\bhide\b.*\bname\b.*\bcrew\b/, "crew-discoverability"],
   [/\b(?:lost access to|(?:cannot|could not|no longer)\s+(?:access|open|use))\s+(?:(?:my|the|that|old)\s+)*(?:e-?mail|mailbox|inbox)\b/, "change-email"],
   [/\b(?:cancel|undo)\b(?=.*\b(?:tickets?|entr(?:y|ies))\b)(?=.*\b(?:accident|mistake|bought|purchased|entered)\b)/, "undo-entry"],
   [/\b(?:get|have|take)\b.*\b(?:deposit|deposited funds)\b.*\bback\b/, "withdrawals"],
@@ -393,7 +407,9 @@ export function isPasswordChangeQuery(query: string) {
 
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const words = faqSearchWords(query);
-  const intent = isPasswordChangeQuery(query) ? "password" : faqIntents.find(([pattern]) => pattern.test(normalizeFaq(query)))?.[1];
+  const normalized = normalizeFaq(query);
+  const intent = isPasswordChangeQuery(query) ? "password" : faqIntents.find(([pattern]) => pattern.test(normalized))?.[1];
+  const related = intent === "delete-card" && /\b(?:wrong|incorrect)\b/.test(normalized) ? "default-card" : null;
   const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;
   const matches = (value: string, word: string) => {
     const text = normalizeFaq(value);
@@ -401,7 +417,7 @@ export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   };
   if (words.join(" ") === "order history") return category === "all" || category === "rewards" ? faqItems.filter(item => item.id === "order-receipt") : [];
   const questionScore = (item: FaqItem) => words.filter(word => matches(item.question, word)).length;
-  return faqItems.filter(item => (category === "all" || item.category === category) && (item.id === intent || words.every(word =>
+  return faqItems.filter(item => (category === "all" || item.category === category) && (item.id === intent || item.id === related || words.every(word =>
     matches(`${item.question} ${item.answer} ${item.keywords}`, word))))
     .sort((left, right) => Number(right.id === intent) - Number(left.id === intent) || questionScore(right) - questionScore(left));
 }

@@ -16,7 +16,11 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const scroll = () => {
         if (cancelled) return;
-        const hash = window.location.hash;
+        let hash = window.location.hash;
+        if (/^#entry-action(?:#entry-action)+$/.test(hash)) {
+          hash = "#entry-action";
+          window.history.replaceState(window.history.state, "", hash);
+        }
         if (hash && !["#enter-entry", "#product-entry-card", "#entry-action"].includes(hash)) return;
         const action = hash === "#entry-action" ? document.getElementById("entry-action") : null;
         if (action) {

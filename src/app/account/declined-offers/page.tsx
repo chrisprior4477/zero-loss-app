@@ -78,7 +78,8 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       <div className={styles.declinedIntro}>
         <Link href={activityReturn} scroll={false} className={styles.declinedBack}>← My Activity</Link>
         <p className={styles.eyebrow}>DECLINED OFFERS</p>
-        <h1 className={styles.heading}>If you change your mind</h1>
+          {requested === undefined && !prize ? <AccountSettingsLandingScroll target="declined-offers-heading" initialTarget="declined-offers-heading" focusTarget="declined-offers-heading" allScreens /> : null}
+          <h1 id="declined-offers-heading" tabIndex={-1} className={styles.heading}>If you change your mind</h1>
         <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
