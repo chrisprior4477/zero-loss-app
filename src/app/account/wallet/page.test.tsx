@@ -90,7 +90,7 @@ test("expired options preserve the filtered history and its exact notification c
   const query = { prize, rewards: "expired", transaction, walletView: "1", alerts: "activity", notice };
   mocks.getAccountContext.mockResolvedValue({ userId: "owner", wallet: null, activity: { source: "stored", activity: [{ ...purchaseActivity, status: "completed", completionOptionStatus: "expired" }] } });
   const page = render(await WalletPage({ searchParams: Promise.resolve(query) }));
-  const filter = screen.getByRole("link", { name: "Used", exact: true });
+  const filter = screen.getByRole("link", { name: /^Used$/ });
   const filterQuery = new URL(filter.getAttribute("href")!, "https://example.test").searchParams;
   expect(filterQuery.get("notice")).toBe(notice);
   expect(filterQuery.get("alerts")).toBe("activity");
