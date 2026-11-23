@@ -20,7 +20,7 @@ import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
-import { useBrowseResultsSearch } from "./BrowseResultsSearch";
+import { BrowseSearchScope, useBrowseResultsSearch } from "./BrowseResultsSearch";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
@@ -447,7 +447,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   return <BrowseControlsContext.Provider value={controls("bottom")}>
   <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
-    {props.searchField ?? <div><form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}
+    {props.searchField ?? <div><form role="search" aria-label="Search marketplace" action="/browse#search-results" method="get" onSubmit={submitSearch} className={styles.search}
       onKeyDown={event => {
         if (event.key !== "Escape") return;
         event.preventDefault();
@@ -455,7 +455,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         setSearch(props.searchTerm);
       }}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={connectSearchInput} id={`${id}-search`} type="search" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || invalidSearch || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <BrowseSearchScope href={props.browseHref} />
+      <input ref={connectSearchInput} id={`${id}-search`} type="search" name="q" value={search} maxLength={maxCatalogSearchLength} aria-invalid={catalogSearchTooLong(search.trim()) || invalidSearch || undefined} aria-describedby={showSearchLimit ? `${id}-search-limit` : undefined} onChange={event => { voice.reset(); session?.setEditor(null); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() && !voice.busy && !invalidSearch && !catalogSearchTooLong(search.trim()) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />

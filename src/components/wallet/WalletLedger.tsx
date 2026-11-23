@@ -66,12 +66,12 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter }: { ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter, initialSearch = "" }: { initialSearch?: string; ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
-  const [query, setQuery] = useState("");
-  const [draft, setDraft] = useState("");
+  const [query, setQuery] = useState(initialSearch);
+  const [draft, setDraft] = useState(initialSearch);
   const [editing, setEditing] = useState(false);
   const [searchSubmissions, setSearchSubmissions] = useState(0);
   const voice = useVoiceSearch(setDraft);
@@ -377,7 +377,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
 
   return <>
     {!compact ? <div className={styles.historyControls}>
-      <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch}
+      <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch} action="/account/wallet#transactions" method="get"
         onSubmit={event => {
           event.preventDefault();
           if (voice.busy || (!draft.trim() && !query)) return;
@@ -388,9 +388,12 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           setSearchSubmissions(count => count + 1);
         }}
         onKeyDown={event => { if (event.key === "Escape" && (editing || event.target === searchInput.current)) { event.preventDefault(); closeSearch(true); } }}>
+        <input type="hidden" name="view" value="history" />
+        <input type="hidden" name="panel" value="transactions" />
+        {ordersFilter ? <><input type="hidden" name="fromOrders" value="1" /><input type="hidden" name="orderFilter" value={ordersFilter} /></> : null}
         <label htmlFor={`${dateErrorId}-search`}>Search transactions</label>
         <div className={styles.ledgerSearchField}>
-          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft} aria-invalid={invalidSearchDraft || undefined} aria-describedby={invalidSearchDraft ? `${dateErrorId}-search-error` : undefined}
+          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" name="transactionSearch" maxLength={240} autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft} aria-invalid={invalidSearchDraft || undefined} aria-describedby={invalidSearchDraft ? `${dateErrorId}-search-error` : undefined}
             onFocus={() => { if (!restoringSearchFocus.current) setEditing(true); }} onChange={event => { voice.reset(); setEditing(true); setDraft(event.target.value); }} />
           {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
           {draft.trim() && !invalidSearchDraft && !voice.busy ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}

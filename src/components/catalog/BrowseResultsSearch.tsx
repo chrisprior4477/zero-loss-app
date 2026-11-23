@@ -12,12 +12,20 @@ import styles from "./browse-discovery.module.css";
 type Position = "top" | "bottom";
 type Editor = Position | "filters";
 type SearchSession = {
+  browseHref: string;
   draft: string; setDraft: (value: string) => void; applied: string;
   editor: Editor | null; setEditor: (value: Editor | null) => void;
   search: (value: string, anchor?: string, restoreTop?: boolean) => void; pending: boolean; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
 export function useBrowseResultsSearch() { return useContext(Session); }
+
+export function BrowseSearchScope({ href }: { href: string }) {
+  const params = new URL(href, "https://zeroloss.local").searchParams;
+  params.delete("q");
+  params.delete("batch");
+  return Array.from(params, ([name, value]) => <input key={name} type="hidden" name={name} value={value} />);
+}
 
 export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon = false, children }: {
   browseHref: string; searchTerm: string; endingSoon?: boolean; children: ReactNode;
@@ -62,7 +70,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
       router.push(destination, { scroll: false });
     }
   }
-  return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, pending: pendingTerm !== null, voice, endingSoon }}>{children}</Session.Provider>;
+  return <Session.Provider value={{ browseHref, draft, setDraft, applied: searchTerm, editor, setEditor, search, pending: pendingTerm !== null, voice, endingSoon }}>{children}</Session.Provider>;
 }
 
 export function BrowseResultsSearch({ position, retailerScope }: { position: Position; retailerScope?: string }) {
@@ -103,12 +111,14 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     }
   }
   return <><form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
+    action="/browse#search-results" method="get"
     onSubmit={event => { event.preventDefault(); if (voice.busy || (!draft.trim() && !applied)) return; if (tooLong || invalid) { field.current?.focus(); return; } if (!draft.trim()) { search("", position === "bottom" ? inputId : undefined, position === "top"); return; } field.current?.blur(); setEditor(null); search(draft); }}
     onKeyDown={event => {
       if (event.key !== "Escape" || (!editing && event.target !== field.current)) return;
       event.preventDefault();
       close(true);
     }}>
+    <BrowseSearchScope href={session.browseHref} />
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
     <input id={inputId} ref={connectField} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || invalid || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />

@@ -25,7 +25,7 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
-const profileReturnKey = "zero-loss-wallet-profile-focus";
+const drawerReturnKey = "zero-loss-account-menu-focus";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -112,9 +112,9 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
   useEffect(() => {
     let frame = 0;
     let settleTimer = 0;
-    function restoreProfileReturn() {
+    function restoreDrawerReturn() {
       let origin: string | null = null;
-      try { origin = window.sessionStorage.getItem(profileReturnKey); } catch { return; }
+      try { origin = window.sessionStorage.getItem(drawerReturnKey); } catch { return; }
       if (!origin || window.location.href !== origin) return;
       cancelAnimationFrame(frame);
       window.clearTimeout(settleTimer);
@@ -124,19 +124,21 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
         if (window.location.href === origin && (active === document.body || landingFocus)) restoreDialogTrigger(triggerRef.current);
       };
       frame = requestAnimationFrame(restore);
-      // The Wallet can mount a new header and assign its own landing focus.
+      // The destination may mount a new header and assign its own landing focus.
       settleTimer = window.setTimeout(() => {
         if (window.location.href !== origin) return;
         restore();
-        try { window.sessionStorage.removeItem(profileReturnKey); } catch { /* Storage may be unavailable. */ }
+        try { window.sessionStorage.removeItem(drawerReturnKey); } catch { /* Storage may be unavailable. */ }
       }, 350);
     }
-    restoreProfileReturn();
-    window.addEventListener("popstate", restoreProfileReturn);
+    restoreDrawerReturn();
+    window.addEventListener("popstate", restoreDrawerReturn);
+    window.addEventListener("pageshow", restoreDrawerReturn);
     return () => {
       cancelAnimationFrame(frame);
       window.clearTimeout(settleTimer);
-      window.removeEventListener("popstate", restoreProfileReturn);
+      window.removeEventListener("popstate", restoreDrawerReturn);
+      window.removeEventListener("pageshow", restoreDrawerReturn);
     };
   }, [pathname, search]);
 
@@ -266,8 +268,11 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
           <aside ref={drawerRef} onClickCapture={event => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
-            if (!link || link.target && link.target !== "_self" || link.origin !== location.origin
-              || link.pathname !== location.pathname || link.search !== location.search) return;
+            if (!link || link.target && link.target !== "_self" || link.origin !== location.origin) return;
+            if (link.pathname !== location.pathname || link.search !== location.search) {
+              try { window.sessionStorage.setItem(drawerReturnKey, window.location.href); } catch { /* Navigation still works. */ }
+              return;
+            }
             if (link.hash && link.hash !== location.hash && link.pathname !== "/account/notifications") return;
             event.preventDefault();
             event.stopPropagation();
@@ -277,9 +282,6 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
               <div className={styles.accountHeader}>
                 <Link href="/account/profile#profile-intro" replace={replaceDrawerStep} onClick={event => {
                   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                  if (pathname === "/account/wallet") {
-                    try { window.sessionStorage.setItem(profileReturnKey, window.location.href); } catch { /* Profile can still open. */ }
-                  }
                   close();
                 }} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
                   <DrawerAvatar avatar={resolvedMenuVisibility ? resolvedAvatar : null} initials={initials} size="large" />

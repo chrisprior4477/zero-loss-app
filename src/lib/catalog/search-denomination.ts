@@ -256,36 +256,50 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 }
 
 const ticketCount = String.raw`(?:\d+|${words})`;
-const remainingTicketsPattern = new RegExp(String.raw`(?:^|[\s,]+)(?:and\s+)?(?:with\s+)?(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(fewer than|less than|no more than|at most|at least|more than|exactly)\s+)?(${ticketCount}))\s+(?:tickets?|entr(?:y|ies)|spots?)\s+(?:left|remaining)(?=$|[\s,.!?])(?:\s+and(?=\s))?`, "i");
+const ticketUnits = String.raw`\s+(?:tickets?|entr(?:y|ies)|spots?)\s+(?:left|remaining|still available)(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
+const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?`;
+const ticketComparison = "fewer than|less than|no more than|at most|at least|more than|exactly";
+const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
+const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+and\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 
-export function remainingTicketFilter(query: string) {
-  if (!/\b(?:left|remaining)\b/i.test(query)) return null;
-  const match = remainingTicketsPattern.exec(query);
-  if (!match) return null;
-  const [, betweenFrom, betweenTo, rangeFrom, rangeTo, comparison, count] = match;
-  const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim()
-    .replace(/^(?:all\s+)?(?:prizes?|products?|offers?)(?=\s|$)/i, "").trim();
-  const parseCount = (value: string) => /^\d+$/.test(value) ? Number(value) : spokenValue(value);
-  if (betweenFrom || rangeFrom) return {
-    text, minimum: Math.max(1, parseCount(betweenFrom ?? rangeFrom)), maximum: parseCount(betweenTo ?? rangeTo),
-  };
-  const threshold = parseCount(count);
+function ticketBounds(comparison: string | undefined, count: string) {
+  const value = /^\d+$/.test(count) ? Number(count) : spokenValue(count);
   switch (comparison?.toLowerCase()) {
     case "fewer than":
-    case "less than": return { text, minimum: 1, maximum: threshold - 1 };
+    case "less than": return { minimum: 1, maximum: value - 1 };
     case "at most":
-    case "no more than": return { text, minimum: 1, maximum: threshold };
-    case "at least": return { text, minimum: Math.max(1, threshold), maximum: Infinity };
-    case "more than": return { text, minimum: threshold + 1, maximum: Infinity };
-    default: return { text, minimum: Math.max(1, threshold), maximum: threshold };
+    case "no more than": return { minimum: 1, maximum: value };
+    case "at least": return { minimum: Math.max(1, value), maximum: Infinity };
+    case "more than": return { minimum: value + 1, maximum: Infinity };
+    default: return { minimum: Math.max(1, value), maximum: value };
   }
+}
+
+export function remainingTicketFilter(query: string) {
+  if (!/\b(?:left|remaining|still available)\b/i.test(query)) return null;
+  const compound = compoundTicketsPattern.exec(query);
+  const match = compound ?? remainingTicketsPattern.exec(query);
+  if (!match) return null;
+  const text = `${query.slice(0, match.index)} ${query.slice(match.index + match[0].length)}`.trim().replace(/^[,\s]+|[,.!?]+$/g, "").trim()
+    .replace(/^(?:all\s+)?(?:prizes?|products?|offers?)(?=\s|$)/i, "").trim();
+  if (compound) {
+    const first = ticketBounds(compound[1], compound[2]);
+    const second = ticketBounds(compound[3], compound[4]);
+    return { text, minimum: Math.max(first.minimum, second.minimum), maximum: Math.min(first.maximum, second.maximum) };
+  }
+  const [, betweenFrom, betweenTo, rangeFrom, rangeTo, comparison, count] = match;
+  if (betweenFrom || rangeFrom) return {
+    text, minimum: ticketBounds(undefined, betweenFrom ?? rangeFrom).minimum, maximum: ticketBounds(undefined, betweenTo ?? rangeTo).maximum,
+  };
+  return { text, ...ticketBounds(comparison, count) };
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
   const foreignCode = "(?:CAD|AUD|NZD|EUR|GBP|JPY|CHF|MXN|INR)";
   const unsupportedCurrency = new RegExp(String.raw`(?:\b${foreignCode}\s*\$?\s*\d|\d[\d.,]*\s*${foreignCode}\b|\b(?:CA|AU|NZ)\s*\$\s*\d|[€£¥]\s*\d)`, "i").test(query);
-  let normalized = (remainingTicketFilter(query)?.text ?? query.trim()).replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/[\u2010-\u2015]/g, "-")
+  let normalized = (remainingTicketFilter(query)?.text ?? query.trim()).replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/\bUS\s+(?=dollars?\b)/gi, "").replace(/[\u2010-\u2015]/g, "-")
     .replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b|\b(?:(?:grocery|fuel)\s+)?vouchers?\b/gi, "gift card")
+    .replace(/\bgift card\s+for\s+grocer(?:y|ies)\b/gi, "grocery gift card")
     .replace(/\b(?:sony\s+)?playstation store cards?\b/gi, "Sony PlayStation gift card")
     .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")
     .replace(/(\bgift card\b.*?)\s+worth\s+(?=\$\s*\d)/gi, "$1 ")
@@ -337,6 +351,7 @@ export function searchDenominations(query: string, products: readonly { retailer
   const decimalDenomination = !budget && values.size > 0 && /\bgift card\b/i.test(normalized)
     && [...normalized.matchAll(/\b(\d+(?:,\d{3})*\.\d+)\b/g)].some(([, amount]) => values.has(Number(amount.replaceAll(",", ""))));
   const text = amountText
+    .replace(budget || values.size ? /\s+\b(?:retail value|prize value|price)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:price\s+range|range|each)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:with values?|ranging|in the range of|worth|priced|in(?: the)?|within(?: the)?|costing)\s*$/i : /$^/, "")
     .replace(values.size ? /\s+\b(?:with a value of|with|costing|valued at|priced at|each|at)[\s,]*$/i : /$^/, "").trim();

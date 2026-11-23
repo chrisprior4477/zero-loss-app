@@ -26,6 +26,7 @@ test("matches amount, date and direction shorthand without treating held or unre
     { id: "credit", entry_type: "REFUND", amount: 3000, created_at: later },
     { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at },
     { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at },
+    { id: "released", entry_type: "ENTRY_HOLD_RELEASE", amount: 300, created_at: "2026-10-25T20:00:00Z" },
     { id: "refund", entry_type: "REFUND", amount: 100, created_at },
     { id: "adjustment", entry_type: "CORRECTION", amount: -50, created_at },
     { id: "netflix", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: netflix },
@@ -33,7 +34,7 @@ test("matches amount, date and direction shorthand without treating held or unre
     { id: "netflix-other-amount", entry_type: "PURCHASE_DEBIT", amount: -2300, created_at, product: netflix },
     { id: "title-only", entry_type: "ENTRY_DEBIT", amount: -300, created_at, product: { ...netflix, title: "$50 Netflix Gift Card" } },
   ];
-  const search = (query: string) => searchLedger(entries, query, row => ledgerDescription(row.entry_type, row.product?.title),
+  const search = (query: string) => searchLedger(entries, query, row => [...ledgerDescription(row.entry_type, row.product?.title), "Posted"],
     entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
   for (const query of ["$1 debit", "1.00 USD debit", "debits of $1", "$1 or $2 paid", "US$1.00 spent", "payment of $1"]) {
     expect(search(query), query).toEqual(["entry"]);
@@ -48,7 +49,15 @@ test("matches amount, date and direction shorthand without treating held or unre
     expect(search(query), query).toEqual(["netflix", "netflix-other-amount", "title-only"]);
   }
   expect(search("after Nov 5, 2026")).toEqual(["credit"]);
-  expect(search("from 2026-11-01 until 2026-11-10")).toEqual(entries.map(row => row.id));
+  expect(search("from 2026-11-01 until 2026-11-10")).toEqual(entries.filter(row => row.id !== "released").map(row => row.id));
+  expect(search("entry hold released")).toEqual(["released"]);
+  expect(search("$1 entry payment")).toEqual(["entry"]);
+  expect(search("charged exactly $1")).toEqual(["entry"]);
+  for (const query of ["November 5-6 2026", "11/5 through 11/6/26", "before Nov 7, 2026 and after Nov 4, 2026"]) {
+    expect(search(query), query).toEqual(search("between Nov 5, 2026 and Nov 6, 2026"));
+  }
+  expect(search("purchases $24 or $99 from Netflix")).toEqual(["netflix"]);
+  expect(search("Netflix $24, posted")).toEqual(["netflix"]);
   expect(search("amount = -$1")).toEqual(["entry", "hold"]);
   expect(search("$1 exactly")).toEqual(["entry", "hold", "refund"]);
   expect(search("$1 to $2")).toEqual(["entry", "hold", "refund"]);
@@ -76,6 +85,8 @@ test("keeps natural amount phrases scoped to posted values and transaction type"
   expect(search("purchases $25, $50")).toEqual(["debit", "more"]);
   expect(search("deposits between $25 and $50")).toEqual(["fund", "larger"]);
   expect(search("deposits $25 to $50")).toEqual(["fund", "larger"]);
+  expect(search("$25 to $50 deposits")).toEqual(["fund", "larger"]);
+  expect(search("deposit amount between $25 and $50")).toEqual(["fund", "larger"]);
   expect(search("deposit at least $25")).toEqual(["fund", "larger", "max"]);
   expect(search("transaction $25")).toEqual(["fund", "debit"]);
   expect(search("deposit US$25")).toEqual(["fund"]);

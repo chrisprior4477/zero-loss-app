@@ -20,6 +20,7 @@ export function searchCatalogMatches(
     .replace(/\bfrom\s+(\$\s*\d+(?:\.\d{1,2})?)\s+and\s+up\b/gi, "at least $1")
     .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
     .replace(/\bnot sold by\s+/gi, "excluding from ")
+    .replace(/\bneither\s+([^,;]+?)\s+nor\s+(.+)$/i, "excluding $1 and $2")
     .replace(/^(\$\s*\d+(?:\.\d{1,2})?)\s+or less in\s+(.+\bgift\s*cards?\b)[.!?]?$/i, "$2 up to $1")
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
@@ -180,7 +181,7 @@ export function searchCatalogMatches(
   });
   const vocabulary = new Set(documents.flatMap(({ expanded }) => [...expanded]));
   const matchWord = (token: string, document: ReadonlySet<string>) => searchWordScore(token, document, vocabulary);
-  return documents.map(({ product, title, merchant, category, document, expanded }) => {
+  const results = documents.map(({ product, title, merchant, category, document, expanded }) => {
     const direct = tokens.every(token => matchWord(token, document) > 0);
     if (!direct && !tokens.every(token => matchWord(token, expanded) > 0)) return null;
     if (television && !televisionAccessory && !giftCards && !/\b(?:tv|television)\b/.test(normalizeSearch(product.title)) && !isGiftCardListing(product)) return null;
@@ -201,6 +202,20 @@ export function searchCatalogMatches(
       || Number(left.product.slug.endsWith("-gift-card")) - Number(right.product.slug.endsWith("-gift-card"))
       || right.score - left.score || left.product.title.localeCompare(right.product.title))
     .map(({ product, kind }) => ({ product, kind }));
+  if (results.length || giftCards || budget || values.size) return results;
+  const list = /^(\S+)\s+([^&]+?)\s+and\s+([^&]+?)\s*[.!?]?$/i.exec(query.trim());
+  if (!list || !hasBrand(list[1]) || list.slice(2).some(part => /\band\b/i.test(part))) return results;
+  const brandedProducts = candidates.filter(product => normalizeSearch(product.brand) === normalizeSearch(list[1]));
+  const groups = list.slice(2).map(part => {
+    const words = queryWords(part);
+    return brandedProducts.filter(product => {
+      const titleWords = searchWords(product.title);
+      return words.length > 0 && words.every(word => titleWords.includes(word));
+    });
+  });
+  return groups.every(group => group.length)
+    ? [...new Set(groups.flat())].map(product => ({ product, kind: "product" }))
+    : results;
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {

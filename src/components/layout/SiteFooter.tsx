@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { footerLinkGroups } from "@/lib/navigation";
 import { SendDemoShare } from "@/components/notifications/SendDemoShare";
+import { FooterHelpLink } from "./FooterHelpLink";
+
+const footerLinkClass = "inline-flex min-h-6 items-center text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:min-h-0 sm:text-[11px]";
 
 export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
   const year = new Date().getFullYear();
@@ -39,12 +42,12 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
               <ul className="mt-2 space-y-1.5">
                 {group.links.map((link) => (
                   <li key={`${link.label}-${link.href}`}>
-                    <Link
+                    {link.label === "Help Center" && link.href === "/support" ? <FooterHelpLink className={footerLinkClass} /> : <Link
                       href={link.href === "/contact" ? "/contact#contact-intro" : link.href}
-                      className="inline-flex min-h-6 items-center text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:min-h-0 sm:text-[11px]"
+                      className={footerLinkClass}
                     >
                       {link.label}
-                    </Link>
+                    </Link>}
                   </li>
                 ))}
                 {demoSharing && group.title === "Support" ? <li><SendDemoShare /></li> : null}

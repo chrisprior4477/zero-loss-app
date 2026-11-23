@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MyActivityLandingScroll } from "./MyActivityLandingScroll";
 import { activityFilters } from "@/lib/account/activity";
 import { activityViewReturnKey } from "@/lib/account/activity-view-return";
+import { activityHelpReturnKey } from "@/components/layout/FooterHelpLink";
 
 afterEach(() => {
   cleanup();
@@ -17,6 +18,20 @@ test("an exact activity Back bookmark takes priority over the mobile first-visit
   window.history.replaceState({ [activityViewReturnKey]: { ownerId: "me", href: window.location.href, filter: "active", key: "active:playstation-5-slim", left: 300, scrollY: 500, cardTop: 120, width: 390 } }, "");
   render(<MyActivityLandingScroll ownerId="me" filter="active" revealControls={false} enabled />);
   expect(scrollTo).not.toHaveBeenCalled();
+});
+
+test("restores the footer Help Center link and scroll on browser Back", () => {
+  const { scrollTo } = setup();
+  const link = document.createElement("a");
+  link.dataset.scrollFixture = "";
+  link.id = "footer-help-center";
+  link.href = "/support";
+  document.body.append(link);
+  window.history.replaceState({ [activityHelpReturnKey]: { href: window.location.href, top: 1451 } }, "");
+  render(<MyActivityLandingScroll filter="active" revealControls={false} enabled />);
+  expect(document.activeElement).toBe(link);
+  expect(scrollTo).toHaveBeenCalledWith({ top: 1451, behavior: "instant" });
+  expect(window.history.state[activityHelpReturnKey]).toBeUndefined();
 });
 
 test.each([true, false])("Open Entries lands at the filters on mobile=%s, without stealing detail-view scroll", matches => {

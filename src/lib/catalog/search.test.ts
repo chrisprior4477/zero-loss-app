@@ -1,11 +1,29 @@
 import { describe, expect, test } from "vitest";
 import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
-import { matchesCatalogMerchant, searchDenominations } from "./search-denomination";
+import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 describe("catalog search", () => {
+  test("reads both ticket-count bounds before prize-price parsing", () => {
+    expect(remainingTicketFilter("at least 2 and at most 5 entries remaining")).toEqual({ text: "", minimum: 2, maximum: 5 });
+    expect(remainingTicketFilter("at most five and more than two tickets left")).toEqual({ text: "", minimum: 3, maximum: 5 });
+    expect(remainingTicketFilter("prizes that have fewer than 3 tickets left")).toEqual({ text: "", minimum: 1, maximum: 2 });
+    expect(remainingTicketFilter("15 to 20 spots still available")).toEqual({ text: "", minimum: 15, maximum: 20 });
+    expect(searchDenominations("at least 2 and at most 5 entries remaining", demoProducts).budget).toBeNull();
+  });
+
+  test("finds both pictured cosmetics asked for under one brand", () => {
+    const results = searchCatalog(demoProducts, "Milani lipstick and blush").map(product => product.slug).sort();
+    expect(results).toEqual(["milani-baked-blush", "milani-color-fetish-lipstick"]);
+    expect(searchCatalog(demoProducts, "Milani lipstick and radiator")).toEqual([]);
+  });
+
   test.each([
     ["$25 Amazon GC only", "exactly $25 Amazon gift card"],
+    ["gift cards under $100, neither Amazon nor Target", "gift cards under $100 excluding Amazon and Target"],
+    ["Nike below $125 price", "Nike below $125"],
+    ["KONG dog toy $25 retail value", "KONG dog toy valued at $25"],
+    ["gift cards for groceries under 75 US dollars", "grocery gift cards under $75"],
     ["gift cards strictly below $75", "gift cards below $75"],
     ["Target gift cards paying $1 each entry", "Target gift cards $1 per entry"],
     ["gift cards with 1 dollar entry fees", "gift cards $1 per entry"],

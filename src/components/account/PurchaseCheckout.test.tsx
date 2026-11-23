@@ -667,6 +667,21 @@ test.each(["confirm", "recover"])("a verified purchase via %s refreshes account 
   }
 });
 
+test("a verified missing receipt restores the same purchase request for confirmation", async () => {
+  const props = { ownerId: "account-a", initialBalance: 39900, cards: [], fundingAvailable: true };
+  const purchase = { slug: "nintendo-switch", purchaseIds: [options[0].completionOptionId], declineIds: [], totalCents: 39900, requestId: "5070bbdb-613c-4e22-b897-2dde93b0137e", confirmed: true };
+  sessionStorage.setItem("zero-loss-checkout-attempt:account-a:nintendo-switch", JSON.stringify({
+    purchase, receiptNotFound: purchase.requestId,
+  }));
+  mocks.purchase.mockRejectedValueOnce(new Error("Simulated interruption"));
+  render(<PurchaseCheckout {...props} options={[options[0]]} />);
+  expect(screen.getByText("No completed purchase found")).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm same purchase · $399" }));
+  await screen.findByRole("button", { name: "Check this purchase" });
+  expect(mocks.purchase).toHaveBeenCalledExactlyOnceWith(purchase);
+});
+
 test("a restored deposit check uses the original amount and does not fund or purchase automatically", async () => {
   const props = {
     ownerId: "account-a", walletId: "wallet-a", options, initialBalance: 13900,

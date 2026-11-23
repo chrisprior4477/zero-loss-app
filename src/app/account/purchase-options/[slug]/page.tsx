@@ -19,6 +19,7 @@ import styles from "@/components/account/purchase-options.module.css";
 import { DeclinePurchaseOffersDialog } from "@/components/account/DeclinePurchaseOffersDialog";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
 import { CompletedPurchaseReceipt } from "@/components/account/CompletedPurchaseReceipt";
+import { ReviewCurrentPurchaseOffers } from "@/components/account/ReviewCurrentPurchaseOffers";
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
 import { checkoutCards } from "@/lib/account/checkout-cards";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -107,13 +108,16 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       return <CompletedPurchaseReceipt key={receipt} notificationReturnHref={notificationReturn} transactionReturnHref={walletHref} title={title} totalCents={result.totalCents} count={result.purchasedCount}
         cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
+    const currentOffer = new URL(keepOrigin(prizePath), "https://navigation.invalid");
+    if (optionId) currentOffer.searchParams.set("option", optionId);
+    const offerHref = currentOffer.pathname + currentOffer.search;
     return <div className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
       <AccountSettingsLandingScroll target="purchase-receipt-check" initialTarget="purchase-receipt-check" focusTarget="purchase-receipt-check" allScreens />
       <h1 id="purchase-receipt-check" tabIndex={-1}>Check this purchase</h1>
       <p>{result.status === "not_found" ? "No saved receipt was found for this purchase." : "We couldn’t verify this purchase yet."}</p>
       <div className={styles.topActions}>
         <a href={returnPath} className={styles.shopping}>Check again</a>
-        {result.status === "not_found" ? <Link href={keepOrigin(prizePath)} className={styles.return}>Review current offers</Link> : null}
+        {result.status === "not_found" ? <ReviewCurrentPurchaseOffers href={offerHref} className={styles.return} ownerId={account.userId} slug={slug} receipt={receipt} /> : null}
         {notificationReturn ? <Link href={notificationReturn} className={styles.return}>Back to this notification</Link> : null}
         {walletHref ? <Link href={walletHref} className={styles.return}>Back to this transaction</Link> : null}
         <Link href="/account/entries?filter=completed" className={styles.return}>Completed purchases</Link>

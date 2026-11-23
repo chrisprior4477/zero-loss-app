@@ -159,7 +159,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setPurchaseRequest(saved.purchase);
         setRecovery("purchase");
-        setReceipt(null);
+        setReceipt(saved.receiptNotFound === saved.purchase.requestId ? { status: "unconfirmed" } : null);
       } else if (typeof saved?.deposit?.key === "string" && purchaseDepositKeyPattern.test(saved.deposit.key) && isFundingAmount(saved.deposit.amount) && demoCardFixture(saved.deposit.token) && typeof saved.deposit.makeDefault === "boolean") {
         if (creditedDeposits?.includes(saved.deposit.key)) {
           sessionStorage.removeItem(attemptKey);
