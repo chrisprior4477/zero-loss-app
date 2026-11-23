@@ -21,6 +21,7 @@ export function FavoriteButton({ itemName, itemHref, className = "", size = "com
   return (
     <button
       type="button"
+      data-favorite-product={slug}
       aria-label={isSignedIn ? `${isFavorite ? "Remove" : "Add"} ${itemName} ${isFavorite ? "from" : "to"} favorites` : `Sign in to save ${itemName} to favorites`}
       aria-pressed={isFavorite}
       aria-busy={busy}

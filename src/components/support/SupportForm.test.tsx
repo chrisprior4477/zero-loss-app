@@ -276,6 +276,7 @@ test("returning to an uncertain submission checks the original request and clear
   render(<SupportForm ownerId="customer-a" requestKey="support_request_new" transactionId={caseId} />);
   expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: "Clear draft" })).toHaveProperty("disabled", true);
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Check saved message" }));
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
   await screen.findByText("Could not check your message. Your text is still here. Try checking again.");
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));

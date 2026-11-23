@@ -258,14 +258,15 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 const ticketCount = String.raw`(?:\d+|${words})`;
 const ticketUnits = String.raw`\s+(?:tickets?|entr(?:y|ies)|spots?)\s+(?:left|remaining|still available)(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
 const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?`;
-const ticketComparison = "fewer than|less than|no more than|at most|at least|more than|exactly";
+const ticketComparison = "fewer than|less than|under|no more than|at most|at least|more than|exactly";
 const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
-const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+and\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
+const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 
 function ticketBounds(comparison: string | undefined, count: string) {
   const value = /^\d+$/.test(count) ? Number(count) : spokenValue(count);
   switch (comparison?.toLowerCase()) {
     case "fewer than":
+    case "under":
     case "less than": return { minimum: 1, maximum: value - 1 };
     case "at most":
     case "no more than": return { minimum: 1, maximum: value };
@@ -312,7 +313,16 @@ export function searchDenominations(query: string, products: readonly { retailer
     .replace(/(\$\s*\d[\d.]*)\s+or less,\s*including\s+\1\b/gi, "up to $1")
     .replace(new RegExp("\\b(" + words + ")\\s+(to|through)\\s+(" + words + ")\\s+(?:dollars?|bucks?)\\b", "gi"),
       (_, low: string, join: string, high: string) => "$" + spokenValue(low) + " " + join + " $" + spokenValue(high));
+  if (/\bgift card\b/i.test(normalized)) {
+    normalized = normalized.replace(/\b(?:from|for)\s+grocery stores?\b/gi, "grocery")
+      .replace(/\bsports\s+(?:and|&)\s+fitness\b/gi, "sporting goods");
+  }
   if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
+  const isTelevision = /\b(?:tvs?|televisions?)\b/i.test(normalized);
+  const dimensions = isTelevision ? /\b(?:from\s+)?(\d+)\s*(?:inch(?:es)?|["″])?\s*(?:to|through|-)\s*(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
+  const screenRange = dimensions ? { low: Math.min(Number(dimensions[1]), Number(dimensions[2])), high: Math.max(Number(dimensions[1]), Number(dimensions[2])) } : null;
+  if (dimensions) normalized = normalized.replace(dimensions[0], " ").trim();
+  if (isTelevision) normalized = normalized.replace(/^(.*?)\s+(?:with\s+)?(?:an?\s+)?(\d+)\s*[- ]?\s*inch\s+screen\s*$/i, "$2 inch $1");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;
   const screen = /\b(?:tvs?|televisions?)\b/i.test(normalized) ? screenComparison.exec(normalized) : null;
   const screenSize = screen ? { size: Number(screen[2]), upper: /^(?:no |under|below|less than)/i.test(screen[1]), inclusive: /^(?:at least|no )/i.test(screen[1]) } : null;
@@ -336,6 +346,7 @@ export function searchDenominations(query: string, products: readonly { retailer
     if (catalogMerchant(amountText, products)) normalized = expanded;
   }
   const hasCurrency = new RegExp(currency.source, "i").test(normalized);
+  if (hasCurrency) normalized = normalized.replace(/[\s,]+no lower value\s*$/i, "");
   const exactPhrase = normalized.replace(/\b(?:only|exactly)\b[.!?]?/gi, " ")
     .replace(hasCurrency ? /\bexact\s*$|\bat\s+(?=\$[^a-z]+\s+face value\b)|\bface value\b/gi : /$^/, " ").trim();
   const strippedOnly = /\b(?:only|exactly)\b/i.test(normalized) || hasCurrency && /\b(?:exact\s*$|face value\b)/i.test(normalized);
@@ -354,10 +365,11 @@ export function searchDenominations(query: string, products: readonly { retailer
     .replace(budget || values.size ? /\s+\b(?:retail value|prize value|price)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:price\s+range|range|each)\s*$/i : /$^/, "")
     .replace(budget ? /\s+\b(?:with values?|ranging|in the range of|worth|priced|in(?: the)?|within(?: the)?|costing)\s*$/i : /$^/, "")
-    .replace(values.size ? /\s+\b(?:with a value of|with|costing|valued at|priced at|each|at)[\s,]*$/i : /$^/, "").trim();
+    .replace(values.size ? /\s+\b(?:with a value of|with|costing|valued at|priced at|each|at)[\s,]*$/i : /$^/, "").trim()
+    .replace(budget || values.size || entryPrice !== null ? /^(?:all\s+)?(?:prizes?|products?|items?)$/i : /$^/, "");
   const merchant = values.size || budget || strippedOnly || /\bgift card\b/i.test(text) ? catalogMerchant(text, products) : null;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   const conflictingBudget = Boolean(budget?.minimum !== undefined && budget.maximum !== null
     && (budget.minimum > budget.maximum || (budget.minimum === budget.maximum && (budget.exclusiveMinimum || !budget.inclusive))));
-  return { text: keywords, values, budget, exactOnly: exactOnly || decimalDenomination, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, excludedValues, merchant: merchant ? normalizeSearch(merchant) : null, ...(unsupportedCurrency ? { unsupportedCurrency } : {}) };
+  return { text: keywords, values, budget, exactOnly: exactOnly || decimalDenomination, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, screenRange, excludedValues, merchant: merchant ? normalizeSearch(merchant) : null, ...(unsupportedCurrency ? { unsupportedCurrency } : {}) };
 }

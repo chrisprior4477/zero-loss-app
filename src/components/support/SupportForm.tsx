@@ -139,12 +139,15 @@ function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId,
   const fieldError = feedback.status === "error" && feedback.field && feedback.fieldValue === draft[feedback.field] ? feedback.field : undefined;
   const showError = feedback.status === "error" && (!feedback.field || Boolean(fieldError));
   useEffect(() => {
-    if (pending || state.status !== "error" || document.activeElement !== document.body) return;
+    const restoredUncertainDraft = state.status === "idle" && draft.uncertain;
+    const active = document.activeElement;
+    const focusIsAtLanding = restoredUncertainDraft && ["main-content", "report-problem", "conversation"].includes(active?.id ?? "");
+    if (pending || (state.status !== "error" && !restoredUncertainDraft) || (active !== document.body && !focusIsAtLanding)) return;
     const field = fieldError ? formRef.current?.elements.namedItem(fieldError) : null;
     const focus = uncertain ? recoveryButton.current : field instanceof HTMLElement ? field : formError.current;
     focus?.focus({ preventScroll: true });
     if (focus) revealBelowHeader(focus);
-  }, [pending, state, uncertain, fieldError]);
+  }, [pending, state, uncertain, fieldError, draft.uncertain]);
   useEffect(() => {
     if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}${caseContext}#conversation`); router.refresh(); }
   }, [state, router, caseContext]);

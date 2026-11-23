@@ -4,8 +4,15 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 describe("catalog search", () => {
+  test("typing available filters out a sold-out product with the same search name", () => {
+    const pictured = demoProducts.find(product => product.slug === "sony-wh-1000xm5-headphones")!;
+    const available = { ...pictured, sold: 0 };
+    const closed = { ...pictured, slug: "closed-sony-headphones", sold: pictured.capacity };
+    expect(searchCatalog([available, closed], "available Sony headphones")).toEqual([available]);
+  });
   test("reads both ticket-count bounds before prize-price parsing", () => {
     expect(remainingTicketFilter("at least 2 and at most 5 entries remaining")).toEqual({ text: "", minimum: 2, maximum: 5 });
+    expect(remainingTicketFilter("more than 1 but less than 6 tickets left")).toEqual({ text: "", minimum: 2, maximum: 5 });
     expect(remainingTicketFilter("at most five and more than two tickets left")).toEqual({ text: "", minimum: 3, maximum: 5 });
     expect(remainingTicketFilter("prizes that have fewer than 3 tickets left")).toEqual({ text: "", minimum: 1, maximum: 2 });
     expect(remainingTicketFilter("15 to 20 spots still available")).toEqual({ text: "", minimum: 15, maximum: 20 });
@@ -20,6 +27,16 @@ describe("catalog search", () => {
 
   test.each([
     ["$25 Amazon GC only", "exactly $25 Amazon gift card"],
+    ["Exactly $50 at Walmart or Amazon", "exactly $50 Walmart gift card or exactly $50 Amazon gift card"],
+    ["Walmart gift cards $100 or under $25", "Walmart gift cards exactly $100 or Walmart gift cards under $25"],
+    ["Any Amazon or Target gift card except $25", "Amazon or Target gift cards excluding $25"],
+    ["Amazon $50 gift card only, no lower value", "exactly $50 Amazon gift card"],
+    ["prizes under $100 $1 per entry", "under $100 $1 per entry"],
+    ["Televisions $700 or less with a 50 inch screen", "50 inch TV up to $700"],
+    ["TVs from 55 to 65 inches", "55 to 65 inch TVs"],
+    ["headphones below $500 from Sony", "headphones below $500 by Sony"],
+    ["gift cards under $75 from grocery stores", "grocery gift cards under $75"],
+    ["sports and fitness gift cards under $75", "sporting goods gift cards under $75"],
     ["gift cards under $100, neither Amazon nor Target", "gift cards under $100 excluding Amazon and Target"],
     ["Nike below $125 price", "Nike below $125"],
     ["KONG dog toy $25 retail value", "KONG dog toy valued at $25"],

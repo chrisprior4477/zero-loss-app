@@ -8,6 +8,7 @@ import { cleanupCutoff, entrySharedAtInScope, entrySharedInScope, type SharingSe
 import { cleanupCrewShares, shareOwnedCrewEntry, undoCrewShareCleanup, type SharingResult } from "@/lib/crew/sharing-actions";
 import { CrewSharingDialog } from "./CrewSharingDialog";
 import { useDialogBack } from "./useDialogBack";
+import { restoreDialogTrigger } from "./dialog-keyboard";
 import { useAccountLocale, useAccountTimeZone } from "./TimeZoneProvider";
 import styles from "./crew-shared-picks.module.css";
 
@@ -16,6 +17,7 @@ type Operation = { id: string; selection: SharingSelection; label: string; start
 type UndoReceipt = { id: string; until: number; label: string; message: string };
 const undoLifetime = 86_400_000;
 const cleanupHistoryScope = "crew-cleanup";
+const audienceHistoryScope = "crew-picks-audience";
 function startOperation(operation: Operation) {
   return { ...operation, startedAt: operation.startedAt ?? Date.now() };
 }
@@ -94,6 +96,8 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   }, [undoReceipts, storageKey]);
   const [entryLimit, setEntryLimit] = useState(5);
   const [picker, setPicker] = useState(false);
+  const pickerTrigger = useRef<HTMLButtonElement>(null);
+  const forwardPicker = useRef(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
   const [cleanupAudience, setCleanupAudience] = useState<{ scope: string; label: string } | null>(null);
   const forwardCleanup = useRef(false);
@@ -101,6 +105,21 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   const [review, setReview] = useState<{ before?: string; entries: OwnCrewEntry[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const inFlight = useRef(false);
+  useDialogBack(false, () => setPicker(false), false, false, false, audienceHistoryScope, () => {
+    if (!forwardPicker.current || picker || cleanup || !pickerTrigger.current?.getClientRects().length) return;
+    forwardPicker.current = false;
+    setPicker(true);
+  });
+  useEffect(() => {
+    if (picker || !forwardPicker.current) return;
+    const frame = requestAnimationFrame(() => restoreDialogTrigger(pickerTrigger.current));
+    const timer = window.setTimeout(() => {
+      if (document.activeElement === document.body || document.activeElement?.id === "main-content") {
+        restoreDialogTrigger(pickerTrigger.current);
+      }
+    }, 280);
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+  }, [picker]);
   useDialogBack(false, () => setCleanup(null), false, false, false, cleanupHistoryScope, () => {
     if (!forwardCleanup.current || cleanup || picker || pending || !cleanupAudience) return;
     forwardCleanup.current = false;
@@ -215,7 +234,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
         {!scopeAvailable ? <option value={scope} disabled>Unavailable group</option> : null}
         {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
       </select>
-      <button className={styles.mobilePicker} type="button" disabled={pending} aria-haspopup="dialog" aria-labelledby="shared-with-label shared-with-value" onClick={() => setPicker(true)}><span id="shared-with-value">{label}</span><span aria-hidden="true">⌄</span></button>
+      <button ref={pickerTrigger} className={styles.mobilePicker} type="button" disabled={pending} aria-haspopup="dialog" aria-labelledby="shared-with-label shared-with-value" onClick={() => { forwardPicker.current = false; setPicker(true); }}><span id="shared-with-value">{label}</span><span aria-hidden="true">⌄</span></button>
     </div>
     <p className={styles.intro}>{scope === "crew" ? "Picks shared with your whole Crew or individually chosen people." : `Picks shared with ${label}. Cleanup applies only to this group.`}</p>
     {!scopeAvailable ? <p role="alert">That group is no longer available. Choose another audience to continue.</p> : null}
@@ -264,7 +283,8 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
       const first = list.current?.querySelector<HTMLButtonElement>("button[aria-expanded]");
       first?.focus({ preventScroll: true });
       first?.scrollIntoView?.({ block: "center", behavior: "instant" }); }}>Close to first five</button> : null}
-    {picker ? <CrewSharingDialog title="Shared with" onClose={() => setPicker(false)}>
+    {picker ? <CrewSharingDialog title="Shared with" historyScope={audienceHistoryScope} onClose={() => setPicker(false)}
+      onBack={() => { forwardPicker.current = true; setPicker(false); }}>
       <div className={styles.mobileGroupList} role="group" aria-label="Sharing audiences">
         <button type="button" aria-pressed={scope === "crew"} onClick={() => { selectScope("crew"); setPicker(false); }}>Your Crew<span>Whole Crew or individually chosen people</span></button>
         {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { selectScope(g.id); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}

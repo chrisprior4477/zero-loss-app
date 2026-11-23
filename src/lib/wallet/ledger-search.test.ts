@@ -24,7 +24,7 @@ test("matches amount, date and direction shorthand without treating held or unre
   const entries: LedgerEntryRow[] = [
     { id: "deposit", entry_type: "DEPOSIT", amount: 2500, created_at },
     { id: "credit", entry_type: "REFUND", amount: 3000, created_at: later },
-    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product: { slug: "playstation-5-slim", title: "PlayStation 5 Slim", retailer: "Best Buy", image: "/ps5.png" } },
     { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at },
     { id: "released", entry_type: "ENTRY_HOLD_RELEASE", amount: 300, created_at: "2026-10-25T20:00:00Z" },
     { id: "refund", entry_type: "REFUND", amount: 100, created_at },
@@ -53,9 +53,13 @@ test("matches amount, date and direction shorthand without treating held or unre
   expect(search("entry hold released")).toEqual(["released"]);
   expect(search("$1 entry payment")).toEqual(["entry"]);
   expect(search("charged exactly $1")).toEqual(["entry"]);
-  for (const query of ["November 5-6 2026", "11/5 through 11/6/26", "before Nov 7, 2026 and after Nov 4, 2026"]) {
+  for (const query of ["November 5-6 2026", "11/5 through 11/6/26", "before Nov 7, 2026 and after Nov 4, 2026", "November 5 and November 6, 2026"]) {
     expect(search(query), query).toEqual(search("between Nov 5, 2026 and Nov 6, 2026"));
   }
+  expect(search("Oct 26–Nov 5, 2026")).toEqual(search("between Oct 26, 2026 and Nov 5, 2026"));
+  expect(search("$1 PlayStation entry payment")).toEqual(["entry"]);
+  expect(search("PlayStation charged $1")).toEqual(["entry"]);
+  expect(search("Netflix $24 paid")).toEqual(["netflix"]);
   expect(search("purchases $24 or $99 from Netflix")).toEqual(["netflix"]);
   expect(search("Netflix $24, posted")).toEqual(["netflix"]);
   expect(search("amount = -$1")).toEqual(["entry", "hold"]);
@@ -87,6 +91,8 @@ test("keeps natural amount phrases scoped to posted values and transaction type"
   expect(search("deposits $25 to $50")).toEqual(["fund", "larger"]);
   expect(search("$25 to $50 deposits")).toEqual(["fund", "larger"]);
   expect(search("deposit amount between $25 and $50")).toEqual(["fund", "larger"]);
+  expect(search("funds added $25 to $50")).toEqual(["fund", "larger"]);
+  expect(search("amount from $25 to $50")).toEqual(["fund", "larger", "debit", "more"]);
   expect(search("deposit at least $25")).toEqual(["fund", "larger", "max"]);
   expect(search("transaction $25")).toEqual(["fund", "debit"]);
   expect(search("deposit US$25")).toEqual(["fund"]);

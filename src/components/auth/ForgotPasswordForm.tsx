@@ -27,13 +27,17 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
-        const raw = sessionStorage.getItem("zero-loss-recovery-email");
-        sessionStorage.removeItem("zero-loss-recovery-email");
-        if (!raw) return;
-        const saved = JSON.parse(raw);
+        const bookmark = history.state?.zeroLossRecoveryEmail;
+        let saved = bookmark?.href === location.href && bookmark.expires >= Date.now() ? bookmark : null;
+        if (!saved) {
+          const raw = sessionStorage.getItem("zero-loss-recovery-email");
+          sessionStorage.removeItem("zero-loss-recovery-email");
+          if (raw) saved = JSON.parse(raw);
+        }
+        if (!saved) return;
         if (typeof saved.email === "string" && saved.email.length <= 254 && saved.destination === destination && saved.expires >= Date.now()) {
           setEmail(current => current || saved.email);
-          if (emailField.current && document.activeElement === document.body) {
+          if (emailField.current && (document.activeElement === document.body || document.activeElement?.id === "main-content")) {
             emailField.current.focus({ preventScroll: true });
             revealBelowHeader(emailField.current);
           }
@@ -87,9 +91,13 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
       <p className="text-xs leading-5 text-white/55">You can request another link if it doesn&apos;t arrive. Please wait a minute between requests.</p>
       <Link href={signInHref} onNavigate={() => {
         try {
+          const expires = Date.now() + 300_000;
+          if (email.length <= 254) {
+            history.replaceState({ ...history.state, zeroLossRecoveryEmail: { email, destination, expires, href: location.href } }, "");
+          }
           sessionStorage.removeItem("zero-loss-login-email");
-          if (emailField.current?.validity.valid && email.trim().length <= 254) {
-            sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email: email.trim(), destination, expires: Date.now() + 300_000 }));
+          if (email.length <= 254 && emailField.current?.validity.valid) {
+            sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email: email.trim(), destination, expires }));
           }
         } catch { /* The sign-in form also accepts manual entry. */ }
       }} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:underline sm:min-h-0">← Back to sign in</Link>

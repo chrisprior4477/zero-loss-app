@@ -14,6 +14,8 @@ const signedBareRange = new RegExp(String.raw`^([+−-]\s*\$?\s*${dollars})\s*(?
 const signedBound = new RegExp(String.raw`^(under|below|less than|over|above|more than|at least|at most)\s+([+−-]\s*\$?\s*${dollars})$`, "i");
 const labeledAlternatives = new RegExp(String.raw`([+−-]?\s*\$\s*${dollars}(?:(?:${amountSeparator.source})${markedAmount})+)(?=\s|$)`, "i");
 const typeAmount = /\b(deposits?|funding|refunds?|adjustments?|corrections?|transactions?)\s+(?:of\s+|for\s+)?(?=\d|[$+−-]|[a-z]+(?:[ -][a-z]+)*\s+(?:dollars?|cents?)\b)/gi;
+const scopedEntryPayment = new RegExp(String.raw`^(\$\s*${dollars})\s+(.+?)\s+entry payments?$`, "i");
+const paidWithScope = new RegExp(String.raw`^(.+?)\s+(\$\s*${dollars})\s+(?:paid|spent)$|^(.+?)\s+(?:paid|spent|charged)(?:\s+exactly)?\s+(\$\s*${dollars})$`, "i");
 const centsValue = String.raw`(\d+|${smallNumberWords})\s+cents?\b`;
 const signedCents = new RegExp(String.raw`(?:^|\s)(?:(minus|negative|plus|positive|[+−-])\s*)?${centsValue}`, "i");
 const spokenCentsPattern = new RegExp(String.raw`(\b(?:dollars?|bucks?))\s+(?:and\s+)?${centsValue}`, "i");
@@ -158,7 +160,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     ? `from ${compactRange[1]} ${compactRange[2]}, ${compactRange[4]} to ${compactRange[1]} ${compactRange[3]}, ${compactRange[4]}`
     : dateQuery;
   const dateRange = /^between\s+(.+?)\s+and\s+(.+)$/i.exec(rangeQuery)
-    ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(rangeQuery);
+    ?? /^(?:from\s+)?(.+?)\s+(?:to|through|until)\s+(.+)$/i.exec(rangeQuery)
+    ?? /^(.+\d)\s*[-–—]\s*([\p{L}.]+\s+\d{1,2}(?:,?\s+\d{4})?)$/u.exec(rangeQuery);
   if (dateRange) {
     const first = dateBoundary(dateRange[1], calendar) ?? shortDateBoundary(dateRange[1], calendar);
     const last = dateBoundary(dateRange[2], calendar) ?? shortDateBoundary(dateRange[2], calendar);
@@ -174,6 +177,19 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         const value = formatter.format(new Date(entry.created_at)).slice(yearIncluded ? 0 : 5);
         return value >= lower && value <= upper;
       });
+    }
+  }
+  const dateList = /^(.+?)\s+(?:and|or)\s+(.+)$/i.exec(dateQuery);
+  if (dateList) {
+    const first = dateBoundary(dateList[1], calendar);
+    const last = dateBoundary(dateList[2], calendar);
+    if (first && last && (first.length === 10 || last.length === 10) && first.length !== 7 && last.length !== 7) {
+      const days = new Set([
+        first.length === 5 ? last.slice(0, 5) + first : first,
+        last.length === 5 ? first.slice(0, 5) + last : last,
+      ]);
+      const formatter = localDateKey(calendar.timeZone);
+      return entries.filter(entry => days.has(formatter.format(new Date(entry.created_at))));
     }
   }
   const dateMatches = searchDate(entries, dateQuery, calendar);
@@ -200,6 +216,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const query = (trimmed.replace(/[.!?,]+$/, "") || trimmed)
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
+    .replace(/^funds added(?=\s|$)/i, "deposits")
     .replace(/\brefunded\b/gi, "refund")
     .replace(/(\d+)\s*¢(?=\s|$)/g, "$1 cents")
     .replace(/^([<>]=?|[≤≥])\s*(?=[+−-]\s*\$?\s*\d)/, (_, operator: string) => (
@@ -214,6 +231,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/,\s+(?=posted\s*$)/i, " ")
     .replace(/^charged(?:\s+exactly)?(?=\s+[$\d])/i, "paid")
     .replace(/^(deposits?|funding)\s+amount\s+(?=between\b|from\b)/i, "$1 ")
+    .replace(/^amount\s+(?=(?:from|between)\s+[+−-]?\s*\$)/i, "")
     .replace(new RegExp(String.raw`^(\$\s*${dollars})\s+to\s+(\$\s*${dollars})\s+(deposits?|funding)$`, "i"), "$3 between $1 and $2")
     .replace(/(\bgift[\s-]+cards?)\s+worth\s+(?=\$)/gi, "$1 ")
     .replace(/\b(?:US\s*)?USD\s+(?=[$+−-])/gi, "")
@@ -262,6 +280,17 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const amountFirstEntryPayment = /^(.+?)\s+entry payments?$/i.exec(query);
   if (amountFirstEntryPayment && amountOnly.test(amountFirstEntryPayment[1])) {
     return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), amountFirstEntryPayment[1]);
+  }
+  const namedEntryPayment = scopedEntryPayment.exec(query);
+  if (namedEntryPayment) {
+    const matches = amountMatch(namedEntryPayment[1]);
+    return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT" && matches(row.amount)), namedEntryPayment[2]);
+  }
+  const namedPayment = paidWithScope.exec(query);
+  if (namedPayment) {
+    const matches = amountMatch(namedPayment[2] ?? namedPayment[4]);
+    return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)
+      && matches(row.amount)), namedPayment[1] ?? namedPayment[3]);
   }
   const cardCharge = /^(.+?)\s+card charges?\s+(.+)$/i.exec(query);
   if (cardCharge && amountOnly.test(cardCharge[2])) {

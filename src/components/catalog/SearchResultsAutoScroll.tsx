@@ -110,6 +110,28 @@ export function SearchResultsAutoScroll({
     const renderedSearch = window.location.search;
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
+      const favorite = window.history.state?.zeroLossBrowseFavoriteReturn;
+      if (favorite?.href === window.location.href && typeof favorite.slug === "string"
+        && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(favorite.slug) && Number.isFinite(favorite.top)) {
+        const heart = document.querySelector<HTMLElement>(`main [data-favorite-product="${favorite.slug}"]`);
+        if (heart) {
+          cancelled = false;
+          const restore = () => {
+            if (cancelled || window.location.href !== favorite.href || !heart.isConnected) return;
+            heart.focus({ preventScroll: true });
+            window.scrollTo({ top: favorite.top, behavior: "instant" });
+          };
+          first = requestAnimationFrame(() => { second = requestAnimationFrame(restore); });
+          settle = setTimeout(() => {
+            restore();
+            if (window.history.state?.zeroLossBrowseFavoriteReturn?.href !== favorite.href) return;
+            const next = { ...window.history.state };
+            delete next.zeroLossBrowseFavoriteReturn;
+            window.history.replaceState(next, "");
+          }, 450);
+          return;
+        }
+      }
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
       // A prefetched Browse URL can point to the results and the exact prize in one fragment.
       const anchors = window.location.hash.slice(1).split("#");

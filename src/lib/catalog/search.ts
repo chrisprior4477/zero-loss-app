@@ -15,8 +15,10 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (rawQuery.length > maxCatalogSearchLength) return [];
+  const availableOnly = /^\s*available\s+(.+)$/i.exec(rawQuery);
+  if (availableOnly) return searchCatalogMatches(products.filter(product => product.sold < product.capacity), availableOnly[1], undefined, { includeLowerGiftCards });
   const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
-    .replace(/^\s*any\s+(?=gift\s*cards?\b)/i, "")
+    .replace(/^\s*any\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/\bfrom\s+(\$\s*\d+(?:\.\d{1,2})?)\s+and\s+up\b/gi, "at least $1")
     .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
     .replace(/\bnot sold by\s+/gi, "excluding from ")
@@ -46,11 +48,12 @@ export function searchCatalogMatches(
       : scoped.map(product => ({ product, kind: "product" }));
   }
   const denomination = query === rawQuery && parsedDenomination ? parsedDenomination : searchDenominations(query, products);
-  const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, excludedValues } = denomination;
+  const { values, budget, exactOnly, conflictingBudget, entryPrice, entryPriceIsMaximum, exclusiveEntryPrice, screenSize, screenRange, excludedValues } = denomination;
   const qualifier = /\s+(?:from|at|sold by)\s+(.+)$/i.exec(denomination.text);
   const qualifiedMerchant = qualifier && !catalogMerchant(denomination.text, products) ? catalogMerchant(qualifier[1], products) : null;
   const qualifiedText = qualifiedMerchant && qualifier ? denomination.text.slice(0, qualifier.index) : denomination.text;
-  const brandQualifier = /\s+by\s+(.+)$/i.exec(qualifiedText);
+  const brandQualifier = /\s+by\s+(.+)$/i.exec(qualifiedText)
+    ?? (!qualifiedMerchant && !/\bgift cards?\b/i.test(qualifiedText) ? /\s+from\s+(.+)$/i.exec(qualifiedText) : null);
   const brandName = brandQualifier ? normalizeSearch(brandQualifier[1]) : "";
   const isBrand = (product: DemoProduct) => {
     const actual = normalizeSearch(product.brand);
@@ -58,9 +61,7 @@ export function searchCatalogMatches(
   };
   const branded = Boolean(brandName) && products.some(isBrand);
   const brandedText = branded && brandQualifier ? qualifiedText.slice(0, brandQualifier.index) : qualifiedText;
-  const dimensions = /\b(\d+)\s*(?:inch(?:es)?|")?\s*(?:to|[-–—])\s*(\d+)\s*(?:inch(?:es)?\b|")/i.exec(brandedText);
-  const screenRange = dimensions && /\b(?:tvs?|televisions?)\b/i.test(brandedText) ? dimensions : null;
-  const text = screenRange ? brandedText.replace(screenRange[0], " ") : brandedText;
+  const text = brandedText;
   const merchant = denomination.merchant ?? qualifiedMerchant;
   if (conflictingBudget || denomination.unsupportedCurrency) return [];
   const withoutGiftCards = query.replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
@@ -159,7 +160,7 @@ export function searchCatalogMatches(
           : (screenSize.inclusive ? Number(size) >= screenSize.size : Number(size) > screenSize.size))))
     && (!screenRange || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
       && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
-        Number(size) >= Math.min(Number(screenRange[1]), Number(screenRange[2])) && Number(size) <= Math.max(Number(screenRange[1]), Number(screenRange[2])))))
+        Number(size) >= screenRange.low && Number(size) <= screenRange.high)))
     && (!exactScreenSize || televisionAccessory || isGiftCardListing(product) || exactScreenSize.test(normalizeSearch(product.title)))
     && (!televisionAccessory || searchWords(product.title).includes(televisionAccessory)));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
@@ -222,7 +223,7 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
   query = remainingTicketFilter(query)?.text ?? query;
   const giftCards = /\bgift card\b/.test(normalizeSearch(query));
   if (giftCards) query = query.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
-  const orSeparator = /\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b)/i;
+  const orSeparator = /(?<!\bat)\s+or\s+(?=(?:under|below|over|above)\s+\$)|\s+or\s+(?!(?:equal\s+to|less|lower|more|below|above|under|higher|up|cheaper)\b)/i;
   const hasOr = orSeparator.test(query);
   if (!hasOr && (!giftCards || !/\s+(?:and|&)\s+/i.test(query) || catalogMerchant(query, products))) return null;
   const clauses = query.split(hasOr ? new RegExp(/\s*,(?!\d)\s*(?:or\s+)?/.source + "|" + orSeparator.source, "i") : /\s+(?:and|&)\s+/i);
@@ -231,6 +232,10 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
     const retailerClause = parsed.text.replace(/^(?:gift\s+card\s+)?(?:from\s+)?either\s+/i, "");
     return { ...parsed, merchant: parsed.merchant ?? catalogMerchant(retailerClause, products) };
   });
+  if (hasOr && /\bexact(?:ly)?\b/i.test(clauses[0]) && parts[0].values.size === 1 && parts[0].merchant
+    && parts.slice(1).every(part => part.merchant && !part.values.size && !part.budget)) {
+    return parts.map(part => ({ ...part, text: giftCards ? "gift card" : "", values: parts[0].values, exactOnly: true }));
+  }
   if (hasOr && giftCards && parts[0].text && parts.some(part => part.budget)
     && parts.slice(1).every(part => !part.text && (part.budget || part.values.size))) {
     return parts.map(part => ({ ...part, text: parts[0].text, merchant: parts[0].merchant, exactOnly: true }));
@@ -269,8 +274,12 @@ export function catalogAlternatives(query: string, products: readonly DemoProduc
   const sharedMerchant = merchants.size === 1 ? [...merchants][0] : null;
   const sharedValues = priced.length === 1 ? priced[0].values : null;
   if (giftCards && merchants.size && parts.every(part => part.merchant || (sharedMerchant && part.values.size && queryWords(part.text).every(word => word === "gift" || word === "card")))) {
+    const sharedExclusions = last?.excludedValues.size && parts.slice(0, -1).every(part => !part.excludedValues.size)
+      && /\b(?:except|excluding|not)\s+(?:for\s+)?\$\s*[\d,.]+\s*[.!?]?$/i.test(clauses.at(-1) ?? "")
+      ? last.excludedValues : null;
     const scoped = parts.map(part => ({ ...part, text: "gift card", merchant: part.merchant ?? sharedMerchant,
-      budget: part.budget ?? sharedBudget, values: part.values.size ? part.values : sharedValues ?? part.values, exactOnly: Boolean(denomination.values.size) }));
+      budget: part.budget ?? sharedBudget, values: part.values.size ? part.values : sharedValues ?? part.values,
+      excludedValues: sharedExclusions ?? part.excludedValues, exactOnly: Boolean(denomination.values.size) }));
     if (!denomination.values.size || scoped.every(part => part.values.size)) return scoped;
   }
   if (parts.every(part => queryWords(part.text).length > 0)

@@ -6,6 +6,20 @@ import { ForgotPasswordForm } from "./ForgotPasswordForm";
 beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 
+test("restores and focuses the address from this recovery history entry", async () => {
+  const previous = window.history.state;
+  window.history.replaceState({ ...previous, zeroLossRecoveryEmail: {
+    href: window.location.href, email: "person@example.test", destination: null, expires: Date.now() + 5000,
+  } }, "");
+  try {
+    render(<ForgotPasswordForm signInHref="/login" />);
+    const email = screen.getByRole("textbox", { name: "Email address" });
+    await waitFor(() => expect(email).toHaveProperty("value", "person@example.test"));
+    expect(document.activeElement).toBe(email);
+    expect(requestReset).not.toHaveBeenCalled();
+  } finally { window.history.replaceState(previous, ""); }
+});
+
 test("successful send retains the address so Resend submits it again with the same destination", async () => {
   requestReset.mockResolvedValue({ status: "sent", message: "If an account uses that address, check your inbox." });
   const destination = "/account/orders?order=ord_example#order-ord_example";

@@ -160,6 +160,11 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       return authNavigationHref("/login", returnTo ?? `${accountRoutes.favorites}?item=${encodeURIComponent(slug)}`);
     };
     if (!isSignedIn) {
+      if (window.location.pathname === "/browse") {
+        window.history.replaceState({ ...window.history.state, zeroLossBrowseFavoriteReturn: {
+          href: window.location.href, slug, top: window.scrollY,
+        } }, "");
+      }
       const login = favoriteLogin();
       const destination = new URL(login, location.origin).searchParams.get("next") ?? undefined;
       rememberFavorite({ slug, save: true, destination });
