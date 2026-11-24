@@ -10,14 +10,14 @@ let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number }
 let categoryDeparture: { href: string; target: "categories-top" | "categories-bottom" } | null = null;
 const filterReturnKey = "zeroLossBrowseFilterReturn";
 
-export function rememberBrowseFilterTrigger() {
+export function rememberBrowseLowerTrigger(panel: "filters" | "categories", top?: number) {
   window.history.replaceState({
     ...window.history.state,
-    [filterReturnKey]: { href: location.href, top: scrollY },
+    [filterReturnKey]: { href: location.href, top, panel },
   }, "");
 }
 
-export function forgetBrowseFilterTrigger() {
+export function forgetBrowseLowerTrigger() {
   if (!window.history.state?.[filterReturnKey]) return;
   const state = { ...window.history.state };
   delete state[filterReturnKey];
@@ -136,23 +136,19 @@ export function SearchResultsAutoScroll({
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       if (hasAccountHistoryReturn() && !requestedFocus) return;
       const filter = window.history.state?.[filterReturnKey];
-      const lowerFilter = filter?.href === location.href && Number.isFinite(filter.top)
-        ? document.querySelector<HTMLElement>('[data-browse-filter="bottom"]') : null;
-      if (lowerFilter?.getClientRects().length) {
+      const lowerTrigger = !requestedFocus && filter?.href === location.href
+        ? document.querySelector<HTMLElement>(filter.panel === "categories" ? '[data-browse-categories="bottom"]' : '[data-browse-filter="bottom"]') : null;
+      if (lowerTrigger?.getClientRects().length) {
         cancelled = false;
-        const restoreFilter = () => {
-          if (cancelled || location.href !== filter.href || !lowerFilter.isConnected
+        const restoreLowerTrigger = () => {
+          if (cancelled || location.href !== filter.href || !lowerTrigger.isConnected
             || document.querySelector("dialog[open]")) return;
-          window.scrollTo({ top: filter.top, behavior: "instant" });
-          lowerFilter.focus({ preventScroll: true });
-          revealBelowHeader(lowerFilter);
+          if (Number.isFinite(filter.top)) window.scrollTo({ top: filter.top, behavior: "instant" });
+          lowerTrigger.focus({ preventScroll: true });
+          revealBelowHeader(lowerTrigger);
         };
-        first = requestAnimationFrame(() => { second = requestAnimationFrame(restoreFilter); });
-        settle = setTimeout(() => {
-          restoreFilter();
-          if (!document.querySelector("dialog[open]")
-            && window.history.state?.[filterReturnKey]?.href === filter.href) forgetBrowseFilterTrigger();
-        }, 280);
+        first = requestAnimationFrame(() => { second = requestAnimationFrame(restoreLowerTrigger); });
+        settle = setTimeout(restoreLowerTrigger, 280);
         return;
       }
       const category = categoryDeparture;
@@ -274,7 +270,10 @@ export function SearchResultsAutoScroll({
     start();
     window.addEventListener("hashchange", start);
     window.addEventListener("popstate", start);
-    const stop = () => { cancelled = true; };
+    const stop = (event: Event) => {
+      cancelled = true;
+      if (!document.querySelector("dialog[open]") && !(event instanceof KeyboardEvent && event.altKey)) forgetBrowseLowerTrigger();
+    };
     window.addEventListener("pointerdown", stop, { passive: true });
     window.addEventListener("wheel", stop, { passive: true });
     window.addEventListener("touchstart", stop, { passive: true });

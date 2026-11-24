@@ -45,7 +45,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "default-card", category: "wallet", question: "How do I change my default payment card?",
-    answer: "Open Payment methods and choose the default payment method on the saved sample card you want to use. You can still choose a different card when adding demo funds.",
+    answer: "Open Payment methods and choose the default payment method on the saved sample card you want to use. A saved sample card and the default card can be different. In Add funds, check Current card in use before confirming and choose a different saved card for that deposit if needed.",
     keywords: "set choose change switch default preferred card funding",
     action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
@@ -136,7 +136,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "time-zone", category: "account", question: "How do I change my time zone?",
-    answer: "Open Profile and update your mailing address. Zero Loss uses the address to determine your time zone. If the address matches more than one zone, choose the correct one before saving.",
+    answer: "Open Profile and update your mailing address. Zero Loss uses that address to determine the time zone shown on your orders and receipts. Your phone may be set to a different zone. If the address matches more than one zone, choose the correct one before saving.",
     keywords: "timezone time zone local time change clock date deadline address profile",
     action: { label: "Open mailing address settings", href: "/account/profile?section=mailing#mailing-address-heading" },
   },
@@ -208,7 +208,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
-    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. In Offer details, check how much your entry already covers and how much is left to pay. Completing the purchase is a separate choice. Completed activity remains in your history. If a saved option disappears, check Declined Offers and the expired purchase options in Gift Cards & Rewards.",
+    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option. Its payment stays with that option. You cannot combine offers or move the entry payment to a different prize. In Offer details, check how much your entry already covers and how much is left to pay. Completing the purchase is a separate choice. Completed activity remains in your history. If a saved option disappears, check Declined Offers and the expired purchase options in Gift Cards & Rewards.",
     keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion#my-activity-filters" },
   },
   {
@@ -581,6 +581,13 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:go back to paying for|resume|continue)\b.*\b(?:offer|purchase|checkout)\b.*\b(?:add(?:ed|ing)? (?:money|funds)|(?:empty|low) wallet|wallet (?:was|is) empty)\b/, "purchase-wallet-balance"],
+  [/\bentry payment\b.*\b(?:different|another) prize\b/, "purchase-options"],
+  [/\bsav(?:ed|ing)\b.*\bnew card\b.*\b(?:old|previous) card\b.*\b(?:deposit|funding)\b/, "default-card"],
+  [/\b(?:bought|purchased)\b.*\bgift[ -]?card\b.*\bpin\b/, "open-reward"],
+  [/\b(?:phone|mobile|device) clock\b.*\b(?:order|receipt)\b.*\b(?:disagree|different|wrong|off)\b/, "time-zone"],
+  [/\b(?:contact|support) form\b.*\b(?:already|previously)\s+(?:filled out|sent|submitted)\b/, "support-case"],
+  [/\bnotifications?\b.*\b(?:keeps? popping up|repeatedly pops? up)\b.*\b(?:shop|shopping|browse|browsing)\b/, "notification-display-time"],
   [/\breservation (?:was )?released\b|\bpending entr(?:y|ies)\b.*\bcount\b.*\bconfirm\b/, "posted-and-pending"],
   [/\b(?:original|previous|first) (?:ticket|entry)\b.*\bundo\b.*\b(?:another|second|new) entr(?:y|ies)\b/, "undo-entry"],
   [/\bwhich saved (?:sample )?card\b.*\bfunding\b/, "deposit-receipt"],

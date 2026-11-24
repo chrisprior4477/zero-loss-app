@@ -41,11 +41,22 @@ test.each([
   ["Sony earbuds or headphones available now", "available Sony earbuds or headphones"],
   ["PlayStation 5 Slim from Best Buy with available tickets", "available PlayStation 5 Slim from Best Buy"],
   ["only gift cards sold by Walmart for $50", "exactly $50 Walmart gift card"],
+  ["PlayStation 5 Slim with tickets available now", "available PlayStation 5 Slim"],
+  ["Sony headphones that still have tickets", "available Sony headphones"],
+  ["Best Buy or Walmart TVs that have available tickets", "available TVs from Best Buy or Walmart"],
+  ["Best Buy or Walmart TVs priced between $200 and $600", "TVs between $200 and $600 from Best Buy or Walmart"],
+  ["headphones by Sony or JBL under $500", "Sony or JBL headphones under $500"],
+  ["gift cards at Walmart with a face value of exactly $50", "exactly $50 Walmart gift card"],
+  ["Sony headphones where entry costs $1", "Sony headphones $1 per entry"],
 ])("matches the same product set for %s and %s", (query, equivalent) => {
   const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
   const expected = slugs(equivalent);
   expect(expected).not.toHaveLength(0);
   expect(slugs(query)).toEqual(expected);
+});
+
+test("returns no gift cards when two requested headphone brands are over budget", () => {
+  expect(searchCatalog(demoProducts, "headphones by Sony or JBL under $200")).toEqual([]);
 });
 
 test("preserves item type, availability, and retailer exclusions", () => {

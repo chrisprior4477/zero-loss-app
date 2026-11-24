@@ -33,11 +33,12 @@ export function searchCatalogMatches(
     .replace(/^only\s+(.+?)\s+with photos\b/i, "pictured $1")
     .replace(/^shown with (?:a )?picture\s+(?:from|at)\s+/i, "pictured ")
     .replace(/^(?:a\s+)?(tvs?|televisions?)\s+measuring\s+(?=between\b)/i, "$1 ")
-    .replace(/\bwith tickets available\s*[.!?]?$/i, " available")
+    .replace(/\b(?:with tickets available(?:\s+now)?|(?:that|which)\s+(?:(?:still\s+)?have\s+available\s+tickets?|still\s+have\s+tickets?))\s*[.!?]?$/i, " available")
     .replace(/\bstill open\s*[.!?]?$/i, " available")
     .replace(/\bfor (\$\s*[\d,.]+)\s+entries(?=\s+with\b)/i, "$1 per entry")
     .replace(/\bthat costs?\s+(.+?)\s+to enter\s*[.!?]?$/i, " $1 per entry")
-    .replace(/\bwith (?:a )?face value of\s+(?=\$)/i, "")
+    .replace(/\bwhere\s+(?:the\s+)?entry\s+costs?\s+(\$\s*[\d,.]+)\s*[.!?]?$/i, "$1 per entry")
+    .replace(/\bwith (?:a )?face value of\s+(?=(?:exactly\s+)?\$)/i, "")
     .replace(/^(between\s+\$[\d,.]+\s+and\s+\$[\d,.]+)\s+worth of\s+/i, "$1 ")
     .replace(/\bno higher than\s+(?=\$)/i, "up to ")
     .replace(/\bhigher than\s+(?=\$)/i, "over ")
@@ -81,6 +82,7 @@ export function searchCatalogMatches(
     .replace(/\b(excluding|without|except(?: for)?)\s+all\s+(?=gift cards?\b)/i, "$1 ")
     .replace(/\bexcluding\s+retailers?\s+/i, "excluding ")
     .replace(/\b(?:one[ -])?dollar entry\s+(?:for|at)\s+(.+)$/i, "$1 $$1 per entry")
+    .replace(/\b(headphones?|earbuds?|earphones?|headsets?)\s+(?:made\s+)?by\s+(?:either\s+)?(.+?)\s+((?:under|below|up to|at most|less than|between)\s+\$.+)$/i, "$2 $1 $3")
     .replace(/\b(headphones?|earbuds?|earphones?|headsets?)\s+(?:made\s+)?by\s+(?:either\s+)?(.+)$/i, "$2 $1")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
@@ -108,7 +110,12 @@ export function searchCatalogMatches(
   const televisionPairs = /^(.+?\s+(?:and|or|&)\s+.+?)\s+(tvs?|televisions?)\b(.*)$/i.exec(query.trim());
   if (televisionPairs) {
     const [, choices, kind, tail] = televisionPairs;
-    const pairs = choices.split(/\s+(?:and|or|&)\s+/i).map(choice => {
+    const names = choices.split(/\s+(?:and|or|&)\s+/i);
+    if (names.every(name => catalogMerchant(name, products))) {
+      const priceTail = tail.replace(/^(\s+)priced\s+(?=between\b)/i, "$1");
+      return searchCatalogMatches(products, kind + priceTail + " from " + choices, undefined, { includeLowerGiftCards });
+    }
+    const pairs = names.map(choice => {
       const sizeFirst = /^(\d+)\s*[- ]?\s*(?:inch(?:es)?|["″])\s+(.+)$/i.exec(choice);
       if (sizeFirst) return { size: sizeFirst[1], brand: sizeFirst[2] };
       const brandFirst = /^(.+?)\s+(\d+)\s*[- ]?\s*(?:inch(?:es)?|["″])$/i.exec(choice);

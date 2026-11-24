@@ -312,8 +312,10 @@ function newest<T extends LedgerEntryRow>(rows: T[]) {
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+/i, "")
-    .replace(/^(.+?)\s+entr(?:y|ies)\s+(?:that|which)\s+(?:actually\s+)?posted[.!?]?$/i, (phrase, date: string) =>
+    .replace(/^(.+?)\s+(?:entr(?:y|ies)\s+(?:(?:that|which)\s+(?:actually\s+)?posted|excluding\s+(?:temporary\s+)?(?:holds?|reservations?))|confirmed\s+entry\s+(?:charges?|payments?|debits?))[.!?]?$/i, (phrase, date: string) =>
       dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? "entry payments on " + date : phrase)
+    .replace(/^(?:posted\s+)?charges?\s+for\s+entr(?:y|ies)\s+only[.!?]?$/i, "entry payments")
+    .replace(/^(?:all\s+)?deposits?\s+made\s+with\s+(?:a|the|my)\s+(?=card\s+ending\b)/i, "deposits using the ")
     .replace(/\bentry\s+(?:purchases?|payments?|charges?|debits?)\s+without\s+(?:temporary\s+)?(?:holds?|reservations?)[.!?]?$/i, "entry payments")
     .replace(new RegExp(String.raw`^(.+?)\s+(?:negative|minus)\s+(\$\s*${dollars})\s+(?:charges?|debits?)[.!?]?$`, "i"), "posted amount -$2 $1")
     .replace(/^(?:wallet\s+)?top[ -]?ups?\s+from cards?\s+other than\s+/i, "deposits excluding ")
@@ -387,14 +389,22 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       return Boolean(issuer && omitted && !sameMerchant(issuer, omitted));
     });
   }
-  const receiptCard = /^(?:(?:deposit\s+)?receipts? (?:for|from)|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  const receiptCard = /^(?:(?:(?:deposit|funding)\s+)?receipts? (?:for|from)|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
   if (receiptCard) {
     const issuer = /^card$/i.test(receiptCard[1]) ? "" : normalizeSearch(receiptCard[1]);
-    const needsReceipt = /^(?:deposit\s+)?receipt/i.test(trimmed);
+    const needsReceipt = /^(?:(?:deposit|funding)\s+)?receipt/i.test(trimmed);
     return entries.filter(entry => entry.entry_type === "DEPOSIT" && (!needsReceipt || calendar.hasDepositReceipt?.(entry))
       && describe(entry).some(label => {
         return (!issuer || sameMerchant(savedIssuer([label]) ?? "", issuer)) && cardMatchesSuffix(label, receiptCard[2]);
       }));
+  }
+  const datedReceipt = /^(.+?)\s+(?:(?:deposit|funding)\s+)?receipts?\s+(?:on|from)\s+(.+?)[.!?]?$/i.exec(trimmed);
+  if (datedReceipt) {
+    const issuer = normalizeSearch(datedReceipt[1]);
+    const receipts = entries.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry)
+      && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer));
+    const matches = searchDate(receipts, datedReceipt[2], calendar);
+    if (matches) return matches;
   }
   const omitActivity = /^(?:all\s+)?transactions?\s+(?:excluding|except|other than|without)\s+(reservations?|holds?|deposits?|funding|orders?)$/i.exec(trimmed);
   if (omitActivity) {
@@ -659,7 +669,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const namedEntryPayment = qualifiedEntryPayment.exec(query);
   if (namedEntryPayment) {
-    const [, prefix, details] = namedEntryPayment;
+    const [, prefix, rawDetails] = namedEntryPayment;
+    const details = rawDetails?.replace(/^(?:of\s+)?exactly\s+(?=[+−-]?\s*\$)/i, "");
     const typed = entries.filter(row => row.entry_type === "ENTRY_DEBIT");
     if (details && amountOnly.test(details)) {
       const matches = amountMatch(details);

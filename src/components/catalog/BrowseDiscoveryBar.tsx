@@ -21,7 +21,7 @@ import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 import { BrowseSearchScope, useBrowseResultsSearch } from "./BrowseResultsSearch";
-import { forgetBrowseFilterTrigger, rememberBrowseCategoryTrigger, rememberBrowseFilterTrigger, requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
+import { forgetBrowseLowerTrigger, rememberBrowseCategoryTrigger, rememberBrowseLowerTrigger, requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
@@ -160,7 +160,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
-      restoreDialogTrigger(opener.current, opener.current?.dataset.browseFilter === "bottom");
+      restoreDialogTrigger(opener.current, opener.current?.dataset.browseFilter === "bottom" || opener.current?.dataset.browseCategories === "bottom");
     };
   }, [panelOpen]);
 
@@ -204,6 +204,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         const nextState = { ...state };
         delete nextState[previewHistoryKey];
         window.history.replaceState(nextState, "", explicit ? "#search-results" : undefined);
+        if (explicit && resume.position === "bottom") rememberBrowseLowerTrigger("categories");
       } else pendingPreview = null;
       opener.current = (resume.position === "top" ? topCategories : bottomCategories).current;
       setPreview(resume.category);
@@ -226,8 +227,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
-    if (next === "filters" && position === "bottom") rememberBrowseFilterTrigger();
-    else forgetBrowseFilterTrigger();
+    if (position === "bottom") rememberBrowseLowerTrigger(next, scrollY);
+    else forgetBrowseLowerTrigger();
     resetPicker(next, position);
   }
   function stopFilterVoice() {

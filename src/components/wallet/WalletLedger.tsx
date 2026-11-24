@@ -231,7 +231,14 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
               ? window.scrollY + row.getBoundingClientRect().top - (supportReturn ? Math.max(headerBottom + 12, saved.rowTop) : saved.rowTop)
               : saved.scrollY;
             window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-            if (saved.filterFocus && document.activeElement !== searchInput.current) {
+            if (saved.entryLink && !supportReturn && row && list?.contains(row)) {
+              const link = Array.from(row.querySelectorAll<HTMLAnchorElement>('a[href]:not([aria-hidden="true"])'))
+                .find(anchor => anchor.getAttribute("href") === saved.entryLink);
+              if (link) {
+                link.focus({ preventScroll: true });
+                revealBelowHeader(link);
+              }
+            } else if (saved.filterFocus && document.activeElement !== searchInput.current) {
               const control = document.querySelector<HTMLElement>(`#wallet-transaction-list-filters [data-ledger-filter="${saved.filter}"]`);
               control?.focus({ preventScroll: true });
               if (control) revealBelowHeader(control);
@@ -262,13 +269,26 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     };
   }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, locale, cancelVoice, bookmarkKey, searchDescription, calendar]);
 
+  function expandedLedgerRows() {
+    return Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? "");
+  }
+
+  function rememberExpandedRows() {
+    if (compact || !walletId) return;
+    const expandedRows = expandedLedgerRows();
+    const saved = readLedgerReturn(window.history.state, walletId, window.location.href, selectedId);
+    // Back can reopen details programmatically. Keep the exact clicked row and link for later Back visits.
+    if (saved?.expandedRows.length === expandedRows.length && saved.expandedRows.every((id, index) => id === expandedRows[index])) return;
+    updateBookmark({ expandedRows });
+  }
+
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
     const bookmark = { [ledgerReturnKey]: {
       walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived, offset: firstRecord,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
-      expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,
+      expandedRows: changes.expandedRows ?? expandedLedgerRows(),
     } };
     window.history.replaceState({ ...window.history.state, ...bookmark }, "");
     if (bookmarkKey) try { sessionStorage.setItem(bookmarkKey, JSON.stringify(bookmark)); } catch { /* History remains usable. */ }
@@ -279,10 +299,12 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
     if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
     const row = anchor.closest("li");
+    const href = anchor.getAttribute("href");
     const saved: LedgerReturn = {
       walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived,
       offset: firstRecord, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
-      expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
+      entryLink: href?.startsWith("/account/entries/") ? href : undefined,
+      expandedRows: expandedLedgerRows(),
     };
     // Merge, rather than replace, Next's own navigation state. Keep the URL and
     // outgoing transaction link unchanged and don't add a Back-button step.
@@ -381,7 +403,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         {selected && notificationReturnHref && <Link href={notificationReturnHref}>← Back to this update</Link>}
         {selected && depositList && !weeklyDeposit && deposit && deposit.amount === entry.amount && <Link href={depositList === "receipt" ? depositRecoveryHref(deposit.requestKey, true) : `/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(deposit.requestKey)}#payment-deposits`}>← Back to this deposit</Link>}
         {links.length === 1 ? <Link href={links[0].href} aria-label={links[0].label === "View entry" ? links[0].label + " for " + (entry.product?.title ?? "this prize") + ", reference ending " + links[0].id.slice(-8).toUpperCase() : undefined}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
-        {links.length > 1 ? <details className={styles.relatedEntries} onToggle={() => updateBookmark({})}>
+        {links.length > 1 ? <details className={styles.relatedEntries} onToggle={rememberExpandedRows}>
           <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
           <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
         </details> : null}
@@ -454,7 +476,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         const sameAmount = matchingAmounts && rows.every(row => row.amount === first.amount);
         const label = hold ? "2 records" : `${rows.length} entries`;
         return <li id={stackId(first)} key={stackId(first)} className={styles.transactionStack}>
-          <details data-transaction-stack open={rows.some(row => row.id === selectedId) || undefined} onToggle={() => updateBookmark({})}>
+          <details data-transaction-stack open={rows.some(row => row.id === selectedId) || undefined} onToggle={rememberExpandedRows}>
             <summary className={styles.stackSummary} data-layers={Math.min(3, rows.length - 1)}>
               <span className={styles.stackLayer} aria-hidden="true" />
               <span className={styles.stackFace}>

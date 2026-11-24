@@ -336,6 +336,14 @@ test.each([
   ["where do I find the access code for a gift card I already claimed", "open-reward"],
   ["why does my $25 gift card say I paid $24", "order-receipt"],
   ["why does my entry show a different time on my phone", "time-zone"],
+  ["where can I go back to paying for an offer after I add money", "purchase-wallet-balance"],
+  ["how do I continue a purchase if my Wallet was empty", "purchase-wallet-balance"],
+  ["can I use my old entry payment toward a different prize", "purchase-options"],
+  ["I saved a new card but it picked my old card for the deposit", "default-card"],
+  ["I bought a gift card, where is the PIN", "open-reward"],
+  ["the phone clock and the order receipt disagree", "time-zone"],
+  ["where is the contact form I already filled out", "support-case"],
+  ["my notification keeps popping up while I shop", "notification-display-time"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

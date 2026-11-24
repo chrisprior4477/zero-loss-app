@@ -34,10 +34,19 @@ test("groups repeats and keeps an older prize accessible beyond 40 entries", () 
   expect(screen.getByText("Entry 6", { exact: true })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Stop Sharing All" })).toBeTruthy();
 });
-test("trash immediately clears only the selected prize and group, with Undo", async () => {
+test("trash reviews only the selected prize and group before clearing, with Undo", async () => {
   render(<CrewSharedPicks {...base} defaultRule={{ audience: "groups", memberIds: [], groupIds: [family, football] }} />);
   fireEvent.change(screen.getByLabelText("Shared with", { selector: "select" }), { target: { value: football } });
-  fireEvent.click(screen.getByRole("button", { name: "Stop sharing all PlayStation 5 entries with Football" }));
+  const trash = screen.getByRole("button", { name: "Stop sharing all PlayStation 5 entries with Football" });
+  fireEvent.click(trash);
+  const review = screen.getByRole("dialog", { name: "Review cleanup" });
+  expect(within(review).getByText("PlayStation 5")).toBeTruthy();
+  expect(within(review).queryByText("Samsung TV")).toBeNull();
+  expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
+  fireEvent.click(within(review).getByRole("button", { name: "Cancel" }));
+  expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
+  fireEvent.click(trash);
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Stop sharing 42 entries" }));
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: football, offeringSlug: "playstation-5-slim", reviewedEntryIds: entries.slice(0, 42).map(entry => entry.id) }));
   fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
   await waitFor(() => expect(actions.undoCrewShareCleanup).toHaveBeenCalledWith("undo-id"));
@@ -109,7 +118,9 @@ test("uncertain cleanup retries the same operation instead of starting another",
   actions.cleanupCrewShares.mockRejectedValueOnce(new Error("offline"));
   render(<CrewSharedPicks {...base} />);
   fireEvent.click(screen.getByRole("button", { name: "Stop sharing all Samsung TV entries with Your Crew" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Retry cleanup" }));
+  const review = within(screen.getByRole("dialog"));
+  fireEvent.click(review.getByRole("button", { name: "Stop sharing 2 entries" }));
+  fireEvent.click(await review.findByRole("button", { name: "Retry cleanup" }));
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledTimes(2));
   expect(actions.cleanupCrewShares.mock.calls[0]).toEqual(actions.cleanupCrewShares.mock.calls[1]);
 });

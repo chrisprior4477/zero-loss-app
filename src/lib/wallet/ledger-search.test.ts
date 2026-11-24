@@ -78,6 +78,14 @@ test("matches deposit card metadata, order references, and compound payment sear
   expect(search("Nov 5 entries that actually posted")).toEqual(["reference-be3ca77a"]);
   expect(search("PlayStation negative $1 charges")).toEqual(["reference-be3ca77a"]);
   expect(search("all funding except Chase")).toEqual(["deposit-discover"]);
+  expect(search("funding receipt from Chase ending in 1117")).toEqual(["deposit-chase"]);
+  expect(search("Chase receipts from Nov 5")).toEqual(["deposit-chase"]);
+  expect(search("Chase receipts from Nov 3")).toEqual([]);
+  expect(search("PlayStation entry charges of exactly $1")).toEqual(["reference-be3ca77a"]);
+  expect(search("November 5 entries excluding holds")).toEqual(["reference-be3ca77a"]);
+  expect(search("Nov 5 confirmed entry charges")).toEqual(["reference-be3ca77a"]);
+  expect(search("charges for entries only")).toEqual(["reference-be3ca77a"]);
+  expect(search("all deposits made with a card ending in 1117")).toEqual(["deposit-chase"]);
   expect(search("receipts for Discover card ending 5556")).toEqual(["deposit-discover"]);
   expect(search("order no. ABCDEF90")).toEqual(["netflix"]);
   expect(search("posted entry costs $1 for PlayStation")).toEqual(["reference-be3ca77a"]);

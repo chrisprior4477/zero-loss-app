@@ -100,9 +100,9 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   const forwardPicker = useRef(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
   const [cleanupAudience, setCleanupAudience] = useState<{ scope: string; label: string } | null>(null);
-  const forwardCleanup = useRef(false);
+  const forwardCleanup = useRef<"choose" | "review" | null>(null);
   const [days, setDays] = useState(30);
-  const [review, setReview] = useState<{ before?: string; entries: OwnCrewEntry[] } | null>(null);
+  const [review, setReview] = useState<{ before?: string; offeringSlug?: string; entries: OwnCrewEntry[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const inFlight = useRef(false);
   useDialogBack(false, () => setPicker(false), false, false, false, audienceHistoryScope, () => {
@@ -122,9 +122,10 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   }, [picker]);
   useDialogBack(false, () => setCleanup(null), false, false, false, cleanupHistoryScope, () => {
     if (!forwardCleanup.current || cleanup || picker || pending || !cleanupAudience) return;
-    forwardCleanup.current = false;
-    setReview(null);
-    setCleanup("choose");
+    const previousStep = forwardCleanup.current;
+    forwardCleanup.current = null;
+    if (previousStep === "choose") setReview(null);
+    setCleanup(previousStep);
   });
   const list = useRef<HTMLDivElement>(null);
   const isShared = (entry: OwnCrewEntry) => entrySharedInScope(entry, scope, defaultRule, rules);
@@ -190,6 +191,12 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     });
   }
   function stopSelection(selection: SharingSelection, audienceLabel = label) { stop({ id: crypto.randomUUID(), selection, label: audienceLabel }); }
+  function reviewPrize(offeringSlug: string, entries: OwnCrewEntry[]) {
+    forwardCleanup.current = null;
+    setCleanupAudience({ scope, label });
+    setReview({ offeringSlug, entries });
+    setCleanup("review");
+  }
   function restore(receipt: UndoReceipt) {
     if (inFlight.current || !hasUndoTime(receipt)) return;
     inFlight.current = true;
@@ -240,23 +247,23 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     {!scopeAvailable ? <p role="alert">That group is no longer available. Choose another audience to continue.</p> : null}
     <div className={styles.toolbar}>
       <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); writePreference("shared-only", e.target.checked); resetList(); }} /> Shared only</label>
-      <button type="button" disabled={disabled} onClick={() => { forwardCleanup.current = false; setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
+      <button type="button" disabled={disabled} onClick={() => { forwardCleanup.current = null; setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
     </div>
-    {status}
+    {!cleanup ? status : null}
     {undoReceipts.map(receipt => <div key={receipt.id} className={styles.notice}>
       <p>{receipt.message} Audience: {receipt.label}.</p><button type="button" disabled={pending} onClick={() => restore(receipt)}>{undoReceipts.length === 1 ? "Undo" : `Undo cleanup for ${receipt.label}`}</button>
     </div>)}
     {undoExpired ? <p role="status">The Undo period ended for a cleanup.</p> : null}
     <div ref={list} className={styles.list}>
       {shown.slice(0, visible).map(({ key, all, rows }) => {
-        const item = all[0], sharedIds = all.filter(isShared).map(entry => entry.id), sharedCount = sharedIds.length, open = expanded === key;
+        const item = all[0], sharedEntries = all.filter(isShared), sharedCount = sharedEntries.length, open = expanded === key;
         return <div key={key} className={styles.stack} data-stacked={all.length > 1}>
           {all.length > 1 ? <span className={styles.thirdLayer} aria-hidden="true" /> : null}
           <article className={styles.ticket}>
             <div className={styles.prize}>
               <div className={styles.image}>{item.image ? <Image src={item.image} alt="" fill sizes="64px" className="object-contain p-1" /> : <span aria-hidden="true">Ø</span>}</div>
               <div className={styles.description}><h3>{item.title}</h3><div className={styles.summary}><p>{all.length} {all.length === 1 ? "entry" : "entries"} · {sharedCount} shared to {label}</p>
-                <button type="button" className={styles.trash} disabled={disabled || !sharedCount || !item.offeringSlug} aria-label={`Stop sharing all ${item.title} entries with ${label}`} title={`Stop sharing this prize with ${label}`} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug, reviewedEntryIds: sharedIds })}><TrashIcon /></button>
+                <button type="button" className={styles.trash} disabled={disabled || !sharedCount || !item.offeringSlug} aria-label={`Stop sharing all ${item.title} entries with ${label}`} title={`Stop sharing this prize with ${label}`} onClick={() => { if (item.offeringSlug) reviewPrize(item.offeringSlug, sharedEntries); }}><TrashIcon /></button>
               </div></div>
             </div>
             <button type="button" className={styles.expand} aria-expanded={open} onClick={() => { toggleStack(open ? null : key); }}>
@@ -271,7 +278,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
               </div>; })}
               {rows.length > entryLimit ? <button type="button" onClick={() => setEntryLimit(n => n + 5)}>Show more entries · {rows.length - entryLimit} remaining</button> : null}
               {entryLimit > 5 ? <button type="button" onClick={() => setEntryLimit(5)}>Close to first five entries</button> : null}
-              <button type="button" className={styles.orange} disabled={disabled || !sharedCount || !item.offeringSlug} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug, reviewedEntryIds: sharedIds })}>Stop Sharing All</button>
+              <button type="button" className={styles.orange} disabled={disabled || !sharedCount || !item.offeringSlug} onClick={() => { if (item.offeringSlug) reviewPrize(item.offeringSlug, sharedEntries); }}>Stop Sharing All</button>
             </div> : null}
           </article>
         </div>;
@@ -292,23 +299,27 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     </CrewSharingDialog> : null}
     {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }} busy={pending} historyScope={cleanupHistoryScope}
       onBack={() => {
-        if (cleanup === "review") { setCleanup("choose"); return true; }
-        forwardCleanup.current = true;
+        if (cleanup === "review" && !review?.offeringSlug) { setCleanup("choose"); return true; }
+        forwardCleanup.current = cleanup;
         setCleanup(null);
       }}>
       <div className={styles.cleanup}>
         <div className={styles.scope}><small>CLEAN UP SHARING TO</small><h3>{cleanupLabel}</h3></div>
         {!cleanupAvailable ? <p role="alert">This group is no longer available. Nothing will be cleaned up. Close this review and choose a current audience.</p> : null}
         {cleanup === "choose" ? <><h3>Stop sharing older picks</h3><p>Choose how long ago they were shared.</p><div className={styles.ages}>{ages.map(([age, text]) => <button type="button" key={age} aria-pressed={days === age} onClick={() => setDays(age)}>{text}</button>)}</div><p><strong>{selectedAge}</strong><br />{previewMatches.length} {previewMatches.length === 1 ? "entry matches" : "entries match"}.</p></>
-          : <><p><strong>{selectedAge}</strong><br />Stop sharing {candidates.length} {candidates.length === 1 ? "entry" : "entries"} with {cleanupLabel}?</p><div className={styles.reviewList}>{Array.from(reviewCounts, ([key, { title, count }]) => <p key={key}><span>{title}</span><strong>{count}</strong></p>)}</div></>}
+          : <><p>{!review?.offeringSlug && <><strong>{selectedAge}</strong><br /></>}Stop sharing {candidates.length} {candidates.length === 1 ? "entry" : "entries"} with {cleanupLabel}?</p><div className={styles.reviewList}>{Array.from(reviewCounts, ([key, { title, count }]) => <p key={key}><span>{title}</span><strong>{count}</strong></p>)}</div></>}
         <p className={styles.explanation}>Your tickets, offers, rewards, and saved groups stay. Other sharing audiences stay as they are.</p>
         {status}
         <button className={styles.orange} type="button" disabled={disabled || !cleanupAvailable || !(cleanup === "choose" ? previewMatches : candidates).length} onClick={() => {
           if (!cleanupAvailable) return;
           if (cleanup === "choose") { setReview({ before: previewBefore, entries: previewMatches }); setCleanup("review"); }
-          else if (review) stopSelection({ scope: cleanupScope, before: review.before, reviewedEntryIds: review.entries.map(entry => entry.id) }, cleanupLabel);
+          else if (review) stopSelection({
+            scope: cleanupScope,
+            ...(review.offeringSlug ? { offeringSlug: review.offeringSlug } : { before: review.before }),
+            reviewedEntryIds: review.entries.map(entry => entry.id),
+          }, cleanupLabel);
         }}>{cleanup === "choose" ? "Review cleanup" : `Stop sharing ${candidates.length} ${candidates.length === 1 ? "entry" : "entries"}`}</button>
-        <button type="button" disabled={pending} onClick={() => !cleanupAvailable || cleanup === "choose" ? setCleanup(null) : setCleanup("choose")}>{!cleanupAvailable ? "Close review" : cleanup === "choose" ? "Cancel" : "Change selection"}</button>
+        <button type="button" disabled={pending} onClick={() => !cleanupAvailable || cleanup === "choose" || review?.offeringSlug ? setCleanup(null) : setCleanup("choose")}>{!cleanupAvailable ? "Close review" : cleanup === "choose" || review?.offeringSlug ? "Cancel" : "Change selection"}</button>
       </div>
     </CrewSharingDialog> : null}
   </section>;
