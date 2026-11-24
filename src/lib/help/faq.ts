@@ -165,7 +165,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. Confirmed payments shows purchases with a recorded checkout payment. A win can appear under All or Issued without a checkout payment. If two orders name the same prize, compare the order number, date, and Paid at checkout. The gift-card value is the amount issued on the card. For a purchase option, your original entry payment applies to that option. If a $25 gift card shows $24 paid at checkout, the original $1 entry payment covers the difference. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. Confirmed payments shows purchases with a recorded checkout payment. Choose Order details there to check a paid order’s status. A win can appear under All or Issued without a checkout payment. If two orders name the same prize, compare the order number, date, and Paid at checkout. The gift-card value is the amount issued on the card. For a purchase option, your original entry payment applies to that option. If a $25 gift card shows $24 paid at checkout, the original $1 entry payment covers the difference. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -299,7 +299,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "stop-receiving-shares", category: "account", question: "How do I stop someone from sharing prizes with me?",
-    answer: "Open a prize in Shared with You and select Open prize details. In Sharing options, turn off Receive shared picks for the source shown and save. Older saved picks without a sender or group link show a link to your general sharing preferences.",
+    answer: "Open a prize in Shared with You and select Open prize details. In Sharing options, turn off Receive shared picks for the source shown and save. You can do this while staying in the group. Older saved picks without a sender or group link show a link to your general sharing preferences.",
     keywords: "stop receiving shared picks prizes someone sends crew group",
     action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
   },
@@ -402,7 +402,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "posted-and-pending", category: "wallet", question: "What is the difference between posted and pending?",
-    answer: "A pending entry can reserve part of your playable balance. It counts under Open Entries after you confirm it. A reservation release returns the held amount to your playable balance. Transaction history can show the original reservation, its release, and the posted entry payment separately. Compare the status and amounts. If two payments actually posted for the same entry, use Report a problem on the affected transaction. For a pending deposit, check the existing request in Payment deposits before trying again.",
+    answer: "A pending entry can reserve part of your Playable Wallet balance. That reservation is held in the Wallet. Deposits to the Wallet are separate. The entry counts under Open Entries after you confirm it. A reservation release returns the held amount to your playable balance. Transaction history can show the original reservation, its release, and the posted entry payment separately. Compare the status and amounts. If two payments actually posted for the same entry, use Report a problem on the affected transaction. For a pending deposit, check the existing request in Payment deposits before trying again.",
     keywords: "posted vs pending payment ledger hold reserved request status",
     action: { label: "Open transaction history", href: walletTransactionsHref },
     followUpAction: { label: "Open Payment deposits", href: walletDepositsHref },
@@ -476,7 +476,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "entry-after-funding", category: "entries", question: "Why did the entry quantity change after I added funds?",
-    answer: "Use the funding confirmation to return to the same prize. The selected quantity is carried back, but fewer spaces may be available if other entries came in while you were funding. Check the current quantity, total, and wallet balance before confirming. Funding alone does not submit entries.",
+    answer: "After Add funds confirms the deposit, choose the link on that confirmation, such as Back to this prize or Continue your entry. The selected quantity is carried back, but fewer spaces may be available if other entries came in while you were funding. Check the current quantity, total, and wallet balance before confirming. Funding alone does not submit entries.",
     keywords: "quantity changed after funding added funds checkout spaces capacity",
     action: { label: "Open My Activity", href: "/account/entries#my-activity-filters" },
   },
@@ -581,6 +581,14 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bstatus\b.*\b(?:purchase|order)\b.*\b(?:already )?paid\b/, "order-receipt"],
+  [/\b(?:closed?|cancel(?:l?ed)?)\b.*\b(?:funding|deposit|add funds) review\b.*\bbefore confirm(?:ing|ation)?\b/, "deposit-cancellation"],
+  [/\bpending entr(?:y|ies)\b.*\b(?:held|reserved)\b.*\b(?:wallet|balance)\b.*\bcard\b/, "posted-and-pending"],
+  [/\b(?:money|balance|entry payment|credit)\b.*\b(?:remove|decline)\b.*\b(?:purchase options?|offers?)\b/, "decline-and-revive"],
+  [/\b(?:get back|go back|return)\b.*\b(?:product|prize)\b.*\benter\b.*\bafter add(?:ing|ed)? (?:money|funds)\b/, "entry-after-funding"],
+  [/\b(?:reply|response)\b.*\b(?:report|case)\b.*\b(?:sent|submitted|opened)\b/, "support-case"],
+  [/\b(?:reward|gift[ -]?card)\b.*\bclaimed\b.*\b(?:cannot find|missing|where)\b.*\b(?:card number|pin|code)\b/, "open-reward"],
+  [/\b(?:stop|pause|block)\b.*\b(?:sending|receiv(?:e|ing))\b.*\b(?:picks|prizes)\b.*\bwithout leaving\b/, "stop-receiving-shares"],
   [/\b(?:which|what)\b.*\b(?:entries|tickets)\b.*\bundo\b.*\b(?:remove|cancel)\b/, "undo-entry"],
   [/\b(?:prize|pool) (?:filled|closed)\b.*\bbefore (?:i )?paid\b.*\b(?:balance|money|funds)\b/, "entry-status"],
   [/\b(?:change|switch|use|choose)\b.*\b(?:payment|saved|sample) cards?\b.*\bwithout\b.*\bdefault\b/, "choose-deposit-card"],

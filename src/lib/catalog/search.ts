@@ -33,7 +33,10 @@ export function searchCatalogMatches(
     .replace(/^only\s+(.+?)\s+with photos\b/i, "pictured $1")
     .replace(/^shown with (?:a )?picture\s+(?:from|at)\s+/i, "pictured ")
     .replace(/^(?:a\s+)?(tvs?|televisions?)\s+measuring\s+(?=between\b)/i, "$1 ")
-    .replace(/\b(?:with (?:tickets? available(?:\s+now)?|(?:tickets?|entries)\s+left)|(?:that|which)\s+(?:(?:still\s+)?have\s+available\s+tickets?|still\s+have\s+(?:tickets?|entries)(?:\s+left)?)|(?:has|have)\s+(?:tickets?|entries)\s+left)\s*[.!?]?$/i, " available")
+    .replace(/^(tvs?|televisions?)\s+from\s+(.+?)\s+with\s+screens?\s+(between\s+\d+(?:\.\d+)?\s+and\s+\d+(?:\.\d+)?\s+inch(?:es)?)\s*[.!?]?$/i, "$1 $3 from $2")
+    .replace(/^entr(?:y|ies)\s+for\s+((?:under|below|less than|at most|up to)\s+\$\s*[\d,.]+)\s+for\s+(.+)$/i, "$2 $1 per entry")
+    .replace(/\b(?:with (?:tickets? available(?:\s+now)?|(?:tickets?|entries)\s+(?:left|still open))|(?:that|which)\s+(?:(?:still\s+)?have\s+available\s+tickets?|still\s+have\s+(?:tickets?|entries)(?:\s+left)?)|(?:has|have)\s+(?:tickets?|entries)\s+left)\s*[.!?]?$/i, " available")
+    .replace(/(\bgift cards?\b.*\$\s*\d[\d,.]*)\s+per card\s*[.!?]?$/i, "$1")
     .replace(/\b(gift cards?)\s+for\s+(?=(?:less than|under|below|at most|up to)\s+\$)/i, "$1 ")
     .replace(/\bstill open\s*[.!?]?$/i, " available")
     .replace(/\bat\s+(\$\s*\d[\d,.]*?)\s+or\s+below\s*[.!?]?$/i, "up to $1")
@@ -482,8 +485,15 @@ function qualifiedGiftAlternatives(query: string, products: readonly DemoProduct
       return retailers.map(merchant => ({ ...price, text: "gift card", merchant, exactOnly: true }));
     }
   }
-  const clauses = query.split(/\s+(?:or|and)\s+/i);
-  if (clauses.length < 2 || !/\bgift card\b/.test(normalizeSearch(clauses[0]))) return null;
+  const soldBy = /^gift cards?\s+sold by\s+(.+)$/i.exec(query.trim());
+  const clauses = (soldBy?.[1] ?? query).split(/\s+(?:or|and)\s+/i);
+  if (clauses.length < 2) return null;
+  if (soldBy) {
+    const amounts = clauses.map(clause => /^(?:by\s+)?(.+?)\s+for\s+(\$\s*[\d,.]+)\s*[.!?]?$/i.exec(clause));
+    if (!amounts.every(clause => clause && catalogMerchant(clause[1], products))) return null;
+    return qualifiedGiftAlternatives(amounts.map(clause => clause![2] + " " + clause![1] + " gift card").join(" or "), products);
+  }
+  if (!/\bgift card\b/.test(normalizeSearch(clauses[0]))) return null;
   const parts = clauses.map(clause => {
     const part = searchDenominations(clause, products);
     const terms = normalizeSearch(part.text);

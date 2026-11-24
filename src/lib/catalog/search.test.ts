@@ -223,6 +223,20 @@ test.each([
   expect(searchCatalog(demoProducts, query).map(product => product.slug).sort()).toEqual(slugs);
 });
 
+test.each([
+  ["Walmart or Target gift cards under $50 per card","Walmart or Target gift cards under $50"],
+  ["Target or Walmart gift cards under $50 with a maximum of 2 entries left","Target or Walmart gift cards under $50 with at most 2 entries left"],
+  ["gift cards sold by Walmart for $25 and by Target for $75","Walmart $25 gift card or Target $75 gift card"],
+  ["TVs from Best Buy with screens between 50 and 70 inches","TVs between 50 and 70 inches from Best Buy"],
+  ["Dyson vacuums under $400 with entries still open","available Dyson vacuums under $400"],
+  ["entries for under $2 for Sony headphones","Sony headphones under $2 per entry"],
+])("retains all constraints for %s", (phrase, baseline) => {
+  const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
+  const expected = slugs(baseline);
+  expect(expected.length).toBeGreaterThan(0);
+  expect(slugs(phrase)).toEqual(expected);
+});
+
 describe("catalog search", () => {
   test("typing available filters out a sold-out product with the same search name", () => {
     const pictured = demoProducts.find(product => product.slug === "sony-wh-1000xm5-headphones")!;

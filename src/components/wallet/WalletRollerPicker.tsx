@@ -168,7 +168,11 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
     if (focusAfterReturn) {
       const href = window.location.href;
       const restore = () => requestAnimationFrame(() => {
-        if (window.location.href === href && focusAfterReturn.isConnected && document.activeElement === document.body) {
+        if (window.location.href !== href || !focusAfterReturn.isConnected) return;
+        const active = document.activeElement;
+        if (preservePageScroll && (active === focusAfterReturn || active === document.body)) {
+          restoreDialogTrigger(focusAfterReturn, true);
+        } else if (active === document.body) {
           focusAfterReturn.focus({ preventScroll: true });
         }
       });

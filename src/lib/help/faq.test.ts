@@ -362,6 +362,14 @@ test.each([
   ["my friend can see an entry that I wanted to keep private", "crew-sharing"],
   ["where is the reference number for the card in my order", "open-reward"],
   ["where do I see why my order was canceled", "order-issuance"],
+  ["where do I find the status of the purchase I already paid for", "order-receipt"],
+  ["i closed the funding review before confirming does the card still get charged", "deposit-cancellation"],
+  ["is money for a pending entry held in the wallet or charged to my card", "posted-and-pending"],
+  ["what happens to the money if i remove one of my purchase options", "decline-and-revive"],
+  ["how do i get back to the product i was trying to enter after adding money", "entry-after-funding"],
+  ["where will i get a reply to the report i sent with a wallet receipt", "support-case"],
+  ["the reward says claimed but i can’t find the card number", "open-reward"],
+  ["how do i stop somebody sending me more picks without leaving the group", "stop-receiving-shares"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

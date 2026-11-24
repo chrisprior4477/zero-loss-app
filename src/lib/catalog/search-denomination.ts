@@ -275,6 +275,7 @@ const trailingTicketMaximum = new RegExp(String.raw`\b(${ticketCount})\s+(${tick
 const ticketBeforeMaximum = new RegExp(String.raw`\b(${ticketCount})\s+(${ticketNouns})\s+or\s+(?:fewer|less)\s+(${ticketAvailability})\b`, "i");
 const ticketChoices = new RegExp(String.raw`${ticketPrefix}(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
 const repeatedTicketChoice = new RegExp(String.raw`(\b${ticketCount})${ticketUnits}(?=\s+or\s+${ticketCount}${ticketUnits})`, "gi");
+const statedTicketMaximum = new RegExp(String.raw`\b(?:a\s+)?maximum of\s+(?=${ticketCount}\s+${ticketNouns}\s+${ticketAvailability}\b)`, "i");
 const ticketPlusMinimum = new RegExp(String.raw`\b(\d+)\+\s+(?=${ticketNouns}\s+${ticketAvailability}\b)`, "gi");
 
 function ticketBounds(comparison: string | undefined, count: string) {
@@ -297,6 +298,7 @@ export function remainingTicketFilter(query: string) {
     .replace(remainingBeforeTicket, "$1 $2 remaining")
     .replace(ticketBeforeMaximum, "at most $1 $2 $3")
     .replace(trailingTicketMaximum, "at most $1 $2 left")
+    .replace(statedTicketMaximum, "at most ")
     .replace(/\bonly with\s+(?=(?:one|1)\s+spot\b)/i, "with ")
     .replace(/\b(with\s+(?:only\s+)?(?:one|1)\s+spot)\s*[.!?]?$/i, "$1 left");
   if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;

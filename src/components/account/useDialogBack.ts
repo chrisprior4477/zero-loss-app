@@ -14,12 +14,17 @@ function consumeHistoryStep(key: string, id: string, href: string) {
 export function useDialogBack(open: boolean, onClose: () => void | true, blocked = false, consumeOnUnmount = false, nested = false, scope?: string, onForward?: () => void) {
   const key = scope ? `${stateKey}-${scope}` : nested ? stateKey + "Nested" : stateKey;
   const marker = useRef<{ id: string; href: string } | null>(null);
+  const forwardMarker = useRef<{ id: string; href: string } | null>(null);
   const restoreOnForward = useEffectEvent(() => onForward?.());
   const canRestore = Boolean(onForward);
   useLayoutEffect(() => {
     if (!canRestore || open) return;
     function restore() {
-      if (typeof window.history.state?.[key] === "string") restoreOnForward();
+      const id = window.history.state?.[key];
+      if (typeof id === "string") {
+        forwardMarker.current = { id, href: window.location.href };
+        restoreOnForward();
+      }
     }
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
@@ -33,11 +38,18 @@ export function useDialogBack(open: boolean, onClose: () => void | true, blocked
   useLayoutEffect(() => {
     if (!open) return;
     const href = window.location.href;
-    const id = crypto.randomUUID();
+    const restored = forwardMarker.current;
+    forwardMarker.current = null;
+    const existing = window.history.state?.[key];
+    // Nested history entries still refer to the original parent ID.
+    const reuse = restored?.href === href && restored.id === existing;
+    const id = reuse ? restored.id : crypto.randomUUID();
     marker.current = { id, href };
-    const state = { ...window.history.state, [key]: id };
-    if (window.history.state?.[key]) window.history.replaceState(state, "", href);
-    else window.history.pushState(state, "", href);
+    if (!reuse) {
+      const state = { ...window.history.state, [key]: id };
+      if (existing) window.history.replaceState(state, "", href);
+      else window.history.pushState(state, "", href);
+    }
     const back = (event: PopStateEvent) => {
       if (window.location.href !== href || window.history.state?.[key] === id) return;
       const previous = programmaticReturns.get(event);

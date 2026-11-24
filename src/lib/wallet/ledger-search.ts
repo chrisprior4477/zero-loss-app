@@ -311,10 +311,15 @@ function newest<T extends LedgerEntryRow>(rows: T[]) {
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
-    .replace(/^(?:please\s+)?show(?: me)?\s+/i, "")
+    .replace(/^(?:please\s+)?show(?: me)?\s+(?:my\s+)?/i, "")
+    .replace(/^(.+?\s+orders?)\s+paid\s+(?=on\b)/i, "$1 ")
+    .replace(/^(\$\s*[\d,.]+)\s+(.+?)\s+(deposits?|funding)(?=\s+(?:on|before|after|since)\b)/i, "$3 $2 $1")
+    .replace(/^(.+?)\s+entr(?:y|ies)\s+without\s+(?:pending\s+)?(?:reservations?|holds?)[.!?]?$/i, "$1 posted entry payments")
+    .replace(/^(.+?)\s+ticket charges?\s+(?:from|over|in)\s+(?:the\s+)?(last (?:7|30) days)[.!?]?$/i, "entry payments $1 $2")
+    .replace(/^(?:all\s+)?(deposits?|funding)\s+(?:except(?: for)?|excluding)\s+(?:(?:the\s+)?ones?\s+for\s+)?(?=\$)/i, "$1 other than ")
     .replace(/^(purchases?)\s+from\s+(.+?)(?=\s+(?:(?:that|which)\s+)?posted\s+on\b)/i, "$2 $1")
     .replace(/^(.+?)\s+card\s+(deposits?|funding)\s+(?=on\b)/i, "$2 $1 ")
-    .replace(/^(.+?)\s+reservations?\s+(?:(?:that|which)\s+)?(?:were|was)\s+released[.!?]?$/i, "released holds $1")
+    .replace(/^(.+?)\s+(?:entry\s+)?(?:reservations?|holds?)\s+(?:(?:that|which)\s+)?(?:(?:were|was)\s+)?released(?=\s+(?:before|after|on|since|in)\b|\s*[.!?]?$)/i, "released holds $1")
     .replace(/^posted\s+(.+?)\s+charges?\s+(?:minus|negative)\s+(\$\s*[\d,.]+)$/i, "posted amount -$2 $1")
     .replace(/^(?:all\s+)?(purchases?)\s+over\s+the\s+last\s+week[.!?]?$/i, "$1 last 7 days")
     .replace(/^(?:all\s+)?funding\s+transactions?\s+(?=other than\b)/i, "deposits ")
@@ -401,7 +406,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer) && checks.some(check => check(entry.amount)));
     }
   }
-  const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+(?:on|from)\s+(.+?)(?:,\s+not|\s+(?:except(?: for)?|excluding))\s+(.+?)[.!?]?$/i.exec(trimmed);
+  const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+(?:on|from)\s+(.+?)(?:,\s+not|\s+(?:except(?: for)?|excluding|other than))\s+(.+?)[.!?]?$/i.exec(trimmed);
   const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)(?:\s+on\s+(.+?))?[.!?]?$/i.exec(trimmed);
   if (datedIssuerExclusion || excludedIssuer) {
     const name = datedIssuerExclusion?.[2] ?? excludedIssuer?.[1] ?? "";

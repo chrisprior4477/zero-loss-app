@@ -102,7 +102,18 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
     queueMicrotask(() => { if (openCycle) setReplaceDrawerStep(ownsStep); });
     return () => { openCycle = false; };
   }, [open]);
-  const dismiss = useCallback(() => { endDrawerHistory(); setOpen(false); }, [endDrawerHistory]);
+  const dismiss = useCallback(() => {
+    const href = window.location.href;
+    const restore = () => requestAnimationFrame(() => {
+      if (window.location.href === href && document.activeElement === document.body) {
+        restoreDialogTrigger(triggerRef.current);
+      }
+    });
+    window.addEventListener("popstate", restore, { once: true });
+    window.setTimeout(() => window.removeEventListener("popstate", restore), 650);
+    endDrawerHistory();
+    setOpen(false);
+  }, [endDrawerHistory]);
 
   useEffect(() => {
     // Includes browser Back/Forward and query-only navigation.

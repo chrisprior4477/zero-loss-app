@@ -512,4 +512,11 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("posted PlayStation charges minus $1")).toEqual(["entry", "later-entry"]);
   expect(search("all purchases over the last week")).toEqual(["later-entry"]);
   expect(search("funding transactions other than $160")).toEqual(["wells", "day-four"]);
+  expect(search("all deposits except the ones for $160")).toEqual(["wells", "day-four"]);
+  expect(search("Netflix orders paid on November 5")).toEqual(["netflix"]);
+  expect(search("show my $160 Chase deposits on Nov 5")).toEqual(["deposit"]);
+  expect(search("deposits on November 5 other than Discover")).toEqual(["deposit"]);
+  expect(search("PlayStation entry reservations released before November 6")).toEqual(["release"]);
+  expect(search("PlayStation entries without pending reservations")).toEqual(["entry", "big-entry", "later-entry"]);
+  expect(search("PlayStation ticket charges from the last 7 days")).toEqual(["later-entry"]);
 });

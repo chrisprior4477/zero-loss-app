@@ -118,6 +118,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const [deleteDeadline, setDeleteDeadline] = useState(0);
   const pendingCardRemoval = useRef<{ token: DemoCardToken; deadline: number; revision?: string } | null>(null);
   const deleteRevision = useRef<string | undefined>(undefined);
+  const deleteOpener = useRef<{ control: HTMLButtonElement; href: string; top: number } | null>(null);
   const [deletingCard, setDeletingCard] = useState(false);
   const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   const [editingCard, setEditingCard] = useState<DemoCardToken | null>(null);
@@ -342,7 +343,13 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
   useEffect(() => {
+    let currentHref = window.location.href;
     function syncEditor(event?: Event) {
+      const href = window.location.href;
+      const sameLocation = currentHref === href;
+      currentHref = href;
+      // A confirmation's history step leaves the open card list in place.
+      if (event?.type === "popstate" && sameLocation) return;
       if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
         savedCardsReturn.current = window.history.state?.fundingSavedCardsReturn ?? null;
         const opener = window.history.state?.fundingSavedCardsOpener;
@@ -404,7 +411,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   }
   useDialogBack(mobile && Boolean(deleteToken), () => {
     if (deleteToken) pendingCardRemoval.current = { token: deleteToken, deadline: deleteDeadline, revision: deleteRevision.current };
-    closeDeleteDialog();
+    dismissDeleteDialog();
   }, deletingCard, true, false, "funding-card-delete", () => {
     const review = pendingCardRemoval.current;
     if (mobile && !locked && !cardUnavailable && review && Date.now() < review.deadline && cards.some(card => card.token === review.token && card.revision === review.revision)) {
@@ -413,6 +420,20 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   });
   function closeDeleteDialog() {
     setDeleteToken(null);
+  }
+  function dismissDeleteDialog() {
+    closeDeleteDialog();
+    const origin = deleteOpener.current;
+    if (!mobile || !origin) return;
+    const restore = () => {
+      if (deleteOpener.current !== origin || !origin.control.isConnected || window.location.href !== origin.href || document.querySelector("dialog[open]")) return;
+      const active = document.activeElement;
+      if (active !== document.body && active !== origin.control && active?.id !== "add-card") return;
+      origin.control.focus({ preventScroll: true });
+      window.scrollTo({ top: origin.top, behavior: "instant" });
+    };
+    requestAnimationFrame(restore);
+    window.setTimeout(restore, 100);
   }
   async function confirmDeleteCard() {
     if (!deleteToken || deletingCard) return;
@@ -560,10 +581,13 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         const cardName = fixture ? fixture.issuer + " ending " + fixture.lastFour : "sample card";
         return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage} parentHistory initialDeadline={deleteDeadline || undefined}
           mobileCard={mobile && fixture ? `${fixture.issuer} •••• ${fixture.lastFour}` : undefined}
-          onUndo={closeDeleteDialog} onReview={() => refreshDeletion(token)} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
+          onUndo={dismissDeleteDialog} onReview={() => refreshDeletion(token)} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
           {allSamplesSaved ? <button type="button" id={"funding-edit-saved-" + token} aria-label={"Edit " + cardName} className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={event => addCard(token, event.currentTarget)}>Edit</button> : null}
-          {saved ? <button type="button" aria-label={"Delete Card " + cardName} className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => reviewCardRemoval(token)}>Delete Card</button> : null}
+          {saved ? <button type="button" aria-label={"Delete Card " + cardName} className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={event => {
+            deleteOpener.current = mobile ? { control: event.currentTarget, href: window.location.href, top: window.scrollY } : null;
+            reviewCardRemoval(token);
+          }}>Delete Card</button> : null}
         </>}>
           <label className={styles.cardChoice}><input type="radio" name="cardChoice" aria-label={"Use " + cardName + " for this deposit"} checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
