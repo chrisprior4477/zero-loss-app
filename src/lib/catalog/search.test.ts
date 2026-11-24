@@ -911,3 +911,31 @@ test("an excluded denomination applies to every retailer in the list", () => {
   expect(first.every(product => product.value !== 25 && ["Walmart", "Target"].some(retailer => matchesCatalogMerchant(product.retailer, retailer)))).toBe(true);
   expect(first.map(product => product.slug).sort()).toEqual(last.map(product => product.slug).sort());
 });
+
+test.each([
+  ["Walmart or Amazon gift cards no higher than $50", "gift cards from Walmart or Amazon up to $50"],
+  ["headphones made by Sony or JBL", "Sony or JBL headphones"],
+  ["gift cards anywhere except Walmart under $50", "gift cards under $50 excluding Walmart"],
+  ["gift cards that are not gas under $50", "gift cards under $50 excluding gas"],
+  ["electronics under $500, excluding retailers Walmart and Target", "electronics under $500, excluding Walmart and Target"],
+  ["all electronics above $100", "electronics over $100"],
+  ["gift cards only with 1 spot", "gift cards with 1 ticket left"],
+  ["Target prizes with at least one entry remaining but under five", "Target prizes with at least one but fewer than five tickets left"],
+  ["dollar entry for Target gift cards", "Target gift cards $1 per entry"],
+  ["prizes priced at over $100 but below $500", "prizes over $100 but below $500"],
+])("preserves the constraints in %s", (query, equivalent) => {
+  const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+  expect(slugs(query)).not.toHaveLength(0);
+  expect(slugs(query)).toEqual(slugs(equivalent));
+});
+
+test("excludes Amazon gift cards without dropping other catalog items", () => {
+  const result = searchCatalog(demoProducts, "anything except Amazon gift cards");
+  expect(result).toEqual(demoProducts.filter(product => product.retailer !== "Amazon" || !product.slug.endsWith("-gift-card")));
+});
+
+test("a TV size search can exclude accessories", () => {
+  const result = searchCatalog(demoProducts, "show 50-inch televisions excluding accessories");
+  expect(result).not.toHaveLength(0);
+  expect(result.every(product => /50(?:-inch|").+tv/i.test(product.title) && !product.slug.endsWith("-gift-card"))).toBe(true);
+});

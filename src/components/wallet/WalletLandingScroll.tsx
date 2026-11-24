@@ -56,6 +56,12 @@ export function LegacyWalletFragment() {
     const recover = () => {
       const url = new URL(window.location.href);
       if (url.pathname !== "/account/wallet" || url.searchParams.has("reward") || url.searchParams.has("rewardId")) return;
+      const rewardAnchors = url.hash.slice(1).split("#");
+      if (url.searchParams.get("rewards") === "expired" && rewardAnchors.length > 1
+        && rewardAnchors.every(anchor => anchor === "reward-history" || anchor === "expired-rewards")) {
+        url.hash = "reward-history";
+        window.history.replaceState(window.history.state, "", url.href);
+      }
       const panel = { "#transactions": "transactions", "#add-funds": "funding", "#payment-methods": "methods",
         "#wallet-add-card": "card", "#payment-deposits": "deposits" }[url.hash];
       if (!panel || url.searchParams.get("view") === "history") return;

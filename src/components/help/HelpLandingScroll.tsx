@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
 export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false, settlePrefixedAnchor = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string | readonly string[]; focusAnchorPrefix?: string | readonly string[]; missingAnchorTarget?: string; focusOnArrival?: boolean; settlePrefixedAnchor?: boolean }) {
@@ -38,6 +39,11 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
           const destinationId = prefixed && missingAnchorTarget && !document.getElementById(id) && !id.startsWith("faq-") ? missingAnchorTarget : id;
           const element = document.getElementById(destinationId);
           if (!element) return;
+          const active = document.activeElement;
+          if (target === "product-request" && active instanceof HTMLElement && active.id === "requested-item" && element.contains(active)) {
+            revealBelowHeader(active);
+            return;
+          }
           if (anchors.length > 1 || destinationId !== id) window.history.replaceState(window.history.state, "", `#${destinationId}`);
           if (prefixed && element instanceof HTMLDetailsElement) element.open = true;
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });

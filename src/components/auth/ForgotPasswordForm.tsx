@@ -24,6 +24,12 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
   const submitButton = useRef<HTMLButtonElement>(null);
   const emailField = useRef<HTMLInputElement>(null);
   const restoreSubmitFocus = useRef(false);
+  function rememberRecoveryEmail(address: string) {
+    try {
+      const draft = address.length <= 254 ? { email: address, destination, expires: Date.now() + 300_000, href: location.href } : null;
+      history.replaceState({ ...history.state, zeroLossRecoveryEmail: draft }, "");
+    } catch { /* Recovery also works without browser history state. */ }
+  }
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
@@ -83,6 +89,7 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
           setEmail(event.target.value);
           setSubmittedEmail(null);
           setInvalidEmail(false);
+          rememberRecoveryEmail(event.target.value);
         }} className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10" />
         {invalidEmail ? <p id="recovery-email-error" role="alert" className="mt-2 text-sm text-red-100">Enter a valid email address.</p> : null}
       </div>
@@ -90,11 +97,9 @@ export function ForgotPasswordForm({ expired = false, signInHref, returnTo }: { 
       <button ref={submitButton} type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending && currentRequest ? "Sending…" : feedback.status === "sent" ? "Resend reset email" : "Send reset email"}</button>
       <p className="text-xs leading-5 text-white/55">You can request another link if it doesn&apos;t arrive. Please wait a minute between requests.</p>
       <Link href={signInHref} onNavigate={() => {
+        rememberRecoveryEmail(email);
         try {
           const expires = Date.now() + 300_000;
-          if (email.length <= 254) {
-            history.replaceState({ ...history.state, zeroLossRecoveryEmail: { email, destination, expires, href: location.href } }, "");
-          }
           sessionStorage.removeItem("zero-loss-login-email");
           if (email.length <= 254 && emailField.current?.validity.valid) {
             sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email: email.trim(), destination, expires }));

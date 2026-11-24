@@ -409,3 +409,47 @@ test("finds signed movements, exact dates and reservation states without changin
   expect(search("50c")).toEqual(["cents"]);
   expect(search("deposit $25 or refund $25")).toEqual(["deposit", "refund"]);
 });
+
+test("keeps wallet searches scoped to their posted record type, card, amount and dates", () => {
+  const created_at = "2026-11-06T02:05:00Z";
+  const playstation = { title: "PlayStation 5 Slim", slug: "playstation-5-slim", retailer: "Best Buy", image: "/item.png" };
+  const netflix = { ...playstation, title: "$25 Netflix Gift Card", slug: "netflix-25-gift-card", retailer: "Netflix" };
+  const walmart = { ...playstation, title: "$100 Walmart Gift Card", slug: "walmart-100-gift-card", retailer: "Walmart" };
+  const entries: LedgerEntryRow[] = [
+    { id: "deposit", entry_type: "DEPOSIT", amount: 16000, created_at },
+    { id: "wells", entry_type: "DEPOSIT", amount: 5000, created_at: "2026-11-03T15:00:00Z" },
+    { id: "day-four", entry_type: "DEPOSIT", amount: 2500, created_at: "2026-11-04T15:00:00Z" },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at, product: playstation },
+    { id: "big-entry", entry_type: "ENTRY_DEBIT", amount: -200, created_at, product: playstation },
+    { id: "later-entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-22T15:00:00Z", product: playstation },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, created_at, product: playstation },
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at, product: playstation },
+    { id: "netflix", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: netflix },
+    { id: "walmart", entry_type: "PURCHASE_DEBIT", amount: -9900, created_at, orderNumber: "ord_1a514c4f", product: walmart },
+    { id: "mismatched-walmart", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: walmart },
+  ];
+  const search = (query: string) => searchLedger(entries, query, row => [
+    ...ledgerDescription(row.entry_type, row.product?.title),
+    row.id === "deposit" ? "Chase •••• 1117" : row.id === "wells" ? "Wells Fargo •••• 0002" : "",
+  ], entries, { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-24T20:00:00Z") }).map(row => row.id);
+  expect(search("1 USD PlayStation posted")).toEqual(["entry", "later-entry"]);
+  expect(search("paid Netflix $24 or Walmart $99")).toEqual(["netflix", "walmart"]);
+  expect(search("orders for the Netflix $25 gift card")).toEqual(["netflix"]);
+  expect(search("deposits made without Wells Fargo")).toEqual(["deposit"]);
+  expect(search("entries since Nov 5 but before November 7")).toEqual(["entry", "big-entry"]);
+  expect(search("between Nov 2 and 5 funding")).toEqual(["deposit", "wells", "day-four"]);
+  expect(search("deposits on both Nov 3 and Nov 5")).toEqual(["deposit", "wells"]);
+  expect(search("after 8 pm on Nov 5 entry payments")).toEqual(["entry", "big-entry"]);
+  expect(search("Nov deposits from Chase")).toEqual(["deposit"]);
+  expect(search("November funding after 8 pm")).toEqual(["deposit"]);
+  expect(search("show entries since Nov 21")).toEqual(["later-entry"]);
+  expect(search("purchases made on Nov 5")).toEqual(search("purchases on Nov 5"));
+  expect(search("purchases made on Nov 5")).toContain("netflix");
+  expect(search("released holds for PlayStation")).toEqual(["release"]);
+  expect(search("per ticket amount $1 PlayStation")).toEqual(["entry", "later-entry"]);
+  expect(search("entry payments lower than $2 for PlayStation")).toEqual(["entry", "later-entry"]);
+  expect(search("only charges from Netflix and Walmart")).toEqual(["netflix", "walmart", "mismatched-walmart"]);
+  expect(search("deposits just over 50 dollars")).toEqual(["deposit"]);
+  expect(search("Walmart order number 1A514C4F")).toEqual(["walmart"]);
+  expect(search("Netflix order number 1A514C4F")).toEqual([]);
+});

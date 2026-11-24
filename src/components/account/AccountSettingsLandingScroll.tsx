@@ -35,7 +35,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       cancel();
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {
-          if (disposed || interrupted || (skipForHistoryKey && window.history.state?.[skipForHistoryKey] === window.location.href)) return;
+          if (disposed || interrupted || hasAccountHistoryReturn() || (skipForHistoryKey && window.history.state?.[skipForHistoryKey] === window.location.href)) return;
           // Older profile shortcuts should retain the four section buttons too.
           const id = requestedId === landingAlias ? target : requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
           const useCompactTarget = compactTarget && (!id || id === target) && window.matchMedia?.("(max-width: 700px)").matches;

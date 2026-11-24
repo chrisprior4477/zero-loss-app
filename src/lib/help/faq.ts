@@ -87,9 +87,10 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "email-alert-preferences", category: "account", question: "How do I stop email alerts?",
-    answer: "Open Email choices in Notifications. Turn off the entry outcome or purchase-option deadline email you want to stop, then save that preference. In-app alerts have their own settings.",
+    answer: "Email choices and in-app Alert settings are separate. In Email choices, change the individual preference you want, such as purchase-option deadline emails, and save that preference. Support replies remain available in your Support case and Notifications.",
     keywords: "unsubscribe stop turn off email alerts notification emails preferences",
     action: { label: "Open Email choices", href: "/account/notifications?section=email#email-choices" },
+    followUpAction: { label: "Open in-app Alert settings", href: "/account/notifications?section=alerts#alert-settings" },
   },
   {
     id: "favorite-watchlist-emails", category: "account", question: "How do I stop emails about my favorites?",
@@ -117,7 +118,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "crew-leave-group", category: "account", question: "How do I leave a Crew group from a shared prize?",
-    answer: "Open a prize shared from that group and use its Leave control. The confirmation identifies the group before you make the change.",
+    answer: "Open a prize shared from that group and use its Leave control. The confirmation identifies the group. Leaving changes your membership in that group. To remove an individual Crew connection, manage that person separately in Your Crew.",
     keywords: "leave quit exit group sharing from a shared prize",
     action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
   },
@@ -174,7 +175,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "stop-sharing", category: "account", question: "How do I stop sharing a pick?",
-    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group, then open the prize and stop sharing an entry. Use Clean up sharing to review several older picks for that audience at once.",
+    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group to review what you already shared with that audience. Open the prize to stop sharing an entry, or use Clean up sharing to review several older picks. Your default audience affects future sharing choices.",
     keywords: "unshare remove cleanup stop sharing privacy", action: { label: "Open Shared Picks & Cleanup", href: "/account/crew?tab=picks#sharing" },
   },
   {
@@ -217,7 +218,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
-    answer: "Wait for the saved confirmation, then check My Activity. See Open Entries shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the prize fills during checkout or the connection drops, check My Activity and your wallet before submitting again. If Wallet shows a payment without a ticket, report that exact transaction.",
+    answer: "Wait for the saved confirmation, then check My Activity. If an entry is still pending, open that ticket and check its status before submitting again. Open Entries shows active entries. Other filters show wins, purchase options, and completed activity. If the prize fills during checkout or the connection drops, check My Activity and Wallet before trying again. If Wallet shows a payment without a ticket, report that exact transaction.",
     keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active#my-activity-filters" },
   },
   {
@@ -304,15 +305,15 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "notifications", category: "account", question: "Where do I see updates that need my attention?",
-    answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Use Alert settings to turn in-app alerts on or off. For emails, open Email choices. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
+    answer: "Open Notifications and choose All to include updates you already read. Use the notification type to narrow the list. Open an update to reach the related entry, reward, transaction, Crew request, or support conversation. Use Alert settings for in-app alerts and Email choices for emails. Mark all as read clears the unread indicators and keeps the updates in your history.",
     keywords: "email alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
     followUpAction: { label: "Open Alert settings", href: "/account/notifications?section=alerts#alert-settings" },
   },
   {
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
-    answer: "Sign in and send a message from Contact or Help Center. Your request is saved as a private case, and you can open that same conversation to add details or read replies. Case updates also appear in Notifications. The current preview does not send support emails, so check your saved conversation for the response.",
-    keywords: "contact help service email reply case issue complaint", action: { label: "Contact support", href: "/contact#message" },
-    followUpAction: { label: "My support cases", href: "/support#case-list" },
+    answer: "For a new issue, sign in and send a message from Contact or Help Center. To follow up on a reply or respond when the case is waiting for you, open My support cases, select the case, and reply in the existing conversation. Case updates also appear in Notifications. The demo does not send support emails.",
+    keywords: "contact help service email reply case issue complaint", action: { label: "My support cases", href: "/support#case-list" },
+    followUpAction: { label: "Contact support", href: "/contact#message" },
   },
   {
     id: "request-product", category: "support", question: "Can I suggest a product or retailer?",
@@ -363,13 +364,13 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "favorites", category: "account", question: "Where can I manage the prizes I saved?",
-    answer: "Select the heart on a prize in search results or on its details page to save it. Open Favorites to see your saved prizes. Select the filled heart again to remove a prize.",
+    answer: "Select the heart on a prize to save it to Favorites. To submit an entry, use the prize’s entry controls. Submitted entries appear in My Activity. If a favorite is missing, check that you’re signed into the account that saved it. Search for the prize in Browse to check whether it is still available. A filled heart removes the prize from Favorites when selected again.",
     keywords: "bookmark favorite favourite saved prizes products remove",
     action: { label: "Open Favorites", href: "/account/favorites" },
   },
   {
     id: "crew-shared-with-you", category: "account", question: "Where are the picks my Crew sent me?",
-    answer: "Open Favorites and choose Shared with You to see the prizes someone in your Crew shared. Open a prize there to see the listing and any available actions.",
+    answer: "Open Favorites and choose Shared with You. Open the original shared prize and check its entry status. If that pool is closed, use Browse to look for a current listing. A shared link keeps pointing to the original prize.",
     keywords: "crew sent received shared with you incoming picks",
     action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
   },
@@ -473,12 +474,79 @@ export const faqItems: FaqItem[] = [
     answer: "If the link says it was already used, try signing in. In Profile, check whether the email address shows Verified. If confirmation is still pending, use Resend verification email from Create account with the address you registered. Check your spam folder for the new message. Use the separate sign-in recovery option if you forgot your sign-in details.",
     keywords: "missing verification email resend verify confirm signup", action: { label: "Resend verification email", href: "/signup?verify=resend#resend-verification" },
   },
+  {
+    id: "entry-after-funding", category: "entries", question: "Why did the entry quantity change after I added funds?",
+    answer: "Use the funding confirmation to return to the same prize. The selected quantity is carried back, but fewer spaces may be available if other entries came in while you were funding. Check the current quantity, total, and wallet balance before confirming. Funding alone does not submit entries.",
+    keywords: "quantity changed after funding added funds checkout spaces capacity",
+    action: { label: "Open My Activity", href: "/account/entries#my-activity-filters" },
+  },
+  {
+    id: "closed-prize", category: "entries", question: "Can a closed prize reopen for new entries?",
+    answer: "A closed pool no longer takes entries. If the prize is offered again, use the current listing in Browse and check its availability. Open the existing ticket in My Activity to check the outcome of the original pool.",
+    keywords: "closed pool reopen reopens sold out new entries",
+    action: { label: "Browse open prizes", href: "/browse?available=1#search-results" },
+    followUpAction: { label: "Open My Activity", href: "/account/entries#my-activity-filters" },
+  },
+  {
+    id: "add-to-existing-entry", category: "entries", question: "Can I add another entry to a prize I already entered?",
+    answer: "Open the saved ticket in My Activity. If the pool is still open and has spaces left, use Add more entries. Review and confirm the additional entries separately.",
+    keywords: "another additional add more ticket prize entered existing ticket",
+    action: { label: "See Open Entries", href: "/account/entries?filter=active#my-activity-filters" },
+  },
+  {
+    id: "share-with-group", category: "account", question: "How do I share with just one Crew group?",
+    answer: "When sharing a pick with Crew, open the audience selector and choose the named group before confirming. Your Crew shares with the broader audience. Check the selected group name before you send.",
+    keywords: "share group instead of all crew choose audience",
+    action: { label: "Open Crew groups", href: "/account/crew?tab=groups#crew-groups" },
+  },
+  {
+    id: "crew-requests", category: "account", question: "Where can I see or cancel a Crew invitation?",
+    answer: "Open Your Crew and choose Requests. Requests for you shows invitations you can approve or decline. Requests you sent shows outgoing invitations. Use Cancel request on the one you want to withdraw.",
+    keywords: "crew invite invited incoming outgoing invitation sent received cancel request",
+    action: { label: "Open Crew Requests", href: "/account/crew?tab=requests#crew-intro" },
+  },
+  {
+    id: "receipt-in-support", category: "support", question: "How do I share a receipt with Support?",
+    answer: "Open the exact Wallet receipt and copy its reference, date, and amount. If you already have a case, open that conversation in My support cases and include those details in your reply. For a new case, use Report a problem on the exact transaction to link the record. Leave full payment card details out of the message.",
+    keywords: "attach send screenshot receipt existing support conversation proof reference",
+    action: { label: "Open My support cases", href: "/support#case-list" },
+    followUpAction: { label: "Open Transaction history", href: walletTransactionsHref },
+  },
+  {
+    id: "digital-gift-card-delivery", category: "rewards", question: "Where is a digital gift card delivered?",
+    answer: "Open the order in Orders & Fulfillment. An issued digital card is available in Gift Cards & Rewards. There is no shipping address to change for a digital card. Your mailing address is managed separately in Profile.",
+    keywords: "edit change gift card delivery address mail digital",
+    action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
+  },
+  {
+    id: "issued-order", category: "rewards", question: "What does Issued mean on an order?",
+    answer: "Issued means the gift-card reward was created for that record. Open the order under Issued and follow its reward link to find the card in Gift Cards & Rewards. The Confirmed payments view also includes orders that may still be waiting for a card.",
+    keywords: "issued order status meaning gift card fulfilled",
+    action: { label: "Open Issued orders", href: "/account/orders?filter=fulfilled#fulfillment-records" },
+  },
 ];
 
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bhow long\b.*\bundo\b.*\b(?:tickets?|entr(?:y|ies))\b|\bentry countdown\b.*\b(?:zero|ended|expired)\b.*\bundo\b/, "undo-entry"],
+  [/\b(?:entry|ticket) quantity\b.*\b(?:after|when)\b.*\b(?:added funds|funding|deposit)\b/, "entry-after-funding"],
+  [/\b(?:another|new)\s+entry\b.*\b(?:while|already)\b.*\bpending\b/, "entry-status"],
+  [/\bclosed (?:prize|pool)\b.*\b(?:reopen|take new entries)\b/, "closed-prize"],
+  [/\badd\b.*\b(?:another|more)\s+(?:ticket|entr(?:y|ies))\b.*\b(?:entered|existing|saved)\b/, "add-to-existing-entry"],
+  [/\b(?:prize|pick)\b.*\bmissing\b.*\bfavou?rites?\b|\bsav(?:e|ing)\b.*\bprize\b.*\benter\b.*\bautomatically\b/, "favorites"],
+  [/\bcannot\s+(?:i\s+)?enter\b.*\b(?:prize|pick)\b.*\bshared\b/, "crew-shared-with-you"],
+  [/\bleaving\b.*\bcrew group\b.*\bremove\b/, "crew-leave-group"],
+  [/\bshare\b.*\bgroup\b.*\b(?:instead of|only|just)\b.*\bcrew\b/, "share-with-group"],
+  [/\bwho\b.*\bsee\b.*\b(?:old|older|earlier)\s+(?:picks|shared|prizes)\b|\bpeople can see\b.*\bold\b.*\bshared\b/, "stop-sharing"],
+  [/\bcrew\b.*\b(?:invite|invitation)\b.*\b(?:sent|find|cancel|received)\b/, "crew-requests"],
+  [/\b(?:notifications?|alerts?)\b.*\b(?:already read|read earlier)\b/, "notifications"],
+  [/\bemail\b.*\bin[ -]app\b.*\bseparate\b|\bmute\b.*\bpurchase\b.*\bdeadline\b.*\bsupport\b/, "email-alert-preferences"],
+  [/\bsupport case\b.*\banswered\b.*\b(?:still|reply)\b|\b(?:case|request)\b.*\bawaiting customer\b/, "support-case"],
+  [/\b(?:attach|share|send|include)\b.*\b(?:receipt|screenshot)\b.*\bsupport\b/, "receipt-in-support"],
+  [/\bgift[ -]?card\b.*\b(?:delivery|shipping) address\b/, "digital-gift-card-delivery"],
+  [/\bissued (?:gift[- ]card )?order\b.*\bmean\b|\bissued\b.*\bmean\b.*\border\b/, "issued-order"],
   [/\bdeposit\b.*\b(?:balance|wallet)\b.*\b(?:zero|\$?0|unchanged|missing)\b/, "balance-discrepancy"],
   [/\b(?:entered|charged|paid)\b.*\b(?:no|missing)\s+(?:entry|ticket)\b/, "entry-status"],
   [/\b(?:paid|completed (?:my )?checkout)\b.*\b(?:no|missing)\s+order\b|\border confirmation\b.*\b(?:never came|missing|did not arrive)\b/, "order-receipt"],

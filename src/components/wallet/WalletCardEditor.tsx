@@ -6,6 +6,7 @@ import { cardSaveMatches } from "@/lib/payments/card-save-review";
 import { readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DemoCardArtwork } from "./DemoCardArtwork";
+import { revealBelowHeader } from "@/lib/account/landing-position";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-payments.module.css";
 
@@ -54,10 +55,26 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
   const heading = useRef<HTMLHeadingElement>(null);
   useLayoutEffect(() => {
     editorUrl.current = window.location.href;
-    const frame = requestAnimationFrame(() => {
-      if (document.activeElement === document.body) heading.current?.focus({ preventScroll: true });
-    });
-    return () => { cancelAnimationFrame(frame); editorUrl.current = null; };
+    const focusHeading = (settling = false) => {
+      const title = heading.current;
+      if (!title || window.location.href !== editorUrl.current) return;
+      if (settling && document.activeElement !== document.body && document.activeElement?.id !== "main-content") return;
+      if (!title.parentElement?.contains(document.activeElement)) title.focus({ preventScroll: true });
+      if (document.activeElement === title) revealBelowHeader(title);
+    };
+    const frame = requestAnimationFrame(() => focusHeading());
+    // The route can reset focus after the edit fragment is pushed.
+    const timers = [150, 450, 850].map(delay => window.setTimeout(() => focusHeading(true), delay));
+    const stopSettling = () => timers.forEach(clearTimeout);
+    window.addEventListener("pointerdown", stopSettling, { once: true });
+    window.addEventListener("keydown", stopSettling, { once: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      stopSettling();
+      window.removeEventListener("pointerdown", stopSettling);
+      window.removeEventListener("keydown", stopSettling);
+      editorUrl.current = null;
+    };
   }, []);
   const [cardholder, setCardholder] = useState(displayName);
   const [number, setNumber] = useState(fixture.number as string);

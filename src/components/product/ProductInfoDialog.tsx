@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import styles from "./product-entry-layout.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useDialogBack } from "@/components/account/useDialogBack";
+import { containDialogTab } from "@/components/account/dialog-keyboard";
 
 /** Keep complete product information one tap away without expanding the entry card. */
 export function ProductInfoDialog({ title, label, children, className = "", triggerLabel, variant = "default" }: {
@@ -58,7 +59,7 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   }, [open]);
   return <>
     <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={openInfo}>{label}</button>
-    <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onClose={event => {
+    <dialog ref={dialog} aria-labelledby={id} className={`${popupStyles.dialog} ${styles.infoDialog} ${variant === "ticket" ? styles.ticketInfoDialog : ""}`} onKeyDown={containDialogTab} onClose={event => {
       if (event.currentTarget.open) return;
       const state = { ...history.state };
       const restored = state.zeroLossProductInfoReturn?.title === title;

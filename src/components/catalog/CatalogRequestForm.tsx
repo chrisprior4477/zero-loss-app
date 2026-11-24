@@ -35,10 +35,14 @@ function CatalogRequestSession({ initialProduct, originalQuery, draftKey }: { in
   const requestedItem = useRef<HTMLInputElement>(null);
   const confirmation = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (!focusRestoredCheck.current && ["#requested-item", "#product-request"].includes(window.location.hash)) {
-      requestedItem.current?.focus({ preventScroll: true });
-      requestedItem.current?.scrollIntoView?.({ block: "nearest" });
-    }
+    const frame = requestAnimationFrame(() => {
+      const field = requestedItem.current;
+      if (!field || focusRestoredCheck.current || !["#requested-item", "#product-request"].includes(window.location.hash)) return;
+      if (document.activeElement !== document.body && document.activeElement?.id !== "main-content") return;
+      field.focus({ preventScroll: true });
+      revealBelowHeader(field);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
   const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
   useLayoutEffect(() => {

@@ -48,7 +48,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   landOnBalance?: boolean;
   unavailablePanel?: boolean;
   fromDeposits?: boolean;
-  depositList?: boolean;
+  depositList?: boolean | "receipt";
   requests?: DemoFundingRequest[] | null;
   savedCard?: DemoCard | null;
   savedCards?: DemoCard[];

@@ -75,7 +75,7 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
         <p className={styles.note}>Your choice is saved to your account so this explanation won’t appear again.</p>
       </> : <>
         <p className={styles.note}>Sign in to continue with your selected entries and save this explanation preference.</p>
-        <Link href={loginHref} onClick={onSignIn} className={styles.save}>Sign in to add entries</Link>
+        <Link href={loginHref} onNavigate={onSignIn} className={styles.save}>Sign in to add entries</Link>
       </>}
     </footer>
   </dialog>;

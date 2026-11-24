@@ -35,6 +35,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
   const lastDeleteReview = useRef<{ token: DemoCardToken; revision?: string; walletId?: string } | null>(null);
   const [preview, setPreview] = useState<{ walletId?: string; token?: DemoCardToken }>({});
+  const lastPreview = useRef<{ walletId?: string; token?: DemoCardToken }>({});
   const previewKey = walletId ? `zero-loss-wallet-card-preview:${walletId}` : null;
   const expanded = preview.walletId === walletId ? preview.token : undefined;
   useEffect(() => {
@@ -47,6 +48,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     } catch { /* The preview can always be opened manually. */ }
   }, [previewKey, walletId]);
   function selectPreview(token?: DemoCardToken) {
+    if (token) lastPreview.current = { walletId, token };
     setPreview({ walletId, token });
     if (previewKey) try {
       if (token) sessionStorage.setItem(previewKey, token);
@@ -73,6 +75,22 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const isAdd = panelHash === "#wallet-add-card";
   const editorToken = isAdd ? availableToken : savedCard?.token;
   const panelOpen = isEdit || isAdd || panelHash === "#payment-methods";
+  function focusPreview(token: DemoCardToken) {
+    restoreDialogTrigger(document.getElementById(`saved-card-preview-${token}`), true);
+  }
+  const endPreviewStep = useDialogBack(Boolean(expanded && panelHash === "#payment-methods"), () => {
+    if (!expanded) return;
+    selectPreview();
+    focusPreview(expanded);
+  }, false, false, false, "saved-card-preview", () => {
+    const saved = lastPreview.current;
+    if (saved.walletId === walletId && saved.token && cards.some(card => card.token === saved.token)) selectPreview(saved.token);
+  });
+  function closePreview(token: DemoCardToken) {
+    endPreviewStep();
+    selectPreview();
+    focusPreview(token);
+  }
   function showMethods() { openWalletPanel("#payment-methods"); }
   function addCard() {
     setMessage("");
@@ -95,10 +113,15 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }
+      const previousHash = lastSyncedHref ? new URL(lastSyncedHref).hash : "";
       lastSyncedHref = window.location.href;
       if (hash.startsWith(savedCardEditPrefix)) setMissingCard(false);
       setPanelHash(hash);
-      if (hash === "#payment-methods") revealMethods();
+      if (hash === "#payment-methods" && previousHash.startsWith(savedCardEditPrefix)) {
+        const editId = `edit-saved-card-${previousHash.slice(savedCardEditPrefix.length)}`;
+        requestAnimationFrame(() => restoreDialogTrigger(document.getElementById(editId), true));
+      }
+      else if (hash === "#payment-methods") revealMethods();
       else if (hash === "#wallet-add-card" || hash.startsWith(savedCardEditPrefix)) revealWalletSection("wallet-card-editor", "wallet-card-editor", true);
       else if (hash === "#balance" || hash === "#add-funds") revealWalletSection(hash.slice(1));
     };
@@ -232,7 +255,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     {editorToken ? <WalletCardEditor walletId={walletId} key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onAddCard={isEdit && availableToken ? addCard : undefined} onCancel={() => {
       const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
       openWalletPanel("#payment-methods", window.history.state, true);
-      requestAnimationFrame(() => document.getElementById(target)?.focus());
+      requestAnimationFrame(() => restoreDialogTrigger(document.getElementById(target), true));
     }} onSaved={(card, source) => {
       if (source === "camera" || !isEdit || card.token !== editorToken) showMethods();
       acceptSavedCard(card);
@@ -249,17 +272,17 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         return <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`} onKeyDown={event => {
           if (event.key !== "Escape" || event.defaultPrevented || expanded !== card.token || deleting || document.querySelector("dialog[open]")) return;
           event.preventDefault();
-          selectPreview(undefined);
-          const trigger = document.getElementById(`saved-card-preview-${card.token}`);
-          trigger?.focus({ preventScroll: true });
-          if (mobile) revealWalletSection(`saved-card-preview-${card.token}`);
+          closePreview(card.token);
         }}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} aria-label={`Use ${cardLabel} as my default payment method`} disabled={!enabled || unavailable || busy} aria-describedby={defaultError?.token === card.token ? defaultErrorId : undefined} onChange={event => void setDefault(card, event.currentTarget)} />Use as my default payment method</label>
         {defaultError?.token === card.token ? <p id={defaultErrorId} role="alert" className={styles.notice}>{defaultError.message}</p> : null}
         <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} id={`edit-saved-card-${card.token}`} aria-label={`Edit ${cardLabel}`} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" id={`saved-card-preview-${card.token}`} aria-label={`${expanded === card.token ? "Hide card" : "See card"}: ${cardLabel}`} className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={event => {
-          const next = expanded === card.token ? undefined : card.token;
-          selectPreview(next);
+          if (expanded === card.token) {
+            closePreview(card.token);
+            return;
+          }
+          selectPreview(card.token);
           if (mobile) {
             event.currentTarget.focus({ preventScroll: true });
             revealWalletSection(event.currentTarget.id);

@@ -19,7 +19,7 @@ test("a receipt opened from Payment deposits links back to the same deposit row"
   const ledgerId = "33333333-3333-4333-8333-333333333333";
   render(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, ledgerId }]} continueTo={undefined} fromDeposits />);
   expect(screen.getByRole("link", { name: /View wallet credit/ }).getAttribute("href"))
-    .toBe(`/account/wallet?view=history&transaction=${ledgerId}&depositList=1#transaction-${ledgerId}`);
+    .toBe(`/account/wallet?view=history&transaction=${ledgerId}&depositList=receipt#transaction-${ledgerId}`);
   expect(screen.getByRole("link", { name: "Back to Payment deposits" }).getAttribute("href"))
     .toBe(`/account/wallet?view=history&panel=deposits&depositRow=${key}#payment-deposits`);
   expect(screen.getByRole("status").textContent).not.toContain("Confirm your purchase");

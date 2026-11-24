@@ -6,7 +6,7 @@ import { revealBelowHeader } from "@/lib/account/landing-position";
 const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|favorites|crew(?:\/display)?|notifications))$/;
 const retailerRewards = /^\/rewards\/[a-z0-9-]+$/;
 const stateKey = "zeroLossAccountHistoryReturn";
-const returnLinks = "main a[href], footer a[data-footer-return]";
+const returnLinks = "main a[href], footer a[data-footer-return], a[data-history-return]";
 type ReturnBookmark = { source: string; href: string; index: number; top?: number; left?: number; footer?: boolean };
 let pendingReturn: { bookmark: ReturnBookmark; expires: number } | null = null;
 
@@ -45,7 +45,7 @@ export function AccountHistoryReturn({ accountLinks = true }: { accountLinks?: b
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(returnLinks) : null;
       if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.pathname + anchor.search === location.pathname + location.search) return;
       if (anchor.hasAttribute("data-footer-return")) { rememberAccountHistoryReturn(anchor); return; }
-      if (retailerRewards.test(location.pathname) && anchor.hasAttribute("data-history-return")) {
+      if ((retailerRewards.test(location.pathname) || location.pathname === "/browse" && anchor.id === "request-a-product") && anchor.hasAttribute("data-history-return")) {
         rememberAccountHistoryReturn(anchor);
         return;
       }

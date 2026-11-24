@@ -265,6 +265,8 @@ const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?(?:availabl
 const ticketUnits = String.raw`\s+(?:more\s+)?${ticketNouns}\s+${ticketAvailability}(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
 const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?(?:only\s+)?`;
 const ticketComparison = "fewer than|less than|under|no more than|at most|at least|more than|exactly";
+const ticketsBeforeUpperLimit = new RegExp("\\b(at least|more than)\\s+(" + ticketCount + ")" + ticketUnits
+  + "\\s+but\\s+(under|fewer than|less than|at most|no more than)\\s+(" + ticketCount + ")(?=\\s*[.!?]?$)", "i");
 const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
 const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 const ticketMaximum = new RegExp(String.raw`\b(${ticketCount})(?:\s+or fewer${ticketUnits}|${ticketUnits}\s+or fewer\b)`, "i");
@@ -287,6 +289,9 @@ function ticketBounds(comparison: string | undefined, count: string) {
 }
 
 export function remainingTicketFilter(query: string) {
+  query = query.replace(ticketsBeforeUpperLimit, "$1 $2 but $3 $4 tickets left")
+    .replace(/\bonly with\s+(?=(?:one|1)\s+spot\b)/i, "with ")
+    .replace(/\b(with\s+(?:only\s+)?(?:one|1)\s+spot)\s*[.!?]?$/i, "$1 left");
   if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;
   const trailingComparison = new RegExp(String.raw`\b(${ticketNouns})\s+(${ticketAvailability})\s+(${ticketComparison})\s+(${ticketCount})(?=\s|[,.!?]|$)`, "i");
   query = query.replace(trailingComparison, "$3 $4 $1 $2").replace(ticketMaximum, "at most $1 tickets left")

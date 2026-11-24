@@ -3,7 +3,7 @@
 import { remainingEntryUndoMilliseconds } from "@/lib/entries/request";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
@@ -151,6 +151,7 @@ export function DemoParticipationPanel({
     if (canAdjustQuantity && remaining > 0 && (serverBalanceError || knownBalance !== null && totalCents > knownBalance)) setBalanceNoticeOpen(true);
   });
   const explanationQuantity = useRef<number | null>(null);
+  const addEntryButton = useRef<HTMLButtonElement>(null);
   useDialogBack(additionalEntryNoticeOpen, () => {
     explanationQuantity.current = requestedQuantity.current;
     closeExplanation();
@@ -163,6 +164,35 @@ export function DemoParticipationPanel({
   const fundingForEntry = canAdjustQuantity && remaining > 0 && invalidQuantity === null;
   const addFundsHref = fundingForEntry ? fundingHref(productSlug, undefined, quantity, browseReturnHref, undefined, shareToken) : fundingHref();
   const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter, shareToken);
+  const reopenExtraEntry = useEffectEvent((count: number) => {
+    const trigger = addEntryButton.current;
+    trigger?.scrollIntoView?.({ block: "center" });
+    trigger?.focus({ preventScroll: true });
+    requestedQuantity.current = count;
+    setQuantity(count);
+    setAdditionalEntryNoticeOpen(true);
+  });
+  useEffect(() => {
+    if (isSignedIn || !canAdjustQuantity || remaining < 2) return;
+    let frame = 0;
+    function restore(event?: Event) {
+      const bookmark = (event?.type === "popstate" ? (event as PopStateEvent).state : history.state)?.zeroLossExtraEntrySignIn;
+      if (bookmark?.href !== location.href || bookmark.slug !== productSlug || !Number.isSafeInteger(bookmark.quantity) || bookmark.quantity < 2) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (location.href !== bookmark.href) return;
+        reopenExtraEntry(Math.min(bookmark.quantity, remaining));
+      });
+    }
+    restore();
+    window.addEventListener("popstate", restore);
+    window.addEventListener("pageshow", restore);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("popstate", restore);
+      window.removeEventListener("pageshow", restore);
+    };
+  }, [isSignedIn, canAdjustQuantity, remaining, productSlug]);
   const rememberFundingEntry = useCallback(() => saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, "funding", shareToken),
     [productSlug, productTitle, quantity, browseReturnHref, shareToken]);
   useEntryWalletFunding(isSignedIn && fundingForEntry ? addFundsHref : null, rememberFundingEntry);
@@ -207,6 +237,11 @@ export function DemoParticipationPanel({
   };
 
   function closeExplanation() {
+    if (history.state?.zeroLossExtraEntrySignIn?.href === location.href) {
+      const state = { ...history.state };
+      delete state.zeroLossExtraEntrySignIn;
+      history.replaceState(state, "");
+    }
     explanationVisit.current += 1;
     requestedQuantity.current = null;
     setAdditionalEntryNoticeOpen(false);
@@ -417,7 +452,7 @@ export function DemoParticipationPanel({
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setInvalidQuantity(null); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); setTypedLimit(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
             <EntryQuantityInput inputRef={entryQuantityRef} errorId={quantityErrorId} value={quantity} maximum={maxQuantity} label="Number of entries" id="entry-quantity" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} invalidDraft={invalidQuantity} requireValidQuantity={correctingBookmark} onInvalidDraft={setInvalidQuantity} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
-            <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
+            <button type="button" ref={addEntryButton} onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
       </div>
@@ -523,7 +558,10 @@ export function DemoParticipationPanel({
         productTitle={productTitle} productValue={productValue} retailer={retailer} entryPrice={entryPrice}
         isSignedIn={isSignedIn} remember={rememberExplanation} saving={preferenceSaving || preferenceResetting} error={preferenceError}
         loginHref={entryLoginHref} onRemember={setRememberExplanation} onSave={() => void acknowledgeAndAddEntry()}
-        onClose={closeExplanation} onSignIn={() => rememberEntry(quantity, "sign-in")}
+        onClose={closeExplanation} onSignIn={() => {
+          rememberEntry(quantity, "sign-in");
+          history.replaceState({ ...history.state, zeroLossExtraEntrySignIn: { href: location.href, slug: productSlug, quantity } }, "");
+        }}
       /> : null}
 
 

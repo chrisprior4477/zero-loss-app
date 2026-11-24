@@ -273,3 +273,28 @@ test.each([
 ])("answers the customer question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });
+
+test.each([
+  ["how long do I have to undo a ticket", "undo-entry"],
+  ["my entry countdown reached zero before I clicked undo", "undo-entry"],
+  ["why did my ticket quantity change after I added funds", "entry-after-funding"],
+  ["can I review another entry while one is pending", "entry-status"],
+  ["can a closed prize reopen for new entries", "closed-prize"],
+  ["can I add another ticket to a prize I entered", "add-to-existing-entry"],
+  ["why is this prize missing from my favorites", "favorites"],
+  ["why can't I enter a prize my friend shared", "crew-shared-with-you"],
+  ["does saving a prize enter me automatically", "favorites"],
+  ["will leaving a Crew group remove that person from my Crew", "crew-leave-group"],
+  ["share with my group instead of all my Crew", "share-with-group"],
+  ["which people can see my old shared prizes", "stop-sharing"],
+  ["where can I find a Crew invite someone sent me", "crew-requests"],
+  ["can I cancel a Crew invitation I sent", "crew-requests"],
+  ["how can I find a notification I already read", "notifications"],
+  ["are email updates and in-app alerts separate", "email-alert-preferences"],
+  ["my support case was answered but I still need help", "support-case"],
+  ["how do I attach my receipt to an existing support conversation", "receipt-in-support"],
+  ["how do I edit my gift card delivery address", "digital-gift-card-delivery"],
+  ["what does an issued order mean", "issued-order"],
+])("routes the question %s to the specific answer", (query, id) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(id);
+});

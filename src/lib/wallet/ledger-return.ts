@@ -5,10 +5,10 @@ export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refund
 
 export const ledgerReturnKey = "zeroLossWalletLedgerReturn";
 
-export function walletSupportReturnHref(transactionId: string, restoreView: boolean, depositList = false, ordersFilter?: FulfillmentFilter) {
+export function walletSupportReturnHref(transactionId: string, restoreView: boolean, depositList: boolean | "receipt" = false, ordersFilter?: FulfillmentFilter) {
   const id = encodeURIComponent(transactionId);
   const orders = ordersFilter ? `&panel=transactions&fromOrders=1&orderFilter=${ordersFilter}` : "";
-  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=1" : ""}${orders}#transaction-${id}`;
+  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}${depositList ? "&depositList=" + (depositList === "receipt" ? "receipt" : "1") : ""}${orders}#transaction-${id}`;
 }
 
 type TransactionOrigin = { transaction?: unknown; walletView?: unknown; fromOrders?: unknown; orderFilter?: unknown; alerts?: unknown; notice?: unknown };
