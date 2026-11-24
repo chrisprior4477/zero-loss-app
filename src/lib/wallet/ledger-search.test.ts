@@ -427,11 +427,13 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
     { id: "netflix", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: netflix },
     { id: "walmart", entry_type: "PURCHASE_DEBIT", amount: -9900, created_at, orderNumber: "ord_1a514c4f", product: walmart },
     { id: "mismatched-walmart", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at, product: walmart },
+    { id: "refund", entry_type: "REFUND", amount: 250, created_at },
+    { id: "correction", entry_type: "CORRECTION", amount: 300, created_at },
   ];
   const search = (query: string) => searchLedger(entries, query, row => [
     ...ledgerDescription(row.entry_type, row.product?.title),
     row.id === "deposit" ? "Chase •••• 1117" : row.id === "wells" ? "Wells Fargo •••• 0002" : "",
-  ], entries, { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-24T20:00:00Z") }).map(row => row.id);
+  ], entries, { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-24T20:00:00Z"), hasDepositReceipt: row => row.id === "deposit" }).map(row => row.id);
   expect(search("1 USD PlayStation posted")).toEqual(["entry", "later-entry"]);
   expect(search("paid Netflix $24 or Walmart $99")).toEqual(["netflix", "walmart"]);
   expect(search("orders for the Netflix $25 gift card")).toEqual(["netflix"]);
@@ -452,4 +454,25 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("deposits just over 50 dollars")).toEqual(["deposit"]);
   expect(search("Walmart order number 1A514C4F")).toEqual(["walmart"]);
   expect(search("Netflix order number 1A514C4F")).toEqual([]);
+  expect(search("deposit receipts for the card ending 1117")).toEqual(["deposit"]);
+  expect(search("deposit receipts for the card ending 0002")).toEqual([]);
+  expect(search("deposits paid with Chase ending 1117")).toEqual(["deposit"]);
+  expect(search("wallet top ups from cards other than Chase")).toEqual(["wells"]);
+  expect(search("deposits through Nov 5")).toEqual(["deposit", "wells", "day-four"]);
+  expect(search("deposits as of Nov 5, inclusive")).toEqual(["deposit", "wells", "day-four"]);
+  expect(search("funding beginning Nov 5")).toEqual(["deposit"]);
+  expect(search("funding on November 3rd or the 5th")).toEqual(["deposit", "wells"]);
+  expect(search("transactions in Nov 2026 with 9:05 PM on the clock")).toEqual(search("Nov 2026 at 9:05 PM"));
+  expect(search("Nov 5 through Nov 6 only deposits")).toEqual(["deposit"]);
+  expect(search("PlayStation reservation releases on Nov 5")).toEqual(["release"]);
+  expect(search("PlayStation only posted ticket charges")).toEqual(["entry", "big-entry", "later-entry"]);
+  expect(search("all transactions apart from deposits")).toEqual(search("transactions excluding deposits"));
+  expect(search("exclude holds from my transactions")).toEqual(search("transactions excluding holds"));
+  expect(search("refunds and corrections only, over $1")).toEqual(["refund", "correction"]);
+  expect(search("funding of no less than 50 USD")).toEqual(["deposit", "wells"]);
+  expect(search("deposits with an amount at most $25")).toEqual(["day-four"]);
+  expect(search("$24 actually paid for Netflix")).toEqual(["netflix"]);
+  expect(search("CVS or Netflix purchase payments less than $50")).toEqual(["netflix"]);
+  expect(search("transactions below negative 50 dollars")).toEqual(["walmart"]);
+  expect(search("find the $160 payment receipt")).toEqual(["deposit"]);
 });

@@ -804,9 +804,10 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
   const desktop = useMenuViewport() === "desktop";
   const [allDeposits, setAllDeposits] = useState(false);
   const [receipt, setReceipt] = useState<string | null>(null);
+  const [retainedEnd, setRetainedEnd] = useState(0);
   const viewKey = walletId ? `zero-loss-deposit-view:${walletId}` : null;
-  function remember(start: number, size: number, all: boolean, opened: string | null) {
-    if (viewKey) try { sessionStorage.setItem(viewKey, JSON.stringify({ start, size, all, receipt: opened })); } catch { /* The list remains usable. */ }
+  function remember(start: number, size: number, all: boolean, opened: string | null, loadedEnd = 0) {
+    if (viewKey) try { sessionStorage.setItem(viewKey, JSON.stringify({ start, size, all, receipt: opened, loadedEnd })); } catch { /* The list remains usable. */ }
   }
   function clearReceiptLink() {
     const url = new URL(window.location.href);
@@ -820,6 +821,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
     batches.reset();
     setAllDeposits(false);
     setReceipt(null);
+    setRetainedEnd(0);
     remember(0, 5, false, null);
     document.getElementById("payment-deposits-heading")?.focus({ preventScroll: true });
     document.getElementById("payment-deposits")?.scrollIntoView?.({ block: "start", behavior: "auto" });
@@ -841,6 +843,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
     setShowArchived(!includeArchived);
     setAllDeposits(false);
     setReceipt(null);
+    setRetainedEnd(0);
     batches.reset();
     remember(0, 5, false, null);
   }
@@ -862,15 +865,19 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
       const saved = viewKey ? JSON.parse(sessionStorage.getItem(viewKey) ?? "null") : null;
       const start = Number.isSafeInteger(saved?.start) && saved.start >= 0 ? saved.start : 0;
       const size = Number.isSafeInteger(saved?.size) && saved.size > 0 ? saved.size : 5;
-      if (saved || focusId) restoreRange(focusIndex >= 0 && (focusIndex < start || focusIndex >= start + size) ? focusIndex : start, size);
+      const loadedEnd = Number.isSafeInteger(saved?.loadedEnd) && saved.loadedEnd > 0 ? saved.loadedEnd : 0;
+      if (saved || focusId) restoreRange(focusIndex >= Math.max(loadedEnd, start + size) ? focusIndex : start, size);
       if (!saved && !focusRequest) return;
       // The requested row takes precedence over a previous disclosure in this tab.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAllDeposits(saved?.all === true || (desktop && focusIndex >= 6));
       setReceipt(focusRequest ? focusId : (typeof saved?.receipt === "string" ? saved.receipt : null));
+      // Opening the receipt makes a row taller. The viewport measurement may
+      // shrink the batch, but the customer's already-loaded rows stay in it.
+      setRetainedEnd(loadedEnd);
     } catch { /* Use the first batch. */ }
   }, [viewKey, restoreRange, focusId, focusIndex, focusRequest, desktop]);
-  const end = desktop ? Math.min(count, allDeposits ? count : 6) : batches.end;
+  const end = desktop ? Math.min(count, allDeposits ? count : 6) : Math.min(count, Math.max(batches.end, retainedEnd));
   const focusedRow = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!focusId) { focusedRow.current = null; return; }
@@ -898,12 +905,13 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
     window.scrollTo({ top: Math.max(0, window.scrollY + row.getBoundingClientRect().top - header - 12), behavior: "instant" });
   }, [desktop, end, listRef]);
   const twoColumns = desktop && end > 3;
-  const controls = { ...(desktop ? { remaining: count - end, expanded: allDeposits && count > 6 } : batches), close, listId: "wallet-deposit-list", noun: "deposits", more: () => {
+  const controls = { ...batches, remaining: count - end, expanded: desktop ? allDeposits && count > 6 : batches.expanded, close, listId: "wallet-deposit-list", noun: "deposits", more: () => {
     const firstNewRequest = displayRequests?.[end];
     if (firstNewRequest) nextRow.current = `deposit-row-${firstNewRequest.id}`;
     if (desktop) setAllDeposits(true);
+    else if (end > batches.end) restoreRange(end, batches.size);
     else batches.more();
-    remember(desktop ? batches.start : batches.end, batches.size, desktop || allDeposits, receipt);
+    remember(desktop ? batches.start : end, batches.size, desktop || allDeposits, receipt, end);
   } };
   function renderDeposit(request: DemoFundingRequest) {
     return <li key={request.id} id={`deposit-row-${request.id}`} tabIndex={-1} className="p-4">
@@ -914,7 +922,8 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
           if (next === receipt) return;
           if (!isOpen && request.id === focusId) clearReceiptLink();
           setReceipt(next);
-          remember(batches.start, batches.size, allDeposits, next);
+          if (isOpen) setRetainedEnd(current => Math.max(current, end));
+          remember(batches.start, batches.size, allDeposits, next, end);
           if (isOpen && !desktop && event.currentTarget.matches(":focus-within")) {
             const details = event.currentTarget;
             requestAnimationFrame(() => {
@@ -929,7 +938,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
           <p>Request {request.id}</p><div className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
           {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} data-history-return onNavigate={() => {
-            remember(batches.start, batches.size, allDeposits, request.id);
+            remember(batches.start, batches.size, allDeposits, request.id, end);
           }} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View deposit receipt</Link></p>}</div>
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>

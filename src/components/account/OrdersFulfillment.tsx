@@ -7,7 +7,7 @@ import { OrderTicketGallery } from "./OrderTicketGallery";
 import { AccountReadRetryButton } from "./AccountReadRetryButton";
 import { SelectedOrderScroll } from "./SelectedOrderScroll";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
-import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
+import { readyWalletRewards, walletHistoryHref, walletRewardHref, walletTransactionsHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 import { notificationHref, type NotificationFilter } from "@/lib/account/notification-return";
 import { walletTransactionHelpHref } from "@/lib/account/order-support";
@@ -77,7 +77,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
           { key: "processing", label: "In progress", count: processing, icon: "active" },
           { key: "fulfilled", label: "Issued", count: fulfilled, icon: "gift" },
           { key: "exceptions", label: "Exceptions", count: exceptions, icon: "bell" },
-        ] as const).map(item => <a key={item.key} href={fulfillmentHref(undefined, item.key)} aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : item.count ? `at least ${item.count} known ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
+        ] as const).map(item => <a key={item.key} href={fulfillmentHref(undefined, item.key)} data-history-return aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : item.count ? `at least ${item.count} known ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
           <AccountIcon name={item.icon} /><span>{item.label}</span><strong>{countLabel(item.count)}</strong>
         </a>)}
       </section>
@@ -138,7 +138,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
         <div className={styles.relatedLinks}>
           <Link href={accountRoutes.activity}><AccountIcon name="layers" /><span>My Activity</span></Link>
           <Link href={accountRoutes.rewards}><AccountIcon name="gift" /><span>Gift Cards &amp; Rewards</span></Link>
-          <Link href={walletHistoryHref}><AccountIcon name="wallet" /><span>Wallet &amp; Transactions</span></Link>
+          <Link href={walletTransactionsHref} data-history-return><AccountIcon name="wallet" /><span>Wallet &amp; Transactions</span></Link>
           <a href={paymentHref} aria-current={showingPayments ? "page" : undefined}>
             <AccountIcon name="completion" /><span>Confirmed payments</span>
           </a>

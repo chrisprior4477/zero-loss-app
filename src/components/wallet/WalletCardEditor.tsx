@@ -77,6 +77,33 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
     };
   }, []);
   const [cardholder, setCardholder] = useState(displayName);
+  const editDraftScope = savedCard && !depositLabel && walletId ? `${walletId}:${savedCard.token}` : null;
+  useLayoutEffect(() => {
+    if (!editDraftScope) return;
+    const draft = window.history.state?.zeroLossCardholderDraft;
+    if (draft?.scope === editDraftScope && draft.href === window.location.href
+      && typeof draft.name === "string" && draft.name.length <= 254 && draft.expires >= Date.now()) {
+      // Restore only the name, never the number, expiry or security code.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCardholder(draft.name);
+    }
+  }, [editDraftScope]);
+  function changeCardholder(name: string) {
+    setCardholder(name);
+    if (!editDraftScope) return;
+    const draft = name !== displayName && name.length <= 254
+      ? { scope: editDraftScope, href: window.location.href, name, expires: Date.now() + 1_800_000 } : null;
+    try { window.history.replaceState({ ...window.history.state, zeroLossCardholderDraft: draft }, ""); } catch { /* The current edit remains available. */ }
+  }
+  function clearCardholderDraft() {
+    if (editDraftScope && window.history.state?.zeroLossCardholderDraft?.scope === editDraftScope) {
+      try { window.history.replaceState({ ...window.history.state, zeroLossCardholderDraft: null }, ""); } catch { /* Cancel and save still work. */ }
+    }
+  }
+  function cancelEdit() {
+    clearCardholderDraft();
+    onCancel();
+  }
   const [number, setNumber] = useState(fixture.number as string);
   const [expiry, setExpiry] = useState(fixture.expiry as string);
   const [code, setCode] = useState(fixture.code as string);
@@ -101,7 +128,10 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
   const enteredFixture = DEMO_CARD_FIXTURES.find(card => card.number.replaceAll(" ", "") === number.replaceAll(" ", ""));
   function completeSave(card: DemoCard, source?: "camera") {
     // A late response may refresh the card list after the editor was left.
-    if (editorUrl.current === window.location.href) onSaved(card, source);
+    if (editorUrl.current === window.location.href) {
+      clearCardholderDraft();
+      onSaved(card, source);
+    }
     else router.refresh();
   }
   const saveAttempt = useRef<FormData | null>(null);
@@ -143,7 +173,7 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
     if (event.key !== "Escape" || event.defaultPrevented || pending || document.querySelector("dialog[open]")) return;
     event.preventDefault();
     event.stopPropagation();
-    onCancel();
+    cancelEdit();
   }}>
     <h3 ref={heading} id="wallet-card-editor-title" tabIndex={-1}>{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
@@ -207,7 +237,7 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
       <input type="hidden" name="makeDefault" value={String(makeDefault)} />
       <input type="hidden" name="makeDepositDefault" value={String(makeDepositDefault)} />
       {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
-      <label>Cardholder name<input ref={nameInput} {...fieldError("name")} autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
+      <label>Cardholder name<input ref={nameInput} {...fieldError("name")} autoComplete="off" value={cardholder} onChange={event => changeCardholder(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
       <label>Card number<input ref={numberInput} {...fieldError("number")} inputMode="numeric" autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} disabled={disabled || pending || state.status === "pending"} /></label>
       <p className={styles.issuer}>{enteredFixture?.issuer ?? "Sample card"}</p>
       <div className={styles.fields}>
@@ -224,7 +254,7 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
           startTransition(() => action(check));
         }}>Check whether this card saved</button>}
         <button type="submit" disabled={disabled || pending || state.status === "pending"} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
-        <button type="button" disabled={pending} className={styles.secondary} onClick={onCancel}>{updated ? "Back to payment methods" : "Cancel"}</button>
+        <button type="button" disabled={pending} className={styles.secondary} onClick={cancelEdit}>{updated ? "Back to payment methods" : "Cancel"}</button>
         <button type="button" className={styles.secondary} aria-expanded={showCard} aria-controls={previewId} onClick={() => setShowCard(value => !value)}>{showCard ? "Hide card" : "See card"}</button>
         {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <a className={styles.secondary} href="#balance">Back to wallet</a>}
       </div>

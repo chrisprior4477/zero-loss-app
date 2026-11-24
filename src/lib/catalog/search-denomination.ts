@@ -270,6 +270,8 @@ const ticketsBeforeUpperLimit = new RegExp("\\b(at least|more than)\\s+(" + tick
 const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
 const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 const ticketMaximum = new RegExp(String.raw`\b(${ticketCount})(?:\s+or fewer${ticketUnits}|${ticketUnits}\s+or fewer\b)`, "i");
+const remainingBeforeTicket = new RegExp(String.raw`\b(${ticketCount})\s+remaining\s+(${ticketNouns})\b`, "i");
+const ticketBeforeMaximum = new RegExp(String.raw`\b(${ticketCount})\s+(${ticketNouns})\s+or\s+(?:fewer|less)\s+(${ticketAvailability})\b`, "i");
 const ticketChoices = new RegExp(String.raw`${ticketPrefix}(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
 const repeatedTicketChoice = new RegExp(String.raw`(\b${ticketCount})${ticketUnits}(?=\s+or\s+${ticketCount}${ticketUnits})`, "gi");
 const ticketPlusMinimum = new RegExp(String.raw`\b(\d+)\+\s+(?=${ticketNouns}\s+${ticketAvailability}\b)`, "gi");
@@ -290,6 +292,8 @@ function ticketBounds(comparison: string | undefined, count: string) {
 
 export function remainingTicketFilter(query: string) {
   query = query.replace(ticketsBeforeUpperLimit, "$1 $2 but $3 $4 tickets left")
+    .replace(remainingBeforeTicket, "$1 $2 remaining")
+    .replace(ticketBeforeMaximum, "at most $1 $2 $3")
     .replace(/\bonly with\s+(?=(?:one|1)\s+spot\b)/i, "with ")
     .replace(/\b(with\s+(?:only\s+)?(?:one|1)\s+spot)\s*[.!?]?$/i, "$1 left");
   if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;
@@ -323,6 +327,10 @@ export function searchDenominations(query: string, products: readonly { retailer
   const foreignCode = "(?:CAD|AUD|NZD|EUR|GBP|JPY|CHF|MXN|INR)";
   const unsupportedCurrency = new RegExp(String.raw`(?:\b${foreignCode}\s*\$?\s*\d|\d[\d.,]*\s*${foreignCode}\b|\b(?:CA|AU|NZ)\s*\$\s*\d|[€£¥]\s*\d)`, "i").test(query);
   let normalized = (remainingTicketFilter(query)?.text ?? query.trim()).replace(/[,.!?]+$/, "").replace(/\bUS\s*(?=\$)/gi, "").replace(/\bUS\s+(?=dollars?\b)/gi, "").replace(/[\u2010-\u2015]/g, "-")
+    .replace(/\bthat\s+(?:are|is)\s+(?=(?:no more than|at most|under|below|over|above)\b)/gi, "")
+    .replace(/\b(?:that\s+(?:are|is)\s+)?worth\s+(\$\s*\d[\d,.]*)\s+at most$/i, "up to $1")
+    .replace(/\bwith\s+(?:a\s+)?(\$\s*\d[\d,.]*)\s+cap$/i, "up to $1")
+    .replace(/(\$\s*\d[\d,.]*)\s+face value\s+but\s+(?=\$\s*\d)/i, "$1 ")
     .replace(/\b(?:e[\s-]*)?gift[\s-]*(?:cards?|vouchers?|certificates?)\b|\b(?:(?:grocery|fuel)\s+)?vouchers?\b/gi, "gift card")
     .replace(/\bgift card\s+for\s+grocer(?:y|ies)\b/gi, "grocery gift card")
     .replace(/\b(?:sony\s+)?playstation store cards?\b/gi, "Sony PlayStation gift card")

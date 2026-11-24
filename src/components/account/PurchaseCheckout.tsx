@@ -41,6 +41,15 @@ function hasPassed(deadline: number) {
   return deadline <= Date.now();
 }
 
+function clearCheckoutExtra(key: string) {
+  try { sessionStorage.removeItem(key); } catch { /* The review still closes. */ }
+  try {
+    if (window.history.state?.zeroLossCheckoutExtra?.key === key) {
+      window.history.replaceState({ ...window.history.state, zeroLossCheckoutExtra: null }, "");
+    }
+  } catch { /* Browser history is optional for the draft. */ }
+}
+
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
 }
@@ -260,8 +269,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   useLayoutEffect(() => {
     try {
       const query = new URLSearchParams(window.location.search);
-      if (query.get("resume") !== "wallet") return;
-      const draft = JSON.parse(sessionStorage.getItem(extraDraftKey) ?? "null");
+      const entryDraft = window.history.state?.zeroLossCheckoutExtra;
+      const direct = entryDraft?.key === extraDraftKey && entryDraft.href === window.location.href;
+      if (!direct && query.get("resume") !== "wallet") return;
+      const draft = direct ? entryDraft : JSON.parse(sessionStorage.getItem(extraDraftKey) ?? "null");
       if (!draft || draft.choice !== (query.get("choice")?.toLowerCase() ?? "") || draft.checkout !== checkoutDetails
         || typeof draft.savedAt !== "number" || draft.savedAt > Date.now() || Date.now() - draft.savedAt > 86_400_000
         || typeof draft.extra !== "string") return;
@@ -280,7 +291,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     setExtra(next);
     setAcknowledged(false);
     const query = new URLSearchParams(window.location.search);
-    if (query.get("resume") === "wallet") keepExtra(next, query.get("choice")?.toLowerCase() ?? "", savedAt);
+    const choice = query.get("choice")?.toLowerCase() ?? "";
+    const draft = next && next.length <= 64 ? { key: extraDraftKey, href: window.location.href, choice, checkout: checkoutDetails, extra: next, savedAt } : null;
+    try { window.history.replaceState({ ...window.history.state, zeroLossCheckoutExtra: draft }, ""); } catch { /* The amount remains editable. */ }
+    if (query.get("resume") === "wallet") keepExtra(next, choice, savedAt);
   }
   const [approvedDeposit, setApprovedDeposit] = useState<string | null>(null);
   const depositApproved = acknowledged && approvedDeposit === depositDetails;
@@ -309,7 +323,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const closeHref = legacyDeclineReturnHref ?? `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const close = useCallback(() => {
     if (inFlight.current) return;
-    try { sessionStorage.removeItem(extraDraftKey); } catch { /* No stored draft to clear. */ }
+    clearCheckoutExtra(extraDraftKey);
     setExtra("");
     setOverlay(null); setDeclineDraft(null); setPurchaseRequest(null); setAcknowledged(false);
     try {
@@ -389,7 +403,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       if ((result.status === "succeeded" || result.status === "already_credited") && "balanceCents" in result) {
         saveAttempt(null);
         setBalance(result.balanceCents); setExtra(""); setAcknowledged(false);
-        try { sessionStorage.removeItem(extraDraftKey); } catch { /* The deposit is already confirmed. */ }
+        clearCheckoutExtra(extraDraftKey);
         setDepositAttempt(undefined); setRecovery(null);
         setNotice(`${usd(original.amount)} added to your wallet. Confirm the purchase separately.`);
         if (!retry && result.balanceCents >= total) {
@@ -418,6 +432,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       if (result.status === "credited") {
         saveAttempt(null);
         setBalance(result.balanceCents);
+        setExtra("");
+        clearCheckoutExtra(extraDraftKey);
         setDepositAttempt(undefined);
         setRecovery(null);
         setError("");

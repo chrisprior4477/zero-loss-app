@@ -45,7 +45,7 @@ export function WalletHistoryLandingScroll({ walletId, selectedId, selectedReque
     <WalletLandingScroll enabled={enabled && !returning} />
     {!selectedRequested && !returning && (fromOrders
       ? <HelpLandingScroll target="transactions" focusAnchor="transactions" focusOnArrival />
-      : <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash />)}
+      : <AccountSettingsLandingScroll target="transactions" focusTarget="transactions-heading" allScreens restrictToTargetHash settleAfterNavigation />)}
     {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} initialTarget={target} focusTarget={selectedId ? undefined : "unavailable-transaction"} visitKey={target} settleAfterNavigation allScreens />}
   </>;
 }

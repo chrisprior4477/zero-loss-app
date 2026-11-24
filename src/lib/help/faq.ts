@@ -57,7 +57,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "edit-card-name", category: "wallet", question: "How do I change the name on a saved card?",
-    answer: "Open Payment methods and select Edit on the saved sample card. Update Cardholder name and save the card. This changes the saved sample cardholder name. Your account name is managed in Profile.",
+    answer: "Open Payment methods and select Edit on the saved sample card. You can change its cardholder name, artwork, and payment preferences. To save a different sample card number, leave the editor and use Add Card. Your account name is managed in Profile.",
     keywords: "edit update change cardholder name on saved payment card",
     action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
@@ -165,7 +165,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. If two orders name the same prize, compare Order number, date, and Paid at checkout. Gift-card value is what the card is issued for. Paid at checkout is the amount of that checkout payment. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. Confirmed payments shows purchases with a recorded checkout payment. A win can appear under All or Issued without a checkout payment. If two orders name the same prize, compare the order number, date, and Paid at checkout. The gift-card value is the amount issued on the card. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -175,7 +175,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "stop-sharing", category: "account", question: "How do I stop sharing a pick?",
-    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group to review what you already shared with that audience. Open the prize to stop sharing an entry, or use Clean up sharing to review several older picks. Your default audience affects future sharing choices.",
+    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group to review what you already shared with that audience. Open the prize to stop sharing an entry, or review several older picks together. After cleanup, check the audience named in the confirmation and use its Undo action while it’s available. Your default audience affects future sharing choices.",
     keywords: "unshare remove cleanup stop sharing privacy", action: { label: "Open Shared Picks & Cleanup", href: "/account/crew?tab=picks#sharing" },
   },
   {
@@ -317,7 +317,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "request-product", category: "support", question: "Can I suggest a product or retailer?",
-    answer: "Yes. Send a product request with the item or retailer you would like to see and any useful details. Requests are saved for review; submitting a suggestion does not reserve an item or guarantee it will be added.",
+    answer: "Yes. Send a product request with the item or retailer you would like to see and any useful details. If the form shows Check original request, use it to check that submission before sending another. Suggestions are saved for review.",
     keywords: "catalog search cannot find brand suggestion recommend", action: { label: "Suggest a product", href: "/contact/product-request?origin=faq#requested-item" },
   },
   {
@@ -332,7 +332,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "top-menu", category: "account", question: "How do I change my top menu?",
-    answer: "Open Personalize your top menu in Profile to choose the layout for your menu and search.",
+    answer: "Open Personalize your top menu in Profile. Under Save menu style for, choose the desktop or phone layout you want to change. Preview a style and choose Keep New Layout. Repeat for another screen size if you want a separate layout there.",
     keywords: "appearance edit header navigation change customize menu", action: { label: "Personalize your top menu", href: "/account/profile?section=appearance#personalize-menu-heading" },
   },
   {
@@ -402,7 +402,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "posted-and-pending", category: "wallet", question: "What is the difference between posted and pending?",
-    answer: "Posted activity has been recorded in Transaction history. A pending entry can reserve part of your playable balance before its final charge posts. A pending deposit is a request still in progress. Open Payment deposits to check that request before trying again.",
+    answer: "A pending entry can reserve part of your playable balance. Transaction history may show a reservation, the release of that hold, and the posted entry payment separately. Compare the status and amounts. If two payments actually posted for the same entry, use Report a problem on the affected transaction. For a pending deposit, check the existing request in Payment deposits before trying again.",
     keywords: "posted vs pending payment ledger hold reserved request status",
     action: { label: "Open transaction history", href: walletTransactionsHref },
     followUpAction: { label: "Open Payment deposits", href: walletDepositsHref },
@@ -422,7 +422,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "purchase-wallet-balance", category: "wallet", question: "Can I pay for a purchase option with my wallet balance?",
-    answer: "Yes. Review the amount due on the selected offer and pay from your Playable Wallet balance. If the balance is short, the checkout shows Add funds with the difference. Review the offer again after funding.",
+    answer: "Yes. Review the amount due on the selected offer and pay from your Playable Wallet. If a shortfall includes cents, Add funds asks for the next whole-dollar amount. Extra funds stay in your Wallet after the purchase. Funding credits the Wallet. To accept the offer, return to its review and confirm the purchase separately.",
     keywords: "playable wallet purchase option checkout use balance add funds",
     action: { label: "Review my purchase options", href: "/account/entries?filter=completion#my-activity-filters" },
   },
@@ -453,13 +453,13 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "favorite-watch-one", category: "account", question: "How do I stop watching one favorite?",
-    answer: "Open Favorites and find the prize. Clear the checkbox for its almost-full email. You can leave the prize saved and keep alerts for other favorites.",
+    answer: "Open Favorites and find the prize. Clear its 90% email checkbox to stop watching it while keeping it saved. This option is available while the prize is taking entries. If the checkbox is missing, open the saved prize and check whether its pool filled.",
     keywords: "watching one prize stop individual favorite notifications email",
     action: { label: "Open Favorites", href: "/account/favorites" },
   },
   {
     id: "shared-pick-undo-decline", category: "account", question: "Can I undo declining a prize someone shared?",
-    answer: "Open Favorites, choose Shared with You, then Declined. Open the shared prize and choose Undo decline to move it to Available. Check the prize’s current availability before entering.",
+    answer: "Declining a shared pick moves it to your Declined list. The sender keeps their entry. To restore the pick, open Favorites, choose Shared with You, then Declined. Open the shared prize and choose Undo decline to move it to Available. Check the current prize availability before entering.",
     keywords: "undo decline restore received shared friend prize",
     action: { label: "Open declined shares", href: "/account/favorites?tab=shared&view=declined" },
   },
@@ -524,12 +524,75 @@ export const faqItems: FaqItem[] = [
     keywords: "issued order status meaning gift card fulfilled",
     action: { label: "Open Issued orders", href: "/account/orders?filter=fulfilled#fulfillment-records" },
   },
+  {
+    id: "archived-transactions", category: "wallet", question: "How can I see archived demo transactions?",
+    answer: "Open Transaction history and look below the transaction list for View archived demo transactions. It appears when this Wallet has archived history that can be shown. Expand it before searching for the record.",
+    keywords: "wallet find archived hidden old transactions",
+    action: { label: "Open Transaction history", href: walletTransactionsHref },
+  },
+  {
+    id: "clear-demo-history", category: "wallet", question: "Which demo Wallet reset changes my balance?",
+    answer: "Clear demo transactions clears the transaction display and leaves your playable balance and deposit history in place. Clear demo deposits clears the deposit display and resets your playable balance to $0. Review the confirmation before proceeding. Audit records are retained.",
+    keywords: "clear demo transactions deposits reset balance zero remove",
+    action: { label: "Open Transaction history", href: walletTransactionsHref },
+    followUpAction: { label: "Open Payment deposits", href: walletDepositsHref },
+  },
+  {
+    id: "weekly-deposits", category: "wallet", question: "Where can I see weekly deposit totals?",
+    answer: "On desktop, open Weekly deposits in Wallet & Transactions. It shows posted deposits from the last four weeks. Select a week to see its deposit records. On a phone, open Payment deposits for individual receipts.",
+    keywords: "weekly deposit totals recent funding grouped by week chart",
+    action: { label: "Open Weekly deposits", href: "/account/wallet?view=history#weekly-deposit-heading" },
+    followUpAction: { label: "Open Payment deposits", href: walletDepositsHref },
+  },
+  {
+    id: "transaction-stack", category: "wallet", question: "How do I show individual entries in a transaction stack?",
+    answer: "In Transaction history, choose Show entries on the stack. Each expanded record has its own amount and available links, including View entry and Report a problem. Choose Hide entries to collapse the stack again.",
+    keywords: "expand individual wallet entries transaction stack ungroup receipt",
+    action: { label: "Open Transaction history", href: walletTransactionsHref },
+  },
+  {
+    id: "order-support-copy", category: "support", question: "What does Copy for Support do?",
+    answer: "In Order details or Reward details, Copy for Support creates a summary for that exact record. Paste it into your existing case reply or a new report from the record. Leave payment-card and gift-card numbers out of the message.",
+    keywords: "copy for support order reward detail paste reference",
+    action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
+    followUpAction: { label: "Open My support cases", href: "/support#case-list" },
+  },
+  {
+    id: "notification-display-time", category: "account", question: "How long does a notification stay at the top of the page?",
+    answer: "In Profile, choose Appearance and find Display time in the header notification settings. Set the duration and save it. This controls the header preview and alerts. Email choices and in-app alert preferences are managed separately in Notifications.",
+    keywords: "header notification banner display time duration seconds stays top",
+    action: { label: "Open Appearance", href: "/account/profile?section=appearance#personalize-menu-heading" },
+  },
+  {
+    id: "blank-entry-print", category: "entries", question: "What if my mail-in print sample has a blank name or account reference?",
+    answer: "Choose Back to entry instructions. Check the legal name and demo account reference, sign in if needed, then reopen the print preview. The sample is a demonstration. Check the instructions for the selected prize before printing.",
+    keywords: "mail-in print preview blank missing legal name account reference postcard insert",
+    action: { label: "Open free-entry instructions", href: "/free-entry?origin=faq#free-entry-intro" },
+  },
 ];
 
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:transactions?\b.*\barchived|archived\b.*\btransactions?)\b/, "archived-transactions"],
+  [/\bclear demo (?:transactions?|deposits?)\b/, "clear-demo-history"],
+  [/\bweekly\b.*\bdeposits?\b|\bdeposit totals\b.*\bweek\b/, "weekly-deposits"],
+  [/\bsample card\b.*\bcamera\b.*\b(?:blocked|denied|unavailable)\b/, "save-sample-card"],
+  [/\bsaved card\b.*\bedit(?:ed)?\b.*\bdifferent card\b/, "edit-card-name"],
+  [/\b(?:transaction|ledger)\s+stack\b.*\bentr(?:y|ies)\b|\bindividual entries\b.*\btransaction stack\b/, "transaction-stack"],
+  [/\bentr(?:y|ies)\b.*\breservation\b.*\b(?:purchase|payment|posted)\b/, "posted-and-pending"],
+  [/\b(?:purchase|offer)\b.*\b(?:funding amount|minimum deposit)\b.*\bshortfall\b|\bfunding alone\b.*\b(?:accept|purchase|offer)\b/, "purchase-wallet-balance"],
+  [/\bcombine\b.*\b(?:two|multiple|several)\s+(?:purchase )?offers?\b/, "purchase-options"],
+  [/\b(?:win|won)\b.*\borders\b.*\b(?:confirmed )?payment\b/, "order-receipt"],
+  [/\bcopy for support\b/, "order-support-copy"],
+  [/\bhow long\b.*\bnotification\b.*\b(?:top|header|banner)\b|\bnotification banner\b.*\bdisplay time\b/, "notification-display-time"],
+  [/\bmenu\b.*\bdesktop\b.*\b(?:phone|mobile)\b|\bmenu\b.*\bwithout changing\b.*\bphone\b/, "top-menu"],
+  [/\bfavou?rites?\s+alerts?\b.*\b(?:filled|full|closed)\b/, "favorite-watch-one"],
+  [/\bdeclin(?:e|ing)\b.*\b(?:crew|shared)\s+pick\b.*\b(?:delete|remove)\b.*\bentry\b/, "shared-pick-undo-decline"],
+  [/\bundo\b.*\b(?:cleanup|clean up|cleaning up)\b.*\b(?:shares?|sharing|picks?)\b/, "stop-sharing"],
+  [/\bmail[ -]in\b.*\bprint\b.*\b(?:blank|missing)\b/, "blank-entry-print"],
+  [/\bcheck\b.*\bproduct request\b.*\b(?:submitted|sent)\b/, "request-product"],
   [/\bhow long\b.*\bundo\b.*\b(?:tickets?|entr(?:y|ies))\b|\bentry countdown\b.*\b(?:zero|ended|expired)\b.*\bundo\b/, "undo-entry"],
   [/\b(?:entry|ticket) quantity\b.*\b(?:after|when)\b.*\b(?:added funds|funding|deposit)\b/, "entry-after-funding"],
   [/\b(?:another|new)\s+entry\b.*\b(?:while|already)\b.*\bpending\b/, "entry-status"],

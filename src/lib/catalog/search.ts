@@ -31,6 +31,8 @@ export function searchCatalogMatches(
     .replace(/\bpriced\s+at\s+(?=(?:over|above|under|below)\s+\$)/gi, "")
     .replace(/^(.*?)\s+no gift cards?\s+(?=(?:under|below|over|above|at least|up to|between)\b)/i, "$1 without gift cards ")
     .replace(/^only\s+(.+?)\s+with photos\b/i, "pictured $1")
+    .replace(/^shown with (?:a )?picture\s+(?:from|at)\s+/i, "pictured ")
+    .replace(/^(?:a\s+)?(tvs?|televisions?)\s+measuring\s+(?=between\b)/i, "$1 ")
     .replace(/\bwith tickets available\s*[.!?]?$/i, " available")
     .replace(/\bstill open\s*[.!?]?$/i, " available")
     .replace(/\bfor (\$\s*[\d,.]+)\s+entries(?=\s+with\b)/i, "$1 per entry")
@@ -69,15 +71,17 @@ export function searchCatalogMatches(
     .replace(/\bnot including\s+(?=[a-z])/gi, "excluding ")
     .replace(/\bnot sold (?:by|at)\s+/gi, "excluding from ")
     .replace(/^(.+\b(?:tvs?|televisions?)|tvs?|televisions?)\s+not made by\s+/i, "$1 without ")
-    .replace(/^(\d+\s*[- ]?\s*inch(?:es)?(?:\s+and\s+\d+\s*[- ]?\s*inch(?:es)?)+)(\s+(?:tvs?|televisions?)\s*[.!?]?)$/i,
+    .replace(/^(\d+\s*[- ]?\s*inch(?:es)?(?:\s+and\s+\d+\s*[- ]?\s*inch(?:es)?)+)(\s+(?:tvs?|televisions?)\b)/i,
       (_, sizes: string, type: string) => sizes.replace(/\s+and\s+/gi, " or ") + type)
     .replace(/\bneither\s+([^,;]+?)\s+nor\s+(.+)$/i, "excluding $1 and $2")
     .replace(/^(\$\s*\d+(?:\.\d{1,2})?)\s+or less in\s+(.+\bgift\s*cards?\b)[.!?]?$/i, "$2 up to $1")
     .replace(/\bgift\s*cards?\s+that\s+aren[’']t\s+from\b/i, "gift cards except")
     .replace(/\b(anywhere|everywhere)\s+except\b/i, "except")
+    .replace(/\b(?:from\s+)?any retailer\s+but\b/i, "excluding")
+    .replace(/\b(excluding|without|except(?: for)?)\s+all\s+(?=gift cards?\b)/i, "$1 ")
     .replace(/\bexcluding\s+retailers?\s+/i, "excluding ")
     .replace(/\b(?:one[ -])?dollar entry\s+(?:for|at)\s+(.+)$/i, "$1 $$1 per entry")
-    .replace(/\b(headphones?|earbuds?|earphones?|headsets?)\s+made by\s+(.+)$/i, "$2 $1")
+    .replace(/\b(headphones?|earbuds?|earphones?|headsets?)\s+(?:made\s+)?by\s+(?:either\s+)?(.+)$/i, "$2 $1")
     .replace(/^(TVs?|televisions?)\s+by\s+either\s+(.+\s+or\s+.+)$/i, "$2 $1");
   if (query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms) return [];
   const pictured = /^pictured\s+(.+)$/i.exec(query.trim());
@@ -131,13 +135,18 @@ export function searchCatalogMatches(
       return searchCatalogMatches(scoped, audioBrands[2] + audioBrands[3]);
     }
   }
-  const retailerChoices = /^(.+?)\s+(?:at|from|sold by)\s+(.+\s+(?:or|and|&)\s+.+)$/i.exec(query.trim());
-  if (retailerChoices && !/\bgift card\b/.test(normalizeSearch(retailerChoices[1]))
-    && queryWords(searchDenominations(retailerChoices[1], products).text).length > 0) {
+  const retailerChoices = /^(.+?)\s+(?:at|from|sold by)\s+(?:either\s+)?(.+\s+(?:or|and|&)\s+.+)$/i.exec(query.trim());
+  if (retailerChoices && !/\bgift card\b/.test(normalizeSearch(retailerChoices[1]))) {
     const retailers = retailerChoices[2].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(name => catalogMerchant(name, products));
     if (retailers.length > 1 && retailers.every((name): name is string => Boolean(name))) {
-      const scoped = products.filter(product => !isGiftCardListing(product) && retailers.some(name => matchesCatalogMerchant(product.retailer, name)));
-      return searchCatalogMatches(scoped, retailerChoices[1], undefined, { includeLowerGiftCards });
+      const scope = searchDenominations(retailerChoices[1], products);
+      const generic = !scope.text || /^(?:prizes?|products?|offers?|items?)$/i.test(scope.text);
+      if (!generic || scope.budget || scope.values.size || scope.entryPrice !== null) {
+        const scoped = products.filter(product => (generic || !isGiftCardListing(product))
+          && retailers.some(name => matchesCatalogMerchant(product.retailer, name)));
+        const text = generic ? "" : scope.text;
+        return searchCatalogMatches(scoped, text, { ...scope, text, merchant: null }, { includeLowerGiftCards });
+      }
     }
   }
   const audioChoices = /^(.+?)\s+((?:headphones?|earbuds?|earphones?|headsets?)(?:\s+or\s+(?:headphones?|earbuds?|earphones?|headsets?))+)$/i.exec(query.trim());
@@ -169,7 +178,7 @@ export function searchCatalogMatches(
       .some(brand => normalizeSearch(product.brand) === normalizeSearch(brand)));
     return searchCatalogMatches(scoped, multiBrandTelevisions[3], undefined, { includeLowerGiftCards });
   }
-  const standaloneConsole = /^(.*\b(?:p[.\s-]*s|play[\s-]*station)[.\s-]*5\b.*?)\s*,?\s+(?:but\s+)?(?:no|not|without|excluding)\s+(?:(?:a|any)\s+)?(?:game\s+)?bundles?\s*[.!?]?$/i.exec(query);
+  const standaloneConsole = /^(.*\b(?:p[.\s-]*s|play[\s-]*station)[.\s-]*5\b.*?)\s*,?\s+(?:(?:but\s+)?(?:no|not|without|excluding)\s+(?:(?:a|any)\s+)?(?:game\s+)?bundles?|that\s+is\s+not\s+bundled)\s*[.!?]?$/i.exec(query);
   if (standaloneConsole) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && !/\bbundle\b/.test(normalizeSearch(product.title))), standaloneConsole[1], undefined, { includeLowerGiftCards });
   }

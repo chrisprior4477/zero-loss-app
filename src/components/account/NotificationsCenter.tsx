@@ -12,6 +12,7 @@ import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import { StatusTicket } from "./StatusTicket";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { NotificationsLandingScroll } from "./NotificationsLandingScroll";
+import { hasAccountHistoryReturn, rememberAccountHistoryReturn } from "./AccountHistoryReturn";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { FavoriteAlertEmailPreference } from "./FavoriteAlertEmailPreference";
 import { PurchaseOptionEmailPreference } from "./PurchaseOptionEmailPreference";
@@ -115,25 +116,6 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
-  const alertSettingsLink = useRef<HTMLAnchorElement>(null);
-  const atAlertSettings = useRef(false);
-  useEffect(() => {
-    atAlertSettings.current = window.location.hash === "#alert-settings";
-    function restoreAlertFocus() {
-      const isSettings = window.location.hash === "#alert-settings";
-      const returning = atAlertSettings.current && !isSettings;
-      atAlertSettings.current = isSettings;
-      if (!returning || window.location.pathname !== "/account/notifications") return;
-      requestAnimationFrame(() => {
-        const link = alertSettingsLink.current;
-        if (!link || window.location.hash === "#alert-settings") return;
-        link.focus({ preventScroll: true });
-        revealBelowHeader(link);
-      });
-    }
-    window.addEventListener("popstate", restoreAlertFocus);
-    return () => window.removeEventListener("popstate", restoreAlertFocus);
-  }, []);
   useEffect(() => {
     let interrupted = false;
     function focusIntro() {
@@ -248,6 +230,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     }
     function interrupt() { interrupted = true; cancelScroll(); }
     function restoreView(event?: Event) {
+      if (hasAccountHistoryReturn() || window.location.hash === "#alert-settings") return;
       const viewKey = JSON.stringify([userId, window.location.href]);
       if (!event && restoredView.current === viewKey) return;
       restoredView.current = viewKey;
@@ -293,7 +276,10 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
             const link = document.getElementById(saved.linkId);
             const top = link && list?.contains(link) ? window.scrollY + link.getBoundingClientRect().top - saved.linkTop : saved.scrollY;
             window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-            if (returningToFilter && !saved.linkId) {
+            if (link && list?.contains(link) && link.getClientRects().length) {
+              link.focus({ preventScroll: true });
+              revealBelowHeader(link);
+            } else if (returningToFilter && !saved.linkId) {
               const filter = document.querySelector<HTMLElement>('#notification-tickets-filters [aria-pressed="true"]');
               const active = document.activeElement;
               if (active !== document.body && active?.id !== "main-content" && active !== filter) return;
@@ -366,7 +352,6 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
     const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
     if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };
     if (url.href !== window.location.href) window.history.pushState(state, "", url);
-    atAlertSettings.current = false;
     setFilter(nextFilter);
     setFocusedNotice(undefined);
     batches.reset();
@@ -513,15 +498,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
 
   function handleNotificationClick(event: MouseEvent<HTMLAnchorElement>, notification: AccountNotification) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (userId) {
-      const saved: NotificationReturn = {
-        userId, href: window.location.href, filter, start: batches.start, size: batches.size, expandedGroups,
-        scrollY: window.scrollY, listScrollTop: listRef.current?.scrollTop ?? 0,
-        linkId: event.currentTarget.id, linkTop: event.currentTarget.getBoundingClientRect().top,
-      };
-      // Preserve Next's state and the exact destination without another Back step.
-      window.history.replaceState({ ...window.history.state, [notificationReturnKey]: saved }, "");
-    }
+    updateBookmark({ linkId: event.currentTarget.id, linkTop: event.currentTarget.getBoundingClientRect().top });
     if (!readAvailable || read.has(notification.id)) return;
     event.preventDefault();
     openNotification(notification, event.currentTarget.getAttribute("href") ?? notification.href);
@@ -547,13 +524,15 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
           <button type="button" onClick={event => markAllRead(event.currentTarget, "top")} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read
           </button>
-          <a ref={alertSettingsLink} href="#alert-settings" onClick={event => {
+          <a href="#alert-settings" data-history-return onClick={event => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const heading = document.getElementById("in-app-alert-heading");
             if (!heading) return;
             event.preventDefault();
-            if (window.location.hash !== "#alert-settings") window.history.pushState(window.history.state, "", "#alert-settings");
-            atAlertSettings.current = true;
+            if (window.location.hash !== "#alert-settings") {
+              rememberAccountHistoryReturn(event.currentTarget);
+              window.history.pushState(window.history.state, "", "#alert-settings");
+            }
             heading.focus({ preventScroll: true });
             revealBelowHeader(heading);
           }}><AccountIcon name="settings" /> Alert settings</a>

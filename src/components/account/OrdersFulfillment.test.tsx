@@ -55,7 +55,7 @@ test("connects orders to rewards, activity and support", () => {
   expect(related.getAllByRole("link").map(link => [link.textContent, link.getAttribute("href")])).toEqual([
     ["My Activity", "/account/entries"],
     ["Gift Cards & Rewards", "/account/wallet"],
-    ["Wallet & Transactions", "/account/wallet?view=history"],
+    ["Wallet & Transactions", "/account/wallet?view=history&panel=transactions#transactions"],
     ["Confirmed payments", "/account/orders?filter=payment#fulfillment-records"],
   ]);
 });

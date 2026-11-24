@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { readNotificationReturn } from "@/lib/account/notification-return";
+import { hasAccountHistoryReturn } from "./AccountHistoryReturn";
 
 /** Mobile menu visits begin at Notifications, not the account overview above it. */
 export function NotificationsLandingScroll({ userId }: { userId?: string }) {
@@ -27,7 +28,7 @@ export function NotificationsLandingScroll({ userId }: { userId?: string }) {
       cancel();
       firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
-          if (disposed || interrupted) return;
+          if (disposed || interrupted || hasAccountHistoryReturn()) return;
           const headerBottom = measure();
           const url = new URL(window.location.href);
           if (url.searchParams.has("filter") && !url.searchParams.has("notice")

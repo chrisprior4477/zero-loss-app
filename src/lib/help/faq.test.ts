@@ -298,3 +298,28 @@ test.each([
 ])("routes the question %s to the specific answer", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });
+
+test.each([
+  ["how do I see demo transactions I archived", "archived-transactions"],
+  ["does clear demo transactions remove my balance", "clear-demo-history"],
+  ["what will clear demo deposits reset", "clear-demo-history"],
+  ["where can I see weekly deposit totals", "weekly-deposits"],
+  ["how do I set up a sample card if camera access is blocked", "save-sample-card"],
+  ["why can't the same saved card be edited to a different card", "edit-card-name"],
+  ["which button shows the individual entries in a transaction stack", "transaction-stack"],
+  ["why is my entry shown twice in Wallet as a reservation and a purchase", "posted-and-pending"],
+  ["why does my purchase review show a higher funding amount than the shortfall", "purchase-wallet-balance"],
+  ["does funding alone accept my offer", "purchase-wallet-balance"],
+  ["can I combine the payment from two offers into one gift card", "purchase-options"],
+  ["why is a win in orders without a confirmed payment", "order-receipt"],
+  ["what do I use copy for support for", "order-support-copy"],
+  ["where do I set how long the notification stays at the top of the page", "notification-display-time"],
+  ["can I save different menu settings for desktop and mobile", "top-menu"],
+  ["do favorites alerts work if the prize already filled", "favorite-watch-one"],
+  ["does declining a Crew pick delete my friend's entry", "shared-pick-undo-decline"],
+  ["how do I undo cleaning up shares I stopped sharing", "stop-sharing"],
+  ["what happens if the mail-in print name is blank", "blank-entry-print"],
+  ["how do I check a product request when I am unsure it was submitted", "request-product"],
+])("answers the recovery question %s", (query, id) => {
+  expect(filterFaqs(query, "all")[0]?.id).toBe(id);
+});

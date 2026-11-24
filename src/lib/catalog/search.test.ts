@@ -939,3 +939,25 @@ test("a TV size search can exclude accessories", () => {
   expect(result).not.toHaveLength(0);
   expect(result.every(product => /50(?:-inch|").+tv/i.test(product.title) && !product.slug.endsWith("-gift-card"))).toBe(true);
 });
+
+test.each([
+  ["prizes under $100 from Best Buy or Walmart", "Best Buy or Walmart prizes under $100"],
+  ["TVs sold by either Best Buy or Walmart", "TVs from Best Buy or Walmart"],
+  ["headphones by either Sony or JBL", "Sony or JBL headphones"],
+  ["gift cards from any retailer but Target or Walmart below $50", "gift cards below $50 excluding Target and Walmart"],
+  ["Walmart prizes excluding all gift cards under $100", "Walmart prizes under $100 excluding gift cards"],
+  ["PlayStation 5 that is not bundled", "PlayStation 5 without bundles"],
+  ["50-inch and 65-inch televisions $500 or less", "50 inch or 65 inch TVs up to $500"],
+  ["a TV measuring between 50 and 65 inches", "TVs between 50 and 65 inches"],
+  ["prizes that are worth $75 at most", "prizes up to $75"],
+  ["Home Depot items with a $75 cap", "Home Depot items up to $75"],
+  ["electronics that are no more than 150 dollars", "electronics up to $150"],
+  ["Best Buy prizes with 2 spots or fewer remaining", "Best Buy prizes at most 2 spots left"],
+  ["gift cards one remaining ticket", "gift cards with one ticket left"],
+  ["more than $500 face value but $1 an entry", "prizes over $500 $1 per entry"],
+  ["shown with a picture from Walmart under $100", "pictured Walmart products under $100"],
+])("preserves all qualifiers in %s", (query, equivalent) => {
+  const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
+  expect(slugs(query)).not.toHaveLength(0);
+  expect(slugs(query)).toEqual(slugs(equivalent));
+});
