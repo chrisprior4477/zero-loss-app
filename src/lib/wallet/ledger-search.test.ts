@@ -502,4 +502,14 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("CVS or Netflix purchase payments less than $50")).toEqual(["netflix"]);
   expect(search("transactions below negative 50 dollars")).toEqual(["walmart"]);
   expect(search("find the $160 payment receipt")).toEqual(["deposit"]);
+  expect(search("purchases from Netflix that posted on Nov 5")).toEqual(["netflix"]);
+  expect(search("Chase card deposits on November 5")).toEqual(["deposit"]);
+  expect(search("deposits from Nov 5, not Discover")).toEqual(["deposit"]);
+  expect(search("deposits from Nov 5, not Chase")).toEqual([]);
+  expect(search("Chase funding of exactly $160")).toEqual(["deposit"]);
+  expect(search("Chase deposits of $160 and $50 only")).toEqual(["deposit"]);
+  expect(search("PlayStation reservations that were released")).toEqual(["release"]);
+  expect(search("posted PlayStation charges minus $1")).toEqual(["entry", "later-entry"]);
+  expect(search("all purchases over the last week")).toEqual(["later-entry"]);
+  expect(search("funding transactions other than $160")).toEqual(["wells", "day-four"]);
 });

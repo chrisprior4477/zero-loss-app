@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength } from "@/lib/catalog/search-text";
@@ -29,13 +29,21 @@ export type BrowseFilterProps = {
   onNavigate?: (destination: string) => void;
 };
 
-export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, id, onNavigate, onSearchDraft, active = true }: BrowseFilterProps & { id: string; onSearchDraft?: (draft: string) => void; active?: boolean }) {
+export type BrowseFilterDraft = {
+  search: string;
+  mode: string;
+  productType: BrowseFilterState["type"];
+  availableOnly: boolean;
+  sort: BrowseFilterState["sort"];
+  bounds: { minValue: string; maxValue: string };
+};
+
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, ticketsLeft, searchTerm, subcategory, clearHref, initialSearch, initialDraft, id, onNavigate, onDraftChange, active = true }: BrowseFilterProps & { id: string; initialDraft?: BrowseFilterDraft; onDraftChange?: (draft: BrowseFilterDraft) => void; active?: boolean }) {
   const router = useRouter();
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const session = useBrowseResultsSearch();
-  const [localDraft, updateLocalDraft] = useState(initialSearch ?? session?.draft ?? searchTerm);
-  function setLocalDraft(value: string) { updateLocalDraft(value); onSearchDraft?.(value); }
+  const [localDraft, setLocalDraft] = useState(initialDraft?.search ?? initialSearch ?? session?.draft ?? searchTerm);
   const searchDraft = localDraft;
   const searchTooLong = catalogSearchTooLong(searchDraft.trim());
   const invalidSearch = invalidCatalogSearch(searchDraft);
@@ -47,11 +55,15 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const directoryMatches = showSearchSuggestions ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
     ? String(filters.maxValue) : filters.minValue !== null || filters.maxValue !== null ? "custom" : "all";
-  const [mode, setMode] = useState(presetValue);
-  const [productType, setProductType] = useState(filters.type);
-  const [availableOnly, setAvailableOnly] = useState(filters.availableOnly);
-  const [sort, setSort] = useState(filters.sort);
-  const [bounds, setBounds] = useState({ minValue: String(filters.minValue ?? ""), maxValue: String(filters.maxValue ?? "") });
+  const [mode, setMode] = useState(initialDraft?.mode ?? presetValue);
+  const [productType, setProductType] = useState(initialDraft?.productType ?? filters.type);
+  const [availableOnly, setAvailableOnly] = useState(initialDraft?.availableOnly ?? filters.availableOnly);
+  const [sort, setSort] = useState(initialDraft?.sort ?? filters.sort);
+  const [bounds, setBounds] = useState(initialDraft?.bounds ?? { minValue: String(filters.minValue ?? ""), maxValue: String(filters.maxValue ?? "") });
+  const reportDraft = useEffectEvent((draft: BrowseFilterDraft) => onDraftChange?.(draft));
+  useLayoutEffect(() => {
+    reportDraft({ search: localDraft, mode, productType, availableOnly, sort, bounds });
+  }, [localDraft, mode, productType, availableOnly, sort, bounds]);
   const fields = ["minValue", "maxValue"] as const;
   const invalidAmount = fields.find(field => bounds[field] !== "" && bounds[field] !== String(filters[field] ?? "") && (!/^\d+$/.test(bounds[field]) || Number(bounds[field]) > MAX_PRIZE_VALUE));
   const reversed = bounds.minValue !== "" && bounds.maxValue !== "" && Number(bounds.minValue) > Number(bounds.maxValue);
@@ -169,14 +181,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <div className="flex flex-wrap gap-2 lg:flex-col">
           {([ ["all", "All products"], ["pictured", "Pictured products"], ["gift-cards", "Gift cards"] ] as const).map(([value, label]) => (
             <label key={value} className="cursor-pointer">
-              <input className="peer sr-only" type="radio" name="type" value={value} defaultChecked={filters.type === value} onChange={() => setProductType(value)} />
+              <input className="peer sr-only" type="radio" name="type" value={value} checked={productType === value} onChange={() => setProductType(value)} />
               <span className="inline-flex min-h-10 w-full items-center rounded-xl border border-white/25 px-3 py-2 text-sm font-bold text-white/85 transition hover:border-cyan-300 peer-checked:border-cyan-300 peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan-300">{label}</span>
             </label>
           ))}
         </div>
       </fieldset>
       <label className="flex min-h-10 cursor-pointer items-center gap-3 text-sm font-bold">
-        <input type="checkbox" name="available" value="1" defaultChecked={filters.availableOnly} onChange={event => setAvailableOnly(event.target.checked)} className="h-5 w-5 accent-[#31e800]" />
+        <input type="checkbox" name="available" value="1" checked={availableOnly} onChange={event => setAvailableOnly(event.target.checked)} className="h-5 w-5 accent-[#31e800]" />
         Available only
       </label>
       <fieldset>
@@ -204,7 +216,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <legend className="mb-2 text-xs font-black uppercase tracking-[.1em] text-cyan-200">Sort by</legend>
         <div className="grid grid-cols-2 gap-2">
           {([["featured", "Featured"], ["fewest-left", "Fewest tickets left"], ["price-low", "Lowest entry price"], ["value-high", "Highest prize value"]] as const).map(([value, label]) => <label key={value} className="cursor-pointer">
-            <input className="peer sr-only" type="radio" name="sort" value={value} defaultChecked={filters.sort === value} onChange={() => setSort(value)} />
+            <input className="peer sr-only" type="radio" name="sort" value={value} checked={sort === value} onChange={() => setSort(value)} />
             <span className="flex min-h-11 h-full items-center justify-center rounded-xl border border-white/25 px-3 py-2 text-center text-xs font-bold peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline-2 peer-focus-visible:outline-cyan-300">{label}</span>
           </label>)}
         </div>
@@ -213,6 +225,9 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       <Link href={clearFiltersHref} onClick={event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setMode("all");
+        setProductType("all");
+        setAvailableOnly(false);
+        setSort("featured");
         setBounds({ minValue: "", maxValue: "" });
         setLocalDraft(clearedFilterSearch);
         session?.setDraft(clearedFilterSearch);

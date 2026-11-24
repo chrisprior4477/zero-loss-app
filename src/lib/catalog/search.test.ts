@@ -213,6 +213,16 @@ test("limits combined denominations to the named retailers", () => {
   ]);
 });
 
+test.each([
+  ["Walmart or Target gift cards exactly $25 with tickets left", ["target-25-gift-card", "walmart-25-gift-card"]],
+  ["Target gift cards under $100 and Walmart gift cards under $50", ["target-25-gift-card", "target-50-gift-card", "target-75-gift-card", "walmart-25-gift-card"]],
+  ["gift cards from Target under $100 or Walmart under $50", ["target-25-gift-card", "target-50-gift-card", "target-75-gift-card", "walmart-25-gift-card"]],
+  ["Target or Amazon gift cards for less than $50", ["amazon-25-gift-card", "target-25-gift-card"]],
+  ["Target gift cards with 2 tickets or fewer", ["directory-target-100-gift-card", "target-25-gift-card", "target-50-gift-card", "target-75-gift-card"]],
+])("keeps retailer, prize value and availability constraints for %s", (query, slugs) => {
+  expect(searchCatalog(demoProducts, query).map(product => product.slug).sort()).toEqual(slugs);
+});
+
 describe("catalog search", () => {
   test("typing available filters out a sold-out product with the same search name", () => {
     const pictured = demoProducts.find(product => product.slug === "sony-wh-1000xm5-headphones")!;

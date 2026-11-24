@@ -15,6 +15,7 @@ type PickerProps = {
   value: string;
   disabled?: boolean;
   nestedHistory?: boolean;
+  preservePageScroll?: boolean;
   onChange: (value: string) => void;
 };
 const ROW_HEIGHT = 48;
@@ -144,13 +145,14 @@ function RollerOverlay({ anchor, id, label, options, value, initialChoice, onBro
   </div>, document.body);
 }
 
-export function WalletRollerPicker({ id: providedId, label, placeholder, options, value, disabled = false, nestedHistory = false, onChange }: PickerProps) {
+export function WalletRollerPicker({ id: providedId, label, placeholder, options, value, disabled = false, nestedHistory = false, preservePageScroll = false, onChange }: PickerProps) {
   const uniqueId = useId();
   const id = providedId ?? uniqueId;
   const [open, setOpen] = useState(false);
   const [restoredChoice, setRestoredChoice] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const lastChoice = useRef<string | null>(null);
+  const openerScroll = useRef<{ href: string; top: number } | null>(null);
   const desktopSelect = useRef<HTMLSelectElement>(null);
   const selected = options.find(option => option.value === value);
   const unavailable = disabled || options.length === 0;
@@ -184,10 +186,14 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
         : undefined;
       const destination = adjacent ?? opener;
       const href = window.location.href;
+      const origin = !desktop && !direction && preservePageScroll ? openerScroll.current : null;
       const restore = () => {
-        if (window.location.href === href && (document.activeElement === document.body || document.activeElement === destination)) {
-          restoreDialogTrigger(destination, true);
-        }
+        const active = document.activeElement;
+        const fragment = document.getElementById(window.location.hash.slice(1));
+        if (window.location.href !== href || !destination.isConnected ||
+          (active !== document.body && active !== destination && active !== fragment)) return;
+        restoreDialogTrigger(destination, !origin);
+        if (origin?.href === href) window.scrollTo({ top: origin.top, behavior: "instant" });
       };
       // A native history return can reset focus after the overlay has unmounted.
       const onReturn = () => requestAnimationFrame(restore);
@@ -196,7 +202,11 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
       if (direction) requestAnimationFrame(() => {
         if (window.location.href === href) restoreDialogTrigger(destination, true);
       });
-      else restoreDialogTrigger(destination, true);
+      else if (origin) {
+        restoreDialogTrigger(destination);
+        requestAnimationFrame(restore);
+        window.setTimeout(restore, 100);
+      } else restoreDialogTrigger(destination, true);
     }
   }
   return <div className={styles.picker}>
@@ -207,7 +217,13 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
     </select>
     <button ref={trigger} type="button" className={styles.trigger} disabled={unavailable}
       aria-labelledby={`${id}-label ${id}-value`} aria-expanded={open && !unavailable} aria-controls={open ? `${id}-wheel` : undefined}
-      onClick={() => { if (!open) { lastChoice.current = null; setRestoredChoice(null); } setOpen(!open); }}>
+      onClick={() => {
+        if (open) { close(true); return; }
+        if (preservePageScroll) openerScroll.current = { href: window.location.href, top: window.scrollY };
+        lastChoice.current = null;
+        setRestoredChoice(null);
+        setOpen(true);
+      }}>
       <span id={`${id}-value`}>{selected ? <><strong>{selected.label}</strong>{selected.detail ? <small>{selected.detail}</small> : null}</> : placeholder}</span>
       <span className={styles.chevron} aria-hidden="true">{open ? "⌃" : "⌄"}</span>
     </button>

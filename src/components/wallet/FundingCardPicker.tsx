@@ -7,7 +7,7 @@ export function FundingCardPicker({ tokens, value, disabled, nestedHistory, onCh
   tokens: DemoCardToken[]; value: DemoCardToken | null; disabled: boolean; nestedHistory?: boolean; onChange: (token: DemoCardToken) => void;
 }) {
   return <WalletRollerPicker label="Current card in use" placeholder="Choose a card"
-    value={value ?? ""} disabled={disabled} nestedHistory={nestedHistory} onChange={token => onChange(token as DemoCardToken)}
+    value={value ?? ""} disabled={disabled} nestedHistory={nestedHistory} preservePageScroll={!nestedHistory} onChange={token => onChange(token as DemoCardToken)}
     options={tokens.map(token => {
       const card = demoCardFixture(token)!;
       return { value: token, label: card.issuer, detail: `Sample card •••• ${card.lastFour}` };

@@ -312,6 +312,12 @@ function newest<T extends LedgerEntryRow>(rows: T[]) {
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+/i, "")
+    .replace(/^(purchases?)\s+from\s+(.+?)(?=\s+(?:(?:that|which)\s+)?posted\s+on\b)/i, "$2 $1")
+    .replace(/^(.+?)\s+card\s+(deposits?|funding)\s+(?=on\b)/i, "$2 $1 ")
+    .replace(/^(.+?)\s+reservations?\s+(?:(?:that|which)\s+)?(?:were|was)\s+released[.!?]?$/i, "released holds $1")
+    .replace(/^posted\s+(.+?)\s+charges?\s+(?:minus|negative)\s+(\$\s*[\d,.]+)$/i, "posted amount -$2 $1")
+    .replace(/^(?:all\s+)?(purchases?)\s+over\s+the\s+last\s+week[.!?]?$/i, "$1 last 7 days")
+    .replace(/^(?:all\s+)?funding\s+transactions?\s+(?=other than\b)/i, "deposits ")
     .replace(/^(.+?)\s+(?:entr(?:y|ies)\s+(?:(?:that|which)\s+(?:actually\s+)?posted|excluding\s+(?:temporary\s+)?(?:holds?|reservations?))|confirmed\s+entry\s+(?:charges?|payments?|debits?))[.!?]?$/i, (phrase, date: string) =>
       dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? "entry payments on " + date : phrase)
     .replace(/^(?:posted\s+)?charges?\s+for\s+entr(?:y|ies)\s+only[.!?]?$/i, "entry payments")
@@ -385,7 +391,17 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer) && checks.some(check => check(entry.amount)));
     }
   }
-  const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+on\s+(.+?)\s+(?:except(?: for)?|excluding)\s+(.+?)[.!?]?$/i.exec(trimmed);
+  const issuerDepositAmounts = /^(.+?)\s+(?:deposits?|funding)\s+of\s+(?:exactly\s+)?(\$.+?)(?:\s+only)?[.!?]?$/i.exec(trimmed);
+  if (issuerDepositAmounts) {
+    const amounts = issuerDepositAmounts[2].split(/\s+(?:and|or)\s+/i);
+    if (amounts.every(token => amountOnly.test(token))) {
+      const issuer = normalizeSearch(issuerDepositAmounts[1]);
+      const checks = amounts.map(amountMatch);
+      return entries.filter(entry => entry.entry_type === "DEPOSIT"
+        && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer) && checks.some(check => check(entry.amount)));
+    }
+  }
+  const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+(?:on|from)\s+(.+?)(?:,\s+not|\s+(?:except(?: for)?|excluding))\s+(.+?)[.!?]?$/i.exec(trimmed);
   const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)(?:\s+on\s+(.+?))?[.!?]?$/i.exec(trimmed);
   if (datedIssuerExclusion || excludedIssuer) {
     const name = datedIssuerExclusion?.[2] ?? excludedIssuer?.[1] ?? "";

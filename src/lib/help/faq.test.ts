@@ -353,6 +353,15 @@ test.each([
   ["can I see a support reply I already read", "support-case"],
   ["how do I set the time displayed for the offer deadline", "time-zone"],
   ["can I file a ticket about my deposit without starting a new deposit", "receipt-in-support"],
+  ["how do I know which entries my undo button will remove", "undo-entry"],
+  ["If a prize filled before I paid can I get my balance back", "entry-status"],
+  ["can I change payment cards without making it the default card", "choose-deposit-card"],
+  ["can I report the pending payment instead of retrying it", "funding-status"],
+  ["do I have to pay the rest if I choose to keep the offer", "select-purchase-offers"],
+  ["does declining a share stop future messages from that person", "shared-pick-undo-decline"],
+  ["my friend can see an entry that I wanted to keep private", "crew-sharing"],
+  ["where is the reference number for the card in my order", "open-reward"],
+  ["where do I see why my order was canceled", "order-issuance"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

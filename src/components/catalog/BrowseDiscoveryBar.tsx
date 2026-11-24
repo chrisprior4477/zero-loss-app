@@ -6,7 +6,7 @@ import { DemoOutcomeLetter } from "./DemoOutcomeLetter";
 import { BrowseResultsLink } from "./BrowsePrizeLink";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
+import { FilterForm, type BrowseFilterProps, type BrowseFilterDraft } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { browsePrizeValueLabel, parseBrowseFilterState } from "@/lib/catalog/browse-filters";
@@ -76,8 +76,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
   const [queries, setQueries] = useState({ categories: "", retailers: "" });
   const query = queries[mode];
-  const filterDraft = useRef<string | undefined>(undefined);
-  const [initialFilterDraft, setInitialFilterDraft] = useState<string>();
+  const filterDraft = useRef<BrowseFilterDraft | undefined>(undefined);
+  const [initialFilterDraft, setInitialFilterDraft] = useState<BrowseFilterDraft>();
   function setQuery(value: string) { setQueries(current => ({ ...current, [mode]: value })); }
   function changeMode(next: typeof mode) {
     if (next === mode) return;
@@ -433,6 +433,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
           pickerVoice.cancel();
           setRefineTarget({ category: category.id || null, href });
           setRefineVisit(visit => visit + 1);
+          filterDraft.current = undefined;
           setInitialFilterDraft(undefined);
           setOpenPanel(current => current && { ...current, panel: "filters" });
         }}>Refine search</button>
@@ -556,7 +557,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
               ? <p className={styles.noMatches}>{invalidCatalogSearch(query) || catalogSearchTooLong(query.trim()) ? "" : query.trim() ? "No matching category or retailer. Choose Go to search for prizes." : "No categories or retailers available."}</p> : null}
           </div>
         </> : null}
-        {panel === "filters" || refineTarget ? <div className={styles.filterBody} hidden={panel !== "filters"}><FilterForm key={refineTarget ? refineVisit : "filters"} {...filterProps} active={panel === "filters"} initialSearch={initialFilterDraft ?? search} onSearchDraft={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div> : null}
+        {panel === "filters" || refineTarget ? <div className={styles.filterBody} hidden={panel !== "filters"}><FilterForm key={refineTarget ? refineVisit : "filters"} {...filterProps} active={panel === "filters"} initialSearch={search} initialDraft={initialFilterDraft} onDraftChange={value => { filterDraft.current = value; }} id={`${id}-filters`} onNavigate={navigateFromPanel} /></div> : null}
       </div>
     </dialog> : null}
   </div>

@@ -218,7 +218,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
-    answer: "Wait for the saved confirmation, then check My Activity. If an entry is still pending, open that ticket and check its status before submitting again. Open Entries shows active entries. Other filters show wins, purchase options, and completed activity. If the prize fills during checkout or the connection drops, check My Activity and Wallet before trying again. If Wallet shows a payment without a ticket, report that exact transaction.",
+    answer: "Wait for the saved confirmation, then check My Activity. If an entry is still pending, open that ticket and check its status before submitting again. Open Entries shows active entries. Other filters show wins, purchase options, and completed activity. If the prize fills during checkout or the connection drops, check My Activity and Wallet before trying again. In Transaction history, an entry reservation release means the held amount returned to your Playable Wallet. If Wallet shows a posted payment without a ticket, report that exact transaction.",
     keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active#my-activity-filters" },
   },
   {
@@ -233,7 +233,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
-    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. If two requests have the same amount, check each date and request number. Use Finish / check or Retry same request when offered. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
+    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. If two requests have the same amount, check each date and request number. Use Finish / check or Retry same request when offered. To report a pending deposit, open the existing request and use Contact Support if shown. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
@@ -254,7 +254,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "open-reward", category: "rewards", question: "Where is my prize or gift-card number?",
-    answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and available tools. Check that exact reward for any PIN or retailer link it includes. Sample cards cannot be redeemed. A reward notification also opens that specific reward directly.",
+    answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and available tools. Check that exact reward for its Card reference and any PIN or retailer link it includes. Orders & Fulfillment lists the separate order number. Sample cards cannot be redeemed. A reward notification also opens that specific reward directly.",
     keywords: "barcode code pin won winner winnings check redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
   },
   {
@@ -294,7 +294,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "crew-sharing", category: "account", question: "Who can see what I share with my Crew?",
-    answer: "Only the connected Crew members you share a pick with can see it. When you choose Add to Crew, you connect automatically if the other person’s account allows it. Either person can leave at any time and choose what to share back. Manage sharing in Your Crew. On the homepage, See prizes shows a person’s shared picks, including examples from the fictional sample profiles.",
+    answer: "Only the connected Crew members you share a pick with can see it. When you choose Add to Crew, you connect automatically if the other person’s account allows it. Either person can leave at any time and choose what to share back. If someone can see an entry you meant to keep private, go to Shared Picks & Cleanup in Your Crew, find that ticket, and review the audience or stop sharing it. On the homepage, See prizes shows a person’s shared picks, including examples from the fictional sample profiles.",
     keywords: "privacy friends maya daniel ari leo shared picks phone contacts", action: { label: "Manage Crew sharing", href: "/account/crew?tab=picks#sharing" },
   },
   {
@@ -409,14 +409,14 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-issuance", category: "rewards", question: "What if a paid gift-card order is missing, pending, or canceled?",
-    answer: "Open the exact order in Orders & Fulfillment and check its status. If a gift card has been issued, look in Gift Cards & Rewards. For a canceled order, a missing gift card, or a payment that still shows processing, report the problem from Order details. If the order is missing entirely, report the exact wallet transaction. Check the saved records before paying again.",
+    answer: "Open the exact order in Orders & Fulfillment and check its status. For a canceled order, choose Exceptions and open Order details to check for a reason. If a gift card has been issued, look in Gift Cards & Rewards. For a canceled order, a missing gift card, or a payment that still shows processing, report the problem from Order details. If the order is missing entirely, report the exact wallet transaction. Check the saved records before paying again.",
     keywords: "missing gift card paid purchase processing cancelled store issuance fulfillment",
     action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
     followUpAction: { label: "Open transaction history", href: walletTransactionsHref },
   },
   {
     id: "select-purchase-offers", category: "entries", question: "How do I buy one offer and keep the others?",
-    answer: "Open the prize in Purchase Options, choose the offer you want, and select Keep for later for the remaining offers. Check which offer and amount the review shows before confirming.",
+    answer: "Open the prize in Purchase Options, choose the offer you want, and select Keep for later for the remaining offers. Each kept offer stays available until its own deadline and needs a separate confirmation to complete. Check which offer and amount the review shows before confirming.",
     keywords: "buy only one select multiple offers keep others",
     action: { label: "Open Purchase Options", href: "/account/entries?filter=completion#my-activity-filters" },
   },
@@ -459,7 +459,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "shared-pick-undo-decline", category: "account", question: "Can I undo declining a prize someone shared?",
-    answer: "Declining a shared pick moves it to your Declined list. The sender keeps their entry. To restore the pick, open Favorites, choose Shared with You, then Declined. Open the shared prize and choose Undo decline to move it to Available. Check the current prize availability before entering.",
+    answer: "Declining moves that pick to your Declined list. The sender keeps their entry. To pause future picks from that source, open Sharing options and turn off Receive shared picks. To restore the pick, open Favorites, choose Shared with You, then Declined. Open the shared prize and choose Undo decline to move it to Available. Check the current prize availability before entering.",
     keywords: "undo decline restore received shared friend prize",
     action: { label: "Open declined shares", href: "/account/favorites?tab=shared&view=declined" },
   },
@@ -581,6 +581,15 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:which|what)\b.*\b(?:entries|tickets)\b.*\bundo\b.*\b(?:remove|cancel)\b/, "undo-entry"],
+  [/\b(?:prize|pool) (?:filled|closed)\b.*\bbefore (?:i )?paid\b.*\b(?:balance|money|funds)\b/, "entry-status"],
+  [/\b(?:change|switch|use|choose)\b.*\b(?:payment|saved|sample) cards?\b.*\bwithout\b.*\bdefault\b/, "choose-deposit-card"],
+  [/\breport\b.*\bpending (?:payment|deposit)\b.*\b(?:retry|trying again)/, "funding-status"],
+  [/\b(?:pay|buy)\b.*\b(?:rest|remaining amount)\b.*\bkeep\b.*\boffer\b/, "select-purchase-offers"],
+  [/\bdeclin(?:e|ing)\b.*\b(?:share|pick)\b.*\b(?:stop|block)\b.*\bfuture (?:shares|messages|picks)\b/, "shared-pick-undo-decline"],
+  [/\b(?:friend|crew member|someone)\b.*\b(?:can see|sees|saw)\b.*\b(?:entry|ticket|pick)\b.*\bprivate\b/, "crew-sharing"],
+  [/\b(?:card reference|reference number)\b.*\b(?:card|reward|order)\b/, "open-reward"],
+  [/\b(?:where|why|reason)\b.*\border\b.*\bcancell?ed\b/, "order-issuance"],
   [/\b(?:money|funds)\b.*\b(?:just )?added\b.*\b(?:went through|posted|credited)\b/, "funding-status"],
   [/\b(?:saved card|card (?:is|was) saved)\b.*\badd funds\b.*\b(?:automatic(?:ally)?|charge)\b/, "deposit-cancellation"],
   [/\bbrowser\b.*\b(?:reset|closed|crashed)\b.*\b(?:lost|missing)\b.*\boffer\b.*\b(?:pay|paying|checkout)\b/, "purchase-wallet-balance"],
