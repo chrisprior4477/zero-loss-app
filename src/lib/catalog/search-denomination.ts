@@ -294,6 +294,8 @@ function ticketBounds(comparison: string | undefined, count: string) {
 
 export function remainingTicketFilter(query: string) {
   query = query.replace(new RegExp(String.raw`^\s*up to\s+(${ticketCount})\s+remaining\s+(${ticketNouns})\s+for\s+(.+?)\s*[.!?]?$`, "i"), "$3 with at most $1 $2 left")
+    .replace(new RegExp(String.raw`\b(${ticketNouns})\s+(${ticketAvailability})\s+(${ticketCount})\s+or\s+(?:fewer|less)\b`, "i"), "at most $3 $1 $2")
+    .replace(new RegExp(String.raw`\bno fewer than\s+(?=${ticketCount}\s+${ticketNouns}\s+${ticketAvailability}\b)`, "i"), "at least ")
     .replace(new RegExp(String.raw`\b(${ticketCount})\s+openings?\s*[.!?]?$`, "i"), "$1 tickets left")
     .replace(ticketsBeforeUpperLimit, "$1 $2 but $3 $4 tickets left")
     .replace(remainingBeforeTicket, "$1 $2 remaining")

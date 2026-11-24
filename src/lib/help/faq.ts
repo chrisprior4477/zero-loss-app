@@ -63,7 +63,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "delete-card", category: "wallet", question: "How do I delete a saved payment card?",
-    answer: "Open Payment methods and find the saved sample card by its name and last four digits. To remove it, choose Delete Card and review the card before confirming. If you meant to use a different saved card, choose it in Add funds or change your default payment method.",
+    answer: "Open Payment methods and find the saved sample card by its name and last four digits. To remove it, choose Delete Card and review the card before confirming. Its posted deposits stay in Transaction history. If you meant to use a different saved card, choose it in Add funds or change your default payment method.",
     keywords: "delete remove saved payment debit credit card",
     action: { label: "Manage saved cards", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
@@ -441,7 +441,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "save-sample-card", category: "wallet", question: "Can I save a sample card without making a deposit?",
-    answer: "Yes. Open Payment methods and use Add Card to choose and save one of the supplied sample cards. If you run into camera or permission trouble, use the manual Add Card control. A deposit is a separate confirmation.",
+    answer: "Yes. Open Payment methods and use Add Card to choose and save one of the supplied sample cards. If you run into camera or permission trouble, use the manual Add Card control. A deposit is a separate confirmation. If the sample card is already saved, choose it under Current card in use when adding funds.",
     keywords: "save add card no deposit camera permission scan manual sample",
     action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
@@ -581,6 +581,14 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:type|enter|reenter|re-enter)\b.*\bcard number\b.*\b(?:again|each time)\b.*\b(?:deposit|funding|add funds)\b/, "save-sample-card"],
+  [/\bwhich card\b.*\b(?:charged|used)\b.*\b(?:add funds|deposit|funding)\b.*\b(?:choose|switch|change)\b/, "choose-deposit-card"],
+  [/\bentr(?:y|ies)\b.*\b(?:looks?|shows?|says?) paid\b.*\bhold\b.*\b(?:money|funds|balance)\b/, "posted-and-pending"],
+  [/\b(?:identifier|reference)\b.*\b(?:issue|report|case)\b.*\b(?:sent|reported|submitted|opened)\b.*\bsupport\b/, "support-case-number"],
+  [/\bwhich\b.*\bgift[ -]?card\b.*\b(?:goes with|matches|belongs to)\b.*\breceipt\b/, "matching-rewards"],
+  [/\b(?:open|view|find|check)\b.*\border receipt\b.*\border (?:number|reference)\b/, "order-receipt"],
+  [/\b(?:remove|delete)\b.*\b(?:this|my|a|the|saved)\s+(?:saved\s+)?card\b.*\bwithout\b.*\b(?:remove|removing|delete|deleting|lose|losing)\b.*\bdeposits?\b/, "delete-card"],
+  [/\b(?:banner|header alert|notification)\b.*\b(?:disappears?|vanishes?|goes away)\b.*\b(?:finish|done)\s+reading\b/, "notification-display-time"],
   [/\bdeposits?\b.*\b(?:credited|went through|posted)\b.*\b(?:crashed|froze|timed out|closed)\b/, "funding-status"],
   [/\bundo(?:ing)?\b.*\b(?:entr(?:y|ies)|tickets?)\b.*\b(?:see|find|where)\b.*\b(?:money|funds?|balance)\b/, "undo-entry"],
   [/\b(?:last day|deadline)\b.*\bclaim\b.*\b(?:reward|prize|win)\b/, "reward-unavailable"],

@@ -535,4 +535,16 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("PlayStation ticket charges since Nov 5")).toEqual(["entry", "big-entry", "later-entry"]);
   expect(search("Best Buy exact posted $1 charges")).toEqual(["entry", "later-entry"]);
   expect(search("funds added on Nov 5 after 7.30pm")).toEqual(["deposit"]);
+  expect(search("what did I deposit on November 5")).toEqual(["deposit"]);
+  expect(search("deposits that went through on 11/5")).toEqual(["deposit"]);
+  expect(search("no Discover deposits on November 5")).toEqual(["deposit"]);
+  expect(search("no Chase deposits on November 5")).toEqual([]);
+  expect(search("PlayStation charges without the reservations")).toEqual(["entry", "big-entry", "later-entry"]);
+  expect(search("only the posted entries for PlayStation between Nov 4 and Nov 6")).toEqual(["entry", "big-entry"]);
+  expect(search("my Chase funding on Nov 5 after 7:30 p.m.")).toEqual(["deposit"]);
+  expect(search("Chase deposits on November 5 after 7:30 at night")).toEqual(["deposit"]);
+  expect(search("Chase deposits earlier than Nov 6")).toEqual(["deposit"]);
+  expect(search("Chase deposits earlier than Nov 5")).toEqual([]);
+  expect(search("only orders at Netflix that cleared on November 5")).toEqual(["netflix"]);
+  expect(search("money added with my Chase card during November 2026")).toEqual(["deposit"]);
 });

@@ -15,6 +15,27 @@ afterEach(cleanup);
 function mount() { return render(<CrewInlineFinder available onSample={vi.fn()} onClose={vi.fn()} />); }
 function find(query: string) { fireEvent.change(screen.getByLabelText("Name, email, or phone"), { target: { value: query } }); fireEvent.click(screen.getByRole("button", { name: "Find" })); }
 
+test("rehydrates the unsent query only for the same Crew visit and account", async () => {
+  const previousUrl = location.href;
+  const previousState = history.state;
+  history.replaceState({}, "", "/account/crew?tab=add#crew-intro");
+  const finder = (ownerId: string) => <CrewInlineFinder available ownerId={ownerId} onSample={vi.fn()} onClose={vi.fn()} />;
+  try {
+    const opened = render(finder("owner-one"));
+    fireEvent.change(screen.getByLabelText("Name, email, or phone"), { target: { value: "Maya example" } });
+    opened.unmount();
+    const returned = render(finder("owner-one"));
+    await waitFor(() => expect(screen.getByLabelText("Name, email, or phone")).toHaveProperty("value", "Maya example"));
+    returned.unmount();
+    render(finder("owner-two"));
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    expect(screen.getByLabelText("Name, email, or phone")).toHaveProperty("value", "");
+    expect(actions.searchCrewByName).not.toHaveBeenCalled();
+  } finally {
+    history.replaceState(previousState, "", previousUrl);
+  }
+});
+
 test("Find shows a private contact immediately below the form without sending a request", () => {
   const { container } = mount(); find("+1 239 555 0123");
   expect(screen.getByText("+1 239 555 0123")).toBeTruthy();

@@ -990,6 +990,19 @@ test("excludes Amazon gift cards without dropping other catalog items", () => {
   expect(result).toEqual(demoProducts.filter(product => product.retailer !== "Amazon" || !product.slug.endsWith("-gift-card")));
 });
 
+test("a spoken face value stays exact even when Browse includes lower card suggestions", () => {
+  const results = searchCatalogMatches(demoProducts, "Target gift card with a face value of fifty dollars", undefined, { includeLowerGiftCards: true });
+  expect(results.map(result => result.product.slug)).toEqual(["target-50-gift-card"]);
+});
+
+test("treats no fewer than two remaining entries as a minimum", () => {
+  const products = demoProducts.map(product => product.slug === "best-buy-100-gift-card"
+    ? { ...product, sold: product.capacity - 5 }
+    : product);
+  expect(searchCatalog(products, "Best Buy gift cards with no fewer than two entries left").map(product => product.slug))
+    .toEqual(["best-buy-100-gift-card"]);
+});
+
 test("a TV size search can exclude accessories", () => {
   const result = searchCatalog(demoProducts, "show 50-inch televisions excluding accessories");
   expect(result).not.toHaveLength(0);
@@ -997,6 +1010,12 @@ test("a TV size search can exclude accessories", () => {
 });
 
 test.each([
+  ["Best Buy or Target prizes with tickets left 2 or fewer", "Best Buy or Target prizes at most 2 tickets left"],
+  ["Target gift cards that cost no more than $50", "Target gift cards at most $50"],
+  ["Walmart gift cards but leave out the $50 ones", "Walmart gift cards excluding $50"],
+  ["$25 to $75 gift cards from Walmart, except the $50 card", "Walmart gift cards between $25 and $75 excluding $50"],
+  ["Sony or JBL headphones that cost under $2 to enter", "Sony or JBL headphones under $2 per entry"],
+  ["Best Buy TV sets excluding Samsung", "Best Buy TVs except for Samsung"],
   ["all gift cards at Target that are not $50", "Target gift cards excluding $50"],
   ["Walmart and Target have $50 gift cards", "Walmart or Target gift cards exactly $50"],
   ["up to two remaining entries for Target gift cards", "Target gift cards with at most 2 entries left"],

@@ -30,6 +30,36 @@ test("shared drafts reset for a new committed search or page, but survive unrela
   expect(screen.getByTestId("header-shell")).toBe(shell);
 });
 
+test("a filter change gives the carried draft its own browser history bookmark", () => {
+  vi.useFakeTimers();
+  const originalUrl = location.href;
+  const originalState = history.state;
+  navigation.path = "/browse";
+  navigation.query = "q=Sony&maxValue=500";
+  history.replaceState({}, "", "/browse?" + navigation.query);
+  const header = <SharedHeaderSearchDraft><DesktopHeaderSearch /></SharedHeaderSearchDraft>;
+  const view = render(header);
+  try {
+    act(() => vi.advanceTimersByTime(32));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Sony wireless headphones" } });
+    navigation.query = "q=Sony";
+    history.pushState({}, "", "/browse?" + navigation.query);
+    view.rerender(<SharedHeaderSearchDraft><DesktopHeaderSearch /></SharedHeaderSearchDraft>);
+    act(() => vi.advanceTimersByTime(32));
+
+    const bookmark = history.state;
+    expect(bookmark.zeroLossHeaderSearchDraft).toEqual({ routeKey: "/browse?q=Sony", value: "Sony wireless headphones" });
+    view.unmount();
+    history.replaceState(bookmark, "", "/browse?q=Sony");
+    render(header);
+    act(() => vi.advanceTimersByTime(32));
+    expect(screen.getByRole("searchbox")).toHaveProperty("value", "Sony wireless headphones");
+  } finally {
+    history.replaceState(originalState, "", originalUrl);
+    vi.useRealTimers();
+  }
+});
+
 describe("header search submit cue", () => {
   test("names its all-prizes scope and submits the same unrestricted query as the catalog search", () => {
     const navigate = vi.fn();

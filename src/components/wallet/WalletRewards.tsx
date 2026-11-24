@@ -136,7 +136,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       {prize && <p className={overview.message}>Showing rewards for this prize. <Link className="underline" href={scopedHistory(rewardViewHrefs.all, false)}>View all rewards</Link></p>}
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
-        <nav aria-label="Wallet sections" className={overview.walletSections}>{transactionReturn ? <Link href={transactionReturn}>← Back to this transaction</Link> : null}<Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
+        <nav aria-label="Wallet sections" className={overview.walletSections}>{transactionReturn ? <Link href={transactionReturn}>← Back to this transaction</Link> : null}<Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()} data-history-return>Orders &amp; Fulfillment</Link></nav>
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}&panel=funding#add-funds` : undefined} actionDisabled={!fundingEnabled} />

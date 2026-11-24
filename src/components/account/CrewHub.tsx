@@ -357,7 +357,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
       {finderVisit ? <div hidden={!finding}>
-        <CrewInlineFinder key={finderVisit} available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
+        <CrewInlineFinder key={finderVisit} available={available} ownerId={currentUserId} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={closeCrewSearch} />
         <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input ref={inviteField} aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
       </div> : null}
 

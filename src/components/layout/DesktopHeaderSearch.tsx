@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { scrollToCurrentSearch, searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -25,6 +25,10 @@ function HeaderMicrophoneIcon() {
 const SearchDraftContext = createContext<{ query: string; setQuery: (value: string) => void } | null>(null);
 const headerDraftKey = "zeroLossHeaderSearchDraft";
 
+function currentSearchRoute() {
+  return location.pathname + "?" + new URLSearchParams(location.search).toString();
+}
+
 function SearchDraftSession({ pathname, routeKey, initialQuery, children }: { pathname: string; routeKey: string; initialQuery: string; children: ReactNode }) {
   const [query, updateQuery] = useState(initialQuery);
   const scope = JSON.stringify([pathname, initialQuery]);
@@ -45,22 +49,39 @@ function SearchDraftSession({ pathname, routeKey, initialQuery, children }: { pa
     }
     try { window.history.replaceState(state, ""); } catch { /* The search input still works. */ }
   }, [initialQuery, routeKey]);
+  const previousVisit = useRef({ scope, routeKey });
+  const popRoute = useRef<string | null>(null);
+  const arrive = useEffectEvent((carryForward: boolean) => {
+    if (routeKey !== currentSearchRoute()) return;
+    const returned = popRoute.current === routeKey;
+    popRoute.current = null;
+    const saved = history.state?.[headerDraftKey];
+    if (saved?.routeKey === routeKey && typeof saved.value === "string" && saved.value.length <= maxCatalogSearchLength) {
+      updateQuery(saved.value);
+    } else if (returned) {
+      updateQuery(initialQuery);
+    } else if (carryForward && query !== initialQuery) {
+      setQuery(query);
+    }
+  });
   useLayoutEffect(() => {
-    const restore = () => {
-      const search = new URLSearchParams(location.search).toString();
-      if (routeKey !== location.pathname + "?" + search) return;
-      const saved = history.state?.[headerDraftKey];
-      if (saved?.routeKey === routeKey && typeof saved.value === "string" && saved.value.length <= maxCatalogSearchLength) {
-        updateQuery(saved.value);
-      }
+    const rememberBackOrForward = () => {
+      popRoute.current = currentSearchRoute();
+      if (popRoute.current === routeKey) arrive(false);
     };
-    const frame = requestAnimationFrame(restore);
-    window.addEventListener("popstate", restore);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("popstate", restore);
-    };
+    window.addEventListener("popstate", rememberBackOrForward, true);
+    return () => window.removeEventListener("popstate", rememberBackOrForward, true);
   }, [routeKey]);
+  useLayoutEffect(() => {
+    const previous = previousVisit.current;
+    const frame = requestAnimationFrame(() => {
+      // A compatible filter change keeps the typed draft and gives the new
+      // history entry its own copy. Back and Forward restore their own entries.
+      arrive(previous.scope === scope && previous.routeKey !== routeKey);
+      previousVisit.current = { scope, routeKey };
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [routeKey, scope]);
   const value = useMemo(() => ({ query, setQuery }), [query, setQuery]);
   return <SearchDraftContext.Provider value={value}>{children}</SearchDraftContext.Provider>;
 }

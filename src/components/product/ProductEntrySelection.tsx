@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { rememberAccountHistoryReturn } from "@/components/account/AccountHistoryReturn";
 import { freeEntryHref } from "@/lib/catalog/product-return";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 
@@ -47,11 +48,16 @@ export function FreeEntryLink({ slug, from, share, className, children }: {
 }) {
   const context = useContext(EntrySelection);
   const quantity = context && context.selection[2] === null ? Math.min(context.selection[0], context.maximum) : undefined;
-  return <Link onNavigate={event => {
-    if (context?.selection[2] == null) return;
-    const input = document.querySelector<HTMLInputElement>('#entry-quantity[aria-invalid="true"]');
-    if (!input || input.disabled) return;
-    event.preventDefault();
-    input.focus();
-  }} href={freeEntryHref(slug, from, quantity, share) + (context?.selection[2] != null ? "&recheck=1" : "")} className={className}>{children}</Link>;
+  const link = useRef<HTMLAnchorElement>(null);
+  return <Link ref={link} scroll={false} data-history-return onNavigate={event => {
+    if (context?.selection[2] != null) {
+      const input = document.querySelector<HTMLInputElement>('#entry-quantity[aria-invalid="true"]');
+      if (input && !input.disabled) {
+        event.preventDefault();
+        input.focus();
+        return;
+      }
+    }
+    if (link.current) rememberAccountHistoryReturn(link.current);
+  }} href={freeEntryHref(slug, from, quantity, share) + (context?.selection[2] != null ? "&recheck=1" : "") + "#free-entry-intro"} className={className}>{children}</Link>;
 }

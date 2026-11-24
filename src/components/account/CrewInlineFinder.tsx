@@ -2,16 +2,38 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { inviteToCrew, inviteToCrewById, inviteToCrewByPhone, searchCrewByName, type CrewSearchPerson } from "@/lib/crew/actions";
 import { addSampleCrewPreview, sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { ShareIcon } from "@/components/product/ShareIcon";
 import styles from "./crew-connected.module.css";
 
-export function CrewInlineFinder({ available, onSample, onClose }: { available: boolean; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
+const finderDraftKey = "zeroLossCrewFinderDraft";
+const maxQueryLength = 254;
+
+export function CrewInlineFinder({ available, ownerId, onSample, onClose }: { available: boolean; ownerId?: string; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, updateQuery] = useState("");
+  useLayoutEffect(() => {
+    if (!ownerId) return;
+    const frame = requestAnimationFrame(() => {
+      const saved = history.state?.[finderDraftKey];
+      if (saved?.ownerId === ownerId && saved.href === location.href && typeof saved.value === "string" && saved.value.length <= maxQueryLength) {
+        updateQuery(current => current || saved.value);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ownerId]);
+
+  function setQuery(value: string) {
+    updateQuery(value);
+    if (!ownerId) return;
+    const state = { ...history.state };
+    if (value) state[finderDraftKey] = { ownerId, href: location.href, value };
+    else delete state[finderDraftKey];
+    try { history.replaceState(state, ""); } catch { /* The inline search still works. */ }
+  }
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   const contactChoice = useRef<HTMLSelectElement>(null);
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
@@ -137,7 +159,7 @@ export function CrewInlineFinder({ available, onSample, onClose }: { available: 
     </label> : null}
     <form onSubmit={find}>
       <label htmlFor="crew-query">Name, email, or phone</label>
-      <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={254} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); focusResult.current = focusRetry.current = false; setQuery(event.target.value); setContactMethods([]); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || sending} aria-disabled={busy || undefined}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
+      <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={maxQueryLength} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); focusResult.current = focusRetry.current = false; setQuery(event.target.value); setContactMethods([]); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || sending} aria-disabled={busy || undefined}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
     </form>
     <div ref={results} className={styles.findResults} tabIndex={-1} role="region" aria-label="People search results">
       {target ? <article className={styles.findResult}><span className={styles.contactSymbol}><ShareIcon name={target.kind === "email" ? "mail" : "message"} /></span><div><strong>{target.value}</strong><small>Private contact lookup</small></div><button type="button" className={styles.greenButton} disabled={busy || sent.includes(target.value)} onClick={() => void add(target.value, () => target.kind === "email" ? inviteToCrew(target.value) : inviteToCrewByPhone(target.value))}>{sent.includes(target.value) ? "Saved" : "Add to Crew"}</button></article> : null}

@@ -62,7 +62,7 @@ test("seven unsubmitted entries survive the instructions and print-preview round
     fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
     expect(screen.getByRole("region", { name: "Letter-size print preview" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Back to entry instructions/ }));
-    expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe(back.pathname + back.search + back.hash);
+    expect((await screen.findByRole("link", { name: /Back to Apple AirPods/ })).getAttribute("href")).toBe(back.pathname + back.search + back.hash);
   } finally {
     scroll.mockRestore();
   }
