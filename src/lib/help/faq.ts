@@ -581,6 +581,13 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bdeposits?\b.*\b(?:credited|went through|posted)\b.*\b(?:crashed|froze|timed out|closed)\b/, "funding-status"],
+  [/\bundo(?:ing)?\b.*\b(?:entr(?:y|ies)|tickets?)\b.*\b(?:see|find|where)\b.*\b(?:money|funds?|balance)\b/, "undo-entry"],
+  [/\b(?:last day|deadline)\b.*\bclaim\b.*\b(?:reward|prize|win)\b/, "reward-unavailable"],
+  [/\bstatus\b.*\bsupport case\b.*\b(?:started|opened|filed|submitted)\b/, "support-case"],
+  [/\binvited\b.*\bcrew\b.*\b(?:not|never)\s+joined\b/, "crew-requests"],
+  [/\bstop\b.*\b(?:emails?|alerts?)\b.*\b(?:closing time|ending)\b.*\b(?:one|this)\s+(?:prize|item)\b/, "favorite-watch-one"],
+  [/\bredeem\b.*\bgift[ -]?card\b.*\bspend\b.*\b(?:tickets?|entr(?:y|ies))\b/, "reward-funding"],
   [/\bsign[ -]in (?:alert|notification)\b.*\b(?:not|wasn't) me\b/, "unrecognized-sign-in"],
   [/\b(?:reward|gift[ -]?card)\b.*\b(?:shows?|says?|marked)\s+(?:as\s+)?used\b.*\b(?:never used|did not use|didn't use)\b/, "reward-unavailable"],
   [/\b(?:buy|purchase)\b.*\b(?:disabled|unavailable)\b.*\b(?:offer|my activity)\b/, "purchase-action-unavailable"],

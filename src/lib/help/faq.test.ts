@@ -381,6 +381,13 @@ test.each([
   ["where do i find the older transactions after resetting my demo", "archived-transactions"],
   ["can new people look me up by my phone number", "crew-discoverability"],
   ["how do i copy the order information without sharing my card number", "order-support-copy"],
+  ["where do i check if a deposit really got credited when the page crashed", "funding-status"],
+  ["after using undo for an entry where do i see the money again", "undo-entry"],
+  ["what is the last day i can claim the reward i won", "reward-unavailable"],
+  ["where is the status of the support case i started yesterday", "support-case"],
+  ["how do i see the people invited to my crew who have not joined yet", "crew-requests"],
+  ["how can i stop emails about the closing time on just one prize", "favorite-watch-one"],
+  ["if i redeem my gift card does it increase what i can spend on tickets", "reward-funding"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

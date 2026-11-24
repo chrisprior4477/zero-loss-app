@@ -33,7 +33,7 @@ import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
-import { WalletCardEditor, revealWalletSection, fundingCardEditorId, openWalletPanel } from "./WalletCardEditor";
+import { WalletCardEditor, walletBalanceHref, revealWalletSection, fundingCardEditorId, openWalletPanel } from "./WalletCardEditor";
 import paymentStyles from "./wallet-payments.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
@@ -691,7 +691,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
       {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
-      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href="/account/wallet?view=history&landing=balance#balance" onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href={walletBalanceHref} onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;
 }
@@ -778,10 +778,10 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     <DepositCreditedToast amount={recoveredCredit.amount} />
     <DepositReceipt amount={recoveredCredit.amount} date={recoveryDate} tone="ready" status={successMessage}>
       {receiptBalance && <p><strong>Balance after this deposit: {receiptBalance}</strong></p>}
-      {recoveryDestination ? <ContinueAfterDeposit destination={recoveryDestination} /> : <Link href="/account/wallet?view=history&landing=balance#balance" scroll={false} className={paymentStyles.confirm}>Back to wallet</Link>}
+      {recoveryDestination ? <ContinueAfterDeposit destination={recoveryDestination} /> : <Link href={walletBalanceHref} scroll={false} className={paymentStyles.confirm}>Back to wallet</Link>}
     </DepositReceipt>
     <div className={paymentStyles.actions}>
-      {recoveryDestination && <Link href="/account/wallet?view=history&landing=balance#balance" scroll={false} className={paymentStyles.secondary}>Back to wallet</Link>}
+      {recoveryDestination && <Link href={walletBalanceHref} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link>}
       <Link href="/" className={paymentStyles.secondary}>Continue Shopping</Link>
       <a href="#payment-methods" className={paymentStyles.secondary}>View payment methods</a>
       <button type="button" className={paymentStyles.secondary} onClick={() => { setSuccessMessage(""); revealWalletSection("add-funds"); }}>Add more funds</button>
@@ -791,7 +791,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     <p role="status" className={paymentStyles.notice}>{successMessage}</p>
     {(receiptBalance ?? balanceLabel) ? <p><strong>{receiptBalance ? "Balance after this deposit" : "Current balance"}: {receiptBalance ?? balanceLabel}</strong></p> : null}
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}>
-      <Link href="/account/wallet?view=history&landing=balance#balance" scroll={false} className={paymentStyles.secondary}>Back to wallet</Link>
+      <Link href={walletBalanceHref} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link>
       <Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link>
     </div>
     <div className={paymentStyles.actions}>

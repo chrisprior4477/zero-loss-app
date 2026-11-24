@@ -487,7 +487,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
                 <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
-            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} onNavigate={rememberCrewSelection} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} onNavigate={rememberCrewSelection} data-history-return className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" disabled={crewEdges.end} hidden={crewEdges.start && crewEdges.end} onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
         </div>

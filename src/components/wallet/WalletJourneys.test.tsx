@@ -168,7 +168,7 @@ test("journey 1 opens the editor, saves only a reference, and returns to methods
   expect(data.get("makeDepositDefault")).toBe("true");
   expect(screen.getByRole("article", { name: "Saved card 5556" })).toBeTruthy();
   expect(window.location.hash).toBe("#payment-methods");
-  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("#balance");
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history&landing=balance#balance");
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
   expect(completeDemoFunding).not.toHaveBeenCalled();
 });
@@ -373,8 +373,13 @@ test("Back to wallet waits for the update, then leaves the editor with the updat
   await act(async () => finish({ status: "succeeded", message: "Saved" }));
   expect(screen.getByRole("status").textContent).toBe("Card updated.");
   expect(window.location.hash).toBe(editorHash);
-  fireEvent.click(screen.getByRole("link", { name: "Back to wallet" }));
-  expect(window.location.hash).toBe("#balance");
+  const balanceLink = screen.getByRole("link", { name: "Back to wallet" });
+  expect(balanceLink.getAttribute("href")).toBe("/account/wallet?view=history&landing=balance#balance");
+  act(() => {
+    window.history.pushState(null, "", balanceLink.getAttribute("href")!);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  expect(screen.queryByRole("heading", { name: "Edit card" })).toBeNull();
 
   fireEvent.click(screen.getByRole("link", { name: "View payment methods" }));
   expect(screen.getByRole("checkbox", { name: /Use .*as my default payment method/ })).toHaveProperty("checked", false);

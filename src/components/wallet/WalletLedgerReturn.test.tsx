@@ -47,6 +47,33 @@ function saveView() {
   return page;
 }
 
+test("browser Back restores a transaction search draft without applying it", () => {
+  const page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  const search = screen.getByRole("searchbox", { name: "Search transactions" });
+  fireEvent.change(search, { target: { value: "deposits" } });
+  fireEvent.submit(search.closest("form")!);
+  fireEvent.change(search, { target: { value: "deposits over $25" } });
+  fireEvent.click(screen.getAllByRole("link", { name: /^Report a problem with / })[0]);
+  const saved = window.history.state;
+  expect(saved[ledgerReturnKey]).toMatchObject({ query: "deposits", draftQuery: "deposits over $25" });
+
+  page.unmount();
+  window.history.replaceState(saved, "", href);
+  render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  flush();
+  expect(screen.getByRole("searchbox", { name: "Search transactions" })).toHaveProperty("value", "deposits over $25");
+  expect(screen.getByText("Showing 1–5 of 12 transactions")).toBeTruthy();
+});
+
+test("a duplicated Wallet history fragment is corrected without adding a history step", () => {
+  window.history.replaceState({ frameworkState: "keep" }, "", href + "#transactions");
+  const historyLength = window.history.length;
+  render(<WalletHistoryLandingScroll enabled target="transactions" />);
+  expect(window.location.hash).toBe("#transactions");
+  expect(window.history.state.frameworkState).toBe("keep");
+  expect(window.history.length).toBe(historyLength);
+});
+
 test("a fresh history visit restores the filter, dates, and page after reload", () => {
   const page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
   fireEvent.click(screen.getByRole("button", { name: "Funding" }));

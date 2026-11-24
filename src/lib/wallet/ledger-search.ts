@@ -313,6 +313,12 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+(?:my\s+)?/i, "")
     .replace(/^(.+?\s+orders?)\s+paid\s+(?=on\b)/i, "$1 ")
+    .replace(/\b(\d{1,2})\.(\d{2})\s*(am|pm)\b/gi, "$1:$2 $3")
+    .replace(/^(deposits?|funding)\s+(?:made\s+)?on\s+(.+?)\s+(?:on|using|with)\s+(?:(?:my|the)\s+)?(.+?)\s+card[.!?]?$/i, "$1 $3 on $2")
+    .replace(/^((?:deposits?|funding)\s+(?:on|from|between|before|after|since)\s+.+?)\s+that\s+(?:was|were)\s+(?=(?:more than|less than|under|over|at least|at most)\s+\$)/i, "$1 ")
+    .replace(/^receipts?\s+for\s+(?:(?:my|the)\s+)?(.+?)\s+(deposits?|funding)\s+(on|from)\s+(.+)$/i, "$1 $2 receipts $3 $4")
+    .replace(/^(.+?)\s+ticket charges?\s+((?:since|on|before|after)\s+.+)$/i, "entry payments $1 $2")
+    .replace(/^(.+?)\s+exact(?:ly)?\s+posted\s+(\$\s*[\d,.]+?)\s+charges?[.!?]?$/i, "posted amount -$2 $1")
     .replace(/^(deposits?|funding)\s+(?:that|which)\s+posted\s+(.+?)[.!?]?$/i,
       (phrase, type: string, date: string) => dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? type + " on " + date : phrase)
     .replace(/^only\s+(?=.+?\s+entry\s+(?:payments?|charges?|debits?)\s+(?:that\s+)?posted\s+on\b)/i, "")
@@ -413,7 +419,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer) && checks.some(check => check(entry.amount)));
     }
   }
-  const datedDepositAmountExclusion = /^((?:all\s+)?(?:.*?\s+)?(?:deposits?|funding)\s+on\s+.+?),?\s+(?:except(?: for)?|excluding|other than)\s+(?:(?:the\s+)?(?:ones?|those)(?:\s+for)?\s+)?(\$\s*[\d,.]+)[.!?]?$/i.exec(trimmed);
+  const datedDepositAmountExclusion = /^((?:all\s+)?(?:.*?\s+)?(?:deposits?|funding)\s+(?:on|from|between|after|before|since)\s+.+?),?\s+(?:except(?: for)?|excluding|other than)\s+(?:(?:the\s+)?(?:ones?|those)(?:\s+for)?\s+)?(\$\s*[\d,.]+)(?:\s+amounts?)?[.!?]?$/i.exec(trimmed);
   if (datedDepositAmountExclusion && amountOnly.test(datedDepositAmountExclusion[2])) {
     const omitted = amountMatch(datedDepositAmountExclusion[2]);
     return searchLedger(entries, datedDepositAmountExclusion[1], describe, fullLedger, calendar)

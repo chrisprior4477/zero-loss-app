@@ -12,7 +12,7 @@ import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardToken 
 import { DeleteCardToast } from "./DeleteCardToast";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
-import { WalletCardEditor, fundingCardEditorId, openWalletPanel, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
+import { WalletCardEditor, walletBalanceHref, fundingCardEditorId, openWalletPanel, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
 import walletStyles from "./wallet-overview.module.css";
 import styles from "./wallet-payments.module.css";
 
@@ -162,12 +162,6 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
       const url = new URL(anchor.href);
       if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search || !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(url.hash)) return;
-      if (url.hash === "#balance" && anchor.closest(`#payment-methods, #${fundingCardEditorId}`)) {
-        // The wallet's mobile landing handler may already own the scroll.
-        requestAnimationFrame(() => {
-          if (window.location.hash === "#balance") document.getElementById("balance")?.focus({ preventScroll: true });
-        });
-      }
       if (event.defaultPrevented) return;
       event.preventDefault();
       openWalletPanel(url.hash);
@@ -326,7 +320,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       </article>;
       })}</div>
       {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
-      <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>
+      <div className={`${styles.actions} ${styles.pairedActions}`}><Link href={walletBalanceHref} scroll={false} className={styles.secondary}>Back to wallet</Link><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>
     </>}
   </section>;
 }

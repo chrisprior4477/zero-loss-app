@@ -27,6 +27,12 @@ export function searchCatalogMatches(
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/^\s*all\s+(?=electronics\b)/i, "")
+    .replace(/^\s*gift cards?\s+(?:at|from|sold by)\s+(.+?)\s+that\s+(?:are not|aren[’']t)\s+(?=\$)/i, "$1 gift cards excluding ")
+    .replace(/^\s*(.+?)\s+(?:and|or)\s+(.+?)\s+have\s+(\$\s*[\d,.]+?)\s+gift cards?\s*[.!?]?$/i,
+      (phrase, first: string, second: string, amount: string) => catalogMerchant(first, products) && catalogMerchant(second, products)
+        ? first + " or " + second + " gift cards exactly " + amount : phrase)
+    .replace(/(\b(?:under|below|less than|at most|up to)\s+\$\s*[\d,.]+?)\s+to enter\s*[.!?]?$/i, "$1 per entry")
+    .replace(/^(\s*(?:.*?\s+)?(?:tvs?|televisions?)\s+(?:except(?: for)?|excluding|without)\s+.+?)\s+models\s*[.!?]?$/i, "$1")
     .replace(/\s+(?:that\s+costs?|priced)\s+(?=(?:exactly\s+)?\$\s*\d)/gi, " ")
     .replace(/\bpriced\s+at\s+(?=(?:over|above|under|below)\s+\$)/gi, "")
     .replace(/^(.*?)\s+no gift cards?\s+(?=(?:under|below|over|above|at least|up to|between)\b)/i, "$1 without gift cards ")

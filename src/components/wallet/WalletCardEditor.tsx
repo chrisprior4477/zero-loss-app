@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { cardSaveMatches } from "@/lib/payments/card-save-review";
 import { readDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
@@ -12,6 +13,7 @@ import styles from "./wallet-payments.module.css";
 
 export const savedCardEditPrefix = "#wallet-edit-card/";
 export const fundingCardEditorId = "funding-card-editor";
+export const walletBalanceHref = "/account/wallet?view=history&landing=balance#balance";
 
 export function openWalletPanel(hash: string, state: object | null = null, replace = false) {
   if (replace) window.history.replaceState(state, "", hash);
@@ -256,7 +258,7 @@ export function WalletCardEditor({ token, walletId, savedCard, displayName = "",
         <button type="submit" disabled={disabled || pending || state.status === "pending"} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
         <button type="button" disabled={pending} className={styles.secondary} onClick={cancelEdit}>{updated ? "Back to payment methods" : "Cancel"}</button>
         <button type="button" className={styles.secondary} aria-expanded={showCard} aria-controls={previewId} onClick={() => setShowCard(value => !value)}>{showCard ? "Hide card" : "See card"}</button>
-        {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <a className={styles.secondary} href="#balance">Back to wallet</a>}
+        {pending ? <button type="button" disabled className={styles.secondary}>Back to wallet</button> : <Link className={styles.secondary} href={walletBalanceHref} scroll={false}>Back to wallet</Link>}
       </div>
       <div id={previewId} hidden={!showCard} className={styles.artwork}><DemoCardArtwork token={enteredFixture?.token ?? token} artwork={artwork} cardholder={cardholder || "Preview customer"} back={back} /><button type="button" className={styles.secondary} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></div>
       <p className={styles.sample}>Simulation only. Only the safe sample-card reference and your preference are saved. No payment is made.</p>

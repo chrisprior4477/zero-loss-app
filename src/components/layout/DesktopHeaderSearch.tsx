@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { scrollToCurrentSearch, searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -22,16 +22,46 @@ function HeaderMicrophoneIcon() {
   );
 }
 
-const SearchDraftContext = createContext<{ query: string; setQuery: Dispatch<SetStateAction<string>> } | null>(null);
+const SearchDraftContext = createContext<{ query: string; setQuery: (value: string) => void } | null>(null);
+const headerDraftKey = "zeroLossHeaderSearchDraft";
 
-function SearchDraftSession({ routeKey, initialQuery, children }: { routeKey: string; initialQuery: string; children: ReactNode }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [previousRouteKey, setPreviousRouteKey] = useState(routeKey);
-  if (previousRouteKey !== routeKey) {
-    setPreviousRouteKey(routeKey);
-    setQuery(initialQuery);
+function SearchDraftSession({ pathname, routeKey, initialQuery, children }: { pathname: string; routeKey: string; initialQuery: string; children: ReactNode }) {
+  const [query, updateQuery] = useState(initialQuery);
+  const scope = JSON.stringify([pathname, initialQuery]);
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    updateQuery(initialQuery);
   }
-  const value = useMemo(() => ({ query, setQuery }), [query]);
+  const setQuery = useCallback((value: string) => {
+    updateQuery(value);
+    const state = { ...window.history.state };
+    if (value === initialQuery) {
+      if (!state[headerDraftKey]) return;
+      delete state[headerDraftKey];
+    } else {
+      if (state[headerDraftKey]?.routeKey === routeKey && state[headerDraftKey]?.value === value) return;
+      state[headerDraftKey] = { routeKey, value };
+    }
+    try { window.history.replaceState(state, ""); } catch { /* The search input still works. */ }
+  }, [initialQuery, routeKey]);
+  useLayoutEffect(() => {
+    const restore = () => {
+      const search = new URLSearchParams(location.search).toString();
+      if (routeKey !== location.pathname + "?" + search) return;
+      const saved = history.state?.[headerDraftKey];
+      if (saved?.routeKey === routeKey && typeof saved.value === "string" && saved.value.length <= maxCatalogSearchLength) {
+        updateQuery(saved.value);
+      }
+    };
+    const frame = requestAnimationFrame(restore);
+    window.addEventListener("popstate", restore);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("popstate", restore);
+    };
+  }, [routeKey]);
+  const value = useMemo(() => ({ query, setQuery }), [query, setQuery]);
   return <SearchDraftContext.Provider value={value}>{children}</SearchDraftContext.Provider>;
 }
 
@@ -40,7 +70,7 @@ export function SharedHeaderSearchDraft({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialQuery = pathname === "/browse" ? searchParams.get("q")?.trim() ?? "" : "";
-  return <SearchDraftSession routeKey={`${pathname}:${initialQuery}`} initialQuery={initialQuery}>{children}</SearchDraftSession>;
+  return <SearchDraftSession pathname={pathname} routeKey={`${pathname}?${searchParams.toString()}`} initialQuery={initialQuery}>{children}</SearchDraftSession>;
 }
 
 type SearchOptions = { inputId?: string; active?: boolean; onActivate?: () => void; onSubmitted?: () => void; onDismiss?: () => void };

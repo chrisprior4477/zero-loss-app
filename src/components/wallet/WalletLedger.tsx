@@ -199,7 +199,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setEditing(false);
       setFilter(saved.filter);
       setQuery(saved.query ?? "");
-      setDraft(saved.query ?? "");
+      setDraft(saved.draftQuery ?? saved.query ?? "");
       setFrom(saved.draftFrom ?? saved.from);
       setThrough(saved.draftThrough ?? saved.through);
       setAppliedDates({ from: saved.from, through: saved.through });
@@ -285,7 +285,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
     const bookmark = { [ledgerReturnKey]: {
-      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived, offset: firstRecord,
+      walletId, href: window.location.href, selectedId, filter, query, draftQuery: changes.query ?? draft, ...appliedDates, draftFrom: from, draftThrough: through, showArchived, offset: firstRecord,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       ...changes,
       expandedRows: changes.expandedRows ?? expandedLedgerRows(),
@@ -301,7 +301,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const row = anchor.closest("li");
     const href = anchor.getAttribute("href");
     const saved: LedgerReturn = {
-      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, draftFrom: from, draftThrough: through, showArchived,
+      walletId, href: window.location.href, selectedId, filter, query, draftQuery: draft, ...appliedDates, draftFrom: from, draftThrough: through, showArchived,
       offset: firstRecord, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
       entryLink: href?.startsWith("/account/entries/") ? href : undefined,
       expandedRows: expandedLedgerRows(),

@@ -62,6 +62,7 @@ export type LedgerReturn = {
   selectedId?: string;
   filter: LedgerFilter;
   query?: string;
+  draftQuery?: string;
   from: string;
   through: string;
   draftFrom?: string;
@@ -84,6 +85,7 @@ export function readLedgerReturn(state: unknown, walletId: string, href: string,
   if (!saved || saved.walletId !== walletId || saved.href !== href || saved.selectedId !== selectedId
     || !["all", "funding", "entries", "purchases", "refunds"].includes(saved.filter ?? "")
     || (saved.query !== undefined && typeof saved.query !== "string")
+    || (saved.draftQuery !== undefined && (typeof saved.draftQuery !== "string" || saved.draftQuery.length > 240))
     || !date(saved.from) || !date(saved.through)
     || (saved.draftFrom !== undefined && !date(saved.draftFrom)) || (saved.draftThrough !== undefined && !date(saved.draftThrough)) || typeof saved.showArchived !== "boolean"
     || !Number.isSafeInteger(saved.offset) || saved.offset! < 0

@@ -997,6 +997,11 @@ test("a TV size search can exclude accessories", () => {
 });
 
 test.each([
+  ["all gift cards at Target that are not $50", "Target gift cards excluding $50"],
+  ["Walmart and Target have $50 gift cards", "Walmart or Target gift cards exactly $50"],
+  ["up to two remaining entries for Target gift cards", "Target gift cards with at most 2 entries left"],
+  ["Sony headphones under $2 to enter", "Sony headphones under $2 per entry"],
+  ["Best Buy televisions excluding Samsung models", "Best Buy TVs except for Samsung"],
   ["open Sony headphones", "available Sony headphones"],
   ["gift cards sold by Amazon and Walmart for less than $75", "Amazon or Walmart gift cards under $75"],
   ["prizes under $100 from Best Buy or Walmart", "Best Buy or Walmart prizes under $100"],

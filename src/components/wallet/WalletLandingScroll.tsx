@@ -33,6 +33,15 @@ function subscribeToHistory(callback: () => void) {
 export function WalletHistoryLandingScroll({ walletId, selectedId, selectedRequested, enabled, target, fromOrders = false }: {
   walletId?: string; selectedId?: string; selectedRequested?: boolean; enabled: boolean; target: string; fromOrders?: boolean;
 }) {
+  useEffect(() => {
+    function normalizeHistoryHash() {
+      if (window.location.pathname !== "/account/wallet" || !/^#transactions(?:#transactions)+$/.test(window.location.hash)) return;
+      window.history.replaceState(window.history.state, "", "#transactions");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
+    normalizeHistoryHash();
+    return subscribeToHistory(normalizeHistoryHash);
+  }, [enabled]);
   const returning = useSyncExternalStore(subscribeToHistory,
     () => Boolean(walletId && (readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)
       || readLedgerSupportReturn(walletId, window.location.href, selectedId))),
