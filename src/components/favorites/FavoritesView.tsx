@@ -41,6 +41,7 @@ type Selection = { slug: string; shareId?: never } | { shareId: string; slug?: n
 type SharePatch = Partial<Pick<SavedProductShare, "viewedAt" | "declinedAt">>;
 const sharePatchFields = ["viewedAt", "declinedAt"] as const;
 type ListPosition = { href: string; target: string; top: number; artwork?: boolean };
+let sharedPrizeReturn: ListPosition | null = null;
 function savedListPosition(state: unknown): ListPosition | null {
   if (!state || typeof state !== "object" || !("zeroLossFavoritesReturn" in state)) return null;
   const value = state.zeroLossFavoritesReturn;
@@ -274,10 +275,18 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
       .catch(() => { if (isViewingShare(shareId)) setMessage("The item is available, but its viewed status could not be saved."); });
   }
+  function rememberSharedPrizeReturn() {
+    const position = listPosition.current;
+    if (selectedShare && position?.target === selectedShare.id) sharedPrizeReturn = position;
+  }
+
   function back(keepCurrentView = false, message = "") {
     const target = selection?.shareId ?? selection?.slug;
     const nextView = keepCurrentView || !selectedShare ? sharedView : selectedShare.declinedAt ? "declined" : "available";
     const href = tab === "shared" ? savedShareHref(undefined, nextView) : favoritesHref(favoriteFilter);
+    const productReturn = selectedShare && sharedPrizeReturn?.target === selectedShare.id
+      && sharedPrizeReturn.href === href ? sharedPrizeReturn : null;
+    if (productReturn) sharedPrizeReturn = null;
     if (savedListPosition(window.history.state)?.href === href) {
       if (message) listFeedback.current = { href, message };
       window.history.back();
@@ -289,7 +298,7 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
     if (message) setMessage(message);
     if (tab === "shared") setSharedView(nextView);
     location(href);
-    restoreListPosition(target);
+    restoreListPosition(target, productReturn?.top, productReturn?.artwork);
   }
   async function changeShare(share: SavedProductShare, state: "declined" | "restore", checkOnly = false) {
     if (shareBusy || (uncheckedShare?.id === share.id && !checkOnly)) return;
@@ -418,11 +427,11 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2 tabIndex={-1} ref={detailHeading}>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selectedSlug, true)}
-              {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} data-history-return href={selectedShare ? detailHref : detailHref + "#entry-action"}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}
+              {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} data-history-return onNavigate={selectedShare ? rememberSharedPrizeReturn : undefined} href={selectedShare ? detailHref : detailHref + "#entry-action"}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}
               {!detailProduct ? <p>This product is no longer available in the current catalog.</p> : null}
               <div className={styles.detailActions}>
                 <div><button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selectedSlug) || !detailProduct || !available} onClick={() => toggle(selectedSlug)}>{slugs.includes(selectedSlug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
-                  {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} data-history-return href={detailHref}>Reopen prize →</Link> : null}
+                  {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} data-history-return onNavigate={rememberSharedPrizeReturn} href={detailHref}>Reopen prize →</Link> : null}
                 </div>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={() => back()}>Back to list</button></div>
               </div>

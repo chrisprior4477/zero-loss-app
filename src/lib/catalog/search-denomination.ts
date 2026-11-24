@@ -291,7 +291,8 @@ function ticketBounds(comparison: string | undefined, count: string) {
 }
 
 export function remainingTicketFilter(query: string) {
-  query = query.replace(ticketsBeforeUpperLimit, "$1 $2 but $3 $4 tickets left")
+  query = query.replace(new RegExp(String.raw`\b(${ticketCount})\s+openings?\s*[.!?]?$`, "i"), "$1 tickets left")
+    .replace(ticketsBeforeUpperLimit, "$1 $2 but $3 $4 tickets left")
     .replace(remainingBeforeTicket, "$1 $2 remaining")
     .replace(ticketBeforeMaximum, "at most $1 $2 $3")
     .replace(/\bonly with\s+(?=(?:one|1)\s+spot\b)/i, "with ")

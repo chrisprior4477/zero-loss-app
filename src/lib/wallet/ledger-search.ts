@@ -315,6 +315,10 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/^(.+?)\s+(?:entr(?:y|ies)\s+(?:(?:that|which)\s+(?:actually\s+)?posted|excluding\s+(?:temporary\s+)?(?:holds?|reservations?))|confirmed\s+entry\s+(?:charges?|payments?|debits?))[.!?]?$/i, (phrase, date: string) =>
       dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? "entry payments on " + date : phrase)
     .replace(/^(?:posted\s+)?charges?\s+for\s+entr(?:y|ies)\s+only[.!?]?$/i, "entry payments")
+    .replace(/^(?:posted\s+)?payments?\s+for\s+(.+?)\s+entr(?:y|ies)\s+only[.!?]?$/i, "entry payments for $1")
+    .replace(/^(.+?)\s+reservation\s+holds?,?\s+no\s+posted\s+charges?[.!?]?$/i, "entry holds $1")
+    .replace(/^(.+?)\s+deposits?\s+excluding\s+anything\s+(?:above|over)\s+(?=\$)/i, "deposits $1 at most ")
+    .replace(new RegExp(String.raw`^(\$\s*${dollars})\s+(.+?)\s+charges?(?=\s+(?:after|before|since|on|in)\b|$)`, "i"), "posted amount -$1 $2")
     .replace(/^(?:all\s+)?deposits?\s+made\s+with\s+(?:a|the|my)\s+(?=card\s+ending\b)/i, "deposits using the ")
     .replace(/\bentry\s+(?:purchases?|payments?|charges?|debits?)\s+without\s+(?:temporary\s+)?(?:holds?|reservations?)[.!?]?$/i, "entry payments")
     .replace(new RegExp(String.raw`^(.+?)\s+(?:negative|minus)\s+(\$\s*${dollars})\s+(?:charges?|debits?)[.!?]?$`, "i"), "posted amount -$2 $1")
@@ -334,7 +338,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/^(deposits?|funding)\s+on\s+both\s+/i, "$1 on ")
     .replace(/\b(purchases?|orders?|deposits?)\s+made\s+(?=on\b)/i, "$1 ")
     .replace(/^(after|before|at or after|at or before)\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)(?:\s+[A-Z]{2,5})?)\s+on\s+(.+?)\s+(entry\s+(?:payments?|debits?|charges?)|deposits?|funding|purchases?)$/i, "$4 on $3 $1 $2")
-    .replace(/\b(?:made\s+)?in the last\s+(?=(?:7|30)\s+days\b)|\bin the past\s+(?=(?:7|30|seven|thirty)\s+days\b)/gi, "last ")
+    .replace(/\b(?:(?:made\s+)?in|over)\s+the last\s+(?=(?:7|30)\s+days\b)|\bin the past\s+(?=(?:7|30|seven|thirty)\s+days\b)/gi, "last ")
     .replace(/\blast (seven|thirty)(?=\s+days\b)/gi, (_, word: string) => "last " + spokenValue(word))
     .replace(/\b(after|before|at or after|at or before)\s+(noon|midnight)(?=\b)/gi,
       (_, operator: string, time: string) => operator + (time.toLowerCase() === "noon" ? " 12 pm" : " 12 am"))
@@ -381,15 +385,19 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer) && checks.some(check => check(entry.amount)));
     }
   }
-  const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)\s*$/i.exec(trimmed);
-  if (excludedIssuer) {
-    const omitted = normalizeSearch(excludedIssuer[1]);
-    return entries.filter(entry => {
+  const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+on\s+(.+?)\s+(?:except(?: for)?|excluding)\s+(.+?)[.!?]?$/i.exec(trimmed);
+  const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)(?:\s+on\s+(.+?))?[.!?]?$/i.exec(trimmed);
+  if (datedIssuerExclusion || excludedIssuer) {
+    const name = datedIssuerExclusion?.[2] ?? excludedIssuer?.[1] ?? "";
+    const date = datedIssuerExclusion?.[1] ?? excludedIssuer?.[2];
+    const omitted = normalizeSearch(name);
+    const inScope = date ? searchDate(entries, date, calendar) ?? [] : entries;
+    return inScope.filter(entry => {
       const issuer = entry.entry_type === "DEPOSIT" && savedIssuer(describe(entry));
       return Boolean(issuer && omitted && !sameMerchant(issuer, omitted));
     });
   }
-  const receiptCard = /^(?:(?:(?:deposit|funding)\s+)?receipts? (?:for|from)|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  const receiptCard = /^(?:(?:(?:deposit|funding)\s+)?receipts? (?:for|from)|funding received on|deposits? paid with|deposits? from(?=\s+.+?\s+card\s+ending\b))\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
   if (receiptCard) {
     const issuer = /^card$/i.test(receiptCard[1]) ? "" : normalizeSearch(receiptCard[1]);
     const needsReceipt = /^(?:(?:deposit|funding)\s+)?receipt/i.test(trimmed);

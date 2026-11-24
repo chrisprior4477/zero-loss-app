@@ -344,6 +344,15 @@ test.each([
   ["the phone clock and the order receipt disagree", "time-zone"],
   ["where is the contact form I already filled out", "support-case"],
   ["my notification keeps popping up while I shop", "notification-display-time"],
+  ["where can I check if the money I just added actually went through", "funding-status"],
+  ["if my card is saved will Add funds charge it automatically", "deposit-cancellation"],
+  ["my browser reset and I lost my offer before paying", "purchase-wallet-balance"],
+  ["how do I open the individual receipts inside a stack", "transaction-stack"],
+  ["the order says issued but I have no gift card number", "issued-order"],
+  ["I stopped sharing by mistake how do I reverse it", "stop-sharing"],
+  ["can I see a support reply I already read", "support-case"],
+  ["how do I set the time displayed for the offer deadline", "time-zone"],
+  ["can I file a ticket about my deposit without starting a new deposit", "receipt-in-support"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

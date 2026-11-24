@@ -70,7 +70,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
 export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts, depositList, weeklyDeposit, notificationReturnHref, ordersFilter, initialSearch = "" }: { initialSearch?: string; ordersFilter?: import("@/lib/account/fulfillment").FulfillmentFilter; notificationReturnHref?: string; depositList?: boolean | "receipt"; weeklyDeposit?: string; entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number; cardLabel?: string }> }) {
   const locale = useAccountLocale();
   const desktop = useMenuViewport() === "desktop";
-  const [filter, setFilter] = useState<LedgerFilter>("all");
+  const [filter, setFilter] = useState<LedgerFilter>(!compact && !selectedId && ordersFilter === "payment" ? "purchases" : "all");
   const [query, setQuery] = useState(initialSearch);
   const [draft, setDraft] = useState(initialSearch);
   const [editing, setEditing] = useState(false);

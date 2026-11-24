@@ -6,6 +6,17 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+test("starts on Purchases from Confirmed payments and still allows all transactions", () => {
+  render(<WalletLedger ordersFilter="payment" entries={[
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -2400, created_at: "2026-11-13T22:45:00Z" },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-14T22:45:00Z" },
+  ]} />);
+  expect(screen.getByRole("button", { name: "Purchases" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.queryByText("Entry purchase")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "All" }));
+  expect(screen.getByText("Entry purchase")).toBeTruthy();
+});
+
 test("groups only the recorded entry batch and shows the original photo and actions for each entry", () => {
   const product = { title: "PlayStation 5 Slim Model", slug: "playstation-5-slim", image: "/catalog/playstation-5-slim.png" };
   const entries: LedgerEntryRow[] = Array.from({ length: 5 }, (_, index) => ({

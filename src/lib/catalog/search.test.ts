@@ -48,6 +48,11 @@ test.each([
   ["headphones by Sony or JBL under $500", "Sony or JBL headphones under $500"],
   ["gift cards at Walmart with a face value of exactly $50", "exactly $50 Walmart gift card"],
   ["Sony headphones where entry costs $1", "Sony headphones $1 per entry"],
+  ["Sony headphones that still have entries left", "available Sony headphones"],
+  ["PlayStation 5 Slim has tickets left", "available PlayStation 5 Slim"],
+  ["TVs from Best Buy and Walmart at $600 or below", "TVs up to $600 from Best Buy or Walmart"],
+  ["Target $25 gift cards with at most five openings", "Target $25 gift cards with at most five tickets left"],
+  ["TVs under $500", "pictured TVs under $500"],
 ])("matches the same product set for %s and %s", (query, equivalent) => {
   const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
   const expected = slugs(equivalent);

@@ -86,6 +86,17 @@ test("matches deposit card metadata, order references, and compound payment sear
   expect(search("Nov 5 confirmed entry charges")).toEqual(["reference-be3ca77a"]);
   expect(search("charges for entries only")).toEqual(["reference-be3ca77a"]);
   expect(search("all deposits made with a card ending in 1117")).toEqual(["deposit-chase"]);
+  expect(search("all deposits on November 5 except Wells Fargo")).toEqual(["deposit-chase"]);
+  expect(search("deposits excluding Wells Fargo on Nov 5")).toEqual(["deposit-chase"]);
+  expect(search("deposits excluding Chase on Nov 5")).toEqual([]);
+  expect(search("deposits from the Chase card ending in 1117")).toEqual(["deposit-chase"]);
+  expect(search("deposits from the Discover card ending in 1117")).toEqual([]);
+  expect(search("Chase deposits excluding anything above $50")).toEqual([]);
+  expect(search("Chase deposits excluding anything above $160")).toEqual(["deposit-chase"]);
+  expect(search("PlayStation entry payments over the last 30 days")).toEqual(["reference-be3ca77a"]);
+  expect(search("PlayStation reservation holds, no posted charge")).toEqual(["hold"]);
+  expect(search("payments for PlayStation entries only")).toEqual(["reference-be3ca77a"]);
+  expect(search("$1 PlayStation charges after Nov 4")).toEqual(["reference-be3ca77a"]);
   expect(search("receipts for Discover card ending 5556")).toEqual(["deposit-discover"]);
   expect(search("order no. ABCDEF90")).toEqual(["netflix"]);
   expect(search("posted entry costs $1 for PlayStation")).toEqual(["reference-be3ca77a"]);

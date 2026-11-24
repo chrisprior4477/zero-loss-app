@@ -136,7 +136,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "time-zone", category: "account", question: "How do I change my time zone?",
-    answer: "Open Profile and update your mailing address. Zero Loss uses that address to determine the time zone shown on your orders and receipts. Your phone may be set to a different zone. If the address matches more than one zone, choose the correct one before saving.",
+    answer: "Open Profile and update your mailing address. Zero Loss uses that address to determine the time zone shown on your orders and receipts. Your phone may be set to a different zone. The offer deadline is displayed in that time zone. If the address matches more than one zone, choose the correct one before saving.",
     keywords: "timezone time zone local time change clock date deadline address profile",
     action: { label: "Open mailing address settings", href: "/account/profile?section=mailing#mailing-address-heading" },
   },
@@ -175,7 +175,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "stop-sharing", category: "account", question: "How do I stop sharing a pick?",
-    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group to review what you already shared with that audience. Open the prize to stop sharing an entry, or review several older picks together. After cleanup, check the audience named in the confirmation and use its Undo action while it’s available. Your default audience affects future sharing choices.",
+    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group to review what you already shared with that audience. Open the prize to stop sharing an entry, or review several older picks together. If you stopped sharing by mistake, use Undo in the cleanup confirmation while it’s available. It restores the previous sharing for the entries and audience named in that confirmation. Your default audience affects future sharing choices.",
     keywords: "unshare remove cleanup stop sharing privacy", action: { label: "Open Shared Picks & Cleanup", href: "/account/crew?tab=picks#sharing" },
   },
   {
@@ -311,7 +311,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "support-case", category: "support", question: "How do I contact support or follow up on a message?",
-    answer: "For a new issue, sign in and send a message from Contact or Help Center. To follow up on a reply or respond when the case is waiting for you, open My support cases, select the case, and reply in the existing conversation. Case updates also appear in Notifications. The demo does not send support emails.",
+    answer: "For a new issue, sign in and send a message from Contact or Help Center. To follow up on a reply or respond when the case is waiting for you, open My support cases, select the case, and reply in the existing conversation. Case updates also appear in Notifications. Choose All to include updates you already read. The demo does not send support emails.",
     keywords: "contact help service email reply case issue complaint", action: { label: "My support cases", href: "/support#case-list" },
     followUpAction: { label: "Contact support", href: "/contact#message" },
   },
@@ -395,7 +395,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "deposit-cancellation", category: "wallet", question: "What happens if I cancel an Add funds review?",
-    answer: "Closing the Add funds review before confirming leaves your wallet balance as it was. If you already confirmed, check Payment deposits for the saved request and Transaction history for any posted credit. Open that record if you need help.",
+    answer: "Saving a card or opening Add funds does not submit a deposit. The deposit is submitted when you confirm the amount in the review. If you already confirmed, check Payment deposits for the saved request and Transaction history for any posted credit. Open that record if you need help.",
     keywords: "cancel deposit funding refund confirmation close",
     action: { label: "Open Payment deposits", href: walletDepositsHref },
     followUpAction: { label: "Open transaction history", href: walletTransactionsHref },
@@ -422,7 +422,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "purchase-wallet-balance", category: "wallet", question: "Can I pay for a purchase option with my wallet balance?",
-    answer: "Yes. Review the amount due on the selected offer and pay from your Playable Wallet. If a shortfall includes cents, Add funds asks for the next whole-dollar amount. Extra funds stay in your Wallet after the purchase. Funding credits the Wallet. To accept the offer, return to its review and confirm the purchase separately.",
+    answer: "Yes. Review the amount due on the selected offer and pay from your Playable Wallet. If a shortfall includes cents, Add funds asks for the next whole-dollar amount. Extra funds stay in your Wallet after the purchase. Funding credits the Wallet. To accept the offer, return to its review and confirm the purchase separately. If the browser closed before you paid, reopen Purchase Options, find the original offer, and check its deadline.",
     keywords: "playable wallet purchase option checkout use balance add funds",
     action: { label: "Review my purchase options", href: "/account/entries?filter=completion#my-activity-filters" },
   },
@@ -507,7 +507,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "receipt-in-support", category: "support", question: "How do I share a receipt with Support?",
-    answer: "Open the exact Wallet receipt and copy its reference, date, and amount. If you already have a case, open that conversation in My support cases and include those details in your reply. For a new case, use Report a problem on the exact transaction to link the record. Leave full payment card details out of the message.",
+    answer: "Open the exact Wallet receipt and copy its reference, date, and amount. If you already have a case, open that conversation in My support cases and include those details in your reply. For a new case, use Report a problem on the exact Wallet transaction to link the record. For a deposit, open that same transaction to report the issue. Leave full payment card details out of the message.",
     keywords: "attach send screenshot receipt existing support conversation proof reference",
     action: { label: "Open My support cases", href: "/support#case-list" },
     followUpAction: { label: "Open Transaction history", href: walletTransactionsHref },
@@ -520,7 +520,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "issued-order", category: "rewards", question: "What does Issued mean on an order?",
-    answer: "Issued means the gift-card reward was created for that record. Open the order under Issued and follow its reward link to find the card in Gift Cards & Rewards. The Confirmed payments view also includes orders that may still be waiting for a card.",
+    answer: "Issued means the gift-card reward was created for that record. Open the order under Issued and follow its reward link to find the card in Gift Cards & Rewards. Check that exact reward for its gift-card number and follow Claim reward first if prompted. The Confirmed payments view also includes orders that may still be waiting for a card.",
     keywords: "issued order status meaning gift card fulfilled",
     action: { label: "Open Issued orders", href: "/account/orders?filter=fulfilled#fulfillment-records" },
   },
@@ -546,7 +546,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "transaction-stack", category: "wallet", question: "How do I show individual entries in a transaction stack?",
-    answer: "In Transaction history, choose Show entries on the stack. Each expanded record has its own amount and available links, including View entry and Report a problem. Choose Hide entries to collapse the stack again.",
+    answer: "In Transaction history, choose Show entries or Show records on the stack. Each expanded record has its own amount and available links, including View entry and Report a problem. Choose Hide entries or Hide records to collapse the stack again.",
     keywords: "expand individual wallet entries transaction stack ungroup receipt",
     action: { label: "Open Transaction history", href: walletTransactionsHref },
   },
@@ -581,6 +581,15 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:money|funds)\b.*\b(?:just )?added\b.*\b(?:went through|posted|credited)\b/, "funding-status"],
+  [/\b(?:saved card|card (?:is|was) saved)\b.*\badd funds\b.*\b(?:automatic(?:ally)?|charge)\b/, "deposit-cancellation"],
+  [/\bbrowser\b.*\b(?:reset|closed|crashed)\b.*\b(?:lost|missing)\b.*\boffer\b.*\b(?:pay|paying|checkout)\b/, "purchase-wallet-balance"],
+  [/\bindividual (?:receipts?|records?)\b.*\b(?:transaction )?stack\b/, "transaction-stack"],
+  [/\border\b.*\bissued\b.*\b(?:no|missing|cannot find)\b.*\bgift[ -]?card (?:number|pin|code)\b/, "issued-order"],
+  [/\bstopped sharing\b.*\b(?:undo|reverse|restore)\b/, "stop-sharing"],
+  [/\bsupport reply\b.*\b(?:already|previously) read\b/, "support-case"],
+  [/\b(?:set|change|correct)\b.*\b(?:time|clock)\b.*\b(?:offer|purchase option) deadline\b/, "time-zone"],
+  [/\b(?:file|submit|open)\b.*\b(?:ticket|case|report)\b.*\bdeposit\b.*\bwithout\b.*\b(?:new|another) deposit\b/, "receipt-in-support"],
   [/\b(?:go back to paying for|resume|continue)\b.*\b(?:offer|purchase|checkout)\b.*\b(?:add(?:ed|ing)? (?:money|funds)|(?:empty|low) wallet|wallet (?:was|is) empty)\b/, "purchase-wallet-balance"],
   [/\bentry payment\b.*\b(?:different|another) prize\b/, "purchase-options"],
   [/\bsav(?:ed|ing)\b.*\bnew card\b.*\b(?:old|previous) card\b.*\b(?:deposit|funding)\b/, "default-card"],
