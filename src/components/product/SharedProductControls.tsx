@@ -14,7 +14,7 @@ import { useDialogBack } from "@/components/account/useDialogBack";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import styles from "./shared-product-controls.module.css";
-export function SharedProductControls({ slug, initial, signedIn, browseReturnHref, saveOnReturn = false, reviewOnReturn }: { slug: string; initial: SharedProductContext | null; signedIn: boolean; browseReturnHref?: string; saveOnReturn?: boolean; reviewOnReturn?: "options" | "membership" }) {
+export function SharedProductControls({ slug, initial, signedIn, browseReturnHref, saveOnReturn = false, fromSavedShare = false, reviewOnReturn }: { slug: string; initial: SharedProductContext | null; signedIn: boolean; browseReturnHref?: string; saveOnReturn?: boolean; fromSavedShare?: boolean; reviewOnReturn?: "options" | "membership" }) {
   const [saved, setSaved] = useState<{ source: SharedProductContext | null; context: SharedProductContext } | null>(null);
   // Use the action response until the next server snapshot arrives.
   const context = saved?.source === initial ? saved.context : initial;
@@ -79,14 +79,14 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
     router.push(authNavigationHref("/login", `${returnPath()}&reviewShare=${review}`));
   }
   useEffect(() => {
-    if (!signedIn || initial?.own) return;
+    if (!signedIn || initial?.own || (fromSavedShare && !saveOnReturn)) return;
     let active = true;
     void recordReceivedProduct(slug, initial?.token ?? null, saveOnReturn).then(result => {
       if (!active) return;
       if (!result.ok) setMessage(result.message); else if (saveOnReturn) router.replace(result.href);
     }).catch(() => { if (active) setMessage("This share could not be saved yet. Please try Save again."); });
     return () => { active = false; };
-  }, [slug, initial?.token, initial?.own, signedIn, saveOnReturn, router]);
+  }, [slug, initial?.token, initial?.own, signedIn, saveOnReturn, fromSavedShare, router]);
   async function saveItem() {
     if (!signedIn) { router.push(authNavigationHref("/signup", `${returnPath()}&saveShared=1`)); return; }
     if (savingItem) return;
@@ -166,8 +166,8 @@ export function SharedProductControls({ slug, initial, signedIn, browseReturnHre
   return <section className={styles.controls} aria-label="Shared item options">
     {context ? <p>Shared by <strong>{context.sender}</strong>{context.demo ? " · Demo share" : context.isGroup ? ` · ${context.scope}` : ""}</p> : <p>A pick shared with you</p>}
     <div className={styles.buttons}>
-      <button ref={saveTrigger} aria-describedby={saveFailed && !dialogKind ? statusId : undefined} type="button" disabled={savingItem} onClick={() => void saveItem()}>{savingItem ? "Saving…" : "Save to Shared with You"}</button>
-      <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn("membership"); else if (context) { setChoiceFailed(false); setDialogKind(context.receiving ? "leave" : "rejoin"); } else { setSaveFailed(false); setLegacyCrew(true); setMessage("This older link doesn’t identify a Crew."); } }}>{context?.receiving ? `Leave ${scope}` : `${context?.hasChoice ? "Rejoin" : "Join"} ${scope}`}</button>
+      {!fromSavedShare ? <button ref={saveTrigger} aria-describedby={saveFailed && !dialogKind ? statusId : undefined} type="button" disabled={savingItem} onClick={() => void saveItem()}>{savingItem ? "Saving…" : "Save to Shared with You"}</button> : null}
+      {context || !fromSavedShare ? <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn("membership"); else if (context) { setChoiceFailed(false); setDialogKind(context.receiving ? "leave" : "rejoin"); } else { setSaveFailed(false); setLegacyCrew(true); setMessage("This older link doesn’t identify a Crew."); } }}>{context?.receiving ? `Leave ${scope}` : `${context?.hasChoice ? "Rejoin" : "Join"} ${scope}`}</button> : null}
       <button type="button" onClick={() => { if (!signedIn) signIn("options"); else openChoices(); }}>Sharing options</button>
     </div>
     {message && !dialogKind ? <p id={statusId} role="status" className={styles.status}>{message}{legacyCrew ? <> <Link href="/account/crew" className="underline">Open Your Crew</Link></> : null}</p> : null}

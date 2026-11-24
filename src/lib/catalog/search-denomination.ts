@@ -260,7 +260,7 @@ function searchBudget(normalized: string, products: readonly { retailer: string 
 }
 
 const ticketCount = String.raw`(?:\d+|${words})`;
-const ticketNouns = String.raw`(?:tickets?|entr(?:y|ies)|spots?|slots?)`;
+const ticketNouns = String.raw`(?:tickets?|entr(?:y|ies)|spots?|slots?|spaces?|seats?)`;
 const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?(?:available|open)|(?:before|until) (?:it is )?full)`;
 const ticketUnits = String.raw`\s+(?:more\s+)?${ticketNouns}\s+${ticketAvailability}(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
 const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?(?:only\s+)?`;
@@ -288,7 +288,8 @@ function ticketBounds(comparison: string | undefined, count: string) {
 
 export function remainingTicketFilter(query: string) {
   if (!/\b(?:left|remaining|available|open|before|until)\b/i.test(query)) return null;
-  query = query.replace(ticketMaximum, "at most $1 tickets left")
+  const trailingComparison = new RegExp(String.raw`\b(${ticketNouns})\s+(${ticketAvailability})\s+(${ticketComparison})\s+(${ticketCount})(?=\s|[,.!?]|$)`, "i");
+  query = query.replace(trailingComparison, "$3 $4 $1 $2").replace(ticketMaximum, "at most $1 tickets left")
     .replace(ticketPlusMinimum, "at least $1 ")
     .replace(repeatedTicketChoice, "$1");
   const compound = compoundTicketsPattern.exec(query);
@@ -323,7 +324,12 @@ export function searchDenominations(query: string, products: readonly { retailer
     .replace(/\b(nintendo)\s+(\$\s*\d+(?:\.\d{1,2})?)\s+e[\s-]*shop balance\b/gi, "$1 $2 gift card")
     .replace(/(\bgift card\b.*?)\s+worth\s+(?=\$\s*\d)/gi, "$1 ")
     .replace(/\bstrictly\s+(?=below|under|less than|above|over|more than)/gi, "")
-    .replace(/\beither\s+(?=\$\s*\d)/gi, "");
+    .replace(/\beither\s+(?=\$\s*\d)/gi, "")
+    .replace(/\bUSD\s*(?=\$)/gi, "")
+    .replace(/\bvalued\s+(?=between\b)/gi, "")
+    .replace(/(\$\s*\d[\d,.]*)\s+face value\b/gi, "$1")
+    .replace(/\bentr(?:y|ies)\s+(up to|at most|no more than|under|below|less than)\s+(\$\s*\d[\d,.]*)\s+each\b/gi, "$1 $2 per ticket")
+    .replace(/\b(?:with\s+)?(?:an?\s+)?entry\s+(?:fee|cost|price)\s+(?:of\s+)?(\$\s*\d[\d,.]*)\s+or\s+less\b/gi, "up to $1 per ticket");
   normalized = normalized
     .replace(/\s+that\s+costs?\s+(\$\s*\d[\d.,]*)\s+or less$/i, " up to $1")
     .replace(/\bno cheaper than\b/gi, "at least")
@@ -341,8 +347,10 @@ export function searchDenominations(query: string, products: readonly { retailer
   if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const isTelevision = /\b(?:tvs?|televisions?)\b/i.test(normalized);
   const dimensions = isTelevision ? /\b(?:(?:from\s+)?(\d+)\s*(?:inch(?:es)?|["″])?\s*(?:to|through|-)|between\s+(\d+)\s*(?:inch(?:es)?|["″])?\s+and)\s*(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
-  const boundedScreen = isTelevision ? /\bat least\s+(\d+)\s*(?:(?:inch(?:es)?\b|["″])\s*)?(?:but|and)\s+(?:under|below|less than)\s+(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
-  const screenRange = boundedScreen ? { low: Number(boundedScreen[1]), high: Number(boundedScreen[2]), exclusiveHigh: true }
+  if (isTelevision) normalized = normalized.replace(/\b(\d+)\s*(inch(?:es)?\b|["″])\s+and\s+up(?=\s+(?:and|but)\b)/i, "at least $1 $2");
+  const boundedScreen = isTelevision ? /\b(at least|more than|over|greater than)\s+(\d+)\s*(?:(?:inch(?:es)?\b|["″])\s*)?(?:but|and)\s+(under|below|less than|at most|up to|no more than)\s+(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
+  const screenRange = boundedScreen ? { low: Number(boundedScreen[2]), high: Number(boundedScreen[4]),
+    exclusiveLow: !/^at least$/i.test(boundedScreen[1]), exclusiveHigh: /^(?:under|below|less than)$/i.test(boundedScreen[3]) }
     : dimensions ? { low: Math.min(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])), high: Math.max(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])) } : null;
   const boundedDimension = boundedScreen ?? dimensions;
   if (boundedDimension) normalized = normalized.replace(boundedDimension[0], " ").trim().replace(/\s+/g, " ");

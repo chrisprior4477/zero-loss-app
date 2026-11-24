@@ -109,3 +109,14 @@ test("card-editor sign-in retains a valid purchase snapshot and rejects unrelate
   expect(accountReturnPath('/account/wallet?view=history&choice=' + id)).toBeNull();
   expect(accountReturnPath(path.replace('&entry=' + query.entry, ''))).toBeNull();
 });
+
+test.each(["wallet", "entry"])("keeps the %s Support topic through sign-in", topic => {
+  const path = "/support?topic=" + topic + "#report-problem";
+  expect(accountPageReturnPath("/support", { topic }, "#report-problem")).toBe(path);
+  expect(accountReturnPath(path)).toBe(path);
+});
+
+test("preserves the expired Wallet rewards origin for Declined Offers", () => {
+  const path = "/account/declined-offers?from=expired-rewards";
+  expect(accountReturnPath(path)).toBe(path);
+});

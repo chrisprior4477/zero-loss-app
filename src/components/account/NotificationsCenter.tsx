@@ -630,7 +630,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", obsoleteFil
       <AccountSettingsLandingScroll target="email-choices" focusTarget="email-choices" allScreens restrictToTargetHash />
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key, enabled, savedAt) => setSavedPreferenceOverrides(current => ({ ...current, [key]: { enabled, savedAt } }))} />
-        <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
+        <Link href="/account/crew?tab=privacy#crew-privacy" data-history-return className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2 id="email-choices" tabIndex={-1}>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>
         {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}

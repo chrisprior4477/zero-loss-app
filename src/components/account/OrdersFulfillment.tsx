@@ -63,7 +63,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
         <nav aria-label="Order page actions" className={styles.headingActions}>
           {/* The full navigation preserves the exact order-updates landing during reload. */}
           {fromNotification ? <a href={notificationHref(alerts ?? "orders", notice)}><AccountIcon name="bell" />Back to order updates</a>
-            : <Link href="/account/notifications?filter=orders#notification-tickets-filters"><AccountIcon name="bell" />Notifications</Link>}
+            : <Link href="/account/notifications?filter=orders#notification-tickets-filters" data-history-return><AccountIcon name="bell" />Notifications</Link>}
           <Link href={reportHref} data-history-return={chooseTransaction || undefined}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>

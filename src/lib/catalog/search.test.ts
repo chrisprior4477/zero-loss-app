@@ -4,6 +4,36 @@ import { isGiftCardListing, productMatchesMarketplaceCategory } from "./navigati
 import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
+test("handles alternate word order for budgets, retailer categories and negation", () => {
+  const slugs = (query: string) => searchCatalog(demoProducts, query).map(product => product.slug).sort();
+  expect(slugs("Target prizes under $75")).toEqual(slugs("Target under $75"));
+  expect(slugs("Target or Amazon gift cards excluding $25 or $50")).toEqual(
+    [...slugs("Target gift cards excluding $25 or $50"), ...slugs("Amazon gift cards excluding $25 or $50")].sort());
+  expect(slugs("anything but gift cards under $75")).toEqual(slugs("under $75 without gift cards"));
+  const exclusions = searchCatalog(demoProducts, "prizes under $100 excluding gift cards and games");
+  expect(exclusions.length).toBeGreaterThan(0);
+  expect(exclusions.every(product => product.value < 100 && !isGiftCardListing(product) && !/\bgames?\b/i.test(product.title))).toBe(true);
+  expect(slugs("almost full under $50")).toEqual(slugs("ending soon under $50"));
+  expect(slugs("TVs 50 inches and up but below 65 inches")).toContain("samsung-m70h-tv");
+  expect(slugs("TVs more than 50 and at most 65 inches")).toEqual(["lg-oled-c6-65-tv"]);
+  expect(slugs("Target with fewer than six spaces left")).toEqual(slugs("Target with fewer than six tickets left"));
+  expect(slugs("tickets left under 3 at Target")).toEqual(slugs("Target with under 3 tickets left"));
+  expect(slugs("entries at most $1 each")).toEqual(slugs("prizes up to $1 per ticket"));
+  expect(slugs("prizes with an entry fee of $1 or less")).toEqual(slugs("prizes up to $1 per ticket"));
+  expect(slugs("prizes valued between $300 and $1000")).toEqual(slugs("prizes between $300 and $1000"));
+  expect(slugs("Walmart gift cards with less than $100 face value")).toEqual(slugs("Walmart gift cards under $100"));
+  expect(slugs("Walmart gift cards under USD $50")).toEqual(slugs("Walmart gift cards under $50"));
+  const delivery = slugs("$100 gift cards from food delivery");
+  expect(delivery).toContain("doordash-100-gift-card");
+  expect(delivery.every(slug => slug.startsWith("doordash-") || slug.startsWith("uber-eats-"))).toBe(true);
+  expect(slugs("$100 gift cards to order groceries")).toEqual(slugs("grocery $100 gift cards"));
+  expect(slugs("gift cards from pharmacies under $100")).toContain("cvs-25-gift-card");
+  const withoutGas = slugs("gift cards over $50 excluding gas");
+  expect(withoutGas.length).toBeGreaterThan(0);
+  expect(withoutGas).not.toContain("directory-speedway-100-gift-card");
+  expect(slugs("no gas gift cards over $50")).toEqual(withoutGas);
+});
+
 test("preserves scope in retailer, budget, ticket, and exclusion searches", () => {
   function matches(query: string, predicate: (product: DemoProduct) => boolean) {
     const results = searchCatalog(demoProducts, query);

@@ -1,5 +1,6 @@
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import { SharedProductControls } from "@/components/product/SharedProductControls";
+import { shareUuid } from "@/lib/sharing/saved-shares";
 import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
 import { matchingQueryValue } from "@/lib/navigation/query-value";
@@ -100,13 +101,17 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <Link href={back} className="mt-5 inline-block font-bold text-cyan-300 underline">← Back to {browseReturnLabel}</Link>
     </div>;
   }
-  const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
+  const browseOrigin = new URL(browseReturnHref, "https://navigation.invalid");
+  const shareId = browseOrigin.pathname === "/account/favorites" && browseOrigin.searchParams.get("tab") === "shared"
+    ? browseOrigin.searchParams.get("share") : null;
+  const savedShareId = account && shareId && shareUuid.test(shareId) ? shareId : undefined;
+  const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account), savedShareId);
   const unavailableShare = query.share !== undefined && !sharedContext;
   const shareToken = unavailableShare ? undefined : query.share;
   const shareReview = query.reviewShare === "options" || query.reviewShare === "membership" ? query.reviewShare : undefined;
   const sharedControls = unavailableShare ? (
     <p role="status" className="mb-3 rounded-lg bg-[#103757] px-4 py-3 text-sm text-white">This shared link couldn’t be opened. You can still view the prize below.</p>
-  ) : sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} browseReturnHref={query.from !== undefined || transactionReturn ? browseReturnHref : undefined} saveOnReturn={query.saveShared === "1"} reviewOnReturn={shareReview} /> : null;
+  ) : sharedContext || savedShareId || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} fromSavedShare={Boolean(savedShareId)} browseReturnHref={query.from !== undefined || transactionReturn ? browseReturnHref : undefined} saveOnReturn={query.saveShared === "1"} reviewOnReturn={shareReview} /> : null;
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (

@@ -371,7 +371,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <div className={connectedStyles.mainButtons}>
           <button type="button" data-crew-tab="crew" aria-pressed={tab === "crew"} onClick={() => selectTab("crew")}>Your Crew</button>
           <button type="button" data-crew-tab="groups" aria-pressed={tab === "groups"} onClick={() => selectTab("groups")}>Groups</button>
-          <Link href="/account/favorites?tab=shared">Shared with You</Link>
+          <Link href="/account/favorites?tab=shared" data-history-return>Shared with You</Link>
         </div>
         <button type="button" className={connectedStyles.sharingButton} data-crew-tab="picks" aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>

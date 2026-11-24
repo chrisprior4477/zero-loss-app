@@ -51,7 +51,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "choose-deposit-card", category: "wallet", question: "How do I use a different saved card for one deposit?",
-    answer: "Open Add funds and select Current card in use. Choose the sample card you want for this deposit. To keep your usual card as the default, leave Use as my default payment method unchanged.",
+    answer: "Open Add funds and select Current card in use. Choose the sample card you want for this deposit. To keep your usual card as the default, leave Use as my default payment method unchanged. If you already confirmed the deposit, check the card on its receipt in Payment deposits and report any issue on the matching transaction.",
     keywords: "select choose switch different payment card one deposit",
     action: { label: "Open Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
@@ -81,7 +81,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "profile-photo", category: "account", question: "How do I change my profile photo?",
-    answer: "Open Profile and choose the photo control. Select a picture, adjust the crop, and save it. To hide the picture in your account menu, turn off Show my photo in the account menu under Where to show your photo.",
+    answer: "Open Profile and choose the photo control. Select a picture, adjust the crop, and save it. To hide the picture in your account menu, turn off Show my photo in the account menu under Where to show your photo. You can replace your existing picture from the same photo control. Hiding it in the menu leaves the saved picture in place.",
     keywords: "change add upload replace avatar profile picture photo",
     action: { label: "Open Profile", href: "/account/profile" },
   },
@@ -90,6 +90,12 @@ export const faqItems: FaqItem[] = [
     answer: "Open Email choices in Notifications. Turn off the entry outcome or purchase-option deadline email you want to stop, then save that preference. In-app alerts have their own settings.",
     keywords: "unsubscribe stop turn off email alerts notification emails preferences",
     action: { label: "Open Email choices", href: "/account/notifications?section=email#email-choices" },
+  },
+  {
+    id: "favorite-watchlist-emails", category: "account", question: "How do I stop emails about my favorites?",
+    answer: "Open Email choices in Notifications and use Favorites watchlist emails to change the account preference. To change the choice for a single prize, open Your Favorites and adjust its email setting.",
+    keywords: "favorite favourites watchlist email turn off stop",
+    action: { label: "Open Favorites watchlist emails", href: "/account/notifications?section=email#favorite-alert-preference" },
   },
   {
     id: "privacy-requests", category: "account", question: "How do I request my data or close my account?",
@@ -144,8 +150,21 @@ export const faqItems: FaqItem[] = [
     keywords: "wrong balance incorrect discrepancy missing deposit credit", action: { label: "Check transaction history", href: walletTransactionsHref },
   },
   {
+    id: "wallet-unavailable", category: "wallet", question: "Why does my wallet say balance unavailable?",
+    answer: "Unavailable means the wallet could not be read. Open Wallet & Transactions and choose Retry wallet history when it appears. If the balance still won’t load, contact Support before retrying a deposit or purchase.",
+    keywords: "balance unavailable wallet read failed offline",
+    action: { label: "Check Wallet & Transactions", href: walletTransactionsHref },
+    followUpAction: { label: "Ask about wallet funding", href: "/support?topic=wallet#report-problem" },
+  },
+  {
+    id: "purchase-refund", category: "rewards", question: "How do I ask about a refund after checkout?",
+    answer: "Open Order details for the purchase in Orders & Fulfillment and select Report a problem to Support. You can also report the exact payment from Transaction history. Support reviews the request and replies in your private case.",
+    keywords: "refund after purchase completed checkout order payment",
+    action: { label: "Find my order", href: "/account/orders?filter=all#fulfillment-records" },
+  },
+  {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. Use Copy order number on an order or copy the reward reference on a win.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -182,13 +201,13 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "undo-entry", category: "entries", question: "I entered by accident. Can I undo it?",
-    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount back to your playable balance—not to your payment card. After the window ends, check My Activity for the saved result. If something went wrong, contact support.",
+    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount back to your playable balance—not to your payment card. If you entered twice, check which submission is still pending before using Undo. After the window ends, check both saved entries in My Activity. If something went wrong, contact support.",
     keywords: "cancel cancellation mistake accidental refund countdown reservation", action: { label: "Check My Activity", href: "/account/entries" },
     followUpAction: { label: "Find the released amount in Transaction history", href: walletTransactionsHref },
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
-    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. Completing the purchase is a separate choice. Completed activity remains in your history.",
+    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. Completing the purchase is a separate choice. Completed activity remains in your history. If a saved option disappears, check Declined Offers and the expired purchase options in Gift Cards & Rewards.",
     keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion#my-activity-filters" },
   },
   {
@@ -198,12 +217,12 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
-    answer: "Wait for the saved confirmation, then check My Activity. See Open Entries shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the connection drops, check the saved result instead of starting another purchase just to see whether the first one worked.",
+    answer: "Wait for the saved confirmation, then check My Activity. See Open Entries shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the connection drops or Wallet shows a payment without a ticket, check the saved result and report the exact transaction before trying again.",
     keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active#my-activity-filters" },
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. The demo uses supplied sample cards and simulated money. Real debit cards, credit cards, Apple Pay, and PayPal are unavailable.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved sample card and a whole-dollar amount of at least $1, then review and confirm the deposit. Each deposit uses one supplied sample card. Purchase checkout uses your Playable Wallet balance, which can include separate deposits. Real debit cards, credit cards, Apple Pay, and PayPal are unavailable.",
     keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
@@ -218,7 +237,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "wallet-history", category: "wallet", question: "Where can I see my wallet transactions?",
-    answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund. To find purchases from last week, choose Purchases and enter the start and end dates.",
+    answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund. To see what you spent on a prize, search its name and choose Entries or Purchases to review the corresponding amounts. For a specific week, enter its start and end dates.",
     keywords: "wallet ledger activity records history", action: { label: "Open transaction history", href: walletTransactionsHref },
   },
   {
@@ -234,7 +253,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "open-reward", category: "rewards", question: "Where is my prize or gift-card number?",
-    answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and the available presentation tools. A reward notification also opens that specific reward directly.",
+    answer: "Open Gift Cards & Rewards and select the reward. If it still needs to be claimed, follow Claim reward first. When the reward is ready and claimed, its details show the number and available tools. Check that exact reward for any PIN or retailer link it includes. Sample cards cannot be redeemed. A reward notification also opens that specific reward directly.",
     keywords: "barcode code pin won winner winnings check redeem redemption wallet", action: { label: "Open my rewards", href: "/account/wallet" },
   },
   {
@@ -254,7 +273,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
-    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. The claim deadline is for claiming the reward. After issuance, check the gift card’s details and retailer terms for any expiration. Redeemed, expired, cancelled, and pending rewards stay in reward history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
+    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. The claim deadline is for claiming the reward. After issuance, check the gift card’s details and retailer terms for any expiration. Redeemed, expired, cancelled, and pending rewards stay in reward history. If an unclaimed win was credited to your wallet, its credit appears in Transaction history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
     keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
@@ -269,7 +288,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "password", category: "account", question: "I cannot sign in. How do I reset my password?",
-    answer: "Use Forgot your password and enter your account email. Open the newest reset email, choose a new password, and then sign in. If a link is expired or already used, request a new one. If you are already signed in and know your current password, use Change password in Account & Security.",
+    answer: "Use Forgot your password and enter your account email. Open the newest reset email, choose a new password, and then sign in. If an email doesn’t arrive, check the address you entered and your spam folder. If a link is expired or already used, request a new one. If you are already signed in and know your current password, use Change password in Account & Security.",
     keywords: "login log in forgot expired email reset security", action: { label: "Reset my password", href: "/forgot-password" },
   },
   {
@@ -279,7 +298,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "stop-receiving-shares", category: "account", question: "How do I stop someone from sharing prizes with me?",
-    answer: "Open a prize from that person or group in Shared with You. Choose Sharing options, turn off Receive shared picks for the source shown, and choose Save choices. Items you already received stay in Shared with You.",
+    answer: "Open a prize in Shared with You and select Open prize details. In Sharing options, turn off Receive shared picks for the source shown and save. Older saved picks without a sender or group link show a link to your general sharing preferences.",
     keywords: "stop receiving shared picks prizes someone sends crew group",
     action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
   },
@@ -347,6 +366,29 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bdeposit\b.*\b(?:balance|wallet)\b.*\b(?:zero|\$?0|unchanged|missing)\b/, "balance-discrepancy"],
+  [/\b(?:entered|charged|paid)\b.*\b(?:no|missing)\s+(?:entry|ticket)\b/, "entry-status"],
+  [/\b(?:paid|completed (?:my )?checkout)\b.*\b(?:no|missing)\s+order\b|\border confirmation\b.*\b(?:never came|missing|did not arrive)\b/, "order-receipt"],
+  [/\b(?:pay|deposit|use)\b.*\b(?:two|multiple|several)\s+(?:payment |sample )?cards\b/, "add-funds"],
+  [/\b(?:selected|chose|picked|used)\b.*\bwrong\s+(?:(?:saved|payment|sample)\s+)?card\b/, "choose-deposit-card"],
+  [/\b(?:refund|money back)\b.*\b(?:after|for)\s+(?:(?:my|a|the|completed)\s+)*(?:purchase|checkout|order)\b/, "purchase-refund"],
+  [/\bget\s+(?:my\s+)?money back\b/, "withdrawals"],
+  [/\b(?:saved|purchase)\s+offers?\b.*\b(?:disappear(?:ed)?|went away)\b/, "purchase-options"],
+  [/\b(?:reactivate|reinstate|revive)\b.*\bdeclined\s+offers?\b/, "decline-and-revive"],
+  [/\bclaim deadline\b.*\b(?:passed|ended|expired)\b|\bunclaimed\s+(?:win|prize)\b/, "reward-unavailable"],
+  [/\b(?:password\s+)?reset\s+email\b/, "password"],
+  [/\b(?:confirm|verify)\b.*\be-?mail\b.*\bexpired\b|\bexpired\b.*\b(?:confirm|verify)\b.*\be-?mail\b/, "verification-email"],
+  [/\bchanged\b.*\be-?mail\b.*\bcannot\s+(?:sign|log)\s+in\b/, "change-email"],
+  [/\b(?:close|delete)\b.*\b(?:entire|whole)\s+account\b/, "privacy-requests"],
+  [/\b(?:remove|hide)\b.*\b(?:my|profile|account)\s+photo\b/, "profile-photo"],
+  [/\b(?:stop|disable|turn off)\b.*\b(?:alerts?|notifications?)\b.*\b(?:in (?:the )?app|on (?:the )?site)\b/, "notifications"],
+  [/\b(?:emails?|watchlist)\b.*\bfavou?rites?\b|\bfavou?rites?\b.*\b(?:watchlist|emails?)\b/, "favorite-watchlist-emails"],
+  [/\bstop\b.*\bsharing\b.*\b(?:my own|my future|my)\s+(?:prizes|items|picks)\b/, "stop-sharing"],
+  [/\bcopy\b.*\border\s+(?:id|number|reference)\b/, "order-receipt"],
+  [/\b(?:how much\s+i\s+(?:spent|paid)|my spending)\b.*\b(?:prize|item|product)\b/, "wallet-history"],
+  [/\bgift[ -]?card\b.*\b(?:no|missing)\s+pin\b|\bretailer\s+redemption link\b/, "open-reward"],
+  [/\bwallet\b.*\bbalance\s+(?:is\s+)?unavailable\b/, "wallet-unavailable"],
+  [/\bentered\b.*\btwice\b.*\b(?:by mistake|accidentally)\b/, "undo-entry"],
   [/\b(?:select|use|choose|switch to)\b.*\b(?:different|another)\b.*\b(?:payment |saved |sample |credit |debit )?card\b/, "choose-deposit-card"],
   [/\b(?:change|edit|update)\b.*\b(?:cardholder name|name on (?:a |my |the )?(?:saved |payment |sample )?card)\b/, "edit-card-name"],
   [/\b(?:credit|funds|balance|money)\b.*\b(?:cancel(?:l?ing|l?ed)?|undo(?:ing)?|undid)\b.*\b(?:entr(?:y|ies)|tickets?)\b/, "undo-entry"],

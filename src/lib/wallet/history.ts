@@ -149,10 +149,17 @@ export async function enrichLedgerRows(db: SupabaseClient, userId: string, walle
   const purchaseSlugs = new Map<string, string>();
   const purchaseEntries = new Map<string, string>();
   const directRewards = new Map<string, string>();
+  const checkoutOrders = new Map<string, { number: string; amount: number }>();
   for (let index = 0; index < purchaseEvents.length; index += 100) {
-    const { data: orders, error } = await db.from("customer_orders").select("provider_event_id,completion_option_id,reward_id")
+    const { data: orders, error } = await db.from("customer_orders").select("provider_event_id,completion_option_id,reward_id,order_number,total_cents")
       .eq("customer_id", userId).in("provider_event_id", purchaseEvents.slice(index, index + 100));
     if (error || !orders?.length) continue;
+    for (const order of orders) {
+      const amount = Number(order.total_cents);
+      if (typeof order.order_number === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(order.order_number) && Number.isSafeInteger(amount) && amount > 0) {
+        checkoutOrders.set(order.provider_event_id, { number: order.order_number, amount });
+      }
+    }
     const direct = orders.filter(order => directPurchaseEvent.test(order.provider_event_id) && !order.completion_option_id && ledgerId.test(order.reward_id));
     if (direct.length) {
       const { data: rewards, error: rewardError } = await db.from("customer_rewards").select("id,direct_offering_slug")
@@ -192,12 +199,14 @@ export async function enrichLedgerRows(db: SupabaseClient, userId: string, walle
     const ledgerRequestId = requestId ?? (row.related_entry_id ? debitRequests.get(row.related_entry_id) : undefined);
     const purchaseEntry = purchaseEntries.get(row.source_event);
     const rewardId = directRewards.get(row.source_event);
+    const checkout = row.entry_type === "PURCHASE_DEBIT" ? checkoutOrders.get(row.source_event) : undefined;
+    const orderNumber = checkout && checkout.amount === -row.amount ? checkout.number : undefined;
     const ids = row.related_entry_id ? [row.related_entry_id]
       : requestId ? requestEntries.get(requestId) ?? [] : purchaseEntry ? [purchaseEntry] : [];
     const entryIds = [...new Set(ids)].filter(id => publicEntryId.test(id));
     const entryBatchId = row.entry_type === "ENTRY_DEBIT" && row.related_entry_id ? entryBatches.get(row.related_entry_id) : undefined;
     return { id: row.id, entry_type: row.entry_type, amount: row.amount, created_at: row.created_at, ...(item ? { product: item } : {}),
-      ...(rewardId ? { rewardId } : {}), ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
+      ...(rewardId ? { rewardId } : {}), ...(orderNumber ? { orderNumber } : {}), ...(entryIds.length ? { entryIds } : {}), ...(entryBatchId ? { entryBatchId } : {}),
       ...(!item && (row.entry_type === "PURCHASE_DEBIT" || requestId) ? { productDetailsIncomplete: true } : {}),
       ...(ledgerRequestId && (recentOnly || requestSlugs.has(ledgerRequestId)) ? { entryRequestId: ledgerRequestId } : {}) };
   });

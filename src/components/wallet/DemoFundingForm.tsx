@@ -165,7 +165,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
-    if (location.pathname === "/account/wallet") openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href });
+    if (location.pathname === "/account/wallet") openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href, fundingSavedCardsOpener: manageCardsOpener.current?.id || undefined });
     else revealWalletSection("add-card", "add-card");
   }
   function closeSavedCards() {
@@ -345,6 +345,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     function syncEditor(event?: Event) {
       if (window.location.hash === "#add-card" || window.location.hash.startsWith("#sample-payment-")) {
         savedCardsReturn.current = window.history.state?.fundingSavedCardsReturn ?? null;
+        const opener = window.history.state?.fundingSavedCardsOpener;
+        if (typeof opener === "string") manageCardsOpener.current = document.getElementById(opener);
         setManageCards(true);
         revealWalletSection(window.location.hash.slice(1));
       } else if (savedCardsReturn.current && window.location.hash !== fundingEditorHash) {
@@ -353,8 +355,12 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         setManageCards(false);
         if (returningToFunding) {
           const trigger = manageCardsOpener.current;
-          if (!returnToAmount.current && trigger?.isConnected) trigger.focus({ preventScroll: true });
-          revealWalletSection(amountSection, amountSection);
+          if (returnToAmount.current) { revealWalletSection(amountSection, amountSection); return; }
+          const href = window.location.href;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (window.location.href !== href || document.activeElement !== document.body && document.activeElement !== trigger && !document.activeElement?.closest("#add-card")) return;
+            focusFundingControl(trigger?.isConnected ? trigger : document.getElementById("funding-add-card-trigger"));
+          }));
         }
       }
       if (window.location.hash !== fundingEditorHash) {
@@ -604,7 +610,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera walletId={walletId} token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={event => addCard(undefined, event.currentTarget)}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera walletId={walletId} token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={chooseDepositCard} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}

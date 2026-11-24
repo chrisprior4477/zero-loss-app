@@ -100,3 +100,30 @@ test.each(["new deposit", "late older deposit", "duplicate page row"])(
     else expect(history).toBeNull();
   },
 );
+
+test("the posted debit only carries the order number for its own checkout and exact amount", async () => {
+  const source = "checkout-event";
+  const debit = { ...base, entry_type: "PURCHASE_DEBIT", source_event: source, related_pool_id: null };
+  const incorrectAmount = { ...debit, id: "33333333-3333-4333-8333-333333333333", amount: -200 };
+  const queries: { table: string; owner?: string; sourceEvents?: string[] }[] = [];
+  const db = { from(table: string) {
+    const query: (typeof queries)[number] = { table };
+    queries.push(query);
+    const builder = {
+      select: () => builder,
+      eq: (name: string, value: string) => { if (name === "customer_id") query.owner = value; return builder; },
+      in: (_name: string, values: string[]) => { query.sourceEvents = values; return builder; },
+      or: () => builder,
+      order: () => builder,
+      range: () => builder,
+      then: (resolve: (value: unknown) => unknown) => resolve({ error: null, data: table === "ledger_entries"
+        ? [debit, incorrectAmount] : [{ provider_event_id: source, completion_option_id: null, order_number: "ord_abcdef90", total_cents: 100 }] }),
+    };
+    return builder;
+  } };
+  vi.mocked(createClient).mockResolvedValue(db as unknown as Awaited<ReturnType<typeof createClient>>);
+  const history = await getCompleteLedgerHistory("owner", { walletAccountId: "wallet", scope: "demo", currency: "USD", balanceCents: 0,
+    transactionCount: 2, fundingAvailable: true, entries: [debit, incorrectAmount] });
+  expect(history?.map(entry => entry.orderNumber)).toEqual(["ord_abcdef90", undefined]);
+  expect(queries.find(query => query.table === "customer_orders")).toMatchObject({ owner: "owner", sourceEvents: [source] });
+});

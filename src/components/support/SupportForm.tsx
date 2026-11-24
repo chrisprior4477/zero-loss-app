@@ -28,7 +28,7 @@ function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
   return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
 }
 
-type Props = { ownerId?: string; topic?: "email" | "account" | "reward"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
+type Props = { ownerId?: string; topic?: "email" | "account" | "reward" | "wallet" | "entry"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.topic}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }

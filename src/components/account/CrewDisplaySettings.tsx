@@ -536,7 +536,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         <div className={styles.saveRow}>
           <p>Changes take effect when you save. Removing someone from your Crew ends their access immediately.</p>
           <div className={styles.saveActions}>
-            {!embedded ? <Link href="/account/crew#crew-intro">Back to Your Crew</Link> : null}
+            {!embedded ? <Link href="/account/crew#crew-intro" data-history-return>Back to Your Crew</Link> : null}
             <button ref={saveButton} type="button" disabled={privacyDisabled} onClick={save}>{pending ? "Saving…" : "OK · Save to my profile"}</button>
           </div>
         </div>

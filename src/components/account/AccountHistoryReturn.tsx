@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew|notifications))$/;
+const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew(?:\/display)?|notifications))$/;
 const stateKey = "zeroLossAccountHistoryReturn";
 const returnLinks = "main a[href], footer a[data-footer-policy]";
 

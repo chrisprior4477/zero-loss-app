@@ -3,6 +3,46 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("matches deposit card metadata, order references, and compound payment searches", () => {
+  const date = "2026-11-06T02:05:00Z";
+  const netflix = { slug: "netflix-25-gift-card", title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/netflix.png" };
+  const walmart = { slug: "walmart-100-gift-card", title: "$100 Walmart Gift Card", retailer: "Walmart", image: "/walmart.png" };
+  const playstation = { slug: "ps5", title: "PlayStation 5", retailer: "Best Buy", image: "/ps5.png" };
+  const rows: LedgerEntryRow[] = [
+    { id: "deposit-chase", entry_type: "DEPOSIT", amount: 16000, created_at: date },
+    { id: "deposit-other", entry_type: "DEPOSIT", amount: 5500, created_at: "2026-11-03T20:00:00Z" },
+    { id: "deposit-discover", entry_type: "DEPOSIT", amount: 16000, created_at: "2026-11-03T21:00:00Z" },
+    { id: "netflix", entry_type: "PURCHASE_DEBIT", amount: -2400, product: netflix, orderNumber: "ord_f36ac615abcdef90", created_at: date },
+    { id: "netflix-less", entry_type: "PURCHASE_DEBIT", amount: -2300, product: netflix, created_at: date },
+    { id: "walmart", entry_type: "PURCHASE_DEBIT", amount: -9900, product: walmart, created_at: date },
+    { id: "reference-be3ca77a", entry_type: "ENTRY_DEBIT", amount: -100, product: playstation, created_at: date },
+    { id: "hold", entry_type: "ENTRY_HOLD", amount: -100, product: playstation, created_at: date },
+    { id: "release", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, product: playstation, created_at: date },
+    { id: "refund", entry_type: "REFUND", amount: 500, created_at: "2026-10-28T20:00:00Z" },
+  ];
+  const search = (query: string) => searchLedger(rows, query, row => [...ledgerDescription(row.entry_type, row.product?.title),
+    row.id === "deposit-chase" ? "Chase ending 1117" : row.id === "deposit-discover" ? "Discover ending 5556" : ""], rows,
+  { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-23T12:00:00Z") }).map(row => row.id);
+  expect(search("card ending 1117")).toEqual(["deposit-chase"]);
+  expect(search("deposits by Chase")).toEqual(["deposit-chase"]);
+  expect(search("transaction ref ending BE3CA77A")).toEqual(["reference-be3ca77a"]);
+  expect(search("order number ending ABCDEF90")).toEqual(["netflix"]);
+  expect(search("ord_f36ac615abcdef90")).toEqual(["netflix"]);
+  expect(search("deposits in the last 30 days")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("transactions this month")).toEqual(rows.filter(row => row.id !== "refund").map(row => row.id));
+  expect(search("deposits from Nov 2nd to the 5th")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("deposits over $50 that posted in November 2026")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("refunds or released reservations")).toEqual(["release", "refund"]);
+  expect(search("purchase for Netflix under $24")).toEqual(["netflix-less"]);
+  expect(search("spent no more than $99 at Walmart")).toEqual(["walmart"]);
+  expect(search("paid $24 at Netflix or $99 at Walmart")).toEqual(["netflix", "walmart"]);
+  expect(search("exactly $1 for PlayStation")).toEqual(["reference-be3ca77a"]);
+  expect(search("Nov 5 after 8 pm")).toEqual(rows.filter(row => row.created_at === date).map(row => row.id));
+  expect(search("deposits other than $160")).toEqual(["deposit-other"]);
+  expect(search("deposits $160 but not from Discover")).toEqual(["deposit-chase"]);
+  expect(search("posted order payments")).toEqual(["netflix", "netflix-less", "walmart"]);
+});
+
 test("combines statement language with exact dates, amount direction, and verified descriptions", () => {
   const product = { slug: "netflix-25-gift-card", title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/card.png" };
   const created_at = "2026-11-06T02:25:30Z";

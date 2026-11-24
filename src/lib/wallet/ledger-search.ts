@@ -129,7 +129,9 @@ function calendarBoundary(value: string, calendar: SearchCalendar) {
 }
 
 function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], query: string, calendar: SearchCalendar) {
-  const timed = /^(.+?)(?:,\s*|\s+at\s+|\s+)(\d{1,2}):(\d{2})\s*(AM|PM)?(?:\s+([A-Z]{2,5}|[A-Za-z_]+\/[A-Za-z_]+(?:\/[A-Za-z_]+)?))?$/i.exec(query);
+  const timeBound = /^(.+?)\s+(after|before|at or after|at or before)\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)(?:\s+([A-Z]{2,5}|[A-Za-z_]+\/[A-Za-z_]+(?:\/[A-Za-z_]+)?))?$/i.exec(query);
+  const timed = timeBound ? [timeBound[0], timeBound[1], timeBound[3], timeBound[4] ?? "00", timeBound[5], timeBound[6]]
+    : /^(.+?)(?:,\s*|\s+at\s+|\s+)(\d{1,2}):(\d{2})\s*(AM|PM)?(?:\s+([A-Z]{2,5}|[A-Za-z_]+\/[A-Za-z_]+(?:\/[A-Za-z_]+)?))?$/i.exec(query);
   const boundary = dateBoundary(timed?.[1] ?? query, calendar) ?? shortDateBoundary(timed?.[1] ?? query, calendar);
   if (!boundary) return null;
   const explicitZone = timed?.[5];
@@ -149,18 +151,29 @@ function searchDate<T extends Pick<LedgerEntryRow, "created_at">>(entries: T[], 
   return entries.filter(entry => {
     const date = new Date(entry.created_at);
     const day = formatter.format(date);
-    return (boundary.length === 5 ? day.slice(5) === boundary : day.startsWith(boundary)) && (!clock || clock.format(date) === minute);
+    if (!(boundary.length === 5 ? day.slice(5) === boundary : day.startsWith(boundary))) return false;
+    if (!clock) return true;
+    const value = clock.format(date);
+    switch (timeBound?.[2].toLowerCase()) {
+      case "before": return value < minute;
+      case "after": return value > minute;
+      case "at or before": return value <= minute;
+      case "at or after": return value >= minute;
+      default: return value === minute;
+    }
   });
 }
 
 function searchLedgerDates<T extends LedgerEntryRow>(entries: T[], dateQuery: string, calendar: SearchCalendar): T[] | null {
-  const relative = /^(?:today|last (7|30) days)$/i.exec(dateQuery);
-  if (relative) {
-    const { from, through } = transactionDateRange(Number(relative[1] ?? 1), calendar.timeZone, calendar.now);
+  const currentMonth = /^this month$/i.test(dateQuery);
+  const relative = /^(?:today|(?:the )?last (7|30) days)$/i.exec(dateQuery);
+  if (relative || currentMonth) {
+    const { from, through } = transactionDateRange(Number(relative?.[1] ?? 1), calendar.timeZone, calendar.now);
+    const start = currentMonth ? through.slice(0, 8) + "01" : from;
     const formatter = localDateKey(calendar.timeZone);
     return entries.filter(entry => {
       const day = formatter.format(new Date(entry.created_at));
-      return day >= from && day <= through;
+      return day >= start && day <= through;
     });
   }
   const week = /^week of\s+(.+)$/i.exec(dateQuery);
@@ -195,6 +208,8 @@ function searchLedgerDates<T extends LedgerEntryRow>(entries: T[], dateQuery: st
     return entries.filter(entry => dateLimitMatches(formatter.format(new Date(entry.created_at)), after![1], exclusiveStart));
   }
   dateQuery = dateQuery.replace(/^between\s+([\p{L}.]+\s+\d{1,2}(?:st|nd|rd|th)?)\s+and\s+(?=\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}$)/iu, "$1 to ");
+  const sameMonthDays = /^(?:from\s+)?([\p{L}.]+)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(?:to|through|until)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?$/iu.exec(dateQuery);
+  if (sameMonthDays) dateQuery = "from " + sameMonthDays[1] + " " + sameMonthDays[2] + " to " + sameMonthDays[1] + " " + sameMonthDays[3];
   const compactRange = /^(?:from\s+)?([\p{L}.]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*[-–—]\s*|\s+(?:through|to)\s+(?:the\s+)?)(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/iu.exec(dateQuery);
   const rangeQuery = compactRange
     ? `from ${compactRange[1]} ${compactRange[2]}, ${compactRange[4]} to ${compactRange[1]} ${compactRange[3]}, ${compactRange[4]}`
@@ -237,25 +252,38 @@ function searchLedgerDates<T extends LedgerEntryRow>(entries: T[], dateQuery: st
   return searchDate(entries, dateQuery, calendar);
 }
 
+function cardMatchesSuffix(label: string, suffix: string) {
+  return /(?:ending(?:\s+in)?|[•*]{2,})\s*(\d{4})\s*$/i.exec(label)?.[1] === suffix;
+}
+
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim();
-  const postedDate = /(?:^|\s+)posted\s+(?=(?:on|before|after|since|older than|in|during|between|from|last|today)\b)/i;
+  const postedDate = /(?:^|\s+)(?:(?:that|which)\s+)?posted\s+(?=(?:on|before|after|since|older than|in|during|between|from|last|today)\b)/i;
   const trimmed = raw.replace(postedDate, " ").trim();
   if (!trimmed) return entries;
   if (postedAmountQuery.test(trimmed) || postedDate.test(raw)) entries = entries.filter(entry => entry.entry_type !== "ENTRY_HOLD" && entry.entry_type !== "ENTRY_HOLD_RELEASE");
-  const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|(?:transaction\s+(?:reference\s+)?|reference\s+)ending\s+|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
+  const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|(?:transaction\s+(?:ref(?:erence)?\.?\s+)?|ref(?:erence)?\.?\s+)ending\s+|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
   if (reference) {
     const id = reference[1].toLowerCase();
     const matches = entries.filter(entry => entry.id.toLowerCase().endsWith(id));
     if (matches.length || /^(?:transaction|reference|#)/i.test(trimmed)) return matches;
   }
+  const orderReference = /^(?:(?:order(?:\s+(?:number|reference|ref))?\s+)(?:ending\s+|#\s*)?|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i.exec(trimmed);
+  if (orderReference) {
+    const id = orderReference[1].toLowerCase();
+    const suffix = /\bending\b/i.test(trimmed) || !id.startsWith("ord_");
+    return entries.filter(entry => entry.entry_type === "PURCHASE_DEBIT" && entry.orderNumber &&
+      (suffix ? entry.orderNumber.toLowerCase().endsWith(id) : entry.orderNumber.toLowerCase() === id));
+  }
+  const cardEnding = /^(?:deposits?\s+)?(?:(?:debit|credit|sample|payment)\s+)?card\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  if (cardEnding) return entries.filter(entry => entry.entry_type === "DEPOSIT" && describe(entry).some(label => cardMatchesSuffix(label, cardEnding[1])));
   const dateQuery = trimmed
-    .replace(/^(?:all\s+)?(?:(?:posted\s+)?transactions?\s+)(?=(?:on|in|during|before|after|since|older than|between|from|last|today)\b)/i, "")
+    .replace(/^(?:all\s+)?(?:(?:posted\s+)?transactions?\s+)(?=(?:on|in|during|before|after|since|older than|between|from|last|today|this month)\b)/i, "")
     .replace(/^(?:posted\s+)?(?:on\s+(?!or\s)|(?:in|during)\s+)/i, "");
   const dateMatches = searchLedgerDates(entries, dateQuery, calendar);
   if (dateMatches) return dateMatches;
-  const relativeDate = /^(.+?)\s+(today|last (?:7|30) days)$/i.exec(dateQuery);
+  const relativeDate = /^(.+?)\s+(today|(?:the )?last (?:7|30) days|this month)$/i.exec(dateQuery);
   if (relativeDate) {
     const dated = searchLedgerDates(entries, relativeDate[2], calendar);
     if (dated) return searchLedger(dated, relativeDate[1].replace(/\s+(?:in|during)$/i, ""), describe, fullLedger, calendar);
@@ -282,6 +310,37 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       if (matches) return searchAgain(matches, remainder.join(" ").replace(/\s+on$/i, "").replace(/^(?:at\s+)(?=[+−-]?\s*\$)/i, ""));
     }
   }
+  const excludedDeposit = /^(?:deposits?|funding)\s+other than\s+(.+)$/i.exec(trimmed);
+  if (excludedDeposit && amountOnly.test(excludedDeposit[1])) {
+    const matches = amountMatch(excludedDeposit[1]);
+    return entries.filter(entry => entry.entry_type === "DEPOSIT" && !matches(entry.amount));
+  }
+  const depositWithoutCard = /^(deposits?|funding)\s+(.+?)\s+but\s+not\s+from\s+(.+)$/i.exec(trimmed);
+  if (depositWithoutCard && amountOnly.test(depositWithoutCard[2])) {
+    const matches = amountMatch(depositWithoutCard[2]);
+    const issuer = normalizeSearch(depositWithoutCard[3]);
+    return entries.filter(entry => {
+      if (entry.entry_type !== "DEPOSIT" || !matches(entry.amount) || !issuer) return false;
+      const card = describe(entry).find(label => /ending\s+\d{4}\s*$/i.test(label));
+      if (!card) return false;
+      const issuerName = normalizeSearch(card).replace(/\s+ending\s+\d{4}$/, "");
+      return issuerName !== issuer && !issuerName.startsWith(issuer + " ");
+    });
+  }
+  if (/^(?:posted\s+)?order payments?$/i.test(trimmed)) return entries.filter(row => row.entry_type === "PURCHASE_DEBIT");
+  if (/^(?:refunds?\s+or\s+released reservations?|released reservations?\s+or\s+refunds?)$/i.test(trimmed)) {
+    return entries.filter(row => ["REFUND", "UNCLAIMED_WINNER_CREDIT", "ENTRY_HOLD_RELEASE"].includes(row.entry_type));
+  }
+  const paymentAlternatives = /^(?:paid|spent)\s+(.+)$/i.exec(trimmed)?.[1].split(/\s+or\s+/i);
+  if (paymentAlternatives && paymentAlternatives.length > 1 && paymentAlternatives.every(part => /^(?:paid\s+|spent\s+)?\$[\d.,]+\s+(?:at|from|for)\s+\S/i.test(part))) {
+    const matches = new Set(paymentAlternatives.flatMap(part => searchAgain(entries, "paid " + part.replace(/^(?:paid|spent)\s+/i, ""))));
+    return entries.filter(entry => matches.has(entry));
+  }
+  const exactWithProduct = /^exactly\s+(\$[\d.,]+)\s+(?:for|on|at)\s+(.+)$/i.exec(trimmed);
+  if (exactWithProduct && amountOnly.test(exactWithProduct[1])) {
+    const matches = amountMatch(exactWithProduct[1]);
+    return searchAgain(entries.filter(entry => entry.amount < 0 && (entry.entry_type === "ENTRY_DEBIT" || entry.entry_type === "PURCHASE_DEBIT") && matches(entry.amount)), exactWithProduct[2]);
+  }
   const depositReceipt = /^(?:deposit|funding)\s+receipts?\b\s*(?:for\s+)?/i.exec(trimmed);
   if (depositReceipt) return searchAgain(entries.filter(row => row.entry_type === "DEPOSIT"), trimmed.slice(depositReceipt[0].length));
   const purchaseAtAmount = /^(.+?)\s+purchased\s+for\s+(.+)$/i.exec(trimmed);
@@ -301,6 +360,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
     .replace(/^funds added(?=\s|$)/i, "deposits")
+    .replace(/^(deposits?|funding)\s+(?:by|with|from)\s+(?=[a-z])/i, "$1 ")
+    .replace(/^(purchases?)\s+for\s+(?=[a-z])/i, "$1 ")
     .replace(/\brefunded\b/gi, "refund")
     .replace(/(\d+)\s*¢(?=\s|$)/g, "$1 cents")
     .replace(/^([<>]=?|[≤≥])\s*(?=[+−-]\s*\$?\s*\d)/, (_, operator: string) => (
@@ -419,7 +480,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const paid = /^(?:paid|spent)(?=\s|$)/i.exec(query);
   if (paid) {
-    const detail = query.slice(paid[0].length).trim().replace(/^exactly\s+/i, "").replace(/^(\$\s*[\d,.]+)\s+(?:for|from|at|with|on|to)\b/i, "$1");
+    const detail = query.slice(paid[0].length).trim().replace(/^exactly\s+/i, "")
+      .replace(/((?:[+−-]?\s*)\$\s*[\d,.]+)\s+(?:for|from|at|with|on|to)\b/i, "$1");
     return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), detail);
   }
   const orders = /^(?:orders?(?:\s+for)?|bought)(?:\s+(.*))?$|^(.+?)\s+orders?$/i.exec(query);

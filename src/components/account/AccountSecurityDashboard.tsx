@@ -130,7 +130,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
 
       <div className={styles.lowerGrid}>
         <section className={styles.lowerTicket} aria-labelledby="recent-signins-heading">
-          <header><h2 id="recent-signins-heading">Recent sign-ins</h2><Link href="/account/notifications?filter=account#notification-tickets-filters">View account updates <AccountIcon name="arrow" /></Link></header>
+          <header><h2 id="recent-signins-heading">Recent sign-ins</h2><Link href="/account/notifications?filter=account#notification-tickets-filters" data-history-return>View account updates <AccountIcon name="arrow" /></Link></header>
           {signIn ? <div className={styles.signInFacts}><time dateTime={signIn.iso}>{signIn.label}</time><span>Device: Not recorded</span><span>Location: Not recorded</span></div> : <p>Sign-in history is not available from this account yet.</p>}
         </section>
         <section className={styles.lowerTicket} aria-labelledby="personal-info-heading">
@@ -138,7 +138,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
           <dl><div><dt>{t("Name", "Nombre")}</dt><dd>{displayName}</dd></div><div><dt>{t("Email", "Correo electrónico")}</dt><dd>{emailLabel}</dd></div><div><dt>{t("Phone", "Teléfono")}</dt><dd>{phone ?? t("Not added", "Sin añadir")}</dd></div><div><dt>{t("Member since", "Cuenta creada")}</dt><dd>{formatDate(memberSince, timeZone, language)}</dd></div></dl>
         </section>
         <section className={styles.lowerTicket} aria-labelledby="crew-heading">
-          <header><h2 id="crew-heading">Crew &amp; sharing</h2><Link href="/account/crew?tab=picks#sharing">Manage sharing <AccountIcon name="arrow" /></Link></header>
+          <header><h2 id="crew-heading">Crew &amp; sharing</h2><Link href="/account/crew?tab=picks#sharing" data-history-return>Manage sharing <AccountIcon name="arrow" /></Link></header>
           <p>Manage your Crew and choose which entries to share. Sharing is private by default.</p>
         </section>
       </div>

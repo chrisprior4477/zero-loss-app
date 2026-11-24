@@ -209,7 +209,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         {focusedHistory ? <>
           <div className={overview.returnActions} data-reward-view={view}>
             <WalletRewardLink href={scopedHistory(rewardViewHrefs.all, false)}>{view === "expired" ? "Back to Gift Cards & Rewards" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
-            {view === "expired" ? <Link href={accountRoutes.declinedOffers}>Declined Offers<AccountIcon name="arrow" /></Link> : null}
+            {view === "expired" ? <Link href="/account/declined-offers?from=expired-rewards" data-history-return>Declined Offers<AccountIcon name="arrow" /></Link> : null}
             <Link href="/">Continue Shopping<AccountIcon name="arrow" /></Link>
           </div>
         </> : null}
