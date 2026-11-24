@@ -8,6 +8,21 @@ import { hasAccountHistoryReturn } from "@/components/account/AccountHistoryRetu
 type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request" | "categories-top" | "categories-bottom";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
 let categoryDeparture: { href: string; target: "categories-top" | "categories-bottom" } | null = null;
+const filterReturnKey = "zeroLossBrowseFilterReturn";
+
+export function rememberBrowseFilterTrigger() {
+  window.history.replaceState({
+    ...window.history.state,
+    [filterReturnKey]: { href: location.href, top: scrollY },
+  }, "");
+}
+
+export function forgetBrowseFilterTrigger() {
+  if (!window.history.state?.[filterReturnKey]) return;
+  const state = { ...window.history.state };
+  delete state[filterReturnKey];
+  window.history.replaceState(state, "");
+}
 
 export function rememberBrowseCategoryTrigger(position: "top" | "bottom") {
   categoryDeparture = { href: window.location.href, target: position === "bottom" ? "categories-bottom" : "categories-top" };
@@ -120,6 +135,26 @@ export function SearchResultsAutoScroll({
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       if (hasAccountHistoryReturn() && !requestedFocus) return;
+      const filter = window.history.state?.[filterReturnKey];
+      const lowerFilter = filter?.href === location.href && Number.isFinite(filter.top)
+        ? document.querySelector<HTMLElement>('[data-browse-filter="bottom"]') : null;
+      if (lowerFilter?.getClientRects().length) {
+        cancelled = false;
+        const restoreFilter = () => {
+          if (cancelled || location.href !== filter.href || !lowerFilter.isConnected
+            || document.querySelector("dialog[open]")) return;
+          window.scrollTo({ top: filter.top, behavior: "instant" });
+          lowerFilter.focus({ preventScroll: true });
+          revealBelowHeader(lowerFilter);
+        };
+        first = requestAnimationFrame(() => { second = requestAnimationFrame(restoreFilter); });
+        settle = setTimeout(() => {
+          restoreFilter();
+          if (!document.querySelector("dialog[open]")
+            && window.history.state?.[filterReturnKey]?.href === filter.href) forgetBrowseFilterTrigger();
+        }, 280);
+        return;
+      }
       const category = categoryDeparture;
       if (category?.href === window.location.href) {
         cancelled = false;

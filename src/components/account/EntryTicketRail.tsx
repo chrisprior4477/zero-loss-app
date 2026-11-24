@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
-import { entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
+import { entryTicketFocusReturnKey, entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
+import { restoreDialogTrigger } from "./dialog-keyboard";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import styles from "./entry-ticket-browser.module.css";
 
@@ -74,17 +75,26 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
   const visibleTickets = tickets.slice(windowStart, windowStart + 9);
 
   useLayoutEffect(() => {
+    let frame = 0;
     function restore() {
       const saved = readEntryTicketReturn(window.history.state, ownerId, window.location.pathname + window.location.search, selectedEntryId, tickets.map(item => item.entryId));
       if (!saved) return;
       lastWheelIndex.current = null;
       setSelected(saved.selectedEntryId);
       setShowAll(saved.showAll);
+      const href = location.href;
+      if (history.state?.[entryTicketFocusReturnKey] === href) {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          if (location.href === href) restoreDialogTrigger(cardRef.current, true);
+        });
+      }
     }
     restore();
     window.addEventListener("popstate", restore);
     window.addEventListener("pageshow", restore);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("popstate", restore);
       window.removeEventListener("pageshow", restore);
     };
@@ -223,7 +233,10 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, retu
           <input className="mt-1 block w-full min-w-0 rounded border border-[#89b8ce] bg-white px-2 py-1 text-sm" aria-label="Full entry number" value={ticket.entryId} readOnly
             ref={element => { fallback.current = element; if (element) { element.focus(); element.select(); } }} />
         </label> : null}
-        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}${walletOrigin ? `&${new URLSearchParams(walletOrigin)}` : ""}${notice ? `&alerts=${encodeURIComponent(alerts ?? "all")}&notice=${encodeURIComponent(notice)}` : ""}#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
+        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}${walletOrigin ? `&${new URLSearchParams(walletOrigin)}` : ""}${notice ? `&alerts=${encodeURIComponent(alerts ?? "all")}&notice=${encodeURIComponent(notice)}` : ""}#saved-entry-rail`} onNavigate={() => {
+          remember(ticket.entryId);
+          window.history.replaceState({ ...window.history.state, [entryTicketFocusReturnKey]: window.location.href }, "");
+        }} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
       </div>
     </article>
     {count > 1 ? <>

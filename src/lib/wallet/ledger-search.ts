@@ -312,6 +312,10 @@ function newest<T extends LedgerEntryRow>(rows: T[]) {
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+/i, "")
+    .replace(/^(.+?)\s+entr(?:y|ies)\s+(?:that|which)\s+(?:actually\s+)?posted[.!?]?$/i, (phrase, date: string) =>
+      dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? "entry payments on " + date : phrase)
+    .replace(/\bentry\s+(?:purchases?|payments?|charges?|debits?)\s+without\s+(?:temporary\s+)?(?:holds?|reservations?)[.!?]?$/i, "entry payments")
+    .replace(new RegExp(String.raw`^(.+?)\s+(?:negative|minus)\s+(\$\s*${dollars})\s+(?:charges?|debits?)[.!?]?$`, "i"), "posted amount -$2 $1")
     .replace(/^(?:wallet\s+)?top[ -]?ups?\s+from cards?\s+other than\s+/i, "deposits excluding ")
     .replace(/^(deposits?|funding)\s+through\s+(?=[\p{L}]+\s+\d)/iu, "$1 on or before ")
     .replace(/^(deposits?|funding)\s+as of\s+(?=[\p{L}]+\s+\d)/iu, "$1 on or before ")
@@ -375,7 +379,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer) && checks.some(check => check(entry.amount)));
     }
   }
-  const excludedIssuer = /^(?:deposits?|funding)\s+(?:from any card but|excluding|not made with|made without)\s+(.+?)\s*$/i.exec(trimmed);
+  const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)\s*$/i.exec(trimmed);
   if (excludedIssuer) {
     const omitted = normalizeSearch(excludedIssuer[1]);
     return entries.filter(entry => {
@@ -383,7 +387,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       return Boolean(issuer && omitted && !sameMerchant(issuer, omitted));
     });
   }
-  const receiptCard = /^(?:(?:deposit\s+)?receipts? for|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  const receiptCard = /^(?:(?:deposit\s+)?receipts? (?:for|from)|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
   if (receiptCard) {
     const issuer = /^card$/i.test(receiptCard[1]) ? "" : normalizeSearch(receiptCard[1]);
     const needsReceipt = /^(?:deposit\s+)?receipt/i.test(trimmed);

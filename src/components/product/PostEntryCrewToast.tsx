@@ -11,7 +11,7 @@ import type { CrewMemberContact } from "@/lib/crew/member-contact";
 import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, isCompleteSharePhone as validPhone, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import { normalizeCrewContactPhone, type CrewGroupContact, type CrewVisibilityGroup } from "@/lib/crew/visibility";
-import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { containDialogTab, restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import { useDialogBack } from "@/components/account/useDialogBack";
 import { CrewGroupRemovalCountdown } from "@/components/account/CrewGroupRemovalCountdown";
 import type { EntryRequest } from "@/lib/entries/request";
@@ -104,6 +104,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [deleteContactConfirm, setDeleteContactConfirm] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const groupShareButton = useRef<HTMLButtonElement>(null);
+  const returnToGroupTrigger = useRef(false);
   const manualLink = useRef<HTMLTextAreaElement>(null);
   const focusManualLink = useRef(false);
   const paper = useRef<HTMLDivElement>(null);
@@ -245,7 +247,10 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   useEffect(() => {
     if ((previousStep.current === null && focusOnOpen) || (previousStep.current !== null && previousStep.current !== step)) {
       if (paper.current) paper.current.scrollTop = 0;
-      if (step === "copy" && focusManualLink.current) {
+      if (step === "home" && returnToGroupTrigger.current) {
+        returnToGroupTrigger.current = false;
+        restoreDialogTrigger(groupShareButton.current, true);
+      } else if (step === "copy" && focusManualLink.current) {
         focusManualLink.current = false;
         manualLink.current?.focus();
       } else heading.current?.focus({ preventScroll: true });
@@ -277,7 +282,16 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
   function go(next: Step) { history.current.push(step); if (isDelivery(next)) setDeliveryHistory(true); setStep(next); setRecipientError(false); feedback(""); }
-  function back() { const previous = history.current.pop() ?? "home"; if (previous === "home") setGroupHistory(false); if (!isDelivery(previous) && !history.current.some(isDelivery)) setDeliveryHistory(false); if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
+  function back() {
+    const previous = history.current.pop() ?? "home";
+    returnToGroupTrigger.current = step === "audience" && previous === "home" && groupsOnly;
+    if (previous === "home") setGroupHistory(false);
+    if (!isDelivery(previous) && !history.current.some(isDelivery)) setDeliveryHistory(false);
+    if (step === "audience" && previous === "audience") setGroupsOnly(false);
+    setStep(previous);
+    setRecipientError(false);
+    feedback("");
+  }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -724,7 +738,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy || !linkReady} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" disabled={!copyReady} onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>
-        <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
+        <button ref={groupShareButton} type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
         <button type="button" className={styles.back} disabled={busy} onClick={() => void openFinder()}>Find &amp; add someone</button>
         <div ref={perforation} className={styles.perforation}>Or send directly</div>
         {shortcuts}

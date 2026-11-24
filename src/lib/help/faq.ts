@@ -165,7 +165,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. Confirmed payments shows purchases with a recorded checkout payment. A win can appear under All or Issued without a checkout payment. If two orders name the same prize, compare the order number, date, and Paid at checkout. The gift-card value is the amount issued on the card. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. Confirmed payments shows purchases with a recorded checkout payment. A win can appear under All or Issued without a checkout payment. If two orders name the same prize, compare the order number, date, and Paid at checkout. The gift-card value is the amount issued on the card. For a purchase option, your original entry payment applies to that option. If a $25 gift card shows $24 paid at checkout, the original $1 entry payment covers the difference. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -202,7 +202,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "undo-entry", category: "entries", question: "I entered by accident. Can I undo it?",
-    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount to your Playable Wallet balance. Look for an entry reservation release in Transaction history. If you entered twice, check which submission is still pending before using Undo. After the window ends, check both saved entries in My Activity. If something went wrong, contact support.",
+    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount to your Playable Wallet balance. Look for an entry reservation release in Transaction history. If you entered twice, check which submission is still pending before using Undo. Undo applies to that pending submission and keeps any separate entries you already confirmed. After the window ends, check both saved entries in My Activity. If something went wrong, contact support.",
     keywords: "cancel cancellation mistake accidental refund countdown reservation", action: { label: "Check My Activity", href: "/account/entries" },
     followUpAction: { label: "Find the released amount in Transaction history", href: walletTransactionsHref },
   },
@@ -402,7 +402,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "posted-and-pending", category: "wallet", question: "What is the difference between posted and pending?",
-    answer: "A pending entry can reserve part of your playable balance. Transaction history may show a reservation, the release of that hold, and the posted entry payment separately. Compare the status and amounts. If two payments actually posted for the same entry, use Report a problem on the affected transaction. For a pending deposit, check the existing request in Payment deposits before trying again.",
+    answer: "A pending entry can reserve part of your playable balance. It counts under Open Entries after you confirm it. A reservation release returns the held amount to your playable balance. Transaction history can show the original reservation, its release, and the posted entry payment separately. Compare the status and amounts. If two payments actually posted for the same entry, use Report a problem on the affected transaction. For a pending deposit, check the existing request in Payment deposits before trying again.",
     keywords: "posted vs pending payment ledger hold reserved request status",
     action: { label: "Open transaction history", href: walletTransactionsHref },
     followUpAction: { label: "Open Payment deposits", href: walletDepositsHref },
@@ -581,6 +581,12 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\breservation (?:was )?released\b|\bpending entr(?:y|ies)\b.*\bcount\b.*\bconfirm\b/, "posted-and-pending"],
+  [/\b(?:original|previous|first) (?:ticket|entry)\b.*\bundo\b.*\b(?:another|second|new) entr(?:y|ies)\b/, "undo-entry"],
+  [/\bwhich saved (?:sample )?card\b.*\bfunding\b/, "deposit-receipt"],
+  [/\b(?:access|redemption) code\b.*\bgift[ -]?card\b.*\bclaim(?:ed)?\b/, "open-reward"],
+  [/\$\d+(?:\.\d{2})?\s+gift[ -]?card\b.*\b(?:paid|charged)\s+\$\d+/, "order-receipt"],
+  [/\bentry\b.*\bdifferent time\b.*\b(?:phone|mobile|device)\b/, "time-zone"],
   [/\b(?:digital gift[ -]?card\b.*\b(?:delivery|shipping|mailing) address|(?:delivery|shipping|mailing) address\b.*\bdigital gift[ -]?card)\b/, "digital-gift-card-delivery"],
   [/\b(?:two|multiple|duplicate)\s+pending\s+deposits?\b|\bpending\s+deposits?\b.*\b(?:same amount|duplicate)\b/, "funding-status"],
   [/\b(?:older|previous|past)\s+funding\s+receipts?\b|\breceipts?\b.*\b(?:money|funds)\s+(?:(?:i|you)\s+)?added\s+to\s+(?:(?:my|the|your)\s+)?wallet\b/, "deposit-receipt"],

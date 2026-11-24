@@ -43,6 +43,17 @@ test("Back restores the outgoing selection without replacing the destination's t
   expect(screen.getByRole("article", { name: "Entry 4 of 6" })).toBeTruthy();
 });
 
+test("Back keeps the addressed ticket when the restored page tree names a different ticket", () => {
+  const href = "/account/entries/ent_4?entries=open";
+  window.history.replaceState({
+    [entryTicketReturnKey]: { ownerId: props.ownerId, href, initialEntryId: "ent_4", selectedEntryId: "ent_4", showAll: true },
+  }, "", href + "#saved-entry-rail");
+
+  render(<EntryTicketRail {...props} tickets={tickets} />);
+  expect(screen.getByRole("article", { name: "Entry 4 of 6" })).toBeTruthy();
+  expect(screen.getByRole("group", { name: "All 6 saved entries" })).toBeTruthy();
+});
+
 test("ignores a bookmark for another account, page, initial ticket or removed ticket", () => {
   const saved = { ownerId: props.ownerId, href: "/account/entries/ent_1", initialEntryId: "ent_1", selectedEntryId: "ent_4", showAll: true };
   for (const change of [{ ownerId: "another-owner" }, { href: "/account/entries/another" }, { initialEntryId: "ent_2" }, { selectedEntryId: "removed" }]) {

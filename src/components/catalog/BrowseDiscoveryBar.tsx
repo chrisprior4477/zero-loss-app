@@ -21,7 +21,7 @@ import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import { scrollToCurrentSearch } from "@/lib/navigation/search-examples";
 import styles from "./browse-discovery.module.css";
 import { BrowseSearchScope, useBrowseResultsSearch } from "./BrowseResultsSearch";
-import { rememberBrowseCategoryTrigger, requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
+import { forgetBrowseFilterTrigger, rememberBrowseCategoryTrigger, rememberBrowseFilterTrigger, requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
@@ -160,7 +160,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
-      restoreDialogTrigger(opener.current);
+      restoreDialogTrigger(opener.current, opener.current?.dataset.browseFilter === "bottom");
     };
   }, [panelOpen]);
 
@@ -226,6 +226,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   }
   function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
+    if (next === "filters" && position === "bottom") rememberBrowseFilterTrigger();
+    else forgetBrowseFilterTrigger();
     resetPicker(next, position);
   }
   function stopFilterVoice() {

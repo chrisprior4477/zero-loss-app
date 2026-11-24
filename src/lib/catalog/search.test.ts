@@ -37,6 +37,10 @@ test.each([
   ["prizes from Home Depot under $100", "Home Depot under $100"],
   ["prizes for home improvement under $150", "home improvement under $150"],
   ["50 or 65 inches TVs", "50-inch or 65-inch TVs"],
+  ["TVs from Best Buy or Walmart under $500", "TVs under $500 from Best Buy or Walmart"],
+  ["Sony earbuds or headphones available now", "available Sony earbuds or headphones"],
+  ["PlayStation 5 Slim from Best Buy with available tickets", "available PlayStation 5 Slim from Best Buy"],
+  ["only gift cards sold by Walmart for $50", "exactly $50 Walmart gift card"],
 ])("matches the same product set for %s and %s", (query, equivalent) => {
   const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
   const expected = slugs(equivalent);

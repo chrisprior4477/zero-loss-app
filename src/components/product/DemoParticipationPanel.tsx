@@ -18,6 +18,7 @@ import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPrevi
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, undoEntryLabel, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
+import { restoreDialogTrigger } from "@/components/account/dialog-keyboard";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 import entryActionStyles from "./entry-action.module.css";
 import compactStyles from "./product-entry-layout.module.css";
@@ -529,7 +530,7 @@ export function DemoParticipationPanel({
           </button>
         </form>
       ) : invalidQuantity !== null ? (
-        <button id="entry-action" type="button" className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-extrabold text-[#00132e]`} onClick={() => entryQuantityRef.current?.focus()}>Correct entry quantity</button>
+        <button id="entry-action" type="button" className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-extrabold text-[#00132e]`} onClick={() => restoreDialogTrigger(entryQuantityRef.current, true)}>Correct entry quantity</button>
       ) : (
         <Link id="entry-action" href={entryLoginHref} onClick={() => rememberEntry(quantity, "sign-in")} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
           Sign in to enter
@@ -539,7 +540,7 @@ export function DemoParticipationPanel({
       <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
         <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={event => {
-          if (invalidQuantity !== null) { event.preventDefault(); entryQuantityRef.current?.focus(); return; }
+          if (invalidQuantity !== null) { event.preventDefault(); restoreDialogTrigger(entryQuantityRef.current, true); return; }
           if (fundingForEntry) rememberFundingEntry();
         }} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>

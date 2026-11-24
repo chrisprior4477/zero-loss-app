@@ -329,6 +329,13 @@ test.each([
   ["how do I undo cleaning up shares I stopped sharing", "stop-sharing"],
   ["what happens if the mail-in print name is blank", "blank-entry-print"],
   ["how do I check a product request when I am unsure it was submitted", "request-product"],
+  ["what does reservation released mean", "posted-and-pending"],
+  ["does my pending entry count before I confirm", "posted-and-pending"],
+  ["do I lose my original ticket if I undo another entry", "undo-entry"],
+  ["which saved card did I use for funding", "deposit-receipt"],
+  ["where do I find the access code for a gift card I already claimed", "open-reward"],
+  ["why does my $25 gift card say I paid $24", "order-receipt"],
+  ["why does my entry show a different time on my phone", "time-zone"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });
