@@ -237,6 +237,18 @@ test.each([
   expect(slugs(phrase)).toEqual(expected);
 });
 
+test.each([
+  ["Best Buy or Walmart pictured products under $200","pictured Best Buy or Walmart products under $200"],
+  ["Walmart gift cards of $25 or $75 that are still available","available Walmart gift cards $25 or $75"],
+  ["gift cards from Walmart and Target worth exactly $25","Walmart or Target gift cards exactly $25"],
+  ["2 or fewer entries left on Target gift cards","Target gift cards with at most 2 entries left"],
+])("applies availability and the same retailer constraints for %s", (phrase, baseline) => {
+  const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
+  const expected = slugs(baseline);
+  expect(expected.length).toBeGreaterThan(0);
+  expect(slugs(phrase)).toEqual(expected);
+});
+
 describe("catalog search", () => {
   test("typing available filters out a sold-out product with the same search name", () => {
     const pictured = demoProducts.find(product => product.slug === "sony-wh-1000xm5-headphones")!;

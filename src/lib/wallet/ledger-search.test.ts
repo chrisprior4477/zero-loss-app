@@ -519,4 +519,12 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("PlayStation entry reservations released before November 6")).toEqual(["release"]);
   expect(search("PlayStation entries without pending reservations")).toEqual(["entry", "big-entry", "later-entry"]);
   expect(search("PlayStation ticket charges from the last 7 days")).toEqual(["later-entry"]);
+  expect(search("deposits on Nov 5, excluding $160")).toEqual([]);
+  expect(search("Chase deposits on Nov 5 except those for $50")).toEqual(["deposit"]);
+  expect(search("deposits that posted November 5")).toEqual(["deposit"]);
+  expect(search("only PlayStation entry payments posted on Nov 5")).toEqual(["entry", "big-entry"]);
+  expect(search("deposits using Chase over $1")).toEqual(["deposit"]);
+  expect(search("Best Buy payment posted on Nov 5 for $1")).toEqual(["entry"]);
+  expect(search("netflix charges before November 6")).toEqual(["netflix"]);
+  expect(search("funding on Nov 5 after 7:30 in the evening")).toEqual(["deposit"]);
 });

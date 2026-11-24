@@ -33,7 +33,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [deleteMessage, setDeleteMessage] = useState("");
   const deleteRevision = useRef<string | undefined>(undefined);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
-  const lastDeleteReview = useRef<{ token: DemoCardToken; revision?: string; walletId?: string } | null>(null);
+  const [deleteDeadline, setDeleteDeadline] = useState<number>();
+  const lastDeleteReview = useRef<{
+    token: DemoCardToken;
+    revision?: string;
+    walletId?: string;
+    deadline: number;
+    origin: { control: HTMLButtonElement; href: string; top: number };
+  } | null>(null);
   const [preview, setPreview] = useState<{ walletId?: string; token?: DemoCardToken }>({});
   const lastPreview = useRef<{ walletId?: string; token?: DemoCardToken }>({});
   const previewKey = walletId ? `zero-loss-wallet-card-preview:${walletId}` : null;
@@ -57,16 +64,40 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (savedCards !== lastSavedCards) { setLastSavedCards(savedCards); setCards(savedCards); }
-  function openDeleteReview(card: DemoCard) {
-    lastDeleteReview.current = { token: card.token, revision: card.revision, walletId };
+  function showDeleteReview(card: DemoCard, deadline: number) {
     deleteRevision.current = card.revision;
+    setDeleteDeadline(deadline);
     setDeleteMessage("");
     setDeleting(card.token);
   }
-  useDialogBack(mobile && Boolean(deleting), () => setDeleting(null), busy, true, false, "saved-card-delete", () => {
+  function openDeleteReview(card: DemoCard, control: HTMLButtonElement) {
+    const deadline = Date.now() + 30_000;
+    lastDeleteReview.current = {
+      token: card.token, revision: card.revision, walletId, deadline,
+      origin: { control, href: window.location.href, top: window.scrollY },
+    };
+    showDeleteReview(card, deadline);
+  }
+  function dismissDeleteReview() {
+    setDeleting(null);
+    const review = lastDeleteReview.current;
+    if (!mobile || !review) return;
+    const { control, href, top } = review.origin;
+    const restore = () => {
+      if (lastDeleteReview.current !== review || !control.isConnected || window.location.href !== href || document.querySelector("dialog[open]")) return;
+      const active = document.activeElement;
+      if (active !== document.body && active !== control && active?.id !== "payment-methods") return;
+      control.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "instant" });
+    };
+    requestAnimationFrame(restore);
+    window.setTimeout(restore, 100);
+  }
+  useDialogBack(mobile && Boolean(deleting), dismissDeleteReview, busy, true, false, "saved-card-delete", () => {
     const saved = lastDeleteReview.current;
-    const card = cards.find(candidate => candidate.token === saved?.token && candidate.revision === saved.revision);
-    if (mobile && enabled && !unavailable && !busy && saved?.walletId === walletId && saved && card) openDeleteReview(card);
+    if (!saved || !mobile || !enabled || unavailable || busy || saved.walletId !== walletId || saved.deadline <= Date.now()) return;
+    const card = cards.find(candidate => candidate.token === saved.token && candidate.revision === saved.revision);
+    if (card && saved.origin.href === window.location.href) showDeleteReview(card, saved.deadline);
   });
   const availableToken = DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token))?.token;
   const cameraToken = availableToken ?? cards[0]?.token ?? DEMO_CARD_FIXTURES[0].token;
@@ -237,6 +268,8 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         return false;
       }
       deleteRevision.current = latest.card.revision;
+      const review = lastDeleteReview.current;
+      if (review?.token === token) lastDeleteReview.current = { ...review, revision: latest.card.revision, deadline: Date.now() + 30_000 };
       setDeleteMessage("");
       return true;
     } catch {
@@ -287,9 +320,9 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
             event.currentTarget.focus({ preventScroll: true });
             revealWalletSection(event.currentTarget.id);
           }
-        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} aria-label={`Delete Card: ${cardLabel}`} disabled={!enabled || unavailable || busy} onClick={() => openDeleteReview(card)}>Delete Card</button></div>
+        }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} aria-label={`Delete Card: ${cardLabel}`} disabled={!enabled || unavailable || busy} onClick={event => openDeleteReview(card, event.currentTarget)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
-        {deleting === card.token ? <DeleteCardToast key={card.token} parentHistory mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}
+        {deleting === card.token ? <DeleteCardToast key={card.token} parentHistory mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} initialDeadline={deleteDeadline} onUndo={dismissDeleteReview} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>;
       })}</div>
       {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}

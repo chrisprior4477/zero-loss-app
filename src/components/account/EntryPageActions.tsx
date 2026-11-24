@@ -14,6 +14,7 @@ import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { EntryQuantityInput } from "@/components/product/EntryQuantityInput";
@@ -26,6 +27,7 @@ import { accountLandingTop } from "@/lib/account/landing-position";
 import styles from "./entry-page.module.css";
 
 type CrewMember = { id: string; name: string; avatarUrl: string | null };
+const crewDraftKey = "zero-loss-entry-crew-return";
 
 function shortPrizeName(slug: string, title: string) {
   if (slug === "playstation-5-slim") return "PlayStation 5";
@@ -257,6 +259,28 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
   const selectedCrew = crewSelection.filter(id => displayCrew.some(member => member.id === id));
   if (selectedCrew.length !== crewSelection.length) setSelectedCrew(selectedCrew);
 
+  useEffect(() => {
+    if (!ownerId || !crewReturnEntry) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(crewDraftKey) ?? "null");
+        if (saved?.ownerId !== ownerId || saved.entryId !== crewReturnEntry) return;
+        sessionStorage.removeItem(crewDraftKey);
+        if (saved.expires > Date.now() && Array.isArray(saved.recipients) && saved.recipients.every((id: unknown) => typeof id === "string")) {
+          setSelectedCrew(saved.recipients);
+        }
+      } catch { /* Crew can still be selected directly. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ownerId, crewReturnEntry]);
+
+  function rememberCrewSelection() {
+    if (!ownerId || !crewReturnEntry || !selectedCrew.length || demoAlertPrepared || crewSharePending) return;
+    try {
+      sessionStorage.setItem(crewDraftKey, JSON.stringify({ ownerId, entryId: crewReturnEntry, recipients: selectedCrew, expires: Date.now() + 30 * 60_000 }));
+    } catch { /* Browsers may disable tab storage. */ }
+  }
+
   async function sendCrewShare() {
     if (!selectedCrew.length) return;
     const realRecipientIds = selectedCrew.filter(id => !id.startsWith("sample:"));
@@ -448,7 +472,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
         <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
       </section>
       <section className={`${styles.actionPanel} ${styles.crewPanel}`} id="entry-crew-share" aria-labelledby="crew-title">
-        <h3 id="crew-title">Invite your Crew to this prize</h3>
+        <AccountSettingsLandingScroll target="entry-crew-share" focusTarget="crew-title" allScreens restrictToTargetHash settleAfterNavigation />
+        <h3 id="crew-title" tabIndex={-1}>Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Only the connected Crew members you select can receive email. Sample profiles are for the demo.</p>
         <div className={styles.crewRailWrap}>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" disabled={crewEdges.start} hidden={crewEdges.start && crewEdges.end} onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>‹</button>
@@ -462,7 +487,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, ownerId,
                 <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
-            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(crewReturnEntry ? { entry: crewReturnEntry, ...Object.fromEntries(ticketQuery) } : {}) })}#crew-intro`} onNavigate={rememberCrewSelection} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" disabled={crewEdges.end} hidden={crewEdges.start && crewEdges.end} onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>›</button>
         </div>

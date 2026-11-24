@@ -581,6 +581,17 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bsign[ -]in (?:alert|notification)\b.*\b(?:not|wasn't) me\b/, "unrecognized-sign-in"],
+  [/\b(?:reward|gift[ -]?card)\b.*\b(?:shows?|says?|marked)\s+(?:as\s+)?used\b.*\b(?:never used|did not use|didn't use)\b/, "reward-unavailable"],
+  [/\b(?:buy|purchase)\b.*\b(?:disabled|unavailable)\b.*\b(?:offer|my activity)\b/, "purchase-action-unavailable"],
+  [/\bentry (?:money|payment|credit)\b.*\b(?:another|different) offer\b/, "purchase-options"],
+  [/\b(?:identical|matching|same value)\b.*\bcards?\b.*\border\b/, "matching-rewards"],
+  [/\border\b.*\$\s*[\d,.]+\s+paid\b.*\b(?:gift[ -]?)?card\b.*\$\s*[\d,.]+/, "order-receipt"],
+  [/\bnotifications?\b.*\bmarked\b.*\bread\b/, "notifications"],
+  [/\bdigital gift[ -]?cards?\b.*\b(?:mailed|shipped|delivered)\b.*\baddress\b/, "digital-gift-card-delivery"],
+  [/\b(?:older|past|previous) transactions?\b.*\breset(?:ting)?\b.*\bdemo\b/, "archived-transactions"],
+  [/\b(?:look me up|find me|search for me)\b.*\b(?:my )?phone number\b/, "crew-discoverability"],
+  [/\bcopy\b.*\border\b.*\bwithout\b.*\bcard number\b/, "order-support-copy"],
   [/\bstatus\b.*\b(?:purchase|order)\b.*\b(?:already )?paid\b/, "order-receipt"],
   [/\b(?:closed?|cancel(?:l?ed)?)\b.*\b(?:funding|deposit|add funds) review\b.*\bbefore confirm(?:ing|ation)?\b/, "deposit-cancellation"],
   [/\bpending entr(?:y|ies)\b.*\b(?:held|reserved)\b.*\b(?:wallet|balance)\b.*\bcard\b/, "posted-and-pending"],

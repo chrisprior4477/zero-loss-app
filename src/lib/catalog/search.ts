@@ -31,11 +31,14 @@ export function searchCatalogMatches(
     .replace(/\bpriced\s+at\s+(?=(?:over|above|under|below)\s+\$)/gi, "")
     .replace(/^(.*?)\s+no gift cards?\s+(?=(?:under|below|over|above|at least|up to|between)\b)/i, "$1 without gift cards ")
     .replace(/^only\s+(.+?)\s+with photos\b/i, "pictured $1")
+    .replace(/^(.+?)\s+pictured\s+((?:products?|items?|prizes?)\b.*)$/i, "pictured $1 $2")
     .replace(/^shown with (?:a )?picture\s+(?:from|at)\s+/i, "pictured ")
     .replace(/^(?:a\s+)?(tvs?|televisions?)\s+measuring\s+(?=between\b)/i, "$1 ")
     .replace(/^(tvs?|televisions?)\s+from\s+(.+?)\s+with\s+screens?\s+(between\s+\d+(?:\.\d+)?\s+and\s+\d+(?:\.\d+)?\s+inch(?:es)?)\s*[.!?]?$/i, "$1 $3 from $2")
     .replace(/^entr(?:y|ies)\s+for\s+((?:under|below|less than|at most|up to)\s+\$\s*[\d,.]+)\s+for\s+(.+)$/i, "$2 $1 per entry")
     .replace(/\b(?:with (?:tickets? available(?:\s+now)?|(?:tickets?|entries)\s+(?:left|still open))|(?:that|which)\s+(?:(?:still\s+)?have\s+available\s+tickets?|still\s+have\s+(?:tickets?|entries)(?:\s+left)?)|(?:has|have)\s+(?:tickets?|entries)\s+left)\s*[.!?]?$/i, " available")
+    .replace(/\b(gift cards?)\s+of\s+(?=\$)/i, "$1 ")
+    .replace(/(\bgift cards?\s+(?:from|at|sold by)\s+.+?)\s+worth\s+(?=exactly\s+\$)/i, "$1 ")
     .replace(/(\bgift cards?\b.*\$\s*\d[\d,.]*)\s+per card\s*[.!?]?$/i, "$1")
     .replace(/\b(gift cards?)\s+for\s+(?=(?:less than|under|below|at most|up to)\s+\$)/i, "$1 ")
     .replace(/\bstill open\s*[.!?]?$/i, " available")
@@ -96,7 +99,7 @@ export function searchCatalogMatches(
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), pictured[1], undefined, { includeLowerGiftCards });
   }
   const availableOnly = /^\s*(?:available\s+|open\s+(?!box\b))(.+)$/i.exec(query)
-    ?? /^\s*(.+?)\s+(?:(?:that (?:are|is)|which (?:are|is)|still)\s+)?(?:available(?:\s+now)?|in stock)\s*[.!?]?\s*$/i.exec(query)
+    ?? /^\s*(.+?)\s+(?:(?:that|which)\s+(?:are|is)\s+)?(?:still\s+)?(?:available(?:\s+now)?|in stock)\s*[.!?]?\s*$/i.exec(query)
     ?? /^\s*(.+?)\s+with available (?:tickets?|entr(?:y|ies)|spots?|slots?)\s*[.!?]?\s*$/i.exec(query);
   if (availableOnly && !/\b(?:tickets?|entr(?:y|ies)|spots?|slots?)$/i.test(availableOnly[1].trim())) {
     const open = products.filter(product => product.sold < product.capacity);
@@ -231,7 +234,7 @@ export function searchCatalogMatches(
       const left = product.capacity - product.sold;
       return left >= ticketFilter.minimum && left <= ticketFilter.maximum && (!ticketFilter.counts || ticketFilter.counts.has(left));
     });
-    return ticketFilter.text ? searchCatalogMatches(scoped, ticketFilter.text.replace(/^(?:from|at|sold by)\s+/i, ""), undefined, { includeLowerGiftCards })
+    return ticketFilter.text ? searchCatalogMatches(scoped, ticketFilter.text.replace(/^(?:from|at|on|sold by)\s+/i, ""), undefined, { includeLowerGiftCards })
       : scoped.map(product => ({ product, kind: "product" }));
   }
   const denomination = query === rawQuery && parsedDenomination ? parsedDenomination : searchDenominations(query, products);

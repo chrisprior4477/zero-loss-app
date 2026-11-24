@@ -313,6 +313,13 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+(?:my\s+)?/i, "")
     .replace(/^(.+?\s+orders?)\s+paid\s+(?=on\b)/i, "$1 ")
+    .replace(/^(deposits?|funding)\s+(?:that|which)\s+posted\s+(.+?)[.!?]?$/i,
+      (phrase, type: string, date: string) => dateBoundary(date, calendar) || shortDateBoundary(date, calendar) ? type + " on " + date : phrase)
+    .replace(/^only\s+(?=.+?\s+entry\s+(?:payments?|charges?|debits?)\s+(?:that\s+)?posted\s+on\b)/i, "")
+    .replace(/^(.+?)\s+payments?\s+posted\s+(on\s+.+?)\s+for\s+(\$\s*[\d,.]+)[.!?]?$/i, "posted amount -$3 $1 $2")
+    .replace(/^(.+?)\s+charges?\s+((?:before|after|since|on)\s+.+)$/i, "charges $1 $2")
+    .replace(/(\b\d{1,2}(?::\d{2})?)\s+in the (morning|afternoon|evening)\b/gi,
+      (_, time: string, period: string) => time + (period.toLowerCase() === "morning" ? " am" : " pm"))
     .replace(/^(\$\s*[\d,.]+)\s+(.+?)\s+(deposits?|funding)(?=\s+(?:on|before|after|since)\b)/i, "$3 $2 $1")
     .replace(/^(.+?)\s+entr(?:y|ies)\s+without\s+(?:pending\s+)?(?:reservations?|holds?)[.!?]?$/i, "$1 posted entry payments")
     .replace(/^(.+?)\s+ticket charges?\s+(?:from|over|in)\s+(?:the\s+)?(last (?:7|30) days)[.!?]?$/i, "entry payments $1 $2")
@@ -405,6 +412,12 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       return entries.filter(entry => entry.entry_type === "DEPOSIT"
         && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer) && checks.some(check => check(entry.amount)));
     }
+  }
+  const datedDepositAmountExclusion = /^((?:all\s+)?(?:.*?\s+)?(?:deposits?|funding)\s+on\s+.+?),?\s+(?:except(?: for)?|excluding|other than)\s+(?:(?:the\s+)?(?:ones?|those)(?:\s+for)?\s+)?(\$\s*[\d,.]+)[.!?]?$/i.exec(trimmed);
+  if (datedDepositAmountExclusion && amountOnly.test(datedDepositAmountExclusion[2])) {
+    const omitted = amountMatch(datedDepositAmountExclusion[2]);
+    return searchLedger(entries, datedDepositAmountExclusion[1], describe, fullLedger, calendar)
+      .filter(entry => entry.entry_type === "DEPOSIT" && !omitted(entry.amount));
   }
   const datedIssuerExclusion = /^(?:all\s+)?(?:deposits?|funding)\s+(?:on|from)\s+(.+?)(?:,\s+not|\s+(?:except(?: for)?|excluding|other than))\s+(.+?)[.!?]?$/i.exec(trimmed);
   const excludedIssuer = /^(?:all\s+)?(?:deposits?|funding)\s+(?:from any card but|excluding|except(?: for)?|not made with|made without)\s+(.+?)(?:\s+on\s+(.+?))?[.!?]?$/i.exec(trimmed);
@@ -609,7 +622,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/\$\s*\.(?=\d)/g, "$$0.")
     .replace(/\btop[ -]?ups?\b/gi, "deposit")
     .replace(/^funds added(?=\s|$)/i, "deposits")
-    .replace(/^(deposits?|funding)\s+(?:by|with|from)\s+(?=[a-z])/i, "$1 ")
+    .replace(/^(deposits?|funding)\s+(?:by|with|from|using)\s+(?=[a-z])/i, "$1 ")
     .replace(/^(purchases?)\s+for\s+(?=[a-z])/i, "$1 ")
     .replace(/\brefunded\b/gi, "refund")
     .replace(/(\d+)\s*¢(?=\s|$)/g, "$1 cents")

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -56,6 +57,11 @@ function MobileReceiptReturn({ requestKey }: { requestKey?: string }) {
       const stored = window.history.state?.weeklyDepositReceipt;
       const destination = href ?? (typeof stored === "string" && location.hash === "#weekly-deposit-heading" ? depositListReceiptHref(stored) : null);
       if (destination) router.replace(destination, { scroll: false });
+      else if (location.hash === "#weekly-deposit-heading") {
+        // The mobile receipts are already mounted. Use their normal hash landing.
+        window.history.replaceState(window.history.state, "", "/account/wallet?view=history&panel=deposits#payment-deposits");
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
     }
     restore();
     window.addEventListener("popstate", restore);
@@ -111,6 +117,7 @@ function DepositChart({ requests, hiddenIds, hideArchived, asOf, timeZone, resto
   const showDisplayedReceipt = displayedReceipt && !chart?.weeks.some(week => week.start === openWeek
     && week.receipts.some(receipt => receipt.id === displayedReceipt.id));
   return <aside className={styles.weeklyPanel} aria-labelledby="weekly-deposit-heading">
+    <AccountSettingsLandingScroll target="weekly-deposit-heading" focusTarget="weekly-deposit-heading" allScreens restrictToTargetHash settleAfterNavigation />
     <h2 id="weekly-deposit-heading" tabIndex={-1}>Weekly deposits</h2>
     {!chart ? <p role="status">Weekly deposit history is unavailable.</p> : <>
       {chart.partial ? <p role="status">Some deposits are missing a posting date. These totals include dated deposits only.</p> : null}

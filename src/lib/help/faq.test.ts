@@ -370,6 +370,17 @@ test.each([
   ["where will i get a reply to the report i sent with a wallet receipt", "support-case"],
   ["the reward says claimed but i can’t find the card number", "open-reward"],
   ["how do i stop somebody sending me more picks without leaving the group", "stop-receiving-shares"],
+  ["what do i do if i got a sign in alert that was not me", "unrecognized-sign-in"],
+  ["what if a reward shows used but i never used it", "reward-unavailable"],
+  ["why is buy disabled for an offer i can see in my activity", "purchase-action-unavailable"],
+  ["can i use the same entry money on another offer from the same store", "purchase-options"],
+  ["how do i tell which of my identical cards goes with the order", "matching-rewards"],
+  ["why does an order show $24 paid but the card says $25", "order-receipt"],
+  ["where can i see a notification after i marked it read", "notifications"],
+  ["do digital gift cards get mailed to my address", "digital-gift-card-delivery"],
+  ["where do i find the older transactions after resetting my demo", "archived-transactions"],
+  ["can new people look me up by my phone number", "crew-discoverability"],
+  ["how do i copy the order information without sharing my card number", "order-support-copy"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

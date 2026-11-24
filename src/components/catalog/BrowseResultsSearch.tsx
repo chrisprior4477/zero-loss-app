@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -18,6 +18,7 @@ type SearchSession = {
   search: (value: string, anchor?: string, restoreTop?: boolean, sourceInput?: string) => void; pending: boolean; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
+const searchDraftKey = "zeroLossBrowseSearchDraft";
 export function useBrowseResultsSearch() { return useContext(Session); }
 
 export function BrowseSearchScope({ href }: { href: string }) {
@@ -31,33 +32,60 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   browseHref: string; searchTerm: string; endingSoon?: boolean; children: ReactNode;
 }) {
   const router = useRouter();
-  const [draft, setDraft] = useState(searchTerm);
+  const [draft, updateDraft] = useState(searchTerm);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [lastApplied, setLastApplied] = useState(searchTerm);
   const [pendingTerm, setPendingTerm] = useState<string | null>(null);
   if (lastApplied !== searchTerm) {
     setLastApplied(searchTerm);
-    if (pendingTerm === null || draft === pendingTerm || draft === lastApplied) setDraft(searchTerm);
+    if (pendingTerm === null || draft === pendingTerm || draft === lastApplied) updateDraft(searchTerm);
     setPendingTerm(null);
   }
-  useEffect(() => {
+  const setDraft = useCallback((value: string) => {
+    updateDraft(value);
+    const page = location.pathname + location.search;
+    const state = { ...window.history.state };
+    if (value === searchTerm) {
+      if (!state[searchDraftKey]) return;
+      delete state[searchDraftKey];
+    } else {
+      if (state[searchDraftKey]?.page === page && state[searchDraftKey]?.value === value) return;
+      state[searchDraftKey] = { page, value };
+    }
+    try { window.history.replaceState(state, ""); } catch { /* The current search remains editable. */ }
+  }, [searchTerm]);
+  useLayoutEffect(() => {
     let currentPage = location.pathname + location.search;
+    const savedDraft = () => {
+      const saved = window.history.state?.[searchDraftKey];
+      return saved?.page === currentPage && typeof saved.value === "string" && saved.value.length <= maxCatalogSearchLength
+        ? saved.value as string : null;
+    };
+    const frame = requestAnimationFrame(() => {
+      const saved = savedDraft();
+      if (saved !== null) updateDraft(current => current === searchTerm ? saved : current);
+    });
     const restore = () => {
       const nextPage = location.pathname + location.search;
-      if (currentPage === nextPage) return;
+      if (currentPage === nextPage || location.pathname !== "/browse") return;
+      cancelAnimationFrame(frame);
       currentPage = nextPage;
       setPendingTerm(null);
-      setDraft(new URLSearchParams(location.search).get("q") ?? "");
+      updateDraft(savedDraft() ?? new URLSearchParams(location.search).get("q") ?? "");
     };
     window.addEventListener("popstate", restore);
-    return () => window.removeEventListener("popstate", restore);
-  }, [browseHref]);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("popstate", restore);
+    };
+  }, [browseHref, searchTerm]);
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results", restoreTop = false, sourceInput?: string) {
     const term = value.trim();
     if (catalogSearchTooLong(term) || invalidCatalogSearch(term)) return;
     voice.cancel();
-    setDraft(term);
+    setDraft(searchTerm);
+    updateDraft(term);
 
     const url = new URL(browseHref, "https://zeroloss.local");
     if (term) url.searchParams.set("q", term); else url.searchParams.delete("q");

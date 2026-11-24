@@ -146,7 +146,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <PreferenceSnapshot><div className={styles.page}>
-    <AccountSettingsLandingScroll target="entry-details-intro" focusTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? undefined : entryView === "open" ? "saved-entry-rail" : "entry-details-heading"} initialTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}:${invalidQuantity}`} skipForHistoryKey={entryTicketFocusReturnKey} settleAfterNavigation allScreens />
+    <AccountSettingsLandingScroll target="entry-details-intro" focusTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? undefined : entryView === "open" ? "saved-entry-rail" : "entry-details-heading"} initialTarget={invalidQuantity ? "entry-review-quantity" : resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}:${invalidQuantity}`} skipForHistoryKey={entryTicketFocusReturnKey} skipForHash="entry-crew-share" settleAfterNavigation allScreens />
     <EntryTicketSelectionProvider key={`${account.userId}:${entryId}:${entryView}`} initial={initialTicket}>
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
