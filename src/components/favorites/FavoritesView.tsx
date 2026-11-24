@@ -2,6 +2,7 @@
 import { useAccountLocale, useAccountTimeZone } from "@/components/account/TimeZoneProvider";
 import Image from "next/image";
 import Link from "next/link";
+import { hasAccountHistoryReturn } from "@/components/account/AccountHistoryReturn";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { DemoOutcomeLetter } from "@/components/catalog/DemoOutcomeLetter";
@@ -255,7 +256,7 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
     return () => window.removeEventListener("popstate", onPopState);
   }, [initialShareId, initialSharedView]);
   useLayoutEffect(() => {
-    if (!selectedSlug) return;
+    if (!selectedSlug || hasAccountHistoryReturn()) return;
     const frame = requestAnimationFrame(() => {
       const heading = detailHeading.current;
       if (!heading) return;
@@ -417,11 +418,11 @@ export function FavoritesView({ availability, hiddenSlugs, availabilityUnavailab
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2 tabIndex={-1} ref={detailHeading}>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selectedSlug, true)}
-              {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}
+              {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} data-history-return href={selectedShare ? detailHref : detailHref + "#entry-action"}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}
               {!detailProduct ? <p>This product is no longer available in the current catalog.</p> : null}
               <div className={styles.detailActions}>
                 <div><button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selectedSlug) || !detailProduct || !available} onClick={() => toggle(selectedSlug)}>{slugs.includes(selectedSlug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
-                  {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} href={detailHref}>Reopen prize →</Link> : null}
+                  {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} data-history-return href={detailHref}>Reopen prize →</Link> : null}
                 </div>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={() => back()}>Back to list</button></div>
               </div>

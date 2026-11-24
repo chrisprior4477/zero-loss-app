@@ -5,6 +5,22 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 test.each([
+  ["electronics no gift cards under $500", "pictured electronics under $500"],
+  ["gift cards with one or two left at Target", "Target gift cards with 1 or 2 tickets left"],
+  ["Amazon gift cards higher than $25 but not more than $75", "Amazon gift cards over $25 and up to $75"],
+  ["between $25 and $50 worth of Amazon gift cards", "Amazon gift cards between $25 and $50"],
+  ["Target gift cards with a face value of $25 or $50", "Target gift cards $25 or $50"],
+  ["only electronics with photos under $500", "pictured electronics under $500"],
+  ["gift cards still open", "available gift cards"],
+  ["prizes with tickets available", "available prizes"],
+  ["gift cards for $1 entries with at least 2 tickets left", "gift cards with at least 2 tickets left $1 per entry"],
+  ["prizes that cost one dollar to enter", "prizes $1 per entry"],
+  ["Best Buy 50 inch and 65 inch TVs", "50-inch or 65-inch TVs from Best Buy"],
+  ["gift cards that aren't sold by Walmart", "gift cards excluding Walmart"],
+  ["gift cards with a minimum value of $75 from Target", "Target gift cards at least $75"],
+  ["electronics with a $500 price limit", "electronics up to $500"],
+  ["up to $75 in gift cards from Amazon without the $25 card", "Amazon gift cards up to $75 excluding $25"],
+  ["what gift card can I get from Home Depot for $50", "exactly $50 Home Depot gift card"],
   ["no more than $75 in Walmart or Target gift cards", "gift cards from Walmart or Target up to $75"],
   ["exactly $50 Target cards", "exactly $50 Target gift cards"],
   ["gift cards with more than $75 in value", "gift cards over $75"],
@@ -29,6 +45,9 @@ test.each([
 });
 
 test("preserves item type, availability, and retailer exclusions", () => {
+  const entryFee = searchCatalog(demoProducts, "less than $2 to enter TVs");
+  expect(entryFee.length).toBeGreaterThan(0);
+  expect(entryFee.every(product => product.entryPrice < 2 && !isGiftCardListing(product) && /TV|television/i.test(product.title))).toBe(true);
   const televisions = searchCatalog(demoProducts, "TVs from Best Buy");
   expect(televisions.length).toBeGreaterThan(0);
   expect(televisions.every(product => product.retailer === "Best Buy" && !isGiftCardListing(product))).toBe(true);

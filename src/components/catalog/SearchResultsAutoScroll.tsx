@@ -120,6 +120,20 @@ export function SearchResultsAutoScroll({
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       if (hasFooterHistoryReturn() && !requestedFocus) return;
+      const category = categoryDeparture;
+      if (category?.href === window.location.href) {
+        cancelled = false;
+        const restoreCategory = () => {
+          if (cancelled || location.href !== category.href) return;
+          focusBrowseResults(category.target);
+        };
+        first = requestAnimationFrame(() => { second = requestAnimationFrame(restoreCategory); });
+        settle = setTimeout(() => {
+          restoreCategory();
+          if (categoryDeparture === category) categoryDeparture = null;
+        }, 280);
+        return;
+      }
       const search = window.history.state?.zeroLossBrowseSearchReturn;
       const searchField = search?.href === location.href && Number.isFinite(search.top)
         && ["browse-search-input", "ending-soon-search-input"].includes(search.input)
@@ -196,10 +210,7 @@ export function SearchResultsAutoScroll({
       const invalidSearchInput = invalidSearch ? document.querySelector<HTMLInputElement>('#search-results form[role="search"] input[type="search"]') : null;
       const groceryNotice = invalidGroceryIdea ? document.getElementById("unavailable-grocery-idea") : null;
       if (event?.type === "popstate" && window.location.pathname === "/browse") {
-        if (categoryDeparture?.href === window.location.href) {
-          requestedFocus = { ...categoryDeparture, expires: Date.now() + 5000 };
-          categoryDeparture = null;
-        } else if (window.location.hash === "#search-results" && window.location.search !== renderedSearch) {
+        if (window.location.hash === "#search-results" && window.location.search !== renderedSearch) {
           requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
         }
       }

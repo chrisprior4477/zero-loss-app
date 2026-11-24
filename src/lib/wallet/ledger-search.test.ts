@@ -61,6 +61,28 @@ test("matches deposit card metadata, order references, and compound payment sear
   expect(search("deposits using the card ending 1117")).toEqual(["deposit-chase"]);
   expect(search("ref BE3CA77A")).toEqual(["reference-be3ca77a"]);
   expect(search("ABCDEF90")).toEqual(["netflix"]);
+  expect(search("funding during November")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("deposit after November 4 before November 7")).toEqual(["deposit-chase"]);
+  expect(search("deposits before noon on Nov 3")).toEqual([]);
+  expect(search("deposits before noon on Nov 5")).toEqual(search("deposits on Nov 5 before 12 pm"));
+  expect(search("transactions Nov 5 after 20:00")).toEqual(search("Nov 5 after 8 pm"));
+  expect(search("deposits from Nov 2 through Nov 5 inclusive")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("eighteen days ago transactions")).toEqual(search("Nov 5"));
+  expect(search("deposits this year")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("orders in the past thirty days")).toEqual(["netflix", "netflix-less", "walmart"]);
+  expect(search("November 5 through November 12 PlayStation")).toEqual(["reference-be3ca77a", "hold", "release"]);
+  expect(search("funding received on Chase ending 1117")).toEqual(["deposit-chase"]);
+  expect(search("receipts for Discover card ending 5556")).toEqual(["deposit-discover"]);
+  expect(search("order no. ABCDEF90")).toEqual(["netflix"]);
+  expect(search("posted entry costs $1 for PlayStation")).toEqual(["reference-be3ca77a"]);
+  expect(search("Netflix charge of $24")).toEqual(["netflix"]);
+  expect(search("Netflix and Walmart orders")).toEqual(["netflix", "netflix-less", "walmart"]);
+  expect(search("Netflix payment $24 or $23")).toEqual(["netflix", "netflix-less"]);
+  expect(search("entry holds only")).toEqual(["hold"]);
+  expect(search("latest Walmart order")).toEqual(["walmart"]);
+  expect(search("last $160 funding receipt")).toEqual(["deposit-chase"]);
+  expect(search("funding from any card but Discover")).toEqual(["deposit-chase"]);
+  expect(search("only $160 in funding")).toEqual(["deposit-chase", "deposit-discover"]);
 });
 
 test("combines statement language with exact dates, amount direction, and verified descriptions", () => {

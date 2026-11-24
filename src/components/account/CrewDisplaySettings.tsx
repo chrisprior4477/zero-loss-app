@@ -1,5 +1,7 @@
 "use client";
 
+import { rememberCrewSectionFocus } from "./useCrewTab";
+
 import Image from "next/image";
 import Link from "next/link";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -569,6 +571,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
               }}>
                 {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} retry={removalFailures} onCheck={() => checkGroupRemoval(group)} onUndo={() => { undoGroupRemoval(); if (removalFailures) router.refresh(); }} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input id={`crew-group-name-${group.id}`}
+                  onFocus={event => rememberCrewSectionFocus(event.currentTarget)}
                   aria-invalid={editorMessage?.id === group.id && editorMessage.field === "name" || undefined}
                   aria-describedby={editorMessage?.id === group.id && editorMessage.field === "name" ? `crew-group-message-${group.id}` : undefined}
                   value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setEditorMessage(current => current?.id === group.id && current.field === "name" ? null : current); setSaved(false); }} /></label>

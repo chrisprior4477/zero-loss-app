@@ -11,6 +11,11 @@ function subscribe(onChange: () => void) {
   return () => events.forEach(name => window.removeEventListener(name, onChange));
 }
 
+export function rememberCrewSectionFocus(element: HTMLElement | null) {
+  if (!element?.id || window.location.pathname !== "/account/crew") return;
+  window.history.replaceState({ ...window.history.state, zeroLossCrewSectionFocus: { href: window.location.href, id: element.id } }, "");
+}
+
 /** Section navigation is bookmarkable without reloading the mounted Crew editors. */
 export function useCrewTab(initialTab: CrewTab) {
   const tab = useSyncExternalStore(subscribe,
@@ -21,6 +26,11 @@ export function useCrewTab(initialTab: CrewTab) {
   const lastTab = useRef(initialTab);
   useEffect(() => {
     let frame = 0;
+    const timers: number[] = [];
+    function cancelRestore() {
+      cancelAnimationFrame(frame);
+      timers.splice(0).forEach(clearTimeout);
+    }
     function restore(event?: Event) {
       const url = new URL(window.location.href);
       const { tab: next, invalid } = crewTabFromUrl(url);
@@ -35,19 +45,30 @@ export function useCrewTab(initialTab: CrewTab) {
       }
       setInvalidTab(invalid || window.history.state?.zeroLossCrewInvalidTab === true);
       if (event?.type !== "popstate" || !changed) return;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => { frame = requestAnimationFrame(() => {
-        const button = document.querySelector<HTMLElement>('[data-crew-tab="' + next + '"]');
-        if (!button || window.location.href !== url.href) return;
-        if (document.activeElement === document.body || document.activeElement?.hasAttribute("data-crew-tab")) {
-          button.focus({ preventScroll: true });
-          revealBelowHeader(button);
-        }
-      }); });
+      cancelRestore();
+      const saved = window.history.state?.zeroLossCrewSectionFocus;
+      const bookmarkedId = saved?.href === url.href && typeof saved.id === "string" ? saved.id : null;
+      function align() {
+        if (window.location.href !== url.href) return;
+        const active = document.activeElement;
+        if (active !== document.body && !active?.matches("[data-crew-tab], #crew-tabs, #my-shared-picks-heading")) return;
+        const exact = bookmarkedId ? document.getElementById(bookmarkedId) : null;
+        const target = exact?.getClientRects().length ? exact : document.querySelector<HTMLElement>('[data-crew-tab="' + next + '"]');
+        target?.focus({ preventScroll: true });
+        if (target) revealBelowHeader(target);
+      }
+      frame = requestAnimationFrame(() => { frame = requestAnimationFrame(align); });
+      if (bookmarkedId) for (const delay of [120, 400, 850]) timers.push(window.setTimeout(align, delay));
     }
     restore();
+    const interactions = ["pointerdown", "keydown", "wheel"];
+    interactions.forEach(name => window.addEventListener(name, cancelRestore, { passive: true }));
     window.addEventListener("popstate", restore);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restore); };
+    return () => {
+      cancelRestore();
+      window.removeEventListener("popstate", restore);
+      interactions.forEach(name => window.removeEventListener(name, cancelRestore));
+    };
   }, []);
 
   function selectTab(nextTab: CrewTab) {

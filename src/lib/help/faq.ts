@@ -164,7 +164,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
-    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. Gift-card value is what the card is issued for. Paid at checkout is the amount of that checkout payment. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date. If two orders name the same prize, compare Order number, date, and Paid at checkout. Gift-card value is what the card is issued for. Paid at checkout is the amount of that checkout payment. Use Copy order number on an order or copy the reward reference on a win. If an order confirmation is missing, check its status here before repeating checkout. If the payment is in Wallet but the order is missing, report the exact transaction.",
     keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders?filter=all#fulfillment-records" },
   },
   {
@@ -201,13 +201,13 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "undo-entry", category: "entries", question: "I entered by accident. Can I undo it?",
-    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount back to your playable balance—not to your payment card. If you entered twice, check which submission is still pending before using Undo. After the window ends, check both saved entries in My Activity. If something went wrong, contact support.",
+    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount to your Playable Wallet balance. Look for an entry reservation release in Transaction history. If you entered twice, check which submission is still pending before using Undo. After the window ends, check both saved entries in My Activity. If something went wrong, contact support.",
     keywords: "cancel cancellation mistake accidental refund countdown reservation", action: { label: "Check My Activity", href: "/account/entries" },
     followUpAction: { label: "Find the released amount in Transaction history", href: walletTransactionsHref },
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
-    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. Completing the purchase is a separate choice. Completed activity remains in your history. If a saved option disappears, check Declined Offers and the expired purchase options in Gift Cards & Rewards.",
+    answer: "If your entry isn’t selected, check Purchase Options in My Activity for any eligible offers. Open an offer to see the amount already applied, how much is left to pay, and when it expires. Each eligible entry has its own option and options cannot be combined. In Offer details, check how much your entry already covers and how much is left to pay. Completing the purchase is a separate choice. Completed activity remains in your history. If a saved option disappears, check Declined Offers and the expired purchase options in Gift Cards & Rewards.",
     keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion#my-activity-filters" },
   },
   {
@@ -242,7 +242,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "deposit-receipt", category: "wallet", question: "Where can I find my deposit receipt and the card I used?",
-    answer: "Open Payment deposits and expand the deposit by date and amount. Choose View deposit receipt for the saved confirmation and sample card. If a wallet credit is listed, View wallet credit opens its transaction.",
+    answer: "Open Payment deposits and expand the deposit by date and amount. Use the list controls to see older deposits, or use the date and Funding filters in Transaction history. Choose View deposit receipt for the saved confirmation and sample card. If a wallet credit is listed, View wallet credit opens its transaction.",
     keywords: "deposit receipt funds added payment confirmation sample card last four funding",
     action: { label: "Open Payment deposits", href: walletDepositsHref },
   },
@@ -258,7 +258,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "reward-restrictions", category: "rewards", question: "Do I have to use the gift card on the pictured item?",
-    answer: "A retailer gift card is not restricted to the featured item. You can use it toward eligible purchases with that retailer, subject to the retailer’s gift-card rules. Check the retailer, value, and status in your reward details before using it.",
+    answer: "A retailer gift card is not restricted to the featured item. You can use it toward eligible purchases with that retailer, subject to the retailer’s gift-card rules. Check the retailer, value, and status in your reward details before using it. The retailer sets the current price. Any cost above the issued card value is governed by the retailer’s payment rules.",
     keywords: "different product retailer store item eligible", action: { label: "View reward details", href: "/account/wallet" },
     issuerTerms: [
       { label: "Walmart gift-card terms", href: "https://www.walmart.com/help/article/gift-card-terms-and-conditions/90f9e217278146898946c1d786bedea3" },
@@ -273,7 +273,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
-    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. The claim deadline is for claiming the reward. After issuance, check the gift card’s details and retailer terms for any expiration. Redeemed, expired, cancelled, and pending rewards stay in reward history. If an unclaimed win was credited to your wallet, its credit appears in Transaction history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
+    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. If the number is missing after claiming, check that exact record’s issuance status. If it is marked ready and the number is still missing, contact Support from the reward. The claim deadline is for claiming the reward. After issuance, check the gift card’s details and retailer terms for any expiration. Redeemed, expired, cancelled, and pending rewards stay in reward history. If an unclaimed win was credited to your wallet, its credit appears in Transaction history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
     keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
@@ -414,8 +414,63 @@ export const faqItems: FaqItem[] = [
     followUpAction: { label: "Open transaction history", href: walletTransactionsHref },
   },
   {
+    id: "select-purchase-offers", category: "entries", question: "How do I buy one offer and keep the others?",
+    answer: "Open the prize in Purchase Options, choose the offer you want, and select Keep for later for the remaining offers. Check which offer and amount the review shows before confirming.",
+    keywords: "buy only one select multiple offers keep others",
+    action: { label: "Open Purchase Options", href: "/account/entries?filter=completion#my-activity-filters" },
+  },
+  {
+    id: "purchase-wallet-balance", category: "wallet", question: "Can I pay for a purchase option with my wallet balance?",
+    answer: "Yes. Review the amount due on the selected offer and pay from your Playable Wallet balance. If the balance is short, the checkout shows Add funds with the difference. Review the offer again after funding.",
+    keywords: "playable wallet purchase option checkout use balance add funds",
+    action: { label: "Review my purchase options", href: "/account/entries?filter=completion#my-activity-filters" },
+  },
+  {
+    id: "purchase-action-unavailable", category: "entries", question: "Why is Continue with Purchase unavailable?",
+    answer: "Open the exact offer in My Activity. Check its deadline, whether it is still available, and whether you have selected an offer. Follow Add funds when the available balance is short. If a previously selected offer has changed, check the saved result before trying again.",
+    keywords: "continue with purchase disabled unavailable expired selection deadline",
+    action: { label: "Check Purchase Options", href: "/account/entries?filter=completion#my-activity-filters" },
+  },
+  {
+    id: "sample-deposit-statement", category: "wallet", question: "Why does my deposit history differ from my bank statement?",
+    answer: "The Experiment records simulated deposits made with supplied sample cards. The deposit receipt shows the demo request and credit. If you see an unexpected charge, use the Support form to describe what you saw without including your full card number.",
+    keywords: "simulation demo deposit bank statement debit charge",
+    action: { label: "Open Payment deposits", href: walletDepositsHref },
+    followUpAction: { label: "Ask Support about a transaction", href: "/support?topic=wallet#report-problem" },
+  },
+  {
+    id: "save-sample-card", category: "wallet", question: "Can I save a sample card without making a deposit?",
+    answer: "Yes. Open Payment methods and use Add Card to choose and save one of the supplied sample cards. If you run into camera or permission trouble, use the manual Add Card control. A deposit is a separate confirmation.",
+    keywords: "save add card no deposit camera permission scan manual sample",
+    action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
+  },
+  {
+    id: "reward-funding", category: "rewards", question: "Can I add my gift-card reward to my Playable Wallet?",
+    answer: "Gift Cards & Rewards holds the demo reward. For Add funds, choose a supplied sample payment card from Payment methods. The gift-card value stays separate from your Playable Wallet balance.",
+    keywords: "winning card fund wallet gift card redeem balance deposit",
+    action: { label: "Open Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
+  },
+  {
+    id: "favorite-watch-one", category: "account", question: "How do I stop watching one favorite?",
+    answer: "Open Favorites and find the prize. Clear the checkbox for its almost-full email. You can leave the prize saved and keep alerts for other favorites.",
+    keywords: "watching one prize stop individual favorite notifications email",
+    action: { label: "Open Favorites", href: "/account/favorites" },
+  },
+  {
+    id: "shared-pick-undo-decline", category: "account", question: "Can I undo declining a prize someone shared?",
+    answer: "Open Favorites, choose Shared with You, then Declined. Open the shared prize and choose Undo decline to move it to Available. Check the prize’s current availability before entering.",
+    keywords: "undo decline restore received shared friend prize",
+    action: { label: "Open declined shares", href: "/account/favorites?tab=shared&view=declined" },
+  },
+  {
+    id: "free-entry-prototype", category: "entries", question: "Why does the postcard say not to mail it?",
+    answer: "The printed insert is a demonstration. The mailing address and official submission instructions are pending approval. You can preview the printout in the Experiment.",
+    keywords: "postcard do not mail sample demonstration approval print",
+    action: { label: "Read the free-entry instructions", href: "/free-entry?origin=faq#free-entry-intro" },
+  },
+  {
     id: "verification-email", category: "account", question: "What if my verification email did not come?",
-    answer: "Use Resend verification email from Create account with the address you registered. Check your spam folder for the new message. Use the separate sign-in recovery option if you forgot your sign-in details.",
+    answer: "If the link says it was already used, try signing in. In Profile, check whether the email address shows Verified. If confirmation is still pending, use Resend verification email from Create account with the address you registered. Check your spam folder for the new message. Use the separate sign-in recovery option if you forgot your sign-in details.",
     keywords: "missing verification email resend verify confirm signup", action: { label: "Resend verification email", href: "/signup?verify=resend#resend-verification" },
   },
 ];
@@ -458,6 +513,23 @@ const faqIntents: readonly [RegExp, string][] = [
   [/\b(?:turn|switch)\s+(?:(?:my|the)\s+)?(?:in[ -]app\s+)?(?:notifications?|alerts?)\s+(?:back\s+)?on\b/, "notifications"],
   [/\bstop\b.*\b(?:sharing\s+(?:picks|prizes|products)\s+with me|(?:receiving|getting)\s+(?:shared\s+)?(?:picks|prizes|products))\b/, "stop-receiving-shares"],
   [/\b(?:i (?:did not|didn't|never) (?:make|authorize|recognize)|(?:unrecognized|unauthorized|unfamiliar))\b.*\b(?:purchase|transaction|charge|payment|deposit)\b/, "unauthorized-transaction"],
+  [/\b(?:undo|undid)\b.*\b(?:balance|bank card|reserved)\b|\b(?:reserved|balance|bank card)\b.*\b(?:undo|undid)\b/, "undo-entry"],
+  [/\bpurchase option\b.*\b(?:did not win|didn't win|did not get picked)\b|\b(?:did not win|didn't win)\b.*\bpurchase option\b/, "purchase-options"],
+  [/\b(?:finish|complete|buy|checkout)\b.*\b(?:only one|one of my offers)\b/, "select-purchase-offers"],
+  [/\bhow much\b.*\bentry\b.*\b(?:cover|apply)\b/, "purchase-options"],
+  [/\b(?:gift[ -]?card|card) number\b.*\b(?:isn't showing|not showing|missing|isn't there)\b/, "reward-unavailable"],
+  [/\b(?:winning|reward|gift)[ -]?(?:card|reward)?\b.*\b(?:fund|top up|add money to)\b.*\bwallet\b/, "reward-funding"],
+  [/\b(?:older|previous|past)\s+deposits?\b/, "deposit-receipt"],
+  [/\bdeposit history\b.*\b(?:bank|card) statement\b/, "sample-deposit-statement"],
+  [/\bsave\b.*\bcard\b.*\bwithout (?:adding money|funding|deposit(?:ing)?)\b|\bcamera\b.*\b(?:won't|cannot|failed|doesn't)\b.*\b(?:scan|card)\b/, "save-sample-card"],
+  [/\b(?:wallet|balance)\b.*\b(?:pay|purchase option|checkout)\b|\bpurchase option\b.*\b(?:use|pay from)\b.*\b(?:wallet|balance)\b/, "purchase-wallet-balance"],
+  [/\b(?:store|retailer)\s+(?:amount|price)\b.*\b(?:more|higher)\b.*\b(?:reward|gift[ -]?card)\b/, "reward-restrictions"],
+  [/\b(?:two|multiple)\s+orders\b.*\b(?:same prize|did i pay|which one)\b/, "order-receipt"],
+  [/\b(?:stop|turn off)\b.*\bwatching\b.*\b(?:one|a|this)\s+(?:prize|favorite|favourite|item)\b/, "favorite-watch-one"],
+  [/\b(?:undo|restore)\b.*\b(?:declin(?:e|ed|ing))\b.*\b(?:sent|shared|friend)\b/, "shared-pick-undo-decline"],
+  [/\bverification link\b.*\balready used\b/, "verification-email"],
+  [/\b(?:postcard|insert|instructions)\b.*\b(?:do not mail|not to mail)\b/, "free-entry-prototype"],
+  [/\bcontinue with purchase\b.*\b(?:disabled|unavailable|greyed out|grayed out)\b/, "purchase-action-unavailable"],
   [/\b(?:reply|response)\b.*\b(?:my|support)\s+(?:report|case|request|message)\b|\b(?:report|support case)\b.*\b(?:reply|response)\b/, "support-case"],
   [/\b(?:missing|did not arrive|didn't arrive)\b.*\b(?:after purchase|after checkout)\b|\b(?:purchase|order)\b.*\bpayment\b.*\b(?:processing|pending|succeeded)\b|\b(?:store|retailer)\b.*\b(?:cancel|cancell?ed)\b.*\b(?:gift[ -])?card order\b/, "order-issuance"],
   [/\b(?:do not want|don't want|no longer want|turn down)\b.*\b(?:purchase (?:offer|option)|offer)\b/, "decline-and-revive"],

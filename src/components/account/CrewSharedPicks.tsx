@@ -225,7 +225,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
   return <section className={styles.root} id="sharing" aria-labelledby="my-shared-picks-heading">
     <div className={styles.sectionHeading}>
       <h2 id="my-shared-picks-heading" tabIndex={-1}>My Shared Picks Cleanup</h2>
-      <button type="button" className={styles.privacy} onClick={onPrivacy}>Privacy Settings</button>
+      <button id="crew-sharing-privacy-trigger" type="button" className={styles.privacy} onClick={onPrivacy}>Privacy Settings</button>
     </div>
     <div className={styles.groupPicker}>
       <label id="shared-with-label" htmlFor="shared-pick-group">Shared with</label>

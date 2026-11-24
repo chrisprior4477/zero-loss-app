@@ -115,7 +115,7 @@ export function DollarChoiceCarousel() {
             return (
               <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
                 <Link
-                  href={`${prizeHref}#enter-entry`}
+                  href={`${prizeHref}#entry-action`}
                   draggable={false}
                   aria-label={`Enter $1 for ${item.title}`}
                   className="absolute left-2 top-0 z-30 flex flex-col items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"

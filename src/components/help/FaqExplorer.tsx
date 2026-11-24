@@ -86,10 +86,11 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
           const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
           const top = answer ? window.scrollY + answer.getBoundingClientRect().top - Math.max(header + 12, destination.answerTop) : destination.scrollY;
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-          if (answer) {
+          if (answer || destination.answerLink) {
+            const scope = answer ?? panel.current?.querySelector("[data-faq-empty]");
             const link = destination.answerLink
-              ? Array.from(answer.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === destination.answerLink)
-              : answer.querySelector("summary");
+              ? Array.from(scope?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === destination.answerLink)
+              : scope?.querySelector("summary");
             if (link?.getClientRects().length) {
               if (!focused) link.focus({ preventScroll: true });
               if (document.activeElement === link && (link.getBoundingClientRect().bottom > window.innerHeight || link.getBoundingClientRect().top < header)) revealBelowHeader(link);
@@ -115,7 +116,7 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
     const saved: FaqReturn = { href: window.location.href, query, category, collapsed,
       expanded: Array.from(panel.current?.querySelectorAll<HTMLDetailsElement>("details[open][data-faq-id]") ?? []).map(element => element.dataset.faqId!),
       scrollY: window.scrollY, answer: answer?.dataset.faqId ?? null, answerTop: answer?.getBoundingClientRect().top ?? 0,
-      answerLink: answer ? anchor.getAttribute("href") ?? undefined : undefined };
+      answerLink: answer || anchor.closest("[data-faq-empty]") ? anchor.getAttribute("href") ?? undefined : undefined };
     window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
     const fragment = `#faq-${saved.answer}` as keyof typeof explicitFaqReturns;
     const explicitReturn = explicitFaqReturns[fragment];
@@ -147,7 +148,7 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
           setExpanded(next);
         }
       }
-    }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{invalidSearch ? "Enter a word to search for answers." : otherTopicMatches ? "No matches in this topic." : query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>{otherTopicMatches ? "Other topics have answers for this search." : "Try different words or contact Support."}</p><div className="mt-4 flex flex-wrap gap-3">{otherTopicMatches ? <button type="button" onClick={() => { changeCategory("all");
+    }} />) : <div data-faq-empty className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{invalidSearch ? "Enter a word to search for answers." : otherTopicMatches ? "No matches in this topic." : query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>{otherTopicMatches ? "Other topics have answers for this search." : "Try different words or contact Support."}</p><div className="mt-4 flex flex-wrap gap-3">{otherTopicMatches ? <button type="button" onClick={() => { changeCategory("all");
       const field = document.getElementById("faq-search");
       field?.focus({ preventScroll: true });
       requestAnimationFrame(() => { if (field && document.activeElement === field) revealBelowHeader(field); }); }} className={`${styles.ticket} ${styles.button} ${styles.primary}`}>Search all topics</button> : null}<button type="button" onClick={clearQuery} className={`${styles.ticket} ${styles.button}`}>Clear search</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact Support</Link></div></div>}</div>

@@ -16,5 +16,5 @@ export function readFaqReturn(state: unknown, href: string): FaqReturn | null {
   const known = (id: string) => faqItems.some(item => item.id === id);
   const answer = saved.answer && known(saved.answer) ? saved.answer : null;
   return { ...saved as FaqReturn, expanded: saved.expanded.filter(known), collapsed: saved.collapsed?.filter(known),
-    answer, ...(answer ? {} : { answerLink: undefined }) };
+    answer, ...(answer || saved.answer === null ? {} : { answerLink: undefined }) };
 }

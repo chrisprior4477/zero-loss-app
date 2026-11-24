@@ -17,11 +17,33 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (rawQuery.length > maxCatalogSearchLength) return [];
+  const televisedEntry = /^((?:under|less than|at most|up to)\s+\$\s*[\d,.]+)\s+to enter\s+(TVs?|televisions?)\s*[.!?]?$/i.exec(rawQuery.trim());
+  if (televisedEntry) {
+    return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)),
+      televisedEntry[2] + " " + televisedEntry[1] + " per entry", undefined, { includeLowerGiftCards });
+  }
   const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
     .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/\s+(?:that\s+costs?|priced)\s+(?=(?:exactly\s+)?\$\s*\d)/gi, " ")
+    .replace(/^(.*?)\s+no gift cards?\s+(?=(?:under|below|over|above|at least|up to|between)\b)/i, "$1 without gift cards ")
+    .replace(/^only\s+(.+?)\s+with photos\b/i, "pictured $1")
+    .replace(/\bwith tickets available\s*[.!?]?$/i, " available")
+    .replace(/\bstill open\s*[.!?]?$/i, " available")
+    .replace(/\bfor (\$\s*[\d,.]+)\s+entries(?=\s+with\b)/i, "$1 per entry")
+    .replace(/\bthat costs?\s+(.+?)\s+to enter\s*[.!?]?$/i, " $1 per entry")
+    .replace(/\bwith (?:a )?face value of\s+(?=\$)/i, "")
+    .replace(/^(between\s+\$[\d,.]+\s+and\s+\$[\d,.]+)\s+worth of\s+/i, "$1 ")
+    .replace(/\bhigher than\s+(?=\$)/i, "over ")
+    .replace(/\bwith (?:a )?minimum value of\s+(?=\$)/i, "at least ")
+    .replace(/\bwith (?:a )?(\$\s*[\d,.]+)\s+price limit\s*[.!?]?$/i, "up to $1")
+    .replace(/\bwithout (?:the\s+)?(\$\s*[\d,.]+)\s+card\s*[.!?]?$/i, "excluding $1")
+    .replace(/^up to (\$\s*[\d,.]+)\s+in\s+(gift cards?\b.+)$/i, "$2 up to $1")
+    .replace(/^what gift card can I get from (.+?) for (\$\s*[\d,.]+)\s*\??$/i,
+      (phrase, retailer: string, amount: string) => catalogMerchant(retailer, products) ? "exactly " + amount + " " + retailer + " gift card" : phrase)
+    .replace(/\bgift cards?\s+that\s+(?:aren[’']t|are not)\s+sold (?:by|at)\s+/i, "gift cards excluding ")
+    .replace(/\bwith ((?:\d+|one|two|three|four|five)(?:\s+or\s+(?:\d+|one|two|three|four|five))+)\s+left\b/i, "with $1 tickets left")
     .replace(/\s+in value(?=\s*[.!?]?$)/i, "")
     .replace(/\bwith\s+(?=(?:more than|greater than)\s+\$)/i, "")
     .replace(/\bexcept all (?:under|below)\s+(?=\$)/i, "at least ")
@@ -62,6 +84,12 @@ export function searchCatalogMatches(
     return /^(?:prizes?|products?|offers?)$/i.test(availableOnly[1].trim())
       ? open.map(product => ({ product, kind: "product" }))
       : searchCatalogMatches(open, availableOnly[1], undefined, { includeLowerGiftCards });
+  }
+  const retailerTvSizes = /^(.+?)\s+(\d+\s*[- ]?\s*inch(?:es)?(?:\s+(?:and|or)\s+\d+\s*[- ]?\s*inch(?:es)?)+)\s+(tvs?|televisions?)\b(.*)$/i.exec(query.trim());
+  const tvRetailer = retailerTvSizes && catalogMerchant(retailerTvSizes[1], products);
+  if (retailerTvSizes && tvRetailer) {
+    return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && matchesCatalogMerchant(product.retailer, tvRetailer)),
+      retailerTvSizes[2].replace(/\s+and\s+/gi, " or ") + " " + retailerTvSizes[3] + retailerTvSizes[4], undefined, { includeLowerGiftCards });
   }
   const multiBrandTelevisions = /^(\S+)\s+(?:and|or|&)\s+(\S+)\s+((?:\d+\s*[- ]?\s*(?:inch(?:es)?|in\b|")\s+)?(?:tvs?|televisions?)\b.*)$/i.exec(query.trim());
   const hasBrand = (name: string) => products.some(product => normalizeSearch(product.brand) === normalizeSearch(name));
@@ -189,7 +217,7 @@ export function searchCatalogMatches(
   const text = brandedText;
   const merchant = denomination.merchant ?? qualifiedMerchant;
   if (conflictingBudget || denomination.unsupportedCurrency) return [];
-  const withoutGiftCards = query.replace(/^(?:anything but|no|without|excluding)\s+gift\s*cards?\s+(?=(?:under|below|over|above|up to|at most|at least|between)\b)/i, "").replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  const withoutGiftCards = query.replace(/\s+without gift cards?\s+(?=(?:under|below|over|above|at least|up to|between)\b)/i, " ").replace(/^(?:anything but|no|without|excluding)\s+gift\s*cards?\s+(?=(?:under|below|over|above|up to|at most|at least|between)\b)/i, "").replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
-export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string | readonly string[]; focusAnchorPrefix?: string | readonly string[]; missingAnchorTarget?: string; focusOnArrival?: boolean }) {
+export function HelpLandingScroll({ target, visitKey = target, landingAlias, focusReport = false, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival = false, settlePrefixedAnchor = false }: { target: string; visitKey?: string; landingAlias?: string; focusReport?: boolean; focusAnchor?: string | readonly string[]; focusAnchorPrefix?: string | readonly string[]; missingAnchorTarget?: string; focusOnArrival?: boolean; settlePrefixedAnchor?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -51,7 +51,7 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
     const arrivalAnchor = window.location.hash.split("#").at(-1) ?? "";
     if (matchesFocusAnchor(arrivalAnchor) || matchesPrefix(arrivalAnchor) || focusReport && arrivalAnchor === "report-problem") reveal();
-    if (focusReport && arrivalAnchor === "report-problem") {
+    if (settlePrefixedAnchor && matchesPrefix(arrivalAnchor) || focusReport && arrivalAnchor === "report-problem") {
       const href = window.location.href;
       for (const delay of [100, 350, 800]) settlingTimers.push(window.setTimeout(() => {
         const active = document.activeElement;
@@ -78,6 +78,6 @@ export function HelpLandingScroll({ target, visitKey = target, landingAlias, foc
       window.removeEventListener("keydown", stop);
       document.documentElement.style.removeProperty("--help-header-height");
     };
-  }, [target, visitKey, landingAlias, focusReport, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival]);
+  }, [target, visitKey, landingAlias, focusReport, focusAnchor, focusAnchorPrefix, missingAnchorTarget, focusOnArrival, settlePrefixedAnchor]);
   return null;
 }

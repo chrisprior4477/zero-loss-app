@@ -29,7 +29,7 @@ import { accountRoutes } from "@/lib/account/navigation";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { useDialogBack } from "./useDialogBack";
-import { useCrewTab } from "./useCrewTab";
+import { rememberCrewSectionFocus, useCrewTab } from "./useCrewTab";
 import { restoreDialogTrigger } from "./dialog-keyboard";
 import type { CrewTab } from "@/lib/crew/navigation";
 import { crewViewReturnKey, readCrewViewReturn, readCrewPickDestination } from "@/lib/crew/view-return";
@@ -398,7 +398,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       {tab === "picks" ? <CrewSharedPicks ownerId={currentUserId} entries={entries} available={available && visibilityAvailable}
         groups={visibility?.groups ?? []} defaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule}
-        rules={visibility?.entryRules ?? {}} onPrivacy={() => selectTab("privacy")} /> : null}
+        rules={visibility?.entryRules ?? {}} onPrivacy={() => {
+          rememberCrewSectionFocus(document.getElementById("crew-sharing-privacy-trigger"));
+          selectTab("privacy");
+        }} /> : null}
       <p className={firstStyles.footer}>Your entries stay private unless you choose to share them. Your wallet and payment details are never shared with Crew.</p>
     </div>
   </div>;
