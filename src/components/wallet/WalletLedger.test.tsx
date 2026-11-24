@@ -70,10 +70,10 @@ test("only an exact matched deposit credit gets a receipt shortcut", () => {
     { id: "same-amount", entry_type: "DEPOSIT", amount: 2500, created_at },
     { id: "wrong-amount", entry_type: "DEPOSIT", amount: 3500, created_at },
   ]} depositsByLedgerId={new Map([
-    ["matched", { requestKey, amount: 2500 }],
+    ["matched", { requestKey, amount: 2500, requestId: "receipt-ABCDEF12" }],
     ["wrong-amount", { requestKey: "another_request_12345", amount: 2500 }],
   ])} />);
-  expect(screen.getByRole("link", { name: /^View deposit receipt for / }).getAttribute("href"))
+  expect(screen.getByRole("link", { name: /^View deposit receipt for .*deposit request reference ending ABCDEF12$/ }).getAttribute("href"))
     .toBe(`/account/wallet?view=history&deposit=${requestKey}#purchase-deposit`);
 });
 

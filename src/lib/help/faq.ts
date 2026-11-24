@@ -180,7 +180,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "free-entry", category: "entries", question: "How do I enter without a purchase?",
-    answer: "Open the mail-in instructions for the prize you want to enter. The instructions explain how to prepare and print the sample insert.",
+    answer: "Open the mail-in instructions for the prize you want to enter. The instructions explain how to prepare and print the sample insert. To print it again, reopen the same prize’s instructions and choose Print entry insert.",
     keywords: "free entry mail in mail-in postcard print insert without purchase",
     action: { label: "Read the free-entry instructions", href: "/free-entry?origin=faq#free-entry-intro" },
   },
@@ -581,6 +581,15 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:wallet|balance)\b.*\b(?:dropped|went down|decreased)\b.*\b(?:ticket|entry)\b.*\b(?:not|isn't)\s+showing\b.*\bopen entries\b/, "posted-and-pending"],
+  [/\b(?:check|tell|see)\b.*\b(?:purchase|order)\b.*\b(?:went through|posted|succeeded)\b.*\b(?:pay|buy|purchase)\b.*\bagain\b/, "order-receipt"],
+  [/\bkeep\b.*\boffer\b.*\b(?:paying|buying|purchasing)\b.*\b(?:different|another)\s+(?:copy|one|offer)\b/, "select-purchase-offers"],
+  [/\b(?:notification|alert)\b.*\b(?:log[ -]?in|sign[ -]?in)\b.*\b(?:asleep|sleeping)\b/, "unrecognized-sign-in"],
+  [/\b(?:new|fresh|another)\s+link\b.*\bpassword\b.*\b(?:too old|expired|already used)\b/, "password"],
+  [/\bcompare\b.*\bdeposit request\b.*\bcredit\b.*\bwallet\b/, "deposit-receipt"],
+  [/\bprint\b.*\bentry (?:form|insert)\b.*\bagain\b.*\b(?:same|this)\s+prize\b/, "free-entry"],
+  [/\b(?:see|read|find|open)\b.*\b(?:note|message)\b.*\b(?:saved|sent|wrote)\b.*\b(?:old|existing|earlier|previous)\s+support\s+(?:ticket|case)\b/, "support-case"],
+  [/\bgift[ -]?card\b.*\b(?:stuck|still)\b.*\b(?:issuing|processing)\b.*\b(?:paid|purchased|checkout)\b/, "order-issuance"],
   [/\b(?:type|enter|reenter|re-enter)\b.*\bcard number\b.*\b(?:again|each time)\b.*\b(?:deposit|funding|add funds)\b/, "save-sample-card"],
   [/\bwhich card\b.*\b(?:charged|used)\b.*\b(?:add funds|deposit|funding)\b.*\b(?:choose|switch|change)\b/, "choose-deposit-card"],
   [/\bentr(?:y|ies)\b.*\b(?:looks?|shows?|says?) paid\b.*\bhold\b.*\b(?:money|funds|balance)\b/, "posted-and-pending"],

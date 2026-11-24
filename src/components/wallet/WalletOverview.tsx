@@ -65,12 +65,12 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const addFundsHref = recoveryKey && requests?.find(request => request.idempotencyKey === recoveryKey)?.reconciliation === "reconciled"
     ? "/account/wallet?view=history&panel=funding#add-funds" : "#add-funds";
   const canResetHistory = canFund && demoHistoryVisibility != null;
-  const depositsByLedgerId = new Map<string, { requestKey: string; amount: number; cardLabel?: string }>();
+  const depositsByLedgerId = new Map<string, { requestKey: string; amount: number; cardLabel?: string; requestId?: string; receiptDate?: string }>();
   const resetDeposits = new Set(demoHistoryVisibility?.fullReset ? demoHistoryVisibility.fundingSessionIds : []);
   if (demo) for (const request of requests ?? []) {
     if (request.ledgerId && request.reconciliation === "reconciled" && depositRequestKeyPattern.test(request.idempotencyKey) && !resetDeposits.has(request.id)) {
       const card = demoCardFixture(request.sampleCard);
-      depositsByLedgerId.set(request.ledgerId, { requestKey: request.idempotencyKey, amount: request.amount, cardLabel: card ? `${card.issuer} ending ${card.lastFour}` : undefined });
+      depositsByLedgerId.set(request.ledgerId, { requestKey: request.idempotencyKey, amount: request.amount, requestId: request.id, receiptDate: request.postedAt ?? request.created_at, cardLabel: card ? `${card.issuer} ending ${card.lastFour}` : undefined });
     }
   }
   const requestedEntry = selectedTransaction?.entry;

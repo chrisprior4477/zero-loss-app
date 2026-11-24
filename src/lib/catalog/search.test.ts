@@ -1010,6 +1010,12 @@ test("a TV size search can exclude accessories", () => {
 });
 
 test.each([
+  ["only $50 cards from Target or Walmart", "Walmart or Target gift cards exactly $50"],
+  ["up to $75 from Target and Walmart, gift cards only", "Target or Walmart gift cards up to $75"],
+  ["Amazon gift cards from $50 to $100 with $75 excluded", "Amazon gift cards between $50 and $100 excluding $75"],
+  ["show me which Target cards have a $75 value", "Target gift cards exactly $75"],
+  ["only Walmart gift cards with a balance of $50", "Walmart gift cards exactly $50"],
+  ["prizes that cost $1 to enter at Best Buy", "Best Buy prizes $1 per entry"],
   ["Best Buy or Target prizes with tickets left 2 or fewer", "Best Buy or Target prizes at most 2 tickets left"],
   ["Target gift cards that cost no more than $50", "Target gift cards at most $50"],
   ["Walmart gift cards but leave out the $50 ones", "Walmart gift cards excluding $50"],

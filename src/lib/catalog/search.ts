@@ -8,6 +8,8 @@ import { catalogMerchant, matchesCatalogMerchant, searchDenominations, remaining
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
+const allKnownRetailers = (retailers: string, products: readonly DemoProduct[]) => retailers.split(/\s+(?:and|or|&)\s+/i).every(name => catalogMerchant(name, products));
+
 const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inches|inch|terabytes?|gigabytes?|quarts?|ounces?|people|persons?)\b`, "gi");
 
 export function searchCatalogMatches(
@@ -27,6 +29,16 @@ export function searchCatalogMatches(
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/^\s*all\s+(?=electronics\b)/i, "")
+    .replace(/^only\s+(\$\s*[\d,.]+?)\s+cards?\s+from\s+(.+?)\s*[.!?]?$/i,
+      (phrase, amount: string, retailers: string) => allKnownRetailers(retailers, products) ? retailers + " gift cards exactly " + amount : phrase)
+    .replace(/^((?:up to|at most|no more than)\s+\$\s*[\d,.]+)\s+from\s+(.+?),?\s+gift cards?\s+only\s*[.!?]?$/i,
+      (phrase, limit: string, retailers: string) => allKnownRetailers(retailers, products) ? retailers + " gift cards " + limit : phrase)
+    .replace(/^which\s+(.+?)\s+cards?\s+have\s+an?\s+(\$\s*[\d,.]+)\s+value\s*[.!?]?$/i,
+      (phrase, retailer: string, amount: string) => catalogMerchant(retailer, products) ? retailer + " gift cards exactly " + amount : phrase)
+    .replace(/^(?:only\s+)?(.+?\bgift cards?)\s+with\s+a\s+balance of\s+(\$\s*[\d,.]+?)\s*[.!?]?$/i, "$1 exactly $2")
+    .replace(/(\bgift cards?\b.*?)\s+with\s+(\$\s*[\d,.]+)\s+excluded\s*[.!?]?$/i, "$1 excluding $2")
+    .replace(/^(.+?)\s+that costs?\s+(\$\s*[\d,.]+)\s+to enter\s+(?:at|from)\s+(.+?)\s*[.!?]?$/i,
+      (phrase, product: string, amount: string, retailer: string) => catalogMerchant(retailer, products) ? retailer + " " + product + " " + amount + " per entry" : phrase)
     .replace(/^\s*gift cards?\s+(?:at|from|sold by)\s+(.+?)\s+that\s+(?:are not|aren[’']t)\s+(?=\$)/i, "$1 gift cards excluding ")
     .replace(/^\s*(.+?)\s+(?:and|or)\s+(.+?)\s+have\s+(\$\s*[\d,.]+?)\s+gift cards?\s*[.!?]?$/i,
       (phrase, first: string, second: string, amount: string) => catalogMerchant(first, products) && catalogMerchant(second, products)

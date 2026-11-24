@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { inviteToCrew, inviteToCrewById, inviteToCrewByPhone, searchCrewByName, type CrewSearchPerson } from "@/lib/crew/actions";
 import { addSampleCrewPreview, sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { revealBelowHeader } from "@/lib/account/landing-position";
@@ -15,24 +15,17 @@ const maxQueryLength = 254;
 export function CrewInlineFinder({ available, ownerId, onSample, onClose }: { available: boolean; ownerId?: string; onSample: (name: SampleCrewName) => void; onClose: () => void }) {
   const router = useRouter();
   const [query, updateQuery] = useState("");
-  useLayoutEffect(() => {
+  function rememberQuery(value: string, submitted = false) {
     if (!ownerId) return;
-    const frame = requestAnimationFrame(() => {
-      const saved = history.state?.[finderDraftKey];
-      if (saved?.ownerId === ownerId && saved.href === location.href && typeof saved.value === "string" && saved.value.length <= maxQueryLength) {
-        updateQuery(current => current || saved.value);
-      }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [ownerId]);
+    const state = { ...history.state };
+    if (value) state[finderDraftKey] = { ownerId, href: location.href, value, submitted };
+    else delete state[finderDraftKey];
+    try { history.replaceState(state, ""); } catch { /* The inline search still works. */ }
+  }
 
   function setQuery(value: string) {
     updateQuery(value);
-    if (!ownerId) return;
-    const state = { ...history.state };
-    if (value) state[finderDraftKey] = { ownerId, href: location.href, value };
-    else delete state[finderDraftKey];
-    try { history.replaceState(state, ""); } catch { /* The inline search still works. */ }
+    rememberQuery(value);
   }
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   const contactChoice = useRef<HTMLSelectElement>(null);
@@ -68,41 +61,52 @@ export function CrewInlineFinder({ available, ownerId, onSample, onClose }: { av
   const validationId = useId();
   const [invalid, setInvalid] = useState(false);
 
-  async function find(event: React.FormEvent) {
-    event.preventDefault();
-    if (!available || busy) return;
-    const value = query.trim();
+  async function find(value: string, restored = false) {
     const turn = ++request.current;
     setPeople([]); setSamples([]); setTarget(null); setMessage(""); setInvalid(false);
     if (value.includes("@") || /^[+\d\s().-]+$/.test(value)) {
       const kind = value.includes("@") ? "email" : "phone";
       if (kind === "email" ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) : !/^\d{10,15}$/.test(value.replace(/\D/g, ""))) {
         setInvalid(true);
-        queryField.current?.focus();
+        if (!restored) queryField.current?.focus();
         setMessage(kind === "email" ? "Enter a valid email address." : "Enter a phone number, including its country code."); return;
       }
+      if (!restored) rememberQuery(query, true);
       setTarget({ value, kind }); return;
     }
     if (value.length < 3) {
       setInvalid(true);
       setMessage("Enter at least three letters, an email, or a phone number.");
-      queryField.current?.focus();
+      if (!restored) queryField.current?.focus();
       return;
     }
-    focusResult.current = document.activeElement === findButton.current;
+    if (!restored) rememberQuery(query, true);
+    focusResult.current = !restored && document.activeElement === findButton.current;
     setBusy(true);
     try {
       const result = await searchCrewByName(value);
       if (request.current !== turn) return;
       const matching = sampleCrewPeople.filter(person => person.name.toLowerCase().includes(value.toLowerCase()));
       setPeople(result.people); setSamples(matching);
-      if (!result.ok) focusRetry.current = true;
+      if (!result.ok) focusRetry.current = !restored;
       if (!result.ok || (!result.people.length && !matching.length)) setMessage(result.message);
     } catch {
-      if (request.current === turn) { focusRetry.current = true; setMessage("Search couldn’t connect. Try again."); }
+      if (request.current === turn) { focusRetry.current = !restored; setMessage("Search couldn’t connect. Try again."); }
     }
     finally { if (request.current === turn) setBusy(false); }
   }
+
+  const restoreQuery = useEffectEvent(() => {
+    const saved = history.state?.[finderDraftKey];
+    if (query || !saved || saved.ownerId !== ownerId || saved.href !== location.href || typeof saved.value !== "string" || saved.value.length > maxQueryLength) return;
+    updateQuery(saved.value);
+    if (available && saved.submitted === true) void find(saved.value.trim(), true);
+  });
+  useLayoutEffect(() => {
+    if (!ownerId) return;
+    const frame = requestAnimationFrame(() => restoreQuery());
+    return () => cancelAnimationFrame(frame);
+  }, [ownerId]);
 
   async function add(id: string, action: () => Promise<{ ok: boolean; message: string }>) {
     setBusy(true); setSending(true);
@@ -157,7 +161,10 @@ export function CrewInlineFinder({ available, ownerId, onSample, onClose }: { av
         {contactMethods.map(method => <option key={method} value={method}>{method}</option>)}
       </select>
     </label> : null}
-    <form onSubmit={find}>
+    <form onSubmit={event => {
+      event.preventDefault();
+      if (available && !busy && !sending) void find(query.trim());
+    }}>
       <label htmlFor="crew-query">Name, email, or phone</label>
       <div className={styles.findRow}><input ref={queryField} type="search" id="crew-query" value={query} aria-invalid={invalid || undefined} aria-describedby={invalid ? validationId : undefined} autoComplete="off" maxLength={maxQueryLength} placeholder="Who are you looking for?" onChange={event => { request.current += 1; setBusy(false); focusResult.current = focusRetry.current = false; setQuery(event.target.value); setContactMethods([]); setInvalid(false); setTarget(null); setPeople([]); setSamples([]); setMessage(""); }} required disabled={!available || sending} /><button ref={findButton} className={styles.orangeButton} disabled={!available || sending} aria-disabled={busy || undefined}><ShareIcon name="search" />{sending ? "Sending…" : busy ? "Finding…" : "Find"}</button></div>
     </form>

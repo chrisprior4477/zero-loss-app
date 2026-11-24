@@ -87,6 +87,19 @@ test("a different FAQ history entry ignores a previous search bookmark", () => {
   expect(screen.getByRole("button", { name: "All questions" }).getAttribute("aria-pressed")).toBe("true");
 });
 
+test("a duplicated explicit Free Entry return opens its answer even if an old bookmark had it closed", () => {
+  const href = new URL("/faq#faq-free-entry", window.location.origin).href;
+  const saved = { href, query: "", category: "all", expanded: [], scrollY: 0, answer: "free-entry", answerTop: 0,
+    answerLink: "/free-entry?origin=faq#free-entry-intro" };
+  sessionStorage.setItem("zero-loss-faq-free-entry-return", JSON.stringify({ [faqReturnKey]: saved }));
+  window.history.replaceState({}, "", "/faq#faq-free-entry#faq-free-entry");
+  const view = render(<FaqExplorer />);
+  expect(window.location.hash).toBe("#faq-free-entry");
+  const answer = view.container.querySelector('[data-faq-id="free-entry"]');
+  expect(answer).toHaveProperty("open", true);
+  expect(answer?.querySelector("a")?.getAttribute("href")).toBe(saved.answerLink);
+});
+
 test("the explicit return from Free Entry restores its FAQ search and answer", () => {
   const page = render(<FaqExplorer />);
   fireEvent.click(screen.getByRole("button", { name: "Entries & purchases" }));

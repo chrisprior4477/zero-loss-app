@@ -43,18 +43,22 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
     function cancel() { cancelAnimationFrame(first); cancelAnimationFrame(second); timers.splice(0).forEach(clearTimeout); }
     function interrupt() { interrupted = true; cancel(); }
     function restore() {
-      const fragment = window.location.hash;
-      const answerId = faqItems.find(item => fragment.toLowerCase() === `#faq-${item.id}`);
-      if (answerId && fragment !== `#faq-${answerId.id}`) {
+      const anchors = window.location.hash.slice(1).toLowerCase().split("#");
+      const fragment = "#" + anchors[0];
+      const answerId = anchors.every(anchor => anchor === anchors[0]) && faqItems.find(item => fragment === `#faq-${item.id}`);
+      if (answerId && window.location.hash !== fragment) {
         window.history.replaceState(window.history.state, "", `#faq-${answerId.id}`);
       }
       let saved = readFaqReturn(window.history.state, window.location.href);
       const explicitReturn = explicitFaqReturns[window.location.hash as keyof typeof explicitFaqReturns];
-      if (!saved && explicitReturn) {
+      if (explicitReturn) {
         try {
-          saved = readFaqReturn(JSON.parse(sessionStorage.getItem(explicitReturn.key) ?? "null"), window.location.href);
+          const returned = readFaqReturn(JSON.parse(sessionStorage.getItem(explicitReturn.key) ?? "null"), window.location.href);
           sessionStorage.removeItem(explicitReturn.key);
-          if (saved) window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
+          if (returned) {
+            saved = returned;
+            window.history.replaceState({ ...window.history.state, [faqReturnKey]: saved }, "");
+          }
         } catch { /* The direct answer link works without a recorded search. */ }
       }
       const direct = faqItems.find(item => window.location.hash === `#faq-${item.id}`);
@@ -70,11 +74,13 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
       }
       const destination = saved ?? (direct ? {
         href: window.location.href, query: "", category: "all" as const, expanded: [direct.id], collapsed: [],
-        scrollY: 0, answer: direct.id, answerTop: 0, answerLink: direct.id === "request-product" ? direct.action.href : undefined,
+        scrollY: 0, answer: direct.id, answerTop: 0, answerLink: explicitReturn ? direct.action.href : undefined,
       } : null);
       if (!destination) return;
-      setQuery(destination.query); setCategory(destination.category); setExpanded(destination.expanded);
-      setCollapsed(destination.collapsed ?? []);
+      const followUp = destination.answerLink && destination.answer;
+      setQuery(destination.query); setCategory(destination.category);
+      setExpanded(followUp && !destination.expanded.includes(followUp) ? [...destination.expanded, followUp] : destination.expanded);
+      setCollapsed((destination.collapsed ?? []).filter(id => id !== followUp));
       cancel(); interrupted = false;
       let focused = false;
       const align = () => {
@@ -88,9 +94,10 @@ export function FaqExplorer({ signedIn = false }: { signedIn?: boolean }) {
           window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
           if (answer || destination.answerLink) {
             const scope = answer ?? panel.current?.querySelector("[data-faq-empty]");
-            const link = destination.answerLink
+            const action = destination.answerLink
               ? Array.from(scope?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? []).find(candidate => candidate.getAttribute("href") === destination.answerLink)
-              : scope?.querySelector("summary");
+              : null;
+            const link = action?.getClientRects().length ? action : scope?.querySelector("summary");
             if (link?.getClientRects().length) {
               if (!focused) link.focus({ preventScroll: true });
               if (document.activeElement === link && (link.getBoundingClientRect().bottom > window.innerHeight || link.getBoundingClientRect().top < header)) revealBelowHeader(link);

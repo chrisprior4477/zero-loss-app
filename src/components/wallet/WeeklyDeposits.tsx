@@ -22,7 +22,7 @@ export function DepositReceiptDate({ request, timeZone }: { request: DemoFunding
 }
 
 export function depositReceiptLabel(request: DemoFundingRequest, timeZone?: string, locale?: string) {
-  return formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone, locale) + ", reference ending " + request.id.slice(-8).toUpperCase();
+  return formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone, locale) + ", deposit request reference ending " + request.id.slice(-8).toUpperCase();
 }
 
 export function DepositCreditLink({ request, restoreLedgerView = false, fromDeposits = false, fromWeek = false, timeZone }: { request: DemoFundingRequest; timeZone?: string; restoreLedgerView?: boolean; fromDeposits?: boolean | "receipt"; fromWeek?: boolean }) {
@@ -33,7 +33,7 @@ export function DepositCreditLink({ request, restoreLedgerView = false, fromDepo
   const href = fromWeek ? transaction.replace("#", `&weeklyDeposit=${encodeURIComponent(request.idempotencyKey)}#`) : transaction;
   return <Link href={href} data-deposit-credit={Boolean(fromDeposits || fromWeek) || undefined} onNavigate={fromWeek ? () => {
     window.history.replaceState({ ...window.history.state, weeklyDepositReceipt: request.idempotencyKey }, "");
-  } : undefined} aria-label={"View wallet credit for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View wallet credit →</Link>;
+  } : undefined} aria-label={"View wallet credit for " + formatUsdFromCents(request.amount) + ", " + formatOfferDeadline(request.postedAt ?? request.created_at, timeZone, locale) + ", wallet transaction reference ending " + id.slice(-8).toUpperCase()} className="font-bold underline">View wallet credit →</Link>;
 }
 
 function ReceiptDetails({ request, timeZone, open, onClose }: { request: DemoFundingRequest; timeZone?: string; open?: boolean; onClose?: () => void }) {

@@ -36,6 +36,25 @@ test("rehydrates the unsent query only for the same Crew visit and account", asy
   }
 });
 
+test("reruns a submitted name lookup after returning to its history entry", async () => {
+  const previousUrl = location.href;
+  const previousState = history.state;
+  history.replaceState({}, "", "/account/crew?tab=add#crew-intro");
+  const finder = <CrewInlineFinder available ownerId="owner-one" onSample={vi.fn()} onClose={vi.fn()} />;
+  try {
+    const opened = render(finder);
+    find("Maya");
+    await screen.findByRole("button", { name: "Add sample" });
+    opened.unmount();
+    render(finder);
+    await screen.findByRole("button", { name: "Add sample" });
+    expect(actions.searchCrewByName).toHaveBeenCalledTimes(2);
+    expect(actions.inviteToCrewById).not.toHaveBeenCalled();
+  } finally {
+    history.replaceState(previousState, "", previousUrl);
+  }
+});
+
 test("Find shows a private contact immediately below the form without sending a request", () => {
   const { container } = mount(); find("+1 239 555 0123");
   expect(screen.getByText("+1 239 555 0123")).toBeTruthy();
