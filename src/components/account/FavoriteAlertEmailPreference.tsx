@@ -29,7 +29,7 @@ export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnable
   return <section id="favorite-alert-preference" className={styles.outcomeEmail} data-placement="account" aria-labelledby="favorite-alert-heading">
     <AccountSettingsLandingScroll target="favorite-alert-preference" focusTarget="favorite-alert-heading" restrictToTargetHash allScreens />
     <h3 id="favorite-alert-heading" tabIndex={-1}>Favorites watchlist emails</h3>
-    <p>Choose which of <Link href="/account/favorites" className="font-bold underline">Your Favorites</Link> to watch. Each watched item can send one email when its pool reaches 90% full.</p>
+    <p>Choose which of <Link href="/account/favorites" data-history-return className="font-bold underline">Your Favorites</Link> to watch. Each watched item can send one email when its pool reaches 90% full.</p>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <label><input type="checkbox" checked={enabled} disabled={initialEnabled === null || pending} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} /> Allow emails for items I watch</label>
       <button ref={retryButton} type="button" onClick={save} disabled={initialEnabled === null || pending} aria-label={pending ? "Saving favorite alert email preference" : "Save preference for favorite alert emails"}>{pending ? "Saving…" : "Save preference"}</button>

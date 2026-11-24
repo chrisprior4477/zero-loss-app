@@ -7,13 +7,17 @@ import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import type { LivePulseItem } from "@/lib/home/live-pulse";
 import { useVisibleMotion } from "@/components/home/useVisibleMotion";
 
+const tickerReturnKey = "zeroLossPulseReturn";
+
 function TickerSequence({ items, hidden = false }: { items: LivePulseItem[]; hidden?: boolean }) {
   return (
     <div className="flex shrink-0 items-center" aria-hidden={hidden || undefined}>
       {items.map((item) => (
         <div key={`${item.label}-${item.value}`} className="flex shrink-0 items-center">
           <span className="mx-5 h-1.5 w-1.5 rounded-full bg-cyan-300/70" aria-hidden="true" />
-          <Link href={item.href.startsWith("/items/") ? productHrefWithBrowseReturn(item.href.slice(7), `/?activity-prize=${item.href.slice(7)}#marketplace-activity`) : item.href} aria-label={`${item.label} ${item.value}`} draggable={false} tabIndex={hidden ? -1 : undefined}
+          <Link href={item.href.startsWith("/items/") ? productHrefWithBrowseReturn(item.href.slice(7), `/?activity-prize=${item.href.slice(7)}#marketplace-activity`) : item.href} onNavigate={item.href.startsWith("/items/") ? () => {
+            history.replaceState({ ...history.state, [tickerReturnKey]: { origin: location.href, path: item.href, top: scrollY } }, "");
+          } : undefined} aria-label={`${item.label} ${item.value}`} draggable={false} tabIndex={hidden ? -1 : undefined}
             className="flex items-center rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
           <span className="text-[12px] font-bold uppercase tracking-[0.11em] text-white/65">
             {item.label.startsWith("Popular ") ? <><span className="text-[#31e800]">Popular</span>{item.label.slice(7)}</> : item.label}
@@ -87,6 +91,41 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
       window.removeEventListener("resize", measure);
     };
   }, [items, normalizeAndRender]);
+
+  useEffect(() => {
+    let timeout = 0;
+    const stop = () => window.clearTimeout(timeout);
+    const resume = () => {
+      stop();
+      const saved = history.state?.[tickerReturnKey];
+      if (saved?.origin !== location.href || !Number.isFinite(saved.top)) return;
+      timeout = window.setTimeout(() => {
+        const section = sectionRef.current;
+        const link = [...section?.querySelectorAll<HTMLAnchorElement>("a:not([tabindex='-1'])") ?? []]
+          .find(anchor => anchor.pathname === saved.path);
+        if (!section || !link || location.href !== saved.origin) return;
+        const active = document.activeElement;
+        if (active !== document.body && !section.contains(active)) return;
+        window.scrollTo({ top: saved.top, behavior: "instant" });
+        link.focus({ preventScroll: true });
+        revealBelowHeader(section);
+      }, 200);
+    };
+    resume();
+    window.addEventListener("popstate", resume);
+    window.addEventListener("pageshow", resume);
+    window.addEventListener("pointerdown", stop);
+    window.addEventListener("keydown", stop);
+    window.addEventListener("wheel", stop);
+    return () => {
+      stop();
+      window.removeEventListener("popstate", resume);
+      window.removeEventListener("pageshow", resume);
+      window.removeEventListener("pointerdown", stop);
+      window.removeEventListener("keydown", stop);
+      window.removeEventListener("wheel", stop);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canAnimate) return;

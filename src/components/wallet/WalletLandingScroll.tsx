@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
+import { hasAccountHistoryReturn } from "@/components/account/AccountHistoryReturn";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { readLedgerReturn, readLedgerSupportReturn } from "@/lib/wallet/ledger-return";
 import { openWalletPanel, revealWalletSection } from "./WalletCardEditor";
@@ -89,7 +90,7 @@ export function WalletLandingScroll({ enabled = true, target = "balance" }: { en
       // Wait for the destination and Next's navigation scroll before measuring the header.
       firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
-          if (!shouldReveal()) return;
+          if (!shouldReveal() || hasAccountHistoryReturn()) return;
           const section = document.getElementById(target);
           if (!section) return;
           const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;

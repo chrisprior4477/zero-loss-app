@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
-const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew))$/;
+const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew|notifications))$/;
 const stateKey = "zeroLossAccountHistoryReturn";
 const returnLinks = "main a[href], footer a[data-footer-policy]";
 
@@ -23,7 +23,7 @@ export function rememberAccountHistoryReturn(anchor: HTMLAnchorElement, rail?: H
     source: location.href, href, index: identical.indexOf(anchor),
     ...(rail ? { left: rail.scrollLeft } : {}),
     ...(footer ? { footer: true } : {}),
-    ...(rail || footer || anchor.hasAttribute("data-deposit-credit") ? { top: scrollY } : {}),
+    ...(rail || footer || (anchor.hasAttribute("data-deposit-credit") || anchor.hasAttribute("data-history-return")) ? { top: scrollY } : {}),
   } }, "");
 }
 
@@ -39,7 +39,7 @@ export function AccountHistoryReturn({ accountLinks = true }: { accountLinks?: b
       if (!accountLinks || !pages.test(location.pathname)) return;
       if (!/^(?:←\s*)?(?:Back to Account & Security|Edit profile|Continue shopping|View fulfillment status|Add funds)/i.test(anchor.textContent?.trim() ?? "")
         && !/^(?:Ask Support about my email|Account updates|Add to Crew|Manage Crew|Contact us|Open Wallet)/i.test(anchor.textContent?.trim() ?? "")
-        && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit") && !anchor.hasAttribute("data-deposit-credit")) return;
+        && !anchor.hasAttribute("data-history-return") && !anchor.href.includes("/support?case=") && !anchor.hasAttribute("data-wallet-deposit") && !anchor.hasAttribute("data-deposit-credit")) return;
       rememberAccountHistoryReturn(anchor);
     }
     function restore() {

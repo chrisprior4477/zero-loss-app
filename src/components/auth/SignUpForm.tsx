@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { takeAuthForm } from "./form-history-handoff";
 import { takeSignupEmail } from "./signup-email-handoff";
 import { formText, recoverAuthForm } from "./recover-auth-form";
 import {
@@ -46,12 +47,21 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
   );
   const [email, setEmail] = useState(state.values?.email ?? "");
   const [editingAfter, setEditingAfter] = useState<AuthActionState | null>(null);
+  const signupForm = useRef<HTMLFormElement>(null);
   const emailField = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (compact) return;
     const frame = requestAnimationFrame(() => {
       const remembered = takeSignupEmail(safeReturnTo);
-      if (remembered) setEmail(current => current || remembered);
+      const returned = takeAuthForm("signup");
+      if (returned) {
+        const first = signupForm.current?.elements.namedItem("legal_first_name");
+        const last = signupForm.current?.elements.namedItem("legal_last_name");
+        if (first instanceof HTMLInputElement && !first.value) first.value = returned.firstName ?? "";
+        if (last instanceof HTMLInputElement && !last.value) last.value = returned.lastName ?? "";
+      }
+      const address = returned?.email || remembered;
+      if (address) setEmail(current => current || address);
     });
     return () => cancelAnimationFrame(frame);
   }, [compact, safeReturnTo]);
@@ -161,6 +171,7 @@ export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: 
     <>
     <form
       key={formKey}
+      ref={signupForm}
       action={formAction}
       inert={pending || undefined}
       onInvalidCapture={event => {

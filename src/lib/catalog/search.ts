@@ -1,5 +1,5 @@
 import type { DemoProduct } from "./demo-products";
-import { isGiftCardListing } from "./navigation";
+import { isGiftCardListing, productMatchesMarketplaceCategory } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
 import { maxCatalogSearchLength, maxCatalogSearchTerms, normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
 import { catalogMerchant, matchesCatalogMerchant, searchDenominations, remainingTicketFilter, smallNumberWords, spokenValue } from "./search-denomination";
@@ -104,13 +104,25 @@ export function searchCatalogMatches(
   if (standaloneConsole) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && !/\bbundle\b/.test(normalizeSearch(product.title))), standaloneConsole[1], undefined, { includeLowerGiftCards });
   }
+  const endingSoon = /^ending soon\s+(.+)$/i.exec(query);
+  const humanFood = /\bgift\s*cards?\s+for\s+food\b/i;
+  const foodScope = /\b(?:grocery|groceries|dining|restaurant|meal)\b/;
+  if (endingSoon) {
+    return searchCatalogMatches(products.filter(product => productMatchesMarketplaceCategory(product, "ending-soon")), endingSoon[1], undefined, { includeLowerGiftCards });
+  }
+  if (humanFood.test(query)) {
+    const scoped = products.filter(product => isGiftCardListing(product)
+      && !productMatchesMarketplaceCategory(product, "pets")
+      && foodScope.test(normalizeSearch(product.category + " " + retailerDiscoveryTerms(product.retailer, product.category))));
+    return searchCatalogMatches(scoped, query.replace(humanFood, "gift cards"), undefined, { includeLowerGiftCards });
+  }
   const ticketFilter = remainingTicketFilter(query);
   if (ticketFilter) {
     const scoped = products.filter(product => {
       const left = product.capacity - product.sold;
       return left >= ticketFilter.minimum && left <= ticketFilter.maximum && (!ticketFilter.counts || ticketFilter.counts.has(left));
     });
-    return ticketFilter.text ? searchCatalogMatches(scoped, ticketFilter.text, undefined, { includeLowerGiftCards })
+    return ticketFilter.text ? searchCatalogMatches(scoped, ticketFilter.text.replace(/^(?:from|at|sold by)\s+/i, ""), undefined, { includeLowerGiftCards })
       : scoped.map(product => ({ product, kind: "product" }));
   }
   const denomination = query === rawQuery && parsedDenomination ? parsedDenomination : searchDenominations(query, products);
@@ -130,12 +142,12 @@ export function searchCatalogMatches(
   const text = brandedText;
   const merchant = denomination.merchant ?? qualifiedMerchant;
   if (conflictingBudget || denomination.unsupportedCurrency) return [];
-  const withoutGiftCards = query.replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
+  const withoutGiftCards = query.replace(/^(?:no|without|excluding)\s+gift\s*cards?\s+(?=(?:under|below|over|above|up to|at most|at least|between)\b)/i, "").replace(/\s*,?\s+(?:(?:but\s+)?no|not|without|excluding|except)\s+(?:(?:a|any)\s+)?gift\s*cards?\s*[.!?]?$/i, "");
   if (withoutGiftCards !== query) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), withoutGiftCards, undefined, { includeLowerGiftCards });
   }
   const exclusionQuery = budget ? denomination.text : query;
-  const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+(?:not|no)|excluding|(?:everywhere\s+)?except(?: for)?|without|not))\s+(.+?)\s*[.!?]?$/i.exec(exclusionQuery);
+  const retailerExclusion = /(?:\s*[,;]\s*no|(?:^|\s*,?\s+)(?:(?:from\s+)?(?:anybody|anyone|anywhere)\s+but|(?:from\s+)?(?:retailers?\s+)?other\s+than|but\s+(?:not|no)|excluding|(?:everywhere\s+)?except(?: for)?|besides|without|not))\s+(.+?)\s*[.!?]?$/i.exec(exclusionQuery);
   if (retailerExclusion) {
     const retailerSpecified = /^from\s+/i.test(retailerExclusion[1]);
     const suffix = retailerExclusion[1].replace(/^from\s+/i, "");
@@ -208,6 +220,19 @@ export function searchCatalogMatches(
     const scope = denomination.merchant ? denomination.text : giftCardAmountsOnly[1].replace(/\s+worth$/i, "");
     return searchCatalogMatches(products, scope, { ...denomination, text: scope, exactOnly: true });
   }
+  const sharedRetailer = /^(.+\s+or\s+.+?)\s+(?:at|from|sold by)\s+(.+?)\s*[.!?]?$/i.exec(query);
+  const sharedMerchant = sharedRetailer && catalogMerchant(sharedRetailer[2], products);
+  if (sharedMerchant && sharedRetailer) {
+    const brands = sharedRetailer[1].split(/\s+or\s+/i).map(normalizeSearch);
+    const hasBrand = (product: DemoProduct, brand: string) => {
+      const name = normalizeSearch(product.brand);
+      return name === brand || name.startsWith(brand + " ");
+    };
+    if (brands.every(brand => products.some(product => hasBrand(product, brand)) || catalogMerchant(brand, products))) {
+      return products.filter(product => !isGiftCardListing(product) && matchesCatalogMerchant(product.retailer, sharedMerchant)
+        && brands.some(brand => hasBrand(product, brand))).map(product => ({ product, kind: "product" }));
+    }
+  }
   const alternatives = catalogAlternatives(query, products, denomination);
   if (alternatives) {
     const options = /^\d+ inch(?: or \d+ inch)+ (?:tvs?|televisions?)\b/i.test(normalizeSearch(query))
@@ -242,7 +267,7 @@ export function searchCatalogMatches(
           : (screenSize.inclusive ? Number(size) >= screenSize.size : Number(size) > screenSize.size))))
     && (!screenRange || (!isGiftCardListing(product) && /\b(?:tv|television)\b/.test(normalizeSearch(product.title))
       && [...normalizeSearch(product.title).matchAll(/\b(\d+) inch\b/g)].some(([, size]) =>
-        Number(size) >= screenRange.low && Number(size) <= screenRange.high)))
+        Number(size) >= screenRange.low && (screenRange.exclusiveHigh ? Number(size) < screenRange.high : Number(size) <= screenRange.high))))
     && (!exactScreenSize || televisionAccessory || isGiftCardListing(product) || exactScreenSize.test(normalizeSearch(product.title)))
     && (!televisionAccessory || searchWords(product.title).includes(televisionAccessory)));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
@@ -329,6 +354,7 @@ function qualifiedGiftAlternatives(query: string, products: readonly DemoProduct
 }
 
 export function catalogAlternatives(query: string, products: readonly DemoProduct[], denomination: ReturnType<typeof searchDenominations>) {
+  if (denomination.excludedValues.size && !/\bor\b/i.test(denomination.text)) return null;
   query = remainingTicketFilter(query)?.text ?? query;
   const qualifiedGifts = qualifiedGiftAlternatives(query, products);
   if (qualifiedGifts) return qualifiedGifts;

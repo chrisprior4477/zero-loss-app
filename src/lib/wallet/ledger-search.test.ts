@@ -81,15 +81,27 @@ test("matches amount, date and direction shorthand without treating held or unre
     { id: "title-only", entry_type: "ENTRY_DEBIT", amount: -300, created_at, product: { ...netflix, title: "$50 Netflix Gift Card" } },
   ];
   const search = (query: string) => searchLedger(entries, query, row => [...ledgerDescription(row.entry_type, row.product?.title), "Posted"],
-    entries, { timeZone: "America/New_York", locale: "en-US" }).map(row => row.id);
+    entries, { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-24T12:00:00Z") }).map(row => row.id);
   for (const query of ["$1 debit", "1.00 USD debit", "debits of $1", "$1 or $2 paid", "US$1.00 spent", "payment of $1"]) {
     expect(search(query), query).toEqual(["entry"]);
   }
   expect(search("$25 deposited")).toEqual(["deposit"]);
   expect(search("All entry payments")).toEqual(["entry", "title-only"]);
-  for (const query of ["posted on 11/05/2026", "transactions on November 5", "11-05-2026", "11/5/26", "on Nov 5, 2026"]) {
+  for (const query of ["transactions on November 5", "11-05-2026", "11/5/26", "on Nov 5, 2026"]) {
     expect(search(query), query).toEqual(search("2026-11-05"));
   }
+  expect(search("posted on 11/05/2026")).toEqual(search("transactions posted on Nov 5, 2026"));
+  expect(search("posted on 11/05/2026")).not.toContain("hold");
+  expect(search("entry $1 posted after Nov 4, 2026")).toEqual(["entry"]);
+  expect(search("funding or purchase transactions on Nov 5, 2026")).toEqual(search("funding or purchases on Nov 5, 2026"));
+  expect(search("transactions between Nov 5 and 7, 2026")).toEqual(search("Nov 5–7, 2026"));
+  expect(search("deposit receipt $25")).toEqual(["deposit"]);
+  expect(search("deposits last 30 days")).toEqual(["deposit"]);
+  expect(search("deposits during November 2026")).toEqual(["deposit"]);
+  expect(search("Netflix paid more than $23")).toEqual(["netflix"]);
+  expect(search("spent exactly $24 at Netflix")).toEqual(["netflix"]);
+  expect(search("Netflix purchased for $24")).toEqual(["netflix"]);
+  expect(search("release of $3")).toEqual(["released"]);
   expect(search("paid on Nov 5, 2026")).toEqual(["entry", "netflix", "different-retailer", "netflix-other-amount", "title-only"]);
   for (const query of ["Nov 5, 2026 Netflix", "Netflix Nov 5, 2026", "Netflix on November 5, 2026"]) {
     expect(search(query), query).toEqual(["netflix", "netflix-other-amount", "title-only"]);

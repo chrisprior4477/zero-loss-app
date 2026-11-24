@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { rememberAuthForm } from "./form-history-handoff";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -104,7 +105,13 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
         <h2 id="personal-signup-heading" tabIndex={-1} className="mt-2 text-3xl font-black tracking-[-0.04em]">{isPleasure ? "Let’s get you set up." : "Launch an offer on Zero Loss."}</h2>
         <p className="mt-2 text-sm leading-6 text-white/60">
           {isPleasure ? <>Already registered? <Link href={authNavigationHref("/login", returnTo)} onNavigate={() => {
-            const email = setupRef.current?.querySelector<HTMLInputElement>('input[name="email"]')?.value.trim();
+            const form = setupRef.current?.querySelector("form");
+            const read = (name: string) => {
+              const field = form?.elements.namedItem(name);
+              return field instanceof HTMLInputElement ? field.value : "";
+            };
+            const email = read("email").trim();
+            rememberAuthForm("signup", { email, firstName: read("legal_first_name"), lastName: read("legal_last_name") });
             try {
               sessionStorage.removeItem("zero-loss-login-email");
               if (email) sessionStorage.setItem("zero-loss-login-email", JSON.stringify({ email, destination: returnTo, expires: Date.now() + 300_000 }));

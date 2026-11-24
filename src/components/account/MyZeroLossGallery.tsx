@@ -128,7 +128,7 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         .find(element => (viewedEntryId && element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId))
           || (viewedRewardId && element.dataset.activityRewardId === viewedRewardId));
       const completedPurchase = filter === "completed" && card?.dataset.purchaseCompleted === "true";
-      const returningToTicket = completedPurchase || card?.dataset.status === "prize" || card?.dataset.status === "completion";
+      const returningToTicket = completedPurchase || card?.dataset.status === "active" || card?.dataset.status === "prize" || card?.dataset.status === "completion";
       card?.scrollIntoView?.({ block: returningToTicket ? "center" : "nearest", inline: "center", behavior: returningToTicket ? "instant" : "smooth" });
       if (returningToTicket) card?.focus({ preventScroll: true });
       setViewedEntry(viewedEntryId ?? null);

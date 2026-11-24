@@ -19,6 +19,7 @@ export function DeleteAllFundsButton({ value, walletId }: { value: string; walle
   const dialogRef = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
+  const previewAttempt = useRef<AbortController | null>(null);
   const requestKey = useRef<string | null>(null);
   const storageKey = `zero-loss:wallet-reset:${walletId ?? "demo"}:balance`;
 
@@ -29,6 +30,22 @@ export function DeleteAllFundsButton({ value, walletId }: { value: string; walle
       restoreDialogTrigger(trigger.current);
     }
   }, [balanceCents, pending]);
+
+  useEffect(() => {
+    const cancelPreview = (event: KeyboardEvent) => {
+      const attempt = previewAttempt.current;
+      if (event.key !== "Escape" || event.defaultPrevented || !attempt || attempt.signal.aborted) return;
+      event.preventDefault();
+      attempt.abort();
+      restoreFocus.current = true;
+      setNotice("Balance check canceled. No reset was requested.");
+    };
+    window.addEventListener("keydown", cancelPreview);
+    return () => {
+      window.removeEventListener("keydown", cancelPreview);
+      previewAttempt.current?.abort();
+    };
+  }, [storageKey]);
 
   useDialogBack(balanceCents !== null, closeDialog, pending, true, false, "clear-demo-funds", () => { if (value !== "Unavailable") openConfirmation(); });
 
@@ -45,15 +62,24 @@ export function DeleteAllFundsButton({ value, walletId }: { value: string; walle
     setNotice("");
     const pendingReset = requestKey.current ?? readWalletReset(storageKey);
     if (pendingReset) { requestKey.current = pendingReset; checkBalance(); return; }
+    const attempt = new AbortController();
+    previewAttempt.current?.abort();
+    previewAttempt.current = attempt;
     startTransition(async () => {
       try {
         const preview = await previewDemoBalanceClear();
-        if (window.location.href !== origin || !trigger.current?.isConnected) return;
+        if (attempt.signal.aborted || window.location.href !== origin || !trigger.current?.isConnected) return;
         if (preview.status === "error") { setNotice(preview.message); return; }
         if (preview.balanceCents === 0) { setNotice("Your demo Playable Balance is already $0."); return; }
         requestKey.current = crypto.randomUUID();
         setBalanceCents(preview.balanceCents);
-      } catch { setNotice("We couldn’t check your balance. Check your connection and try Delete Funds again. No reset was requested."); }
+      } catch {
+        if (!attempt.signal.aborted && window.location.href === origin && trigger.current?.isConnected) {
+          setNotice("We couldn’t check your balance. Check your connection and try Delete Funds again. No reset was requested.");
+        }
+      } finally {
+        if (previewAttempt.current === attempt) previewAttempt.current = null;
+      }
     });
   }
 

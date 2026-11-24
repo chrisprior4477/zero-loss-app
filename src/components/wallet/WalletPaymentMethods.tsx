@@ -257,10 +257,13 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} aria-label={`Use ${cardLabel} as my default payment method`} disabled={!enabled || unavailable || busy} aria-describedby={defaultError?.token === card.token ? defaultErrorId : undefined} onChange={event => void setDefault(card, event.currentTarget)} />Use as my default payment method</label>
         {defaultError?.token === card.token ? <p id={defaultErrorId} role="alert" className={styles.notice}>{defaultError.message}</p> : null}
-        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} id={`edit-saved-card-${card.token}`} aria-label={`Edit ${cardLabel}`} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" id={`saved-card-preview-${card.token}`} aria-label={`${expanded === card.token ? "Hide card" : "See card"}: ${cardLabel}`} className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => {
+        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} id={`edit-saved-card-${card.token}`} aria-label={`Edit ${cardLabel}`} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" id={`saved-card-preview-${card.token}`} aria-label={`${expanded === card.token ? "Hide card" : "See card"}: ${cardLabel}`} className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={event => {
           const next = expanded === card.token ? undefined : card.token;
           selectPreview(next);
-          if (mobile) revealWalletSection(next ? `saved-art-${next}` : `saved-card-preview-${card.token}`);
+          if (mobile) {
+            event.currentTarget.focus({ preventScroll: true });
+            revealWalletSection(event.currentTarget.id);
+          }
         }}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} aria-label={`Delete Card: ${cardLabel}`} disabled={!enabled || unavailable || busy} onClick={() => openDeleteReview(card)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
         {deleting === card.token ? <DeleteCardToast key={card.token} parentHistory mobileCard={mobile ? `${demoCardFixture(card.token)?.issuer ?? "Sample card"} •••• ${card.lastFour}` : undefined} busy={busy} message={deleteMessage} onUndo={() => setDeleting(null)} onReview={() => refreshDeletion(card.token)} onDelete={() => void removeCard(card.token)} /> : null}

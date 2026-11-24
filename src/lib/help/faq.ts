@@ -39,14 +39,26 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "forgot-sign-in-email", category: "account", question: "What if I forgot which email I used to sign in?",
-    answer: "Check your inboxes for your Zero Loss verification email. If you’re still signed in on another device, open Profile to see your account email. If you still need help identifying the address, use Contact Us for private account-access help.",
+    answer: "Check your inboxes for your Zero Loss verification email. If you’re still signed in on another device, open Profile to see your account email. Once you find the address, sign in with it or request a password reset.",
     keywords: "forgot login username account sign in email",
-    action: { label: "Get account-access help", href: "/contact#message" },
+    action: { label: "Reset password once you know your email", href: "/forgot-password" },
   },
   {
     id: "default-card", category: "wallet", question: "How do I change my default payment card?",
     answer: "Open Payment methods and choose the default payment method on the saved sample card you want to use. You can still choose a different card when adding demo funds.",
     keywords: "set choose change switch default preferred card funding",
+    action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
+  },
+  {
+    id: "choose-deposit-card", category: "wallet", question: "How do I use a different saved card for one deposit?",
+    answer: "Open Add funds and select Current card in use. Choose the sample card you want for this deposit. To keep your usual card as the default, leave Use as my default payment method unchanged.",
+    keywords: "select choose switch different payment card one deposit",
+    action: { label: "Open Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
+  },
+  {
+    id: "edit-card-name", category: "wallet", question: "How do I change the name on a saved card?",
+    answer: "Open Payment methods and select Edit on the saved sample card. Update Cardholder name and save the card. This changes the saved sample cardholder name. Your account name is managed in Profile.",
+    keywords: "edit update change cardholder name on saved payment card",
     action: { label: "Open Payment methods", href: "/account/wallet?view=history&panel=methods#payment-methods" },
   },
   {
@@ -57,7 +69,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "pool-completion", category: "entries", question: "When does a pool close and post its outcome?",
-    answer: "In the demo, a pool resolves when its entries fill. Open Entries shows your active entries and the current pool status. You can find posted outcomes in My Activity.",
+    answer: "In the demo, a pool resolves when its entries fill. If the pool is full and its outcome is pending, look for the ticket in Open Entries. You can find the posted outcome in My Activity.",
     keywords: "drawing date end close completion outcome when pick winner",
     action: { label: "See Open Entries", href: "/account/entries?filter=active#my-activity-filters" },
   },
@@ -172,6 +184,7 @@ export const faqItems: FaqItem[] = [
     id: "undo-entry", category: "entries", question: "I entered by accident. Can I undo it?",
     answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount back to your playable balance—not to your payment card. After the window ends, check My Activity for the saved result. If something went wrong, contact support.",
     keywords: "cancel cancellation mistake accidental refund countdown reservation", action: { label: "Check My Activity", href: "/account/entries" },
+    followUpAction: { label: "Find the released amount in Transaction history", href: walletTransactionsHref },
   },
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
@@ -241,7 +254,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
-    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. Redeemed, expired, cancelled, and pending rewards stay in reward history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
+    answer: "Open the exact reward in Gift Cards & Rewards and check its status and claim deadline. The claim deadline is for claiming the reward. After issuance, check the gift card’s details and retailer terms for any expiration. Redeemed, expired, cancelled, and pending rewards stay in reward history. If a gift card shows as used and you don’t recognize that activity, open Support from the reward and describe the issue without sharing the gift-card code.",
     keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
@@ -265,8 +278,14 @@ export const faqItems: FaqItem[] = [
     keywords: "privacy friends maya daniel ari leo shared picks phone contacts", action: { label: "Manage Crew sharing", href: "/account/crew?tab=picks#sharing" },
   },
   {
+    id: "stop-receiving-shares", category: "account", question: "How do I stop someone from sharing prizes with me?",
+    answer: "Open a prize from that person or group in Shared with You. Choose Sharing options, turn off Receive shared picks for the source shown, and choose Save choices. Items you already received stay in Shared with You.",
+    keywords: "stop receiving shared picks prizes someone sends crew group",
+    action: { label: "Open Shared with You", href: "/account/favorites?tab=shared" },
+  },
+  {
     id: "notifications", category: "account", question: "Where do I see updates that need my attention?",
-    answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Use Alert settings to choose which in-app alerts appear. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
+    answer: "Open Notifications for account activity, reward updates, Crew requests, and support updates. Select the action on a notification to open the related entry, reward, transaction, request, or support conversation. Use Alert settings to turn in-app alerts on or off. For emails, open Email choices. To clear unread indicators together, select Mark all as read. Read status is saved to your account.",
     keywords: "email alerts unread messages badge updates status", action: { label: "Open notifications", href: "/account/notifications" },
     followUpAction: { label: "Open Alert settings", href: "/account/notifications?section=alerts#alert-settings" },
   },
@@ -328,6 +347,16 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:select|use|choose|switch to)\b.*\b(?:different|another)\b.*\b(?:payment |saved |sample |credit |debit )?card\b/, "choose-deposit-card"],
+  [/\b(?:change|edit|update)\b.*\b(?:cardholder name|name on (?:a |my |the )?(?:saved |payment |sample )?card)\b/, "edit-card-name"],
+  [/\b(?:credit|funds|balance|money)\b.*\b(?:cancel(?:l?ing|l?ed)?|undo(?:ing)?|undid)\b.*\b(?:entr(?:y|ies)|tickets?)\b/, "undo-entry"],
+  [/\b(?:gift[ -]?cards?|rewards?)\b.*\b(?:expire[sd]?|expiration)\b/, "reward-unavailable"],
+  [/\b(?:get|find|see|copy|open)\b.*\b(?:gift[ -]?)?card number\s+again\b/, "open-reward"],
+  [/\bmore than one\s+(?:entry|ticket)\b/, "multiple-entries"],
+  [/\b(?:expir(?:es|ation|y)|deadline)\b.*\bpurchase options?\b|\bpurchase options?\b.*\b(?:expir(?:es|ation|y)|deadline)\b/, "purchase-options"],
+  [/\bpool\s+(?:(?:is|has become)\s+)?full\b/, "pool-completion"],
+  [/\b(?:turn|switch)\s+(?:(?:my|the)\s+)?(?:in[ -]app\s+)?(?:notifications?|alerts?)\s+(?:back\s+)?on\b/, "notifications"],
+  [/\bstop\b.*\b(?:sharing\s+(?:picks|prizes|products)\s+with me|(?:receiving|getting)\s+(?:shared\s+)?(?:picks|prizes|products))\b/, "stop-receiving-shares"],
   [/\b(?:i (?:did not|didn't|never) (?:make|authorize|recognize)|(?:unrecognized|unauthorized|unfamiliar))\b.*\b(?:purchase|transaction|charge|payment|deposit)\b/, "unauthorized-transaction"],
   [/\b(?:funds|money|balance)\b.*\b(?:taken|deducted|charged)\s+(?:twice|two times)\b/, "funding-status"],
   [/\b(?:unrecognized|unfamiliar|unknown|suspicious)\b.*\b(?:sign[ -]?in|log[ -]?in)\b|\b(?:sign|log)\b.*\bout\b.*\b(?:all|other|every)\s+devices?\b/, "unrecognized-sign-in"],

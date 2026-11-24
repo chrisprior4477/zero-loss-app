@@ -1,5 +1,6 @@
 "use client";
 
+import { rememberAuthForm, takeAuthForm } from "./form-history-handoff";
 import { rememberEmailForSignup } from "./signup-email-handoff";
 import Link from "next/link";
 import { ResendVerificationForm } from "./ResendVerificationForm";
@@ -85,6 +86,8 @@ export function LoginForm({
   const destination = useLoginDestination(returnTo);
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
+      const returned = takeAuthForm("login");
+      if (returned) setEmail(current => current || returned.email);
       try {
         const saved = JSON.parse(sessionStorage.getItem("zero-loss-login-email") ?? "null");
         sessionStorage.removeItem("zero-loss-login-email");
@@ -212,9 +215,11 @@ export function LoginForm({
 
       <div className="flex flex-col items-center justify-between gap-3 text-sm sm:flex-row">
         <Link href={authNavigationHref("/forgot-password", destination)} onNavigate={() => {
+          const address = emailRef.current?.value ?? email;
+          rememberAuthForm("login", { email: address });
           try {
             sessionStorage.removeItem("zero-loss-recovery-email");
-            if (email.trim()) sessionStorage.setItem("zero-loss-recovery-email", JSON.stringify({ email: email.trim(), destination, expires: Date.now() + 300_000 }));
+            if (address.trim()) sessionStorage.setItem("zero-loss-recovery-email", JSON.stringify({ email: address.trim(), destination, expires: Date.now() + 300_000 }));
           } catch { /* The recovery form also accepts manual entry. */ }
         }} className="inline-flex min-h-8 items-center font-semibold text-cyan-300 underline-offset-4 hover:underline sm:min-h-0">Forgot your password?</Link>
         <p className="text-white/50">

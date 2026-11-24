@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isBusinessDraft, missingBusinessFields, type BusinessDraft, type BusinessRecord } from "./application";
+import { isBusinessDraft, missingBusinessFields, normalizeBusinessWebsite, type BusinessDraft, type BusinessRecord } from "./application";
 
 export async function readBusinessApplication(owner: string): Promise<{ record: BusinessRecord | null } | { error: string }> {
   try {
@@ -25,7 +25,9 @@ export async function saveBusinessApplication(owner: string, draft: BusinessDraf
     if (draft.values.submit_authority !== true) missing.push("Submission authorization");
     if (missing.length) return { error: "Please complete: " + missing.join(", ") };
   }
-  const { data, error } = await db.rpc("save_business_application", { p_document: draft, p_revision: revision, p_submit: submit });
+  const website = normalizeBusinessWebsite(String(draft.values.website ?? ""));
+  const document = website === null ? draft : { ...draft, values: { ...draft.values, website } };
+  const { data, error } = await db.rpc("save_business_application", { p_document: document, p_revision: revision, p_submit: submit });
   if (error?.code === "PT409") return { conflict: true as const, error: "This application changed in another session." };
   if (error || typeof data !== "number") return { error: "Your changes could not be saved. Keep this page open and try Save draft again." };
   return { revision: data };

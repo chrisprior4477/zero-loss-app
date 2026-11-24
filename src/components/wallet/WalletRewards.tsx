@@ -151,7 +151,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             <h3>{state.incomplete ? "We couldn’t verify all ready gift cards" : "No ready gift cards yet"}</h3><p>{state.incomplete ? "Try again to check your ready rewards." : "Won and purchased retailer gift cards will appear here when they are ready."}</p>{state.incomplete && <AccountReadRetryButton label="Retry ready rewards" className="font-bold underline" />}<Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
             {ready.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `ready-reward-${item.rewardId}` : undefined}
-              href={item.rewardId ? `${rewardInView(item)}&tile=1` : walletRewardHref(item)} className={overview.rewardCard}>
+              href={item.rewardId ? `${rewardInView(item)}&tile=1` : walletRewardHref(item)} data-history-return className={overview.rewardCard}>
               <span className={overview.readyBadge}><AccountIcon name="prize" />{rewardLabel(item, state.isPreview)}</span>
               <span className={overview.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 45vw, 20vw" /></span>
               <span className={overview.rewardTitle}>{item.title}</span>

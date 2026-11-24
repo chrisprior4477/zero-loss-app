@@ -680,6 +680,11 @@ test("editing in a group finder returns there without changing its audience or m
   mocks.contact.mockResolvedValue({ ok: true, message: "Saved." });
   open(); await audiences(); await groups();
   fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
+  const audience = screen.getByRole("checkbox", { name: "Share with Mom" });
+  expect(audience).toHaveProperty("checked", false);
+  fireEvent.click(audience);
+  fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Member" }));
   fireEvent.change(screen.getByLabelText("Name for your Crew"), { target: { value: "Family friend" } });
   fireEvent.change(screen.getByLabelText(/Phone number/), { target: { value: "1111111111" } });

@@ -64,7 +64,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
           {/* The full navigation preserves the exact order-updates landing during reload. */}
           {fromNotification ? <a href={notificationHref(alerts ?? "orders", notice)}><AccountIcon name="bell" />Back to order updates</a>
             : <Link href="/account/notifications?filter=orders#notification-tickets-filters"><AccountIcon name="bell" />Notifications</Link>}
-          <Link href={reportHref}><AccountIcon name="security" />{supportLabel}</Link>
+          <Link href={reportHref} data-history-return={chooseTransaction || undefined}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>
 
@@ -128,7 +128,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
           <section className={styles.helpCard}>
             <span><AccountIcon name="security" /></span><h2>Need help with an order?</h2>
             <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : reportHref.includes("reward=") ? "Your support request will include this reward." : "Your support request will include this order’s transaction."}</p>
-            <Link href={reportHref}>{supportLabel}<AccountIcon name="arrow" /></Link>
+            <Link href={reportHref} data-history-return={chooseTransaction || undefined}>{supportLabel}<AccountIcon name="arrow" /></Link>
           </section>
         </aside>
       </div>

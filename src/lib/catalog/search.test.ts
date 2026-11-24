@@ -1,7 +1,25 @@
 import { describe, expect, test } from "vitest";
 import { demoProducts, type DemoProduct } from "./demo-products";
+import { isGiftCardListing, productMatchesMarketplaceCategory } from "./navigation";
 import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
+
+test("preserves scope in retailer, budget, ticket, and exclusion searches", () => {
+  function matches(query: string, predicate: (product: DemoProduct) => boolean) {
+    const results = searchCatalog(demoProducts, query);
+    expect(results.length, query).toBeGreaterThan(0);
+    expect(results.every(predicate), query).toBe(true);
+  }
+  matches("Apple or Sony at Best Buy", p => p.retailer === "Best Buy" && /^(?:Apple|Sony)(?: |$)/i.test(p.brand));
+  matches("Target gift cards except $25 or $50", p => p.retailer === "Target" && isGiftCardListing(p) && ![25, 50].includes(p.value));
+  matches("gift cards $25 to $75 besides Walmart", p => p.retailer !== "Walmart" && isGiftCardListing(p) && p.value >= 25 && p.value <= 75);
+  matches("any $100 gift cards for food", p => p.value === 100 && isGiftCardListing(p) && !productMatchesMarketplaceCategory(p, "pets"));
+  expect(searchCatalog(demoProducts, "TVs at least 50 but under 65 inches").map(p => p.slug)).toContain("samsung-m70h-tv");
+  expect(searchCatalog(demoProducts, "65 inch TVs that cost $3000 or less").map(p => p.slug)).toEqual(["lg-oled-c6-65-tv"]);
+  matches("no gift cards under $75", p => !isGiftCardListing(p) && p.value < 75);
+  matches("prizes with only 1 ticket left from Target", p => p.retailer === "Target" && p.capacity - p.sold === 1);
+  matches("ending soon under $100", p => p.value < 100 && productMatchesMarketplaceCategory(p, "ending-soon"));
+});
 
 test.each([
   ["$25 Walmart gift card or $75 Target gift card", ["walmart-25-gift-card", "target-75-gift-card"]],

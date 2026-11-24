@@ -263,12 +263,12 @@ const ticketCount = String.raw`(?:\d+|${words})`;
 const ticketNouns = String.raw`(?:tickets?|entr(?:y|ies)|spots?|slots?)`;
 const ticketAvailability = String.raw`(?:left|remaining|(?:still\s+)?(?:available|open)|(?:before|until) (?:it is )?full)`;
 const ticketUnits = String.raw`\s+(?:more\s+)?${ticketNouns}\s+${ticketAvailability}(?=$|[\s,.!?])(?:\s+and(?=\s))?`;
-const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?`;
+const ticketPrefix = String.raw`(?:^|[\s,]+)(?:and\s+)?(?:(?:with|that\s+(?:have|has))\s+)?(?:only\s+)?`;
 const ticketComparison = "fewer than|less than|under|no more than|at most|at least|more than|exactly";
 const remainingTicketsPattern = new RegExp(String.raw`${ticketPrefix}(?:between\s+(${ticketCount})\s+and\s+(${ticketCount})|(${ticketCount})(?:\s+to\s+|\s*[-–—]\s*)(${ticketCount})|(?:(${ticketComparison})\s+)?(${ticketCount}))${ticketUnits}`, "i");
 const compoundTicketsPattern = new RegExp(String.raw`${ticketPrefix}(${ticketComparison})\s+(${ticketCount})\s+(?:and|but)\s+(${ticketComparison})\s+(${ticketCount})${ticketUnits}`, "i");
 const ticketMaximum = new RegExp(String.raw`\b(${ticketCount})(?:\s+or fewer${ticketUnits}|${ticketUnits}\s+or fewer\b)`, "i");
-const ticketChoices = new RegExp(String.raw`${ticketPrefix}(?:only\s+)?(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
+const ticketChoices = new RegExp(String.raw`${ticketPrefix}(${ticketCount}(?:\s+or\s+${ticketCount})+)${ticketUnits}`, "i");
 const repeatedTicketChoice = new RegExp(String.raw`(\b${ticketCount})${ticketUnits}(?=\s+or\s+${ticketCount}${ticketUnits})`, "gi");
 const ticketPlusMinimum = new RegExp(String.raw`\b(\d+)\+\s+(?=${ticketNouns}\s+${ticketAvailability}\b)`, "gi");
 
@@ -325,6 +325,7 @@ export function searchDenominations(query: string, products: readonly { retailer
     .replace(/\bstrictly\s+(?=below|under|less than|above|over|more than)/gi, "")
     .replace(/\beither\s+(?=\$\s*\d)/gi, "");
   normalized = normalized
+    .replace(/\s+that\s+costs?\s+(\$\s*\d[\d.,]*)\s+or less$/i, " up to $1")
     .replace(/\bno cheaper than\b/gi, "at least")
     .replace(/\bup to but not including\b/gi, "under")
     .replace(/\bup to and including\b/gi, "up to")
@@ -340,8 +341,11 @@ export function searchDenominations(query: string, products: readonly { retailer
   if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(/(\$\s*\d[\d,.]*)\s+plus\s+(?=\$\s*\d)/gi, "$1 or ");
   const isTelevision = /\b(?:tvs?|televisions?)\b/i.test(normalized);
   const dimensions = isTelevision ? /\b(?:(?:from\s+)?(\d+)\s*(?:inch(?:es)?|["″])?\s*(?:to|through|-)|between\s+(\d+)\s*(?:inch(?:es)?|["″])?\s+and)\s*(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
-  const screenRange = dimensions ? { low: Math.min(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])), high: Math.max(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])) } : null;
-  if (dimensions) normalized = normalized.replace(dimensions[0], " ").trim();
+  const boundedScreen = isTelevision ? /\bat least\s+(\d+)\s*(?:(?:inch(?:es)?\b|["″])\s*)?(?:but|and)\s+(?:under|below|less than)\s+(\d+)\s*(?:inch(?:es)?\b|["″])/i.exec(normalized) : null;
+  const screenRange = boundedScreen ? { low: Number(boundedScreen[1]), high: Number(boundedScreen[2]), exclusiveHigh: true }
+    : dimensions ? { low: Math.min(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])), high: Math.max(Number(dimensions[1] ?? dimensions[2]), Number(dimensions[3])) } : null;
+  const boundedDimension = boundedScreen ?? dimensions;
+  if (boundedDimension) normalized = normalized.replace(boundedDimension[0], " ").trim().replace(/\s+/g, " ");
   if (isTelevision) normalized = normalized.replace(/^(.*?)\s+(?:with\s+)?(?:an?\s+)?(\d+)\s*[- ]?\s*inch\s+(?:screen|display)\b/i, "$2 inch $1");
   if (isTelevision) normalized = normalized.replace(/\b(?:that\s+(?:are|is)\s+)?(\d+(?:\.\d+)?)\s*(inch(?:es)?\b|["″])\s+(?:or\s+(?:larger|bigger|more)|and\s+up)\b/i, "at least $1 $2");
   const screenComparison = /\b(no (?:larger|bigger|wider) than|wider than|greater than|larger than|bigger than|at least|over|above|under|below|less than)\s+(\d+(?:\.\d+)?)\s*(?:inch(?:es)?\b|["″])/i;

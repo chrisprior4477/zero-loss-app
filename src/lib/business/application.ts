@@ -95,11 +95,21 @@ export function invalidBusinessListings(listings: PartnerListing[]) {
   });
 }
 
+export function normalizeBusinessWebsite(value: string): string | null {
+  const website = value.trim();
+  if (!website) return "";
+  if (/\s|\\/.test(website)) return null;
+  const absolute = /^https?:\/\//i.test(website);
+  if (!absolute && !/^(?:[\p{L}\d-]+\.)+[\p{L}\d-]+(?=[:/?#]|$)/u.test(website)) return null;
+  try {
+    const url = new URL(absolute ? website : "https://" + website);
+    return url.username || url.password ? null : url.href;
+  } catch { return null; }
+}
+
 export function invalidBusinessOfferFields(values: FormValues): [string, string][] {
   const issues: [string, string][] = [];
-  const website = String(values.website ?? "").trim();
-  if (website && !URL.canParse(website)) issues.push(["website", "Valid business website"]);
-  else if (website && !["https:", "http:"].includes(new URL(website).protocol)) issues.push(["website", "Valid business website"]);
+  if (normalizeBusinessWebsite(String(values.website ?? "")) === null) issues.push(["website", "Valid business website"]);
   const docs = String(values.integration_docs ?? "").trim();
   if (values.partnership === "fulfillment" && docs && !/^https?:$/i.test(URL.parse(docs)?.protocol ?? "")) {
     issues.push(["integration_docs", "Valid public integration documentation URL"]);
