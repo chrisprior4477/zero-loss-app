@@ -941,6 +941,8 @@ test("a TV size search can exclude accessories", () => {
 });
 
 test.each([
+  ["open Sony headphones", "available Sony headphones"],
+  ["gift cards sold by Amazon and Walmart for less than $75", "Amazon or Walmart gift cards under $75"],
   ["prizes under $100 from Best Buy or Walmart", "Best Buy or Walmart prizes under $100"],
   ["TVs sold by either Best Buy or Walmart", "TVs from Best Buy or Walmart"],
   ["headphones by either Sony or JBL", "Sony or JBL headphones"],

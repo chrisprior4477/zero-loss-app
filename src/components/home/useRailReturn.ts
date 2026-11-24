@@ -4,7 +4,7 @@ import { useLayoutEffect, type RefObject } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const stateKey = "zeroLossShoppingRows";
-type Position = { left: number; anchor: string | null; inset: number };
+type Position = { left: number; anchor: string | null; inset: number; focusHref?: string };
 type Bookmark = { path: string; rows: Record<string, Position> };
 const choiceReturns: Record<string, { hash: string; param: string }> = {
   "dollar-choice": { hash: "#dollar-choice-title", param: "choice-prize" },
@@ -25,6 +25,7 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
     let saving: ReturnType<typeof setTimeout> | undefined;
     let frame = 0;
     let restoring = false;
+    let focusHref: string | undefined;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const children = () => Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
     const links = (child: HTMLElement) => child.matches("a[href]") ? [child] : Array.from(child.querySelectorAll("a[href]"));
@@ -33,7 +34,7 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
       if (restoring || !track || !track.clientWidth || path !== window.location.pathname + window.location.search) return;
       const bounds = track.getBoundingClientRect();
       const first = children().find(child => child.getBoundingClientRect().right > bounds.left);
-      const position: Position = { left: track.scrollLeft, anchor: first ? links(first)[0]?.getAttribute("href") ?? null : null, inset: first ? first.getBoundingClientRect().left - bounds.left : 0 };
+      const position: Position = { left: track.scrollLeft, anchor: first ? links(first)[0]?.getAttribute("href") ?? null : null, inset: first ? first.getBoundingClientRect().left - bounds.left : 0, focusHref };
       try {
         window.history.replaceState({ ...window.history.state, [stateKey]: { path, rows: { ...bookmark()?.rows, [id]: position } } }, "");
       } catch { /* A restricted history API must never block product navigation. */ }
@@ -88,8 +89,11 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
           const link = Array.from(track.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === retailer);
           if (link?.getClientRects().length) { link.focus({ preventScroll: true }); focused = true; }
         }
-        if (!retailer && anchorHref && !focused && document.activeElement === document.body) {
-          const link = anchor && links(anchor).find(candidate => candidate.getClientRects().length && candidate.getAttribute("href")?.startsWith("/items/"));
+        const active = document.activeElement;
+        if (!retailer && (!focused || saved.focusHref) && (active === document.body || active?.id === "main-content")) {
+          const link = saved.focusHref
+            ? Array.from(track.querySelectorAll<HTMLAnchorElement>("a[href]")).find(candidate => candidate.getAttribute("href") === saved.focusHref && candidate.getClientRects().length)
+            : anchorHref && anchor && links(anchor).find(candidate => candidate.getClientRects().length && candidate.getAttribute("href")?.startsWith("/items/"));
           if (link instanceof HTMLElement) { link.focus({ preventScroll: true }); focused = true; }
         }
       };
@@ -105,7 +109,15 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
       clearTimeout(saving);
       saving = setTimeout(save, 150);
     }
-    function onClick() { stopRestoring(); save(); }
+    function onClick(event: MouseEvent) {
+      if (id === "ending-soon" && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+        const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+        const href = link?.getAttribute("href");
+        focusHref = link?.target !== "_blank" && href?.startsWith("/items/") ? href : undefined;
+      }
+      stopRestoring();
+      save();
+    }
     restore();
     track.addEventListener("scroll", onScroll, { passive: true });
     track.addEventListener("click", onClick, true);

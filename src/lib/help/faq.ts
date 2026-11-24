@@ -233,7 +233,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
-    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. Use Finish / check or Retry same request when offered. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
+    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. If two requests have the same amount, check each date and request number. Use Finish / check or Retry same request when offered. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
@@ -569,12 +569,26 @@ export const faqItems: FaqItem[] = [
     keywords: "mail-in print preview blank missing legal name account reference postcard insert",
     action: { label: "Open free-entry instructions", href: "/free-entry?origin=faq#free-entry-intro" },
   },
+  {
+    id: "crew-win-emails", category: "account", question: "How do I turn off Crew win emails?",
+    answer: "Open Notifications and choose Alert settings. Find Crew win updates, uncheck Allow Crew win-update emails, and select Save preference.",
+    keywords: "crew win updates emails stop notifications preferences",
+    action: { label: "Open Alert settings", href: "/account/notifications?section=alerts#alert-settings" },
+  },
 ];
 
 const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find", "how", "i", "if", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "who", "would", "you", "your"]);
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:digital gift[ -]?card\b.*\b(?:delivery|shipping|mailing) address|(?:delivery|shipping|mailing) address\b.*\bdigital gift[ -]?card)\b/, "digital-gift-card-delivery"],
+  [/\b(?:two|multiple|duplicate)\s+pending\s+deposits?\b|\bpending\s+deposits?\b.*\b(?:same amount|duplicate)\b/, "funding-status"],
+  [/\b(?:older|previous|past)\s+funding\s+receipts?\b|\breceipts?\b.*\b(?:money|funds)\s+(?:(?:i|you)\s+)?added\s+to\s+(?:(?:my|the|your)\s+)?wallet\b/, "deposit-receipt"],
+  [/\bsaved (?:sample )?card\b.*\b(?:wrong|incorrect)\s+(?:cardholder )?name\b/, "edit-card-name"],
+  [/\b(?:find|open|view|see)\b.*\b(?:support\s+)?case\b.*\b(?:filed|opened|submitted)\b/, "support-case"],
+  [/\b(?:change|update)\b.*\b(?:login|sign[ -]?in)\s+e-?mail\b/, "change-email"],
+  [/\b(?:driver(?:'s|s)? licen[cs]e|photo id|identity document)\b.*\bclaim\b|\bclaim\b.*\b(?:driver(?:'s|s)? licen[cs]e|photo id|identity document)\b/, "demo-identity"],
+  [/\b(?:turn off|disable|stop|unsubscribe)\b(?=.*\bcrew\b)(?=.*\bwins?\b)(?=.*\be-?mails?\b)/, "crew-win-emails"],
   [/\b(?:transactions?\b.*\barchived|archived\b.*\btransactions?)\b/, "archived-transactions"],
   [/\bclear demo (?:transactions?|deposits?)\b/, "clear-demo-history"],
   [/\bweekly\b.*\bdeposits?\b|\bdeposit totals\b.*\bweek\b/, "weekly-deposits"],

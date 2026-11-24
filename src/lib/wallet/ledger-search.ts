@@ -383,7 +383,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       return Boolean(issuer && omitted && !sameMerchant(issuer, omitted));
     });
   }
-  const receiptCard = /^(?:(?:deposit\s+)?receipts? for|funding received on|deposits? paid with)\s+(?:the\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  const receiptCard = /^(?:(?:deposit\s+)?receipts? for|funding received on|deposits? paid with)\s+(?:(?:the|my)\s+)?(.+?)(?:\s+card)?\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
   if (receiptCard) {
     const issuer = /^card$/i.test(receiptCard[1]) ? "" : normalizeSearch(receiptCard[1]);
     const needsReceipt = /^(?:deposit\s+)?receipt/i.test(trimmed);
@@ -719,8 +719,8 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   }
   const orders = /^(?:orders?(?:\s+for)?|bought)(?:\s+(.*))?$|^(.+?)\s+orders?$/i.exec(query);
   if (orders) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), orders[1] ?? orders[2] ?? "");
-  const typeAlternative = /^([a-z]+(?:\s+(?:or|and)\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
-  const types = typeAlternative?.[1].toLowerCase().split(/\s+(?:or|and)\s+/).map(word => word.replace(/s$/, ""));
+  const typeAlternative = /^([a-z]+(?:(?:\s+(?:or|and)\s+|\s*&\s*)[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
+  const types = typeAlternative?.[1].toLowerCase().split(/\s+(?:or|and)\s+|\s*&\s*/).map(word => word.replace(/s$/, ""));
   if (types?.every(type => typeAliases.has(type) || type === "purchase") && typeAlternative) {
     const typeOptions = new Set(types.map(type => typeAliases.get(type)));
     const typedEntries = entries.filter(entry => typeOptions.has(entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "REFUND" : entry.entry_type));

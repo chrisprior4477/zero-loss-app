@@ -300,6 +300,15 @@ test.each([
 });
 
 test.each([
+  ["I have two pending deposits of the same amount", "funding-status"],
+  ["where is the receipt for money I added to my Wallet", "deposit-receipt"],
+  ["where can I see previous funding receipts", "deposit-receipt"],
+  ["how do I change my shipping address for a digital gift card", "digital-gift-card-delivery"],
+  ["do I need a driver license to claim my prize", "demo-identity"],
+  ["my saved card has the wrong name", "edit-card-name"],
+  ["how do I find a case I filed earlier", "support-case"],
+  ["I can sign in but I need to change my login email", "change-email"],
+  ["can I turn off Crew wins in my email", "crew-win-emails"],
   ["how do I see demo transactions I archived", "archived-transactions"],
   ["does clear demo transactions remove my balance", "clear-demo-history"],
   ["what will clear demo deposits reset", "clear-demo-history"],

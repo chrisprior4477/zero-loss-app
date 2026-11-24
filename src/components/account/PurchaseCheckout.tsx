@@ -90,7 +90,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const item = options[0];
   const singleOffer = options.length === 1;
   const offerDetailsId = useId();
-  const forwardReview = useRef<{ details: string; stage: "purchase" | "fund" } | null>(null);
+  const forwardReview = useRef<{ details: string; stage: "purchase" | "fund"; extra: string } | null>(null);
   const [refreshingReview, refreshReview] = useTransition();
   const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
   const offerDetailsTrigger = useRef<HTMLButtonElement>(null);
@@ -347,30 +347,34 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     for (const option of options) { if (ids.length >= quantity) break; if (!ids.includes(option.completionOptionId!)) ids.push(option.completionOptionId!); }
     changeSelection(ids);
   }
-  function review() {
+  function review(restoredExtra = "") {
     if (locked) return;
     if (hasPassed(deadline)) { refreshExpired(); return; }
     setPurchaseExpired(false);
     if (needsReview || !selected.length) { setOverlay("options"); return; }
     setError(""); setNotice(""); setAcknowledged(false);
-    if (shortfall) { setOverlay("fund"); return; }
+    if (shortfall) {
+      if (restoredExtra) setExtra(restoredExtra);
+      setOverlay("fund");
+      return;
+    }
     setPurchaseRequest({ slug: item.slug, purchaseIds: [...selected], declineIds: decline ? options.filter(option => !selected.includes(option.completionOptionId!)).map(option => option.completionOptionId!) : [], totalCents: total, requestId: crypto.randomUUID(), confirmed: true });
     setReviewedCheckout({ details: checkoutDetails, summary: selectionSummary });
     saveAttempt({ review: true });
     setOverlay("purchase");
   }
   useDialogBack(overlay !== null && overlay !== "decline", () => {
-    forwardReview.current = overlay === "purchase" || overlay === "fund" ? { details: checkoutDetails, stage: overlay } : null;
+    forwardReview.current = overlay === "purchase" || overlay === "fund" ? { details: checkoutDetails, stage: overlay, extra: overlay === "fund" ? extra : "" } : null;
     close();
   }, busy || checkingReceipt, true, false, offerDetailsId, () => {
     if (!forwardReview.current || overlay || locked) return;
-    const { details, stage } = forwardReview.current;
+    const { details, stage, extra: savedExtra } = forwardReview.current;
     forwardReview.current = null;
     if (details !== checkoutDetails || (stage === "fund") !== Boolean(shortfall)) {
       setNotice("Your purchase details changed. Review them again before confirming.");
       return;
     }
-    review();
+    review(savedExtra);
     refreshReview(() => router.refresh());
   });
   useDialogBack(false, close, false, false, false, declineHistoryScope, () => {
@@ -603,7 +607,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       </div> : <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>}
       {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}{purchaseReceipt}
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
-      {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked || offerExpired} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
+      {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked || offerExpired} onClick={() => review()}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
       {offerExpired ? <p role="status">A selected offer reached its deadline. <button type="button" className={styles.backLink} onClick={refreshExpired}>Check available offers</button></p> : null}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
       <div className={styles.utility}>{notificationReturnHref && <Link href={notificationReturnHref}>← Back to this notification</Link>}{returnTransactionHref && <Link href={returnTransactionHref}>← Back to this transaction</Link>}<Link href={returnActivityHref} scroll={false}><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>

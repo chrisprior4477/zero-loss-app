@@ -25,6 +25,28 @@ function updatedCheckout(balance: number) {
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
 }
 
+test("Forward restores the funding amount and requires fresh approval", () => {
+  setup();
+  const beforeReview = window.history.state;
+  const popup = fundPopup();
+  fireEvent.change(popup.getByLabelText("Extra dollars"), { target: { value: "12" } });
+  fireEvent.click(popup.getByRole("checkbox"));
+  const review = window.history.state;
+  function traverse(state: unknown) {
+    act(() => {
+      window.history.replaceState(state, "");
+      window.dispatchEvent(new PopStateEvent("popstate", { state }));
+    });
+  }
+  traverse(beforeReview);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  traverse(review);
+  const restored = within(screen.getByRole("dialog"));
+  expect(restored.getByLabelText("Extra dollars")).toHaveProperty("value", "12");
+  expect(restored.getByRole("checkbox")).toHaveProperty("checked", false);
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
+
 test.each([true, false])("removing the reviewed purchase funding card clears approval (replacement available: %s)", async replacementAvailable => {
   const cards: DemoCard[] = [
     { token: "demo_card_5556", lastFour: "5556", isDefault: true },

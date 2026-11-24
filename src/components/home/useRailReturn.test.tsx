@@ -49,6 +49,17 @@ test("returning at a smaller card width retains the same visible product", () =>
   expect(screen.getByTestId("marketplace").scrollLeft).toBe(620);
 });
 
+test("Ending Soon restores focus to the activated prize and keeps the row position", () => {
+  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([new DOMRect(0, 0, 100, 50)] as unknown as DOMRectList);
+  const view = render(<Rail id="ending-soon" />);
+  screen.getByTestId("ending-soon").scrollLeft = 950;
+  fireEvent.click(screen.getByRole("link", { name: "Product 4" }));
+  view.unmount();
+  render(<Rail id="ending-soon" />);
+  expect(screen.getByTestId("ending-soon").scrollLeft).toBe(950);
+  expect(document.activeElement).toBe(screen.getByRole("link", { name: "Product 4" }));
+});
+
 test("touch scrolling saves each row independently and stops correcting after the next gesture", () => {
   const view = render(<><Rail /><Rail id="dollar-choice" /></>);
   const first = screen.getByTestId("marketplace"), second = screen.getByTestId("dollar-choice");

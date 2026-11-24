@@ -455,6 +455,7 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("Walmart order number 1A514C4F")).toEqual(["walmart"]);
   expect(search("Netflix order number 1A514C4F")).toEqual([]);
   expect(search("deposit receipts for the card ending 1117")).toEqual(["deposit"]);
+  expect(search("receipts for my Chase ending in 1117")).toEqual(["deposit"]);
   expect(search("deposit receipts for the card ending 0002")).toEqual([]);
   expect(search("deposits paid with Chase ending 1117")).toEqual(["deposit"]);
   expect(search("wallet top ups from cards other than Chase")).toEqual(["wells"]);
@@ -469,6 +470,7 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("all transactions apart from deposits")).toEqual(search("transactions excluding deposits"));
   expect(search("exclude holds from my transactions")).toEqual(search("transactions excluding holds"));
   expect(search("refunds and corrections only, over $1")).toEqual(["refund", "correction"]);
+  expect(search("refunds & corrections")).toEqual(["refund", "correction"]);
   expect(search("funding of no less than 50 USD")).toEqual(["deposit", "wells"]);
   expect(search("deposits with an amount at most $25")).toEqual(["day-four"]);
   expect(search("$24 actually paid for Netflix")).toEqual(["netflix"]);

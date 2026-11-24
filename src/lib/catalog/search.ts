@@ -88,7 +88,7 @@ export function searchCatalogMatches(
   if (pictured) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)), pictured[1], undefined, { includeLowerGiftCards });
   }
-  const availableOnly = /^\s*available\s+(.+)$/i.exec(query)
+  const availableOnly = /^\s*(?:available\s+|open\s+(?!box\b))(.+)$/i.exec(query)
     ?? /^\s*(.+?)\s+(?:(?:that (?:are|is)|which (?:are|is)|still)\s+)?(?:available|in stock)\s*[.!?]?\s*$/i.exec(query);
   if (availableOnly && !/\b(?:tickets?|entr(?:y|ies)|spots?|slots?)$/i.test(availableOnly[1].trim())) {
     const open = products.filter(product => product.sold < product.capacity);
@@ -317,9 +317,10 @@ export function searchCatalogMatches(
       return searchCatalogMatches(scoped, "gift card", { ...denomination, text: "gift card", merchant: null, exactOnly: true }, { includeLowerGiftCards: false });
     }
   }
-  const specificRetailers = /\bgift cards?\s+(?:for|from|at)\s+(?:both\s+|either\s+)?(.+)$/i.exec(retailerQuery);
+  const specificRetailers = /\bgift cards?\s+(?:for|from|at|sold by)\s+(?:both\s+|either\s+)?(.+)$/i.exec(retailerQuery);
   if (specificRetailers) {
-    const names = specificRetailers[1].split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(part => catalogMerchant(part, products));
+    const retailerList = budget ? specificRetailers[1].replace(/\s+for$/i, "") : specificRetailers[1];
+    const names = retailerList.split(/\s*,\s*(?:(?:or|and)\s+)?|\s+(?:or|and|&)\s+/i).map(part => catalogMerchant(part, products));
     if (names.length > 1 && names.every(name => name !== null)) {
       const scoped = products.filter(product => isGiftCardListing(product) && names.some(name => name && matchesCatalogMerchant(product.retailer, name)));
       const scope = retailerQuery.slice(0, specificRetailers.index) + "gift cards";
