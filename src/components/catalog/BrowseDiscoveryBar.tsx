@@ -132,7 +132,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   const scopedOfferRetailers = props.scopedOfferRetailers ? new Set(props.scopedOfferRetailers) : null;
   function allCategoriesRetailerHref(retailer: string) {
     const url = new URL(props.browseHref, "https://zeroloss.local");
-    for (const key of ["category", "subcategory", "partnerCategory", "batch", "groceryIdea", "ticketsLeft"]) url.searchParams.delete(key);
+    for (const key of ["category", "subcategory", "partnerCategory", "batch", "groceryIdea", "ticketsLeft", "q", "type", "minValue", "maxValue", "available"]) url.searchParams.delete(key);
     if (url.searchParams.get("sort") === "ending-soon") url.searchParams.delete("sort");
     url.searchParams.set("retailer", retailer);
     return `${url.pathname}${url.search}#search-results`;
@@ -546,7 +546,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
                 return <div key={option.value}>
                   <button type="button" className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value, props.ticketsLeft), true)}><span>{option.label}<small>{offerLabel}</small></span><span aria-hidden="true">→</span></button>
                   {scopedOfferRetailers && !hasScopedOffer && option.hasOffer && (props.selectedCategory || props.subcategory)
-                    ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)} onNavigate={event => { event.preventDefault(); navigateFromPanel(allCategoriesRetailerHref(option.value)); }}>View {option.label} across all categories</Link> : null}
+                    ? <Link className="block px-3 py-2 text-sm font-bold underline" href={allCategoriesRetailerHref(option.value)} onNavigate={event => { event.preventDefault(); navigateFromPanel(allCategoriesRetailerHref(option.value)); }}>View all {option.label} offers</Link> : null}
                 </div>;
               })}</>}
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0

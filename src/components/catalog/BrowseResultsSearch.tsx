@@ -15,7 +15,7 @@ type SearchSession = {
   browseHref: string;
   draft: string; setDraft: (value: string) => void; applied: string;
   editor: Editor | null; setEditor: (value: Editor | null) => void;
-  search: (value: string, anchor?: string, restoreTop?: boolean) => void; pending: boolean; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
+  search: (value: string, anchor?: string, restoreTop?: boolean, sourceInput?: string) => void; pending: boolean; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
 export function useBrowseResultsSearch() { return useContext(Session); }
@@ -53,7 +53,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     return () => window.removeEventListener("popstate", restore);
   }, [browseHref]);
   const voice = useVoiceSearch(setDraft);
-  function search(value: string, anchor = "search-results", restoreTop = false) {
+  function search(value: string, anchor = "search-results", restoreTop = false, sourceInput?: string) {
     const term = value.trim();
     if (catalogSearchTooLong(term) || invalidCatalogSearch(term)) return;
     voice.cancel();
@@ -66,6 +66,12 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     const destination = `${url.pathname}${url.search}#${anchor}`;
     if (restoreTop || term) requestBrowseResultsFocus(destination, restoreTop ? "top-search" : "heading");
     if ((pendingTerm !== null && term !== pendingTerm) || !scrollToCurrentSearch(destination)) {
+      if (sourceInput) {
+        window.history.replaceState({
+          ...window.history.state,
+          zeroLossBrowseSearchReturn: { href: location.href, input: sourceInput, top: window.scrollY },
+        }, "");
+      }
       setPendingTerm(term === searchTerm ? null : term);
       router.push(destination, { scroll: false });
     }
@@ -112,7 +118,7 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
   }
   return <><form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
     action="/browse#search-results" method="get"
-    onSubmit={event => { event.preventDefault(); if (voice.busy || (!draft.trim() && !applied)) return; if (tooLong || invalid) { field.current?.focus(); return; } if (!draft.trim()) { search("", position === "bottom" ? inputId : undefined, position === "top"); return; } field.current?.blur(); setEditor(null); search(draft); }}
+    onSubmit={event => { event.preventDefault(); if (voice.busy || (!draft.trim() && !applied)) return; if (tooLong || invalid) { field.current?.focus(); return; } if (!draft.trim()) { search("", position === "bottom" ? inputId : undefined, position === "top", position === "bottom" ? inputId : undefined); return; } field.current?.blur(); setEditor(null); search(draft, undefined, false, position === "bottom" ? inputId : undefined); }}
     onKeyDown={event => {
       if (event.key !== "Escape" || (!editing && event.target !== field.current)) return;
       event.preventDefault();
@@ -123,7 +129,7 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     <input id={inputId} ref={connectField} type="search" name="q" value={draft} maxLength={maxCatalogSearchLength} aria-invalid={tooLong || invalid || undefined} aria-describedby={showLimit ? limitId : undefined} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { if (!editing) edit(); voice.reset(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
-      onClick={() => { voice.reset(); setDraft(""); field.current?.focus(); search("", position === "bottom" ? inputId : undefined, position === "top"); }}>×</button> : null}
+      onClick={() => { voice.reset(); setDraft(""); field.current?.focus(); search("", position === "bottom" ? inputId : undefined, position === "top", position === "bottom" ? inputId : undefined); }}>×</button> : null}
     {draft.trim() && !voice.busy && !tooLong && !invalid ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
     <VoiceSearchControl listening={editing && voice.listening} finishing={editing && voice.finishing} error={editing ? voice.error : ""}
       toggle={() => {

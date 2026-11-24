@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { PrintSheetButton } from "./PrintSheetButton";
+import { useDialogBack } from "@/components/account/useDialogBack";
 
 const CODE39: Record<string, string> = {
   "0": "nnnwwnwnn", "1": "wnnwnnnnw", "2": "nnwwnnnnw", "3": "wnwwnnnnn", "4": "nnnwwnnnw", "5": "wnnwwnnnn", "6": "nnwwwnnnn", "7": "nnnwnnwnw", "8": "wnnwnnwnn", "9": "nnwwnnwnn",
@@ -48,6 +49,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const demoNoteTrigger = useRef<HTMLButtonElement>(null);
   const demoNoteId = useId();
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
+  const printAfterNote = useRef(false);
   const [printPreview, setPrintPreview] = useState(false);
   const printTrigger = useRef<HTMLButtonElement>(null);
   const backButton = useRef<HTMLButtonElement>(null);
@@ -59,6 +61,19 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const invalidAccountReference = Boolean(cleanAccountReference) && !validAccountReference;
   const reference = useMemo(() => shortReference(`${offeringSlug}-${cleanAccountReference}`), [cleanAccountReference, offeringSlug]);
   const flipLabel = addressSide ? "Show artwork side of postcard" : "Show address and entry details";
+
+  const endDemoNoteHistory = useDialogBack(demoNoteVisible, () => {
+    if (printAfterNote.current) {
+      printAfterNote.current = false;
+      setDemoNoteVisible(false);
+      openPrintPreview();
+    } else {
+      dismissDemoNote();
+    }
+  }, false, true, false, "postcard-note", () => {
+    setAddressSide(false);
+    setDemoNoteVisible(true);
+  });
 
   useEffect(() => {
     const restoreView = () => {
@@ -109,6 +124,11 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
     try {
       window.history.replaceState({ ...window.history.state, zeroLossPrintDraft: latestDraft.current }, "");
     } catch { /* The current tab still has the visible draft. */ }
+  }
+
+  function dismissDemoNote() {
+    setDemoNoteVisible(false);
+    demoNoteTrigger.current?.focus({ preventScroll: true });
   }
 
   function flipPostcard() {
@@ -192,8 +212,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       if (event.key !== "Escape" || !demoNoteVisible || addressSide) return;
       event.preventDefault();
       event.stopPropagation();
-      setDemoNoteVisible(false);
-      demoNoteTrigger.current?.focus({ preventScroll: true });
+      dismissDemoNote();
     }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] text-left [container-type:inline-size] print:pointer-events-none print:mt-0 print:max-w-none">
       <div className="amo-postcard-artwork">
         <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
@@ -222,11 +241,18 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
         </span>
         <button ref={postcard} type="button" aria-label={addressSide ? "Flip postcard to artwork" : "Flip postcard to the mailing side"} onClick={flipPostcard} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" />
         {!addressSide && <button ref={demoNoteTrigger} type="button" aria-expanded={demoNoteVisible} aria-controls={demoNoteVisible ? demoNoteId : undefined} onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(true); }} className="absolute bottom-[5%] right-[3%] z-20 rotate-[-7deg] rounded-md bg-[#ff630f] px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-black shadow-lg sm:px-6 sm:py-3 sm:text-xs">Postcard demonstration</button>}
-        {demoNoteVisible && !addressSide && <span id={demoNoteId} role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); setDemoNoteVisible(false); demoNoteTrigger.current?.focus({ preventScroll: true }); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
+        {demoNoteVisible && !addressSide && <span id={demoNoteId} role="status" className="absolute inset-x-[8%] bottom-[22%] z-30 rounded-xl border border-cyan-200/50 bg-[#00132e]/95 p-3 text-center text-[10px] font-bold leading-4 text-white shadow-xl sm:text-sm sm:leading-6">You may use any standard-size postcard that satisfies the Official Rules.<button type="button" onClick={(event) => { event.stopPropagation(); dismissDemoNote(); }} className="ml-2 text-cyan-300 underline">Dismiss</button></span>}
       </div>
     </div>
 
-    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={openPrintPreview} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => {
+    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={() => {
+      if (demoNoteVisible) {
+        printAfterNote.current = true;
+        endDemoNoteHistory();
+      } else {
+        openPrintPreview();
+      }
+    }} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => {
       flipPostcard();
       requestAnimationFrame(() => {
         const card = postcard.current;

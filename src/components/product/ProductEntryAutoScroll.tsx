@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { hasFooterHistoryReturn } from "@/components/account/AccountHistoryReturn";
 
 /** Funding and sign-in keep their existing entry anchor, but the compact card fits as a whole. */
 export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
@@ -15,7 +16,7 @@ export function ProductEntryAutoScroll({ productKey }: { productKey: string }) {
     const align = () => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const scroll = () => {
-        if (cancelled) return;
+        if (cancelled || hasFooterHistoryReturn()) return;
         let hash = window.location.hash;
         if (/^#entry-action(?:#(?:entry-action|enter-entry))+$/.test(hash)) {
           hash = "#entry-action";

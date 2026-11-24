@@ -22,7 +22,9 @@ test("matches deposit card metadata, order references, and compound payment sear
   ];
   const search = (query: string) => searchLedger(rows, query, row => [...ledgerDescription(row.entry_type, row.product?.title),
     row.id === "deposit-chase" ? "Chase ending 1117" : row.id === "deposit-discover" ? "Discover ending 5556" : ""], rows,
-  { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-23T12:00:00Z") }).map(row => row.id);
+  { timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-23T12:00:00Z"),
+    hasDepositReceipt: row => row.id === "deposit-chase" || row.id === "deposit-discover",
+  }).map(row => row.id);
   expect(search("card ending 1117")).toEqual(["deposit-chase"]);
   expect(search("deposits by Chase")).toEqual(["deposit-chase"]);
   expect(search("transaction ref ending BE3CA77A")).toEqual(["reference-be3ca77a"]);
@@ -41,6 +43,24 @@ test("matches deposit card metadata, order references, and compound payment sear
   expect(search("deposits other than $160")).toEqual(["deposit-other"]);
   expect(search("deposits $160 but not from Discover")).toEqual(["deposit-chase"]);
   expect(search("posted order payments")).toEqual(["netflix", "netflix-less", "walmart"]);
+  expect(search("transactions excluding reservations")).toEqual(rows.filter(row => !["hold", "release"].includes(row.id)).map(row => row.id));
+  expect(search("transactions other than deposits")).toEqual(rows.filter(row => row.entry_type !== "DEPOSIT").map(row => row.id));
+  expect(search("purchases excluding Walmart")).toEqual(["netflix", "netflix-less", "reference-be3ca77a"]);
+  expect(search("orders only")).toEqual(search("posted order payments"));
+  expect(search("funding and purchases")).toEqual(search("funding or purchases"));
+  expect(search("show me deposits over $50")).toEqual(search("deposits over $50"));
+  expect(search("November deposits")).toEqual(search("November 2026 deposits"));
+  expect(search("from Nov 2 to Nov 5 deposits")).toEqual(["deposit-chase", "deposit-other", "deposit-discover"]);
+  expect(search("last 30 days PlayStation")).toEqual(["reference-be3ca77a", "hold", "release"]);
+  expect(search("deposits after 8 pm on Nov 5")).toEqual(["deposit-chase"]);
+  expect(search("posted charges at Netflix greater than $23")).toEqual(["netflix"]);
+  expect(search("Netflix payments of exactly $24")).toEqual(["netflix"]);
+  expect(search("Netflix order cost less than $24")).toEqual(["netflix-less"]);
+  expect(search("entry payment of one dollar for PlayStation")).toEqual(["reference-be3ca77a"]);
+  expect(search("my last funding receipt")).toEqual(["deposit-chase"]);
+  expect(search("deposits using the card ending 1117")).toEqual(["deposit-chase"]);
+  expect(search("ref BE3CA77A")).toEqual(["reference-be3ca77a"]);
+  expect(search("ABCDEF90")).toEqual(["netflix"]);
 });
 
 test("combines statement language with exact dates, amount direction, and verified descriptions", () => {

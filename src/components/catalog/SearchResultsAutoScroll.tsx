@@ -3,7 +3,7 @@
 import { useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { revealBelowHeader } from "@/lib/account/landing-position";
-import { hasFooterPolicyReturn } from "@/components/account/AccountHistoryReturn";
+import { hasFooterHistoryReturn } from "@/components/account/AccountHistoryReturn";
 
 type BrowseFocusTarget = "heading" | "top-search" | "ticket-range" | "first-prize" | "product-request" | "categories-top" | "categories-bottom";
 let requestedFocus: { href: string; target: BrowseFocusTarget; expires: number } | null = null;
@@ -119,7 +119,25 @@ export function SearchResultsAutoScroll({
     const renderedSearch = window.location.search;
     const start = (event?: Event) => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
-      if (hasFooterPolicyReturn() && !requestedFocus) return;
+      if (hasFooterHistoryReturn() && !requestedFocus) return;
+      const search = window.history.state?.zeroLossBrowseSearchReturn;
+      const searchField = search?.href === location.href && Number.isFinite(search.top)
+        && ["browse-search-input", "ending-soon-search-input"].includes(search.input)
+        ? document.getElementById(search.input) : null;
+      if (searchField) {
+        cancelled = false;
+        const restoreSearch = () => {
+          if (cancelled || location.href !== search.href || !searchField.isConnected) return;
+          window.scrollTo({ top: search.top, behavior: "instant" });
+          searchField.focus({ preventScroll: true });
+          const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+          const field = searchField.getBoundingClientRect();
+          if (field.top < header || field.bottom > innerHeight) revealBelowHeader(searchField);
+        };
+        first = requestAnimationFrame(() => { second = requestAnimationFrame(restoreSearch); });
+        settle = setTimeout(restoreSearch, 280);
+        return;
+      }
       const favorite = window.history.state?.zeroLossBrowseFavoriteReturn;
       if (favorite?.href === window.location.href && typeof favorite.slug === "string"
         && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(favorite.slug) && Number.isFinite(favorite.top)) {

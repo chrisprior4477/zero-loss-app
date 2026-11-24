@@ -78,7 +78,7 @@ export default async function RewardBrandPage({ params }: Props) {
               </div>
             </>;
             return open ? (
-              <Link key={amount} id={`prize-${slug}`} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
+              <Link key={amount} id={`prize-${slug}`} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}#prize-${slug}`)}#entry-action`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
             ) : <article key={amount} tabIndex={-1} id={`prize-${slug}`} className={cardClass}>{card}</article>;
           })}
         </section>

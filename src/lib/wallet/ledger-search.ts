@@ -38,7 +38,12 @@ function amountMatch(token: string) {
   return (posted: number) => Number.isSafeInteger(cents) && Math.abs(posted) === cents && (!sign || Math.sign(posted) === sign);
 }
 
-type SearchCalendar = { timeZone: string; locale: string; now?: Date };
+type SearchCalendar = {
+  timeZone: string;
+  locale: string;
+  now?: Date;
+  hasDepositReceipt?: (entry: LedgerEntryRow) => boolean;
+};
 const dateLimit = "on or after|after|on or before|before|older than|since";
 const oneDateLimit = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLimit})\\s+(.+)$`, "i");
 const twoDateLimits = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLimit})\\s+(.+?)\\s+and\\s+(${dateLimit})\\s+(.+)$`, "i");
@@ -96,6 +101,17 @@ function dateBoundary(value: string, calendar: SearchCalendar) {
   if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== (day ?? 1)) return null;
   const key = date.toISOString().slice(0, 10);
   return day ? key.slice(year ? 0 : 5) : key.slice(0, 7);
+}
+
+function currentYearMonth(value: string, calendar: SearchCalendar) {
+  if (!/^[\p{L}]+\.?$/u.test(value)) return null;
+  const { through } = transactionDateRange(1, calendar.timeZone, calendar.now);
+  return dateBoundary(value + " " + through.slice(0, 4), calendar);
+}
+
+export function ledgerSearchMonth(query: string, calendar: SearchCalendar) {
+  const month = /^(?:show me\s+)?([\p{L}.]+)\s+(?:deposits?|funding)$/iu.exec(query.trim());
+  return month ? currentYearMonth(month[1], calendar) : null;
 }
 
 function dateLimitMatches(date: string, operator: string, boundary: string) {
@@ -258,16 +274,43 @@ function cardMatchesSuffix(label: string, suffix: string) {
 
 /** Search posted amounts exactly. Numbers in plain product names remain text. */
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
-  const raw = rawQuery.trim();
+  const raw = rawQuery.trim()
+    .replace(/^(?:please\s+)?show me\s+/i, "")
+    .replace(/\b(after|before|at or after|at or before)\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)(?:\s+[A-Z]{2,5})?)\s+on\s+(.+)$/i, "on $3 $1 $2")
+    .replace(/^posted charges?\s+(?:at|from)\s+(.+?)\s+(greater than|less than|at least|at most|exactly)\s+(?=\$)/i, "$1 paid $2 ")
+    .replace(/^(.+?)\s+payments?\s+of\s+(?=(?:exactly\s+)?\$)/i, "$1 paid ");
   const postedDate = /(?:^|\s+)(?:(?:that|which)\s+)?posted\s+(?=(?:on|before|after|since|older than|in|during|between|from|last|today)\b)/i;
   const trimmed = raw.replace(postedDate, " ").trim();
   if (!trimmed) return entries;
   if (postedAmountQuery.test(trimmed) || postedDate.test(raw)) entries = entries.filter(entry => entry.entry_type !== "ENTRY_HOLD" && entry.entry_type !== "ENTRY_HOLD_RELEASE");
-  const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|(?:transaction\s+(?:ref(?:erence)?\.?\s+)?|ref(?:erence)?\.?\s+)ending\s+|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
+  const latestReceipt = /^(?:(?:my|the)\s+)?(?:last|latest|most recent)\s+(?:wallet\s+)?(?:deposit|funding)\s+receipt$/i.test(trimmed);
+  if (latestReceipt && calendar.hasDepositReceipt) {
+    const latest = entries.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry))
+      .reduce<T | undefined>((recent, entry) => !recent || Date.parse(entry.created_at) > Date.parse(recent.created_at) ? entry : recent, undefined);
+    return latest ? [latest] : [];
+  }
+  const omitActivity = /^(?:all\s+)?transactions?\s+(?:excluding|except|other than|without)\s+(reservations?|holds?|deposits?|funding|orders?)$/i.exec(trimmed);
+  if (omitActivity) {
+    const omitted = /^(?:reservation|hold)/i.test(omitActivity[1]) ? ["ENTRY_HOLD", "ENTRY_HOLD_RELEASE"]
+      : /^order/i.test(omitActivity[1]) ? ["PURCHASE_DEBIT"] : ["DEPOSIT"];
+    return entries.filter(entry => !omitted.includes(entry.entry_type));
+  }
+  const omitRetailer = /^purchases?\s+(?:excluding|except(?: for)?|other than)\s+(.+)$/i.exec(trimmed);
+  if (omitRetailer) {
+    const omitted = normalizeSearch(omitRetailer[1]);
+    return entries.filter(entry => {
+      const retailer = entry.product?.retailer && normalizeSearch(entry.product.retailer);
+      return (entry.entry_type === "ENTRY_DEBIT" || entry.entry_type === "PURCHASE_DEBIT") && Boolean(retailer)
+        && retailer !== omitted && !retailer?.startsWith(omitted + " ");
+    });
+  }
+  const reference = /^(?:transaction\s*(?:#|number|ref(?:erence)?\.?)\s*|(?:transaction\s+(?:ref(?:erence)?\.?\s+)?|ref(?:erence)?\.?\s+)ending\s+|ref(?:erence)?\.?\s+|#)?([a-f0-9-]{8,36})$/i.exec(trimmed);
   if (reference) {
     const id = reference[1].toLowerCase();
-    const matches = entries.filter(entry => entry.id.toLowerCase().endsWith(id));
-    if (matches.length || /^(?:transaction|reference|#)/i.test(trimmed)) return matches;
+    const transactionOnly = /^(?:transaction|#)/i.test(trimmed);
+    const matches = entries.filter(entry => entry.id.toLowerCase().endsWith(id)
+      || !transactionOnly && entry.entry_type === "PURCHASE_DEBIT" && entry.orderNumber?.toLowerCase().endsWith(id));
+    if (matches.length || transactionOnly || /^ref/i.test(trimmed)) return matches;
   }
   const orderReference = /^(?:(?:order(?:\s+(?:number|reference|ref))?\s+)(?:ending\s+|#\s*)?|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i.exec(trimmed);
   if (orderReference) {
@@ -276,11 +319,16 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     return entries.filter(entry => entry.entry_type === "PURCHASE_DEBIT" && entry.orderNumber &&
       (suffix ? entry.orderNumber.toLowerCase().endsWith(id) : entry.orderNumber.toLowerCase() === id));
   }
-  const cardEnding = /^(?:deposits?\s+)?(?:(?:debit|credit|sample|payment)\s+)?card\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
+  const cardEnding = /^(?:deposits?\s+(?:(?:using|with)\s+(?:the\s+)?)?)?(?:(?:debit|credit|sample|payment)\s+)?card\s+ending(?:\s+in)?\s+(\d{4})$/i.exec(trimmed);
   if (cardEnding) return entries.filter(entry => entry.entry_type === "DEPOSIT" && describe(entry).some(label => cardMatchesSuffix(label, cardEnding[1])));
   const dateQuery = trimmed
     .replace(/^(?:all\s+)?(?:(?:posted\s+)?transactions?\s+)(?=(?:on|in|during|before|after|since|older than|between|from|last|today|this month)\b)/i, "")
     .replace(/^(?:posted\s+)?(?:on\s+(?!or\s)|(?:in|during)\s+)/i, "");
+  const currentMonth = ledgerSearchMonth(trimmed, calendar);
+  if (currentMonth) {
+    const formatter = localDateKey(calendar.timeZone);
+    return entries.filter(entry => entry.entry_type === "DEPOSIT" && formatter.format(new Date(entry.created_at)).startsWith(currentMonth));
+  }
   const dateMatches = searchLedgerDates(entries, dateQuery, calendar);
   if (dateMatches) return dateMatches;
   const relativeDate = /^(.+?)\s+(today|(?:the )?last (?:7|30) days|this month)$/i.exec(dateQuery);
@@ -299,6 +347,16 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     }
   }
   const searchAgain = (rows: T[], text: string) => searchLedger(rows, text, describe, fullLedger, calendar);
+  const leadingRelative = /^(today|(?:the )?last (?:7|30) days|this month)\s+(?:of\s+)?(.+)$/i.exec(dateQuery);
+  if (leadingRelative) {
+    const dated = searchLedgerDates(entries, leadingRelative[1], calendar);
+    if (dated) return searchAgain(dated, leadingRelative[2]);
+  }
+  const leadingRange = /^((?:from|between)\s+.+?)\s+(deposits?|funding|purchases?|orders?|refunds?|transactions?)$/i.exec(dateQuery);
+  if (leadingRange) {
+    const dated = searchLedgerDates(entries, leadingRange[1], calendar);
+    if (dated) return searchAgain(dated, /^transaction/i.test(leadingRange[2]) ? "" : leadingRange[2]);
+  }
   const dateParts = dateQuery.split(/\s+/);
   if (dateParts.length > 2) {
     const sides = [3, 2, 1].filter(length => dateParts.length > length).flatMap(length => [
@@ -327,7 +385,7 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       return issuerName !== issuer && !issuerName.startsWith(issuer + " ");
     });
   }
-  if (/^(?:posted\s+)?order payments?$/i.test(trimmed)) return entries.filter(row => row.entry_type === "PURCHASE_DEBIT");
+  if (/^(?:(?:posted\s+)?order payments?|orders?\s+only)$/i.test(trimmed)) return entries.filter(row => row.entry_type === "PURCHASE_DEBIT");
   if (/^(?:refunds?\s+or\s+released reservations?|released reservations?\s+or\s+refunds?)$/i.test(trimmed)) {
     return entries.filter(row => ["REFUND", "UNCLAIMED_WINNER_CREDIT", "ENTRY_HOLD_RELEASE"].includes(row.entry_type));
   }
@@ -424,7 +482,18 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   const held = /^entry\s+(?:holds|reservations)\b/i.exec(query);
   if (held) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_HOLD"), query.slice(held[0].length).trim());
   const entryPayment = entryPayments.exec(query);
-  if (entryPayment) return searchAgain(entries.filter(row => row.entry_type === "ENTRY_DEBIT"), query.slice(entryPayment[0].length).trim().replace(/^(?:for\s+|rows?$)/i, ""));
+  if (entryPayment) {
+    const typed = entries.filter(row => row.entry_type === "ENTRY_DEBIT");
+    const details = query.slice(entryPayment[0].length).trim();
+    const amountAndProduct = /^(?:of\s+)?(.+?)\s+for\s+(.+)$/i.exec(details);
+    if (amountAndProduct) {
+      const amount = searchDenominations(amountAndProduct[1], []);
+      if (amountOnly.test(amountAndProduct[1]) || amount.values.size === 1 && !amount.text) {
+        return searchAgain(searchAgain(typed, amountAndProduct[1]), amountAndProduct[2]);
+      }
+    }
+    return searchAgain(typed, details.replace(/^(?:for\s+|rows?$)/i, ""));
+  }
   const namedEntryPayment = qualifiedEntryPayment.exec(query);
   if (namedEntryPayment) {
     const [, prefix, details] = namedEntryPayment;
@@ -484,10 +553,15 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       .replace(/((?:[+−-]?\s*)\$\s*[\d,.]+)\s+(?:for|from|at|with|on|to)\b/i, "$1");
     return searchAgain(entries.filter(row => row.amount < 0 && ["ENTRY_DEBIT", "PURCHASE_DEBIT"].includes(row.entry_type)), detail);
   }
+  const orderCost = /^(.+?)\s+order\s+cost\s+((?:less than|under|over|at most|at least|more than|exactly)\s+.+)$/i.exec(query);
+  if (orderCost) {
+    const orders = entries.filter(row => row.entry_type === "PURCHASE_DEBIT");
+    return searchAgain(searchAgain(orders, orderCost[2].replace(/^exactly\s+/i, "")), orderCost[1]);
+  }
   const orders = /^(?:orders?(?:\s+for)?|bought)(?:\s+(.*))?$|^(.+?)\s+orders?$/i.exec(query);
   if (orders) return searchAgain(entries.filter(row => row.entry_type === "PURCHASE_DEBIT"), orders[1] ?? orders[2] ?? "");
-  const typeAlternative = /^([a-z]+(?:\s+or\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
-  const types = typeAlternative?.[1].toLowerCase().split(/\s+or\s+/).map(word => word.replace(/s$/, ""));
+  const typeAlternative = /^([a-z]+(?:\s+(?:or|and)\s+[a-z]+)+)(?=\s|$)(.*)$/i.exec(query);
+  const types = typeAlternative?.[1].toLowerCase().split(/\s+(?:or|and)\s+/).map(word => word.replace(/s$/, ""));
   if (types?.every(type => typeAliases.has(type) || type === "purchase") && typeAlternative) {
     const typeOptions = new Set(types.map(type => typeAliases.get(type)));
     const typedEntries = entries.filter(entry => typeOptions.has(entry.entry_type === "UNCLAIMED_WINNER_CREDIT" ? "REFUND" : entry.entry_type));

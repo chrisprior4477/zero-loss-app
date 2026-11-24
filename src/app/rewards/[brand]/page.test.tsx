@@ -36,7 +36,7 @@ test.each(popularRewardBrands)("$name cards offer a mobile-sized $1 entry action
     const slug = slugs[index];
     expect(action.closest("a")?.id).toBe(`prize-${slug}`);
     expect(action.closest("a")?.getAttribute("href")).toBe(
-      `/items/${slug}?from=${encodeURIComponent(`/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`,
+      `/items/${slug}?from=${encodeURIComponent(`/rewards/${brand.slug}#prize-${slug}`)}#entry-action`,
     );
   });
 });

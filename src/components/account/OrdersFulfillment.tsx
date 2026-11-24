@@ -85,9 +85,9 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
 
       {hasSelection && !visibleOrders.length ? <AccountSettingsLandingScroll target="order-status-empty" initialTarget="order-status-empty" focusTarget="order-status-empty" allScreens settleAfterNavigation skipForHash="order-status-filters" /> : <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!hasSelection} focusSelected={hasSelection && !openSelectionDetails} />}
       <AccountSettingsLandingScroll target="order-status-filters" focusTarget="order-status-filters" settleAfterNavigation allScreens restrictToTargetHash />
-      {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash /> : null}
+      {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="fulfillment-records" focusTarget="your-orders-heading" allScreens restrictToTargetHash skipForHistoryKey="zeroLossOrderSupportReturn" /> : null}
       {filter !== "all" && !hasSelection && !focusRewardId ? <AccountSettingsLandingScroll
-        target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens skipForHash="order-status-filters" /> : null}
+        target={filterLanding} focusTarget={filterLanding} initialTarget={filterLanding} visitKey={`${filter}:${filterLanding}`} allScreens skipForHash="order-status-filters" skipForHistoryKey="zeroLossOrderSupportReturn" /> : null}
       {missingFocusReward ? <AccountSettingsLandingScroll target="missing-order-reward" initialTarget="missing-order-reward" focusTarget="your-orders-heading" allScreens /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>

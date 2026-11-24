@@ -87,6 +87,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
   const dismissDetails = useEffectEvent(onClose);
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
+  const supportTrigger = useRef<HTMLAnchorElement>(null);
   const titleId = useId();
   const [copyStatus, setCopyStatus] = useState("");
   const fallback = useRef<HTMLTextAreaElement | null>(null);
@@ -130,13 +131,16 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
       if (event.target instanceof Node && panel.current?.contains(event.target)) return;
       close.current?.focus({ preventScroll: true });
     }
-    close.current?.focus({ preventScroll: true });
+    const returningFromSupport = history.state?.zeroLossOrderSupportReturn === location.href && history.state?.zeroLossOrderSupportId === order.rewardId;
+    const initialFocus = returningFromSupport ? supportTrigger.current : close.current;
+    initialFocus?.focus({ preventScroll: true });
+    if (initialFocus === supportTrigger.current) initialFocus?.scrollIntoView({ block: "nearest" });
     document.addEventListener("focusin", keepFocus);
     return () => {
       document.removeEventListener("focusin", keepFocus);
       if (anchor.isConnected) anchor.focus({ preventScroll: true });
     };
-  }, [anchor]);
+  }, [anchor, order.rewardId]);
 
   useLayoutEffect(() => {
     if (!phone) return;
@@ -195,7 +199,9 @@ function OrderDetails({ order, anchor, onClose, filter, phone, alertContext }: {
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
         {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
       </dl>
-      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${alertContext.replace(/^&from=notifications/, "")}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
+      <Link ref={supportTrigger} className={styles.reportSupport} onNavigate={() => {
+        history.replaceState({ ...history.state, zeroLossOrderSupportReturn: location.href, zeroLossOrderSupportId: order.rewardId }, "");
+      }} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${alertContext}${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${alertContext.replace(/^&from=notifications/, "")}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order, timeZone, locale))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => {

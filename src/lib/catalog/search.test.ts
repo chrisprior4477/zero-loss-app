@@ -4,6 +4,47 @@ import { isGiftCardListing, productMatchesMarketplaceCategory } from "./navigati
 import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
+test.each([
+  ["no more than $75 in Walmart or Target gift cards", "gift cards from Walmart or Target up to $75"],
+  ["exactly $50 Target cards", "exactly $50 Target gift cards"],
+  ["gift cards with more than $75 in value", "gift cards over $75"],
+  ["Walmart and Target both at $75 gift cards", "$75 Walmart or Target gift cards"],
+  ["all Target gift cards priced $50 or higher", "Target gift cards $50 or higher"],
+  ["Target gift cards except all under $50", "Target gift cards at least $50"],
+  ["retailer gift cards that cost exactly $75", "gift cards exactly $75"],
+  ["$50 gift cards in stock", "available $50 gift cards"],
+  ["100 dollar gift cards with 1 left", "100 dollar gift cards with 1 ticket left"],
+  ["5 tickets or less", "at most 5 tickets left"],
+  ["one ticket left that is from Target", "one ticket left from Target"],
+  ["prizes with a $2 maximum entry fee", "prizes up to $2 per entry"],
+  ["what gift cards can I enter for $1", "gift cards $1 per entry"],
+  ["prizes from Home Depot under $100", "Home Depot under $100"],
+  ["prizes for home improvement under $150", "home improvement under $150"],
+  ["50 or 65 inches TVs", "50-inch or 65-inch TVs"],
+])("matches the same product set for %s and %s", (query, equivalent) => {
+  const slugs = (text: string) => searchCatalog(demoProducts, text).map(product => product.slug).sort();
+  const expected = slugs(equivalent);
+  expect(expected).not.toHaveLength(0);
+  expect(slugs(query)).toEqual(expected);
+});
+
+test("preserves item type, availability, and retailer exclusions", () => {
+  const televisions = searchCatalog(demoProducts, "TVs from Best Buy");
+  expect(televisions.length).toBeGreaterThan(0);
+  expect(televisions.every(product => product.retailer === "Best Buy" && !isGiftCardListing(product))).toBe(true);
+  const tv = { ...televisions[0], title: "Example Television", brand: "Example", retailer: "Target", value: 500, slug: "example-tv" };
+  const mislabeledBrand = { ...televisions[0], title: "Example 2 Television", brand: "Example", value: 400, slug: "example-2-tv" };
+  const budgetTv = searchCatalog([...demoProducts, tv, mislabeledBrand], "TVs under $1,000 without Best Buy");
+  expect(budgetTv).toContainEqual(tv);
+  expect(budgetTv.every(product => product.value < 1000 && product.retailer !== "Best Buy")).toBe(true);
+  const pictured = searchCatalog(demoProducts, "pictured electronics under $500");
+  expect(pictured.length).toBeGreaterThan(0);
+  expect(pictured.every(product => !isGiftCardListing(product) && product.value < 500)).toBe(true);
+  const available = searchCatalog(demoProducts, "prizes still available");
+  expect(available.length).toBeGreaterThan(0);
+  expect(available.every(product => product.sold < product.capacity)).toBe(true);
+});
+
 test("handles alternate word order for budgets, retailer categories and negation", () => {
   const slugs = (query: string) => searchCatalog(demoProducts, query).map(product => product.slug).sort();
   expect(slugs("Target prizes under $75")).toEqual(slugs("Target under $75"));

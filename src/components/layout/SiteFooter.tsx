@@ -44,7 +44,7 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
                   <li key={`${link.label}-${link.href}`}>
                     {link.label === "Help Center" && link.href === "/support" ? <FooterHelpLink className={footerLinkClass} /> : <Link
                       href={link.href === "/contact" ? "/contact#contact-intro" : link.href}
-                      data-footer-policy={group.title === "Legal" ? true : undefined}
+                      data-footer-return={group.title === "Legal" || link.href === "/contact" ? true : undefined}
                       className={footerLinkClass}
                     >
                       {link.label}

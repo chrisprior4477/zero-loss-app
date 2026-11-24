@@ -5,25 +5,25 @@ import { revealBelowHeader } from "@/lib/account/landing-position";
 
 const pages = /^\/(?:faq|contact|support|account\/(?:entries(?:\/ent_[a-f0-9]{32})?|security|profile|wallet|orders|crew(?:\/display)?|notifications))$/;
 const stateKey = "zeroLossAccountHistoryReturn";
-const returnLinks = "main a[href], footer a[data-footer-policy]";
+const returnLinks = "main a[href], footer a[data-footer-return]";
 
 export function hasAccountHistoryReturn() {
   return history.state?.[stateKey]?.source === location.href;
 }
 
-export function hasFooterPolicyReturn() {
+export function hasFooterHistoryReturn() {
   return hasAccountHistoryReturn() && history.state[stateKey].footer === true;
 }
 
 export function rememberAccountHistoryReturn(anchor: HTMLAnchorElement, rail?: HTMLElement) {
   const href = anchor.getAttribute("href");
   const identical = [...document.querySelectorAll(returnLinks)].filter(link => link.getAttribute("href") === href);
-  const footer = anchor.hasAttribute("data-footer-policy");
+  const footer = anchor.hasAttribute("data-footer-return");
   history.replaceState({ ...history.state, [stateKey]: {
     source: location.href, href, index: identical.indexOf(anchor),
     ...(rail ? { left: rail.scrollLeft } : {}),
     ...(footer ? { footer: true } : {}),
-    ...(rail || footer || (anchor.hasAttribute("data-deposit-credit") || anchor.hasAttribute("data-history-return")) ? { top: scrollY } : {}),
+    ...(rail || footer || (anchor.hasAttribute("data-deposit-credit") || anchor.hasAttribute("data-history-return") && anchor.getAttribute("data-history-return") !== "focus") ? { top: scrollY } : {}),
   } }, "");
 }
 
@@ -35,7 +35,7 @@ export function AccountHistoryReturn({ accountLinks = true }: { accountLinks?: b
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(returnLinks) : null;
       if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.pathname + anchor.search === location.pathname + location.search) return;
-      if (anchor.hasAttribute("data-footer-policy")) { rememberAccountHistoryReturn(anchor); return; }
+      if (anchor.hasAttribute("data-footer-return")) { rememberAccountHistoryReturn(anchor); return; }
       if (!accountLinks || !pages.test(location.pathname)) return;
       if (!/^(?:←\s*)?(?:Back to Account & Security|Edit profile|Continue shopping|View fulfillment status|Add funds)/i.test(anchor.textContent?.trim() ?? "")
         && !/^(?:Ask Support about my email|Account updates|Add to Crew|Manage Crew|Contact us|Open Wallet)/i.test(anchor.textContent?.trim() ?? "")
@@ -49,8 +49,10 @@ export function AccountHistoryReturn({ accountLinks = true }: { accountLinks?: b
       const align = () => {
         if (saved.source !== location.href) return;
         const links = [...document.querySelectorAll<HTMLAnchorElement>(returnLinks)].filter(link => link.getAttribute("href") === saved.href);
-        const link = links[saved.index] ?? links[0];
-        if (!link?.getClientRects().length || link.closest("[inert]")) return;
+        const visible = (link: HTMLAnchorElement | undefined) => Boolean(link?.getClientRects().length && !link.closest("[inert]"));
+        const exact = links[saved.index];
+        const link = visible(exact) ? exact : links.find(link => link.hasAttribute("data-history-return") && visible(link));
+        if (!link) return;
         const rail = link.closest<HTMLElement>("[data-reward-history-rail]");
         if (rail && Number.isFinite(saved.left)) {
           rail.scrollLeft = saved.left;
