@@ -39,7 +39,7 @@ test("an unavailable sign-in check preserves the current activity view for retry
 
 test("Declined Offers carries the selected My Activity filter", async () => {
   render(await MyZeroLossPage({ searchParams: Promise.resolve({ filter: "completion" }) }));
-  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers?filter=completion");
+  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers?filter=completion&from=activity-tools");
 });
 
 test("Your Profile opens the profile settings from My Activity", async () => {
@@ -47,5 +47,5 @@ test("Your Profile opens the profile settings from My Activity", async () => {
   const link = screen.getByRole("link", { name: "Open Your Profile" });
   expect(link.getAttribute("href")).toBe("/account/profile#account-settings-sections");
   expect(link.textContent).toContain("Your Profile");
-  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers");
+  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers?from=activity-tools");
 });

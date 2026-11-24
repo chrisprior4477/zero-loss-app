@@ -39,7 +39,7 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   const request = useRef(0);
   const attachedPage = useRef<{ id: string; kind: SupportRecordKind; page: number } | null>(null);
   const focusRecordId = useRef<string | null>(null);
-  const restoreOnForward = useRef(false);
+  const forwardView = useRef<{ recordId?: string } | null>(null);
   const selectedLookup = useRef<string | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<SupportRecordKind>("order");
@@ -59,11 +59,11 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   }, [result]);
 
   const cursors = useRef(new Map<string, Pick<SupportRecord, "id" | "date">>());
-  async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false, selectedId?: string) {
+  async function load(nextKind: SupportRecordKind, nextPage: number, focusAfterLoad = false, selectedId?: string, restoreFocusId?: string) {
     const id = ++request.current;
     focusResults.current = focusAfterLoad;
     selectedLookup.current = selectedId;
-    focusRecordId.current = selectedId ?? null;
+    focusRecordId.current = restoreFocusId ?? selectedId ?? null;
     setKind(nextKind);
     setPage(nextPage);
     setResult(null);
@@ -78,13 +78,13 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
     }
   }
 
-  function openPicker(restoreView = false) {
+  function openPicker(restoreView?: { recordId?: string }) {
     if (!dialog.current || dialog.current.open) return;
     dialog.current.showModal();
     setOpen(true);
     closeButton.current?.focus({ preventScroll: true });
     if (restoreView) {
-      void load(kind, page, true);
+      void load(kind, page, Boolean(restoreView.recordId), undefined, restoreView.recordId);
       return;
     }
     const previous = attachedPage.current;
@@ -93,14 +93,17 @@ export function SupportRecordPicker({ record, onChange, timeZone, disabled }: {
   }
 
   useDialogBack(open, () => {
-    restoreOnForward.current = true;
+    const active = document.activeElement;
+    forwardView.current = {
+      recordId: active instanceof HTMLElement && results.current?.contains(active) ? active.dataset.recordId : undefined,
+    };
     dialog.current?.close();
     // Native close events can arrive after the next history traversal.
     flushSync(() => setOpen(false));
   }, false, true, false, headingId, () => {
-    if (!restoreOnForward.current) return;
-    restoreOnForward.current = false;
-    openPicker(true);
+    const saved = forwardView.current;
+    forwardView.current = null;
+    if (saved) openPicker(saved);
   });
 
   return <div className={styles.attachment}>

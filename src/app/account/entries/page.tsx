@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { AccountReadRetryLink } from "@/components/account/AccountReadRetryLink";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
@@ -36,11 +37,14 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const account = await getAccountContext().catch(() => null);
   const query = await searchParams;
   const filter = activityFilter(query.filter);
+  const returnFromDeclined = query.landing === "declined-offers";
+  const declinedHref = new URL(declinedOfferHref(null, filter), "https://navigation.invalid");
+  declinedHref.searchParams.set("from", "activity-tools");
   if (query.filter !== undefined && query.filter !== filter) {
     redirect(accountPageReturnPath("/account/entries", { ...query, filter: undefined, filterReset: "1" }, `#${openEntriesAnchorId}`));
   }
   if (!account) {
-    const returnTo = accountPageReturnPath("/account/entries", query, query.filterReset === "1" || query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" || query.filter === "active" ? "#my-activity-filters" : "");
+    const returnTo = accountPageReturnPath("/account/entries", query, returnFromDeclined ? "#activity-declined-offers" : query.filterReset === "1" || query.fromUpdates === "1" || query.filter === "completed" && (query.viewed || query.viewedReward || query.prize) ? `#${openEntriesAnchorId}` : query.filter === "completion" || query.filter === "active" ? "#my-activity-filters" : "");
     const authUnavailable = await createClient().then(client => client.auth.getUser())
       .then(({ data, error }) => Boolean(data.user) || isAuthRetryableFetchError(error) || (error?.status ?? 0) >= 500, () => true);
     if (authUnavailable) return <main className={styles.page}><h1>My Activity</h1><p>We couldn’t load your activity right now.</p><AccountReadRetryLink href={returnTo}>Try again</AccountReadRetryLink></main>;
@@ -104,7 +108,8 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     {completedPrizeRequested && !completedPrize ? <p role="status" className="mb-4 text-sm text-amber-100">That prize selection is unavailable. Showing all completed activity. <Link href="/account/entries?filter=completed#my-activity-filters" className="underline">Clear prize selection</Link></p> : null}
     {query.legacyEntry === "1" && filter === "active" ? <p role="status" className="mb-4 text-sm text-amber-100">This older ticket can’t be opened by number. Your open entries remain below.</p> : null}
-    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={missingSelection === "entry" || (account.activity.incomplete && !selectedEntryId) ? undefined : selectedSlug} selectedEntryId={missingSelection === "entry" ? undefined : selectedEntryId} viewedEntryId={viewedEntryId} missingViewedEntry={typeof query.viewed === "string" && !viewedEntryId && account.activity.source !== "unavailable"} viewedRewardId={viewedRewardId} selectionMessage={selectionMessage} filterReset={query.filterReset === "1"} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} completedPrize={completedPrize} selectedSlug={missingSelection === "entry" || (account.activity.incomplete && !selectedEntryId) ? undefined : selectedSlug} selectedEntryId={missingSelection === "entry" ? undefined : selectedEntryId} viewedEntryId={viewedEntryId} missingViewedEntry={typeof query.viewed === "string" && !viewedEntryId && account.activity.source !== "unavailable"} viewedRewardId={viewedRewardId} selectionMessage={selectionMessage} filterReset={query.filterReset === "1"} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} skipFilterLanding={returnFromDeclined} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    {returnFromDeclined && <AccountSettingsLandingScroll target="activity-declined-offers" focusTarget="activity-declined-offers" allScreens restrictToTargetHash settleAfterNavigation />}
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>
@@ -123,7 +128,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
           <span className={styles.accountToolText}><strong>{title}</strong><span>{detail}</span>{title === "Account & Security" && <small>{account.emailConfirmed ? "Email confirmed" : "Confirmation pending"}</small>}</span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>)}
-        <Link href={declinedOfferHref(null, filter)} className={`${styles.accountTool} ${styles.declinedTool}`}>
+        <Link id="activity-declined-offers" href={declinedHref.pathname + declinedHref.search} data-history-return className={`${styles.accountTool} ${styles.declinedTool}`}>
           <span className={styles.accountToolIcon} data-treatment="declined"><Image src="/account/drawer/declined-offers-blue-bag.png" alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
           <span className={styles.accountToolText}><strong>Declined Offers</strong><span>Changed your mind? Review saved options.</span></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />

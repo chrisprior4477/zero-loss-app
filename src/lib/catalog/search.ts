@@ -11,6 +11,9 @@ export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "reta
 const allKnownRetailers = (retailers: string, products: readonly DemoProduct[]) => retailers.split(/\s+(?:and|or|&)\s+/i).every(name => catalogMerchant(name, products));
 
 const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inches|inch|terabytes?|gigabytes?|quarts?|ounces?|people|persons?)\b`, "gi");
+const giftCardValue = String.raw`\$\s*\d+(?:\.\d{1,2})?`;
+const restrictedGiftAlternatives = new RegExp(String.raw`^gift cards?\s+(${giftCardValue}(?:\s+or\s+${giftCardValue})+)\s+(?:but\s+)?only\s+from\s+(.+?)\s*[.!?]?$`, "i");
+const exactGiftCardEach = new RegExp(String.raw`^(.+?)\s+gift cards?\s+at\s+(${giftCardValue})\s+each\s*[.!?]?$`, "i");
 
 export function searchCatalogMatches(
   products: readonly DemoProduct[],
@@ -24,7 +27,9 @@ export function searchCatalogMatches(
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product)),
       televisedEntry[2] + " " + televisedEntry[1] + " per entry", undefined, { includeLowerGiftCards });
   }
-  const query = rawQuery.replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
+  const query = rawQuery.trim().replace(restrictedGiftAlternatives, "$2 gift cards $1")
+    .replace(exactGiftCardEach, "$1 gift cards exactly $2")
+    .replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
     .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")

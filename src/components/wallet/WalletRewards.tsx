@@ -73,8 +73,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", prize, invalidPrize = false, invalidWalletView = false, invalidView = false, focusCard, focusHistoryCard, expiredSelection, expiredRetryHref, transactionReturn, timeZone = "America/New_York", cardEndings = {}, locale }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; prize?: string; invalidPrize?: boolean; invalidWalletView?: boolean; invalidView?: boolean; transactionReturn?: string; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; expiredRetryHref?: string; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", prize, invalidPrize = false, invalidWalletView = false, invalidView = false, focusCard, focusHistoryCard, expiredSelection, expiredRetryHref, transactionReturn, returnFromDeclined = false, timeZone = "America/New_York", cardEndings = {}, locale }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; prize?: string; invalidPrize?: boolean; invalidWalletView?: boolean; invalidView?: boolean; transactionReturn?: string; returnFromDeclined?: boolean; focusCard?: string; focusHistoryCard?: string; expiredSelection?: "unavailable" | "missing"; expiredRetryHref?: string; timeZone?: string; locale?: string | null; cardEndings?: Record<string, string>;
 }) {
   const allRewards = walletRewards(state).filter(item => !prize || item.slug === prize);
   const ready = readyWalletRewards(state).filter(item => !prize || item.slug === prize);
@@ -126,10 +126,11 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const missingHistoryCard = Boolean(focusHistoryCard && historyTarget === "reward-history");
   const landingTarget = historyTarget || readyTarget;
   return <div className={overview.page} data-activity-source={state.source}>
-    {invalidView ? <AccountSettingsLandingScroll target="ready-rewards" landingAlias="reward-history" initialTarget="ready-rewards" focusTarget="outdated-reward-filter" allScreens />
+    {returnFromDeclined ? <AccountSettingsLandingScroll target="expired-declined-offers" focusTarget="expired-declined-offers" allScreens restrictToTargetHash settleAfterNavigation />
+      : invalidView ? <AccountSettingsLandingScroll target="ready-rewards" landingAlias="reward-history" initialTarget="ready-rewards" focusTarget="outdated-reward-filter" allScreens />
       : landingTarget && !expiredSelection ? <AccountSettingsLandingScroll target={landingTarget} initialTarget={landingTarget} compactTarget={historyTarget ? "reward-history" : undefined} focusTarget={missingHistoryCard ? "missing-reward-message" : landingTarget === "ready-rewards" ? "ready-heading" : landingTarget} settleAfterNavigation allScreens />
       : prize || view === "ready" ? <AccountSettingsLandingScroll target="ready-rewards" initialTarget="ready-rewards" focusTarget="ready-heading" allScreens restrictToTargetHash /> : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all"} />}
-    {!invalidView && !expiredSelection && !historyTarget ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
+    {!invalidView && !expiredSelection && !historyTarget && !returnFromDeclined ? <AccountSettingsLandingScroll target="reward-history" initialTarget={view === "expired" ? "reward-history" : undefined} visitKey={view} focusTarget="history-heading" allScreens restrictToTargetHash settleAfterNavigation /> : null}
     <div className={overview.shell}>
       {invalidPrize ? <p role="status" className={overview.message}>That prize filter is unavailable. <Link className="underline" href="/account/wallet#ready-rewards">View all rewards</Link></p> : null}
       {invalidWalletView ? <p role="status" className={overview.message}>That Wallet view is unavailable. <Link className="underline" href={walletHistoryHref}>Open Wallet &amp; Transactions</Link> or <Link className="underline" href="/account/wallet#ready-rewards">view rewards</Link>.</p> : null}
@@ -209,7 +210,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         {focusedHistory ? <>
           <div className={overview.returnActions} data-reward-view={view}>
             <WalletRewardLink href={scopedHistory(rewardViewHrefs.all, false)}>{view === "expired" ? "Back to Gift Cards & Rewards" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
-            {view === "expired" ? <Link href="/account/declined-offers?from=expired-rewards" data-history-return>Declined Offers<AccountIcon name="arrow" /></Link> : null}
+            {view === "expired" ? <Link id="expired-declined-offers" href={`/account/declined-offers?from=expired-rewards${prize ? `&rewardPrize=${encodeURIComponent(prize)}` : ""}`} data-history-return>Declined Offers<AccountIcon name="arrow" /></Link> : null}
             <Link href="/">Continue Shopping<AccountIcon name="arrow" /></Link>
           </div>
         </> : null}

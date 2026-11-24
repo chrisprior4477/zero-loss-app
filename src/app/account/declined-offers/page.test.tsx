@@ -39,6 +39,15 @@ test("all exit links restore the purchase-options filter, even when the list is 
   }
 });
 
+test.each([
+  [{ from: "activity-tools", filter: "completion" }, "Return to My Activity", "/account/entries?filter=completion&landing=declined-offers#activity-declined-offers"],
+  [{ from: "expired-rewards", rewardPrize: "netflix-25-gift-card" }, "Return to Expired rewards & purchase options", "/account/wallet?prize=netflix-25-gift-card&landing=declined-offers&rewards=expired#expired-declined-offers"],
+])("returns to the originating shortcut with its filter", async (query, label, href) => {
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [] } });
+  render(await DeclinedOffersPage({ searchParams: Promise.resolve(query) }));
+  expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+});
+
 test("a single declined offer keeps its countdown visible and its reminder in the disclosure", async () => {
   mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, timezone: "America/Los_Angeles", activity: { source: "stored", activity: [{
     entryId: "ent_one", completionOptionId: "11111111-1111-4111-8111-111111111111", completionOptionStatus: "declined",

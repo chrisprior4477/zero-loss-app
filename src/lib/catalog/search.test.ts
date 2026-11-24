@@ -5,6 +5,9 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 test.each([
+  ["gift cards $25 or $50 but only from Walmart", "Walmart gift cards $25 or $50"],
+  ["Target or Walmart gift cards at $25 each", "Target or Walmart gift cards exactly $25"],
+  ["Gift cards from Best Buy other than the $25 and $50 cards", "Best Buy gift cards excluding $25 and $50"],
   ["electronics no gift cards under $500", "pictured electronics under $500"],
   ["gift cards with one or two left at Target", "Target gift cards with 1 or 2 tickets left"],
   ["Amazon gift cards higher than $25 but not more than $75", "Amazon gift cards over $25 and up to $75"],

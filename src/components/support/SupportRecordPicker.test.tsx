@@ -84,7 +84,8 @@ test("Forward restores the browsed record page even when the attachment is on an
     render(<SupportRecordPicker record={first} onChange={vi.fn()} timeZone="America/New_York" disabled={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
     fireEvent.click(await screen.findByRole("button", { name: "Next" }));
-    expect(await screen.findByRole("button", { name: /Earlier payment/ })).toBeTruthy();
+    const earlier = await screen.findByRole("button", { name: /Earlier payment/ });
+    earlier.focus();
     const openHistory = window.history.state;
     act(() => {
       window.history.replaceState(null, "");
@@ -95,7 +96,8 @@ test("Forward restores the browsed record page even when the attachment is on an
       window.history.replaceState(openHistory, "");
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    expect(await screen.findByRole("button", { name: /Earlier payment/ })).toBeTruthy();
+    const restored = await screen.findByRole("button", { name: /Earlier payment/ });
+    expect(document.activeElement).toBe(restored);
     expect(screen.getByText("Current attachment")).toBeTruthy();
   } finally { load.mockImplementation(async () => ({ records: [], more: false })); }
 });

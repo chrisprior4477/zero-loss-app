@@ -405,6 +405,15 @@ test.each([
   ["how do i see the people invited to my crew who have not joined yet", "crew-requests"],
   ["how can i stop emails about the closing time on just one prize", "favorite-watch-one"],
   ["if i redeem my gift card does it increase what i can spend on tickets", "reward-funding"],
+  ["the wallet says funding worked but my available balance is still the same", "funding-status"],
+  ["how do i know whether my tickets were bought when checkout stopped responding", "entry-status"],
+  ["why was my entry rejected when the last spot disappeared", "entry-status"],
+  ["how do i check what i already paid toward an offer", "purchase-options"],
+  ["can i add the receipt to a report i already sent", "receipt-in-support"],
+  ["where can i check whether the person accepted the crew request i sent", "crew-requests"],
+  ["i changed the clock on my phone and offers show another deadline", "time-zone"],
+  ["can i get my wallet balance sent back to my payment card", "withdrawals"],
+  ["can i remove an old offer without ending the other ones for the same item", "decline-and-revive"],
 ])("answers the recovery question %s", (query, id) => {
   expect(filterFaqs(query, "all")[0]?.id).toBe(id);
 });

@@ -388,8 +388,12 @@ export function searchDenominations(query: string, products: readonly { retailer
   const entryPriceIsMaximum = Boolean(entryMatch?.groups?.labeledCeiling || entryMatch?.groups?.ceiling || entryMatch?.groups?.trailingCeiling);
   if (entryMatch) normalized = normalized.replace(entryMatch[0], " ").trim().replace(/(?:\s+\b(?:and|for|with)|[,;])$/i, "").trim().replace(/\s+/g, " ");
   const excludedValues = new Set<number>();
-  if (/\bgift card\b/i.test(normalized)) normalized = normalized.replace(spokenExcludedValues, (_, marker: string, list: string) =>
-    marker + " " + list.split(/\s+(?:and|or)\s+/i).map(value => "$" + spokenValue(value)).join(" and "));
+  if (/\bgift card\b/i.test(normalized)) {
+    normalized = normalized
+      .replace(new RegExp(String.raw`(\b${valueExclusion}\s+(?:(?:a|the|both)\s+)*(?:${currency.source})(?:\s+(?:and|or)\s+(?:${currency.source}))*)\s+cards?$`, "i"), "$1")
+      .replace(spokenExcludedValues, (_, marker: string, list: string) =>
+        marker + " " + list.split(/\s+(?:and|or)\s+/i).map(value => "$" + spokenValue(value)).join(" and "));
+  }
   normalized = normalized.replace(excludedValuePattern, (_match, list: string) => {
     for (const [amount] of list.matchAll(currency)) {
       const parsed = leadingAmount(amount);

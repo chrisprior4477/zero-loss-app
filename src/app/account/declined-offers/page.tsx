@@ -27,7 +27,7 @@ import styles from "@/components/account/my-activity.module.css";
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ from?: string | string[]; offer?: string | string[]; prize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[]; notice?: string | string[]; alerts?: string | string[] }> }) {
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ from?: string | string[]; offer?: string | string[]; prize?: string | string[]; rewardPrize?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; fromOrders?: string | string[]; orderFilter?: string | string[]; notice?: string | string[]; alerts?: string | string[] }> }) {
   const query = await searchParams;
   const requested = query?.offer;
   const prize = typeof query?.prize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.prize) ? query.prize : undefined;
@@ -37,9 +37,18 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   const transactionReturn = transactionOriginHref(query ?? {});
   const selectedHref = accountPageReturnPath("/account/declined-offers", { ...query, offer: offerId, filter: filter === "all" ? undefined : filter }, offerId ? `#declined-offer-${offerId}` : "");
   const noticeReturn = validNotice(query?.notice) ? notificationHref(notificationFilter(query?.alerts), query.notice) : undefined;
-  const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
+  const fromActivityTools = query?.from === "activity-tools";
+  const activityReturn = accountPageReturnPath("/account/entries", {
+    filter: filter === "all" ? undefined : filter,
+    landing: fromActivityTools ? "declined-offers" : undefined,
+  }, fromActivityTools ? "#activity-declined-offers" : `#${openEntriesAnchorId}`);
   const fromExpiredRewards = query?.from === "expired-rewards";
-  const backHref = fromExpiredRewards ? "/account/wallet?rewards=expired#reward-history" : activityReturn;
+  const rewardPrize = typeof query?.rewardPrize === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.rewardPrize) ? query.rewardPrize : undefined;
+  const backHref = fromExpiredRewards ? accountPageReturnPath("/account/wallet", {
+    rewards: "expired",
+    prize: rewardPrize,
+    landing: "declined-offers",
+  }, "#expired-declined-offers") : activityReturn;
   const backLabel = fromExpiredRewards ? "Expired rewards & purchase options" : "My Activity";
   const account = await getAccountContext("report");
   if (account === "unavailable") return <AccountSessionRetry />;

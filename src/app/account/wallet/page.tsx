@@ -81,6 +81,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const weeklyDeposit = history && typeof query.weeklyDeposit === "string" && depositRequestKeyPattern.test(query.weeklyDeposit) ? query.weeklyDeposit : undefined;
   const depositRow = history && !recoveryKey && query.panel === "deposits" && typeof query.depositRow === "string" && depositRequestKeyPattern.test(query.depositRow) ? query.depositRow : undefined;
   const fromRewardHistory = query.rewardHistory === "1";
+  const returnFromDeclined = query.landing === "declined-offers" && query.rewards === "expired";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
   const parsedQuantity = parseEntryQuantity(matchingQueryValue(query.quantity));
@@ -93,7 +94,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";
     const paymentPanel = history && (query.panel === "methods" || query.panel === "card");
     const rewardSection = !requestedReward && !history && (query.prize || fromRewardHistory || ["all", "ready", "used", "expired", "history", "other"].includes(String(query.rewards)))
-      ? (query.rewards === "ready" || query.prize && !query.rewards) && !fromRewardHistory ? "#ready-rewards" : "#reward-history" : "";
+      ? returnFromDeclined ? "#expired-declined-offers" : (query.rewards === "ready" || query.prize && !query.rewards) && !fromRewardHistory ? "#ready-rewards" : "#reward-history" : "";
     const next = recoveryKey ? accountPageReturnPath("/account/wallet", query, "#purchase-deposit")
       : paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
       : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
@@ -340,7 +341,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   });
   const expiredSelection = expiredView && typeof query.expiredEntry === "string" && !expired
     ? account.activity.source === "unavailable" || account.activity.incomplete ? "unavailable" : "missing" : undefined;
-  const rewards = <><LegacyWalletFragment /><WalletRewards prize={rewardPrize} invalidPrize={query.prize !== undefined && !rewardPrize} invalidWalletView={query.view !== undefined} invalidView={query.rewards !== undefined && query.rewards !== "all" && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} expiredRetryHref={expiredSelection === "unavailable" ? accountPageReturnPath("/account/wallet", query, "#reward-history") : undefined} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} /></>;
+  const rewards = <><LegacyWalletFragment /><WalletRewards returnFromDeclined={returnFromDeclined} prize={rewardPrize} invalidPrize={query.prize !== undefined && !rewardPrize} invalidWalletView={query.view !== undefined} invalidView={query.rewards !== undefined && query.rewards !== "all" && rewardView === "all"} transactionReturn={transactionOriginHref(query)} expiredSelection={expiredSelection} expiredRetryHref={expiredSelection === "unavailable" ? accountPageReturnPath("/account/wallet", query, "#reward-history") : undefined} cardEndings={cardEndings} timeZone={account.timezone} locale={account.preferredLocale} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={focusExpired ?? (fromRewardHistory || rewardView === "used" || rewardView === "history" || rewardView === "other" || rewardView === "expired" ? focusCard : undefined)} /></>;
   if (!expired?.entryId) return rewards;
   const expiredReturn = new URLSearchParams({
     rewards: fromRewardHistory ? rewardView : "expired",

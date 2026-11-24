@@ -170,7 +170,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "decline-and-revive", category: "entries", question: "What happens if I decline an offer?",
-    answer: "Open the offer in Purchase Options and choose Decline. The offer moves to Declined Offers and the entry payment stays in your history. If you changed your mind, choose Undo during the countdown or revive a declined offer for free before its original deadline. After that deadline, the offer can no longer be revived.",
+    answer: "Open the offer in Purchase Options and choose Decline for the individual offer you want to remove. Declining one offer leaves the other offers for that prize as they were. The offer moves to Declined Offers and the entry payment stays in your history. If you changed your mind, choose Undo during the countdown or revive a declined offer for free before its original deadline. After that deadline, the offer can no longer be revived.",
     keywords: "decline declined restore revive purchase option undo refund", action: { label: "Open Declined Offers", href: "/account/declined-offers" },
   },
   {
@@ -233,7 +233,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
-    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. If two requests have the same amount, check each date and request number. Use Finish / check or Retry same request when offered. To report a pending deposit, open the existing request and use Contact Support if shown. If you see what looks like a duplicate charge, compare the deposit receipts with Transaction history. Use Report a problem on the affected transaction before starting another deposit.",
+    answer: "If you close the Add funds review before confirming, the deposit has not been submitted. If you already confirmed and the deposit is pending, declined, or interrupted, check the existing request in Payment deposits first. If two requests have the same amount, check each date and request number. Use Finish / check or Retry same request when offered. To report a pending deposit, open the existing request and use Contact Support if shown. If the deposit shows as complete but your balance has not updated, compare the receipt with the posted credit in Transaction history before adding funds again. You can also compare those records if you see a possible duplicate charge. Use Report a problem on the affected transaction.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
@@ -501,7 +501,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "crew-requests", category: "account", question: "Where can I see or cancel a Crew invitation?",
-    answer: "Open Your Crew and choose Requests. Requests for you shows invitations you can approve or decline. Requests you sent shows outgoing invitations. Use Cancel request on the one you want to withdraw.",
+    answer: "Open Your Crew and choose Requests. Requests for you shows invitations you can approve or decline. Requests you sent shows invitations still waiting for approval. If someone accepted, look for them in the Your Crew tab. Use Cancel request on the invitation you want to withdraw.",
     keywords: "crew invite invited incoming outgoing invitation sent received cancel request",
     action: { label: "Open Crew Requests", href: "/account/crew?tab=requests#crew-intro" },
   },
@@ -581,6 +581,14 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:funding|deposit|added funds)\b.*\b(?:worked|succeeded|completed|confirmed|successful)\b.*\bbalance\b.*\b(?:still the same|unchanged|did not (?:change|update)|didn't (?:change|update))\b/, "funding-status"],
+  [/\b(?:tickets?|entries|entry)\b.*\b(?:checkout stopped responding|checkout froze|checkout lost connection)\b|\bentr(?:y|ies)\b.*\b(?:last spot|last ticket)\b.*\b(?:disappeared|taken|filled)\b/, "entry-status"],
+  [/\b(?:already paid|credited|already applied)\b.*\b(?:toward|towards|to)\b.*\boffer\b/, "purchase-options"],
+  [/\b(?:add|attach|send|share)\b.*\breceipt\b.*\b(?:report|case|support request)\b.*\b(?:already sent|already submitted|already opened)\b/, "receipt-in-support"],
+  [/\b(?:accepted|approved)\b.*\bcrew (?:request|invite|invitation)\b|\bcrew (?:request|invite|invitation)\b.*\b(?:accepted|approved)\b/, "crew-requests"],
+  [/\bclock\b.*\b(?:phone|device)\b.*\b(?:deadline|expiration|offer expires)\b/, "time-zone"],
+  [/\bwallet balance\b.*\b(?:sent|transferred|paid|moved) back\b.*\b(?:payment card|credit card|debit card|bank)\b/, "withdrawals"],
+  [/\b(?:remove|decline)\b.*\boffer\b.*\bwithout\b.*\b(?:other ones|other offers|the rest)\b/, "decline-and-revive"],
   [/\b(?:wallet|balance)\b.*\b(?:dropped|went down|decreased)\b.*\b(?:ticket|entry)\b.*\b(?:not|isn't)\s+showing\b.*\bopen entries\b/, "posted-and-pending"],
   [/\b(?:check|tell|see)\b.*\b(?:purchase|order)\b.*\b(?:went through|posted|succeeded)\b.*\b(?:pay|buy|purchase)\b.*\bagain\b/, "order-receipt"],
   [/\bkeep\b.*\boffer\b.*\b(?:paying|buying|purchasing)\b.*\b(?:different|another)\s+(?:copy|one|offer)\b/, "select-purchase-offers"],

@@ -66,8 +66,9 @@ export function useDialogBack(open: boolean, onClose: () => void | true, blocked
       marker.current = null;
       // Timed dismissals also consume their temporary step. A route change
       // or a new dialog has its own history and must never be walked back.
-      if (consumeOnUnmount) queueMicrotask(() => {
-        if (window.location.href === href && window.history.state?.[key] === id) consumeHistoryStep(key, id, href);
+      const hasCurrentStep = () => window.location.href === href && window.history.state?.[key] === id;
+      if (consumeOnUnmount && hasCurrentStep()) queueMicrotask(() => {
+        if (hasCurrentStep()) consumeHistoryStep(key, id, href);
       });
     };
   }, [open, consumeOnUnmount, key]);
