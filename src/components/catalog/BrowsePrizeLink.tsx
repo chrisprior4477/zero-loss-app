@@ -1,16 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useBrowseResultsSearch } from "./BrowseResultsSearch";
+import { returnBrowseSearchDraft, useBrowseResultsSearch } from "./BrowseResultsSearch";
 import { catalogSearchTooLong, invalidCatalogSearch } from "@/lib/catalog/search-text";
 import type { ReactNode } from "react";
 import { requestBrowseResultsFocus } from "./SearchResultsAutoScroll";
 
-export function BrowseResultsLink({ href, className, target, returnAnchor, children }: { href: string; className?: string; target?: Parameters<typeof requestBrowseResultsFocus>[1]; returnAnchor?: string; children: ReactNode }) {
+export function BrowseResultsLink({ href, className, target, returnAnchor, searchDraft, children }: { href: string; className?: string; target?: Parameters<typeof requestBrowseResultsFocus>[1]; returnAnchor?: string; searchDraft?: string; children: ReactNode }) {
   return <Link id={returnAnchor} href={href} prefetch={false} scroll={false} className={className} onNavigate={() => {
     if (returnAnchor) window.history.replaceState(window.history.state, "", "#" + returnAnchor);
+    if (searchDraft !== undefined) returnBrowseSearchDraft(href, searchDraft);
     if (target) requestBrowseResultsFocus(href, target);
   }}>{children}</Link>;
+}
+
+export function BrowseProductRequestLink({ href, className }: { href: string; className: string }) {
+  const session = useBrowseResultsSearch();
+  const url = new URL(href, "https://zeroloss.local");
+  const draft = session?.draft.trim();
+  if (draft !== undefined && !catalogSearchTooLong(draft) && !invalidCatalogSearch(draft)) {
+    url.searchParams.set("product", draft);
+  }
+  return <Link id="request-a-product" href={url.pathname + url.search + url.hash} prefetch={false} data-history-return className={className}>Request a product →</Link>;
 }
 
 export function EndingSoonRangeLink({ href, selected, className, children }: { href: string; selected: boolean; className: string; children: ReactNode }) {

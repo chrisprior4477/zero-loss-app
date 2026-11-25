@@ -56,6 +56,13 @@ const oneDateLimit = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLi
 const twoDateLimits = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateLimit})\\s+(.+?)\\s+(?:(?:and|but)\\s+)?(${dateLimit})\\s+(.+)$`, "i");
 const writtenDate = String.raw`[\p{L}.]+\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?`;
 const clockWithMeridiem = String.raw`\d{1,2}(?::\d{2})?\s*[ap]m`;
+const namedDay = String.raw`(?:${writtenDate}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)`;
+const orderReference = /^(?:(?:(?:(.+?)\s+)?order(?:\s+(?:number|reference|ref|no\.?|payment(?=\s+ending\b)))?\s+(?:ending\s+|#\s*)?|(?:any\s+)?payment\s+ending\s+)|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i;
+
+export function ledgerShowsOrderReference(query: string, orderNumber: string) {
+  const reference = orderReference.exec(query.trim())?.[2] ?? /^(?:ref(?:erence)?(?: ending)?\s+)?([a-f0-9]{8,32})$/i.exec(query.trim())?.[1];
+  return reference !== undefined && orderNumber.toLowerCase().endsWith(reference.toLowerCase());
+}
 const spokenDollars = String.raw`(a|${smallNumberWords})\s+(?:dollars?|bucks?)`;
 
 function localDateKey(timeZone: string) {
@@ -331,6 +338,11 @@ function chronologicalEdge<T extends LedgerEntryRow>(rows: T[], edge: "first" | 
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+(?:my\s+)?/i, "")
+    .replace(new RegExp(String.raw`^(.+?)\s+(after\s+${clockWithMeridiem}\s+and\s+before\s+${clockWithMeridiem})\s+on\s+(.+?)[.!?]?$`, "i"), "$1 on $3 $2")
+    .replace(new RegExp(String.raw`^(.+?)\s+((?:at or )?(?:before|after)\s+${clockWithMeridiem})\s+(?:on\s+)?(${namedDay})[.!?]?$`, "iu"),
+      (_, scope: string, clock: string, date: string) => scope.replace(/\s+on$/i, "") + " on " + date + " " + clock)
+    .replace(new RegExp(String.raw`^(.+?\s+(?:deposits?|funding))\s+(?:on\s+)?(${namedDay})\s+minus\s+(?:the\s+)?(\$\s*${dollars})(?:\s+(?:one|deposit|amount))?[.!?]?$`, "iu"), "$1 on $2 excluding $3")
+    .replace(new RegExp(String.raw`^(deposits?|funding)\s+(up to|at most|under|below)\s+(\$\s*${dollars})\s+made\s+(?:on|with|using)\s+(.+?)\s+on\s+(${namedDay})[.!?]?$`, "iu"), "$4 $1 $2 $3 on $5")
     .replace(new RegExp(String.raw`^which (?:payment )?card (?:paid|was used for) (?:the )?(\$\s*${dollars}) deposit[.!?]?$`, "i"), "card receipts for $1 of funding")
     .replace(new RegExp(String.raw`^(${writtenDate})\s+posted transactions?\s+from\s+(.+?)\s+for\s+([+−-]\s*\$\s*${dollars})[.!?]?$`, "iu"), "posted amount $3 $2 on $1")
     .replace(new RegExp(String.raw`^(${writtenDate})\s+card charges?\s+of\s+(\$\s*${dollars})\s+(?:at|from)\s+(.+?)[.!?]?$`, "iu"), "posted amount -$2 $3 on $1")
@@ -373,12 +385,12 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     .replace(/^(?:only\s+)?(?:the\s+)?posted\s+entr(?:y|ies)\s+for\s+(.+?)\s+(?=between\b|on\b|from\b|after\b|before\b|since\b)/i, "entry payments $1 ")
     .replace(/^(?:only\s+)?orders?\s+(?:at|from)\s+(.+?)\s+that\s+(?:cleared|posted)\s+(?=on\b)/i, "$1 purchases ")
     .replace(/(\b\d{1,2}(?::\d{2})?)\s*([ap])\.m\.?(?=$|\s)/gi, "$1 $2m")
-    .replace(new RegExp(String.raw`^(.+?)\s+(after\s+${clockWithMeridiem}\s+and\s+before\s+${clockWithMeridiem})\s+on\s+(.+?)[.!?]?$`, "i"), "$1 on $3 $2")
     .replace(/(\b\d{1,2}(?::\d{2})?)\s+at night\b/gi, "$1 pm")
     .replace(/\b(\d{1,2})\.(\d{2})\s*(am|pm)\b/gi, "$1:$2 $3")
     .replace(/^(deposits?|funding)\s+(?:made\s+)?on\s+(.+?)\s+(?:on|using|with)\s+(?:(?:my|the)\s+)?(.+?)\s+card[.!?]?$/i, "$1 $3 on $2")
     .replace(/^((?:deposits?|funding)\s+(?:on|from|between|before|after|since)\s+.+?)\s+that\s+(?:was|were)\s+(?=(?:more than|less than|under|over|at least|at most)\s+\$)/i, "$1 ")
     .replace(/^receipts?\s+for\s+(?:(?:my|the)\s+)?(.+?)\s+(deposits?|funding)\s+(on|from)\s+(.+)$/i, "$1 $2 receipts $3 $4")
+    .replace(/^receipts?\s+for\s+(?:(?:my|the)\s+)?(.+?)\s+(deposits?|funding)\s+of\s+(?=(?:at least|at most|under|below|over|above|up to)\s+\$)/i, "$1 $2 receipts of ")
     .replace(/^(.+?)\s+ticket charges?\s+((?:since|on|before|after)\s+.+)$/i, "entry payments $1 $2")
     .replace(/^(.+?)\s+exact(?:ly)?\s+posted\s+(\$\s*[\d,.]+?)\s+charges?[.!?]?$/i, "posted amount -$2 $1")
     .replace(/^(deposits?|funding)\s+(?:that|which)\s+(?:posted|went through)\s+(?:on\s+)?(.+?)[.!?]?$/i,
@@ -470,6 +482,15 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const retailer = normalizeSearch(latestOrder[1] ?? latestOrder[2]);
     return chronologicalEdge(entries.filter(entry => entry.entry_type === "PURCHASE_DEBIT" && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer)));
   }
+  const datedOrderPayment = new RegExp(String.raw`^(?:which\s+)?orders?\s+paid\s+(\$\s*${dollars})\s+(?:at|from)\s+(.+?)\s+on\s+(.+?)[.!?]?$`, "i").exec(trimmed);
+  if (datedOrderPayment) {
+    const [, amount, retailer, date] = datedOrderPayment;
+    const amountMatches = amountMatch(amount);
+    const name = normalizeSearch(retailer);
+    const dated = searchLedgerDates(entries, date, calendar);
+    if (dated) return dated.filter(entry => entry.entry_type === "PURCHASE_DEBIT" && amountMatches(entry.amount)
+      && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), name));
+  }
   const namedPayments = /^(?:(.+?)\s+orders?|(?:orders? from|paid at|(?:only\s+)?charges?\s+from)\s+(.+))$/i.exec(trimmed);
   const retailers = (namedPayments?.[1] ?? namedPayments?.[2])?.split(/\s+(?:and|or)\s+/i).map(normalizeSearch);
   if (retailers && retailers.length > 1 && retailers.every(Boolean)) {
@@ -523,12 +544,14 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
         return (!issuer || sameMerchant(savedIssuer([label]) ?? "", issuer)) && cardMatchesSuffix(label, receiptCard[2]);
       }));
   }
-  const datedReceipt = /^(.+?)\s+(?:(?:deposit|funding)\s+)?receipts?\s+(?:on|from)\s+(.+?)[.!?]?$/i.exec(trimmed);
+  const datedReceipt = /^(.+?)\s+(?:(?:deposits?|funding)\s+)?receipts?(?:\s+of\s+(.+?))?\s+(?:on|from)\s+(.+?)[.!?]?$/i.exec(trimmed);
   if (datedReceipt) {
     const issuer = normalizeSearch(datedReceipt[1]);
+    const limit = datedReceipt[2] ? searchDenominations(datedReceipt[2], []) : null;
     const receipts = entries.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry)
-      && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer));
-    const matches = searchDate(receipts, datedReceipt[2], calendar);
+      && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer)
+      && (!limit || limit.budget && !limit.text && amountWithinBudget(entry.amount, limit.budget)));
+    const matches = searchDate(receipts, datedReceipt[3], calendar);
     if (matches) return matches;
   }
   const omitActivity = /^(?:all\s+)?transactions?\s+(?:excluding|except|other than|without)\s+(reservations?|holds?|deposits?|funding|orders?)$/i.exec(trimmed);
@@ -554,10 +577,10 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
       || !transactionOnly && entry.entry_type === "PURCHASE_DEBIT" && entry.orderNumber?.toLowerCase().endsWith(id));
     if (matches.length || transactionOnly || /^ref/i.test(trimmed)) return matches;
   }
-  const orderReference = /^(?:(?:(.+?)\s+)?order(?:\s+(?:number|reference|ref|no\.?|payment(?=\s+ending\b)))?\s+(?:ending\s+|#\s*)?|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i.exec(trimmed);
-  if (orderReference) {
-    const id = orderReference[2].toLowerCase();
-    const retailer = normalizeSearch(orderReference[1] ?? "");
+  const orderMatch = orderReference.exec(trimmed);
+  if (orderMatch) {
+    const id = orderMatch[2].toLowerCase();
+    const retailer = normalizeSearch(orderMatch[1] ?? "");
     const suffix = /\bending\b/i.test(trimmed) || !id.startsWith("ord_");
     return entries.filter(entry => entry.entry_type === "PURCHASE_DEBIT" && entry.orderNumber &&
       (!retailer || sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer)) &&

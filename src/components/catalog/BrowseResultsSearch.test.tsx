@@ -1,9 +1,38 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { BrowseResultsSearch, BrowseResultsSearchSession } from "./BrowseResultsSearch";
+import { BrowseResultsSearch, BrowseResultsSearchSession, returnBrowseSearchDraft } from "./BrowseResultsSearch";
+import { BrowseProductRequestLink } from "./BrowsePrizeLink";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+test("uses the current Browse draft for a product request and restores it over the applied query on return", async () => {
+  const source = "/browse?q=Walmart&maxValue=75";
+  const originalUrl = location.href;
+  const originalState = history.state;
+  try {
+    history.replaceState(null, "", source);
+    const request = "/contact/product-request?" + new URLSearchParams({ product: "Walmart", from: source }) + "#product-request";
+    const page = <BrowseResultsSearchSession browseHref={source} searchTerm="Walmart">
+      <BrowseResultsSearch position="top" />
+      <BrowseProductRequestLink href={request} className="request" />
+    </BrowseResultsSearchSession>;
+    const { unmount } = render(page);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Walmart garden lights" } });
+    const href = new URL(screen.getByRole("link", { name: /request a product/i }).getAttribute("href")!, location.origin);
+    expect(href.searchParams.get("product")).toBe("Walmart garden lights");
+    expect(href.searchParams.get("from")).toBe(source);
+    unmount();
+
+    history.replaceState(null, "", source);
+    returnBrowseSearchDraft("/browse?maxValue=75&q=Walmart#search-results", "Walmart garden lights");
+    render(page);
+    await waitFor(() => expect(screen.getByRole("searchbox")).toHaveProperty("value", "Walmart garden lights"));
+    expect(location.search).toBe("?q=Walmart&maxValue=75");
+  } finally {
+    history.replaceState(originalState, "", originalUrl);
+  }
+});
 
 test.each(["top", "bottom"] as const)("Escape restores the %s search and keeps keyboard focus in the form", position => {
   render(<BrowseResultsSearchSession browseHref="/browse?sort=ending-soon" searchTerm="Walmart" endingSoon>

@@ -4,6 +4,18 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["do i need to fund the wallet again if my deposit shows processing", "funding-status"],
+  ["someone got my login and i need to end every active session", "unrecognized-sign-in"],
+  ["stop sharing picks made before today, not just future ones", "stop-sharing"],
+  ["how do i know whether checkout was a hold or a completed payment", "posted-and-pending"],
+  ["what happens to the other options if i only pay for one", "select-purchase-offers"],
+  ["i selected a different card for one top up will it stay the default", "choose-deposit-card"],
+  ["can i get rid of an old credit card without funding the wallet", "delete-card"],
+  ["a stranger keeps sending me prizes how do i block their picks", "stop-receiving-shares"],
+  ["a group sent me a pick and i accidentally said no", "shared-pick-undo-decline"],
+  ["change delivery address", "mailing-address"],
+  ["where can i find the case id so i can tell somebody which report it was", "support-case-number"],
+  ["how can i suggest a product you do not have", "request-product"],
   ["does undo return the balance or my bank card", "undo-entry"],
   ["where is the purchase option for the ticket that did not win", "purchase-options"],
   ["how do I finish checkout for only one of my offers", "select-purchase-offers"],
@@ -264,7 +276,7 @@ test.each([
   ["how long is the declined offer held", "decline-and-revive"],
   ["why did my wallet deposit show twice", "funding-status"],
   ["credit card charged but no wallet credit", "funding-status"],
-  ["how to change my delivery address", "time-zone"],
+  ["how to change my delivery address", "mailing-address"],
   ["hide me from name search in crew", "crew-discoverability"],
   ["take somebody out of my own group", "group-members"],
   ["support tracking reference", "support-case-number"],

@@ -73,6 +73,7 @@ export type LedgerReturn = {
   rowId: string;
   rowTop: number;
   entryLink?: string;
+  methodsLink?: number;
   expandedRows: string[];
   filterFocus?: boolean;
 };
@@ -91,6 +92,7 @@ export function readLedgerReturn(state: unknown, walletId: string, href: string,
     || !Number.isSafeInteger(saved.offset) || saved.offset! < 0
     || !Number.isFinite(saved.scrollY) || saved.scrollY! < 0
     || !Number.isFinite(saved.rowTop) || typeof saved.rowId !== "string"
+    || (saved.methodsLink !== undefined && (!Number.isSafeInteger(saved.methodsLink) || saved.methodsLink < 0))
     || (saved.entryLink !== undefined && (typeof saved.entryLink !== "string" || !saved.entryLink.startsWith("/account/entries/")))
     || !Array.isArray(saved.expandedRows) || !saved.expandedRows.every(id => typeof id === "string")) return null;
   return saved as LedgerReturn;

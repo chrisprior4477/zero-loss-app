@@ -581,6 +581,17 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:deposit|funding|top[ -]?up)\b.*\b(?:shows?|says?|still|is)\s+processing\b/, "funding-status"],
+  [/\b(?:end|close|revoke|sign out of)\s+(?:all|every)\s+(?:active\s+)?sessions?\b/, "unrecognized-sign-in"],
+  [/\bstop\s+sharing\b.*\b(?:already shared|made before|previously shared|existing|older|past)\b/, "stop-sharing"],
+  [/\b(?:hold|reservation)\b.*\b(?:completed|posted)\s+(?:payment|charge)\b|\b(?:completed|posted)\s+(?:payment|charge)\b.*\b(?:hold|reservation)\b/, "posted-and-pending"],
+  [/\b(?:other|remaining)\s+(?:purchase\s+)?(?:options|offers)\b.*\b(?:pay for|buy|purchase)\s+(?:only\s+)?one\b/, "select-purchase-offers"],
+  [/\b(?:different|another)\s+(?:saved\s+)?(?:payment\s+)?card\b.*\b(?:one (?:deposit|top[ -]?up)|stay (?:the )?default)\b/, "choose-deposit-card"],
+  [/\bget rid of\b.*\b(?:credit|debit|payment|saved)\s+card\b/, "delete-card"],
+  [/\b(?:someone|stranger|person|member)\b.*\b(?:sending|sharing)\b.*\b(?:prizes|picks)\b.*\b(?:block|stop)\b/, "stop-receiving-shares"],
+  [/\b(?:sent|shared)\b.*\b(?:pick|prize)\b.*\b(?:by mistake|accidentally (?:said no|declined|dismissed))\b/, "shared-pick-undo-decline"],
+  [/\b(?:where|find|see|copy)\b.*\bcase\s+(?:id|number|reference)\b/, "support-case-number"],
+  [/\bsuggest\s+(?:a |an |another )?(?:product|prize|retailer)\b/, "request-product"],
   [/\b(?:funding|deposit|added funds)\b.*\b(?:worked|succeeded|completed|confirmed|successful)\b.*\bbalance\b.*\b(?:still the same|unchanged|did not (?:change|update)|didn't (?:change|update))\b/, "funding-status"],
   [/\b(?:tickets?|entries|entry)\b.*\b(?:checkout stopped responding|checkout froze|checkout lost connection)\b|\bentr(?:y|ies)\b.*\b(?:last spot|last ticket)\b.*\b(?:disappeared|taken|filled)\b/, "entry-status"],
   [/\b(?:already paid|credited|already applied)\b.*\b(?:toward|towards|to)\b.*\boffer\b/, "purchase-options"],
@@ -824,7 +835,7 @@ const faqIntents: readonly [RegExp, string][] = [
   [/\bpay(?:ing)?\s+the\s+rest\b.*\bcombine\b.*\b(?:entries|tickets)\b/, "purchase-options"],
   [/\bhow long\b.*\bdeclined offer\b/, "decline-and-revive"],
   [/\bdeposit\b.*\b(?:twice|duplicate|two times)\b|\b(?:charged|billed)\b.*\b(?:twice|two times|no wallet credit)\b/, "funding-status"],
-  [/\b(?:change|update|edit)\b.*\b(?:delivery|mailing)\s+address\b/, "time-zone"],
+  [/\b(?:change|update|edit)\b.*\b(?:delivery|mailing)\s+address\b/, "mailing-address"],
   [/\bhide\b.*\bname search\b.*\bcrew\b/, "crew-discoverability"],
   [/\btake\b.*\bout of\b.*\b(?:my|own)\b.*\bgroup\b/, "group-members"],
   [/\bsupport\b.*\btracking (?:reference|number)\b/, "support-case-number"],

@@ -81,6 +81,11 @@ export function searchCatalogMatches(
     .replace(new RegExp(String.raw`\bwith (?:a )?face value of\s+(${smallNumberWords})[ -]+(?:dollars?|bucks?)\s*[.!?]?$`, "i"),
       (_, value: string) => "exactly $" + spokenValue(value))
     .replace(/\bwith (?:a )?face value of\s+(?=(?:exactly\s+)?\$)/i, "")
+    .replace(/^gift cards?\s+(?:from|at)\s+(.+?),\s*(\$\s*\d[\d,.]*?)\s+face value\s*[.!?]?$/i,
+      (phrase, retailers: string, amount: string) => allKnownRetailers(retailers, products) ? retailers + " gift cards exactly " + amount : phrase)
+    .replace(/(\bgift cards?\b.*?)\s+with\s+((?:at least|at most|under|over|up to)\s+\$\s*\d[\d,.]*?)\s+of value\s*[.!?]?$/i, "$1 $2")
+    .replace(/^excluding\s+(?:the\s+)?(\$\s*\d[\d,.]*?)\s+gift cards?\s+(?:from|at)\s+(.+?)\s*[.!?]?$/i,
+      (phrase, amount: string, retailer: string) => catalogMerchant(retailer, products) ? retailer + " gift cards excluding " + amount : phrase)
     .replace(/^(between\s+\$[\d,.]+\s+and\s+\$[\d,.]+)\s+worth of\s+/i, "$1 ")
     .replace(/\bno higher than\s+(?=\$)/i, "up to ")
     .replace(/\bhigher than\s+(?=\$)/i, "over ")
@@ -419,6 +424,7 @@ export function searchCatalogMatches(
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size && !budget && entryPrice === null && !excludedValues.size) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
+  const headphones = /\bheadphones?\b/.test(normalizedQuery);
   const television = tokens.includes("tv") || tokens.includes("television");
   const accessoryQuery = television ? /\b(?:tv|television)s?\s+(?:(?:wall|table)\s+)?(stand|mount|remote|antenna)s?\b|\b(stand|mount|remote|antenna)s?\s+for\s+(?:(?:a|the)\s+)?(?:tv|television)s?\b/.exec(normalizedQuery) : null;
   const televisionAccessory = accessoryQuery?.[1] ?? accessoryQuery?.[2];
@@ -434,6 +440,7 @@ export function searchCatalogMatches(
     && (budget?.minimum === undefined || (budget.exclusiveMinimum ? product.value > budget.minimum : product.value >= budget.minimum))
     && (budget?.maximum == null || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
     && (!giftCards || isGiftCardListing(product))
+    && (!headphones || giftCards || !isGiftCardListing(product))
     && (!television || televisionAccessory || giftCards || !(qualifiedMerchant || budget || values.size) || !isGiftCardListing(product))
     && (!appStoreGiftCard || /\b(?:app store|itunes)\b/.test(normalizeSearch(`${product.title} ${product.retailer}`)))
     && (!merchant || matchesCatalogMerchant(product.retailer, merchant))

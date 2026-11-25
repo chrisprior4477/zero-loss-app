@@ -18,7 +18,7 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { endingSoonTicketRanges, filterEndingSoonTickets, parseEndingSoonTicketRange } from "@/lib/catalog/ending-soon-ticket-ranges";
 import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls, type BrowsePreviewProduct } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
-import { BrowseResultsLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
+import { BrowseProductRequestLink, BrowseResultsLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseCategoryProductType, browseRetailers, filterBrowseProducts, isBrowseSort, isBrowseProductType, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
@@ -512,7 +512,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </p>}
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link id="request-a-product" href={requestHref} data-history-return className="scroll-mt-[calc(var(--site-header-height,163px)+12px)] inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
+              <BrowseProductRequestLink href={requestHref} className="scroll-mt-[calc(var(--site-header-height,163px)+12px)] inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]" />
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>

@@ -1052,6 +1052,10 @@ test.each([
   ["gift cards one remaining ticket", "gift cards with one ticket left"],
   ["more than $500 face value but $1 an entry", "prizes over $500 $1 per entry"],
   ["shown with a picture from Walmart under $100", "pictured Walmart products under $100"],
+  ["headphones at Best Buy less than or equal to $400", "pictured Best Buy headphones up to $400"],
+  ["gift cards from Walmart or Target, $50 face value", "Target or Walmart gift cards exactly $50"],
+  ["Target gift cards with at least $50 of value", "Target gift cards at least $50"],
+  ["excluding the $25 gift cards from Walmart", "Walmart gift cards excluding $25"],
 ])("preserves all qualifiers in %s", (query, equivalent) => {
   const slugs = (term: string) => searchCatalog(demoProducts, term).map(product => product.slug).sort();
   expect(slugs(query)).not.toHaveLength(0);

@@ -19,7 +19,12 @@ type SearchSession = {
 };
 const Session = createContext<SearchSession | null>(null);
 const searchDraftKey = "zeroLossBrowseSearchDraft";
+let returnedDraft: { href: string; value: string; expires: number } | null = null;
 export function useBrowseResultsSearch() { return useContext(Session); }
+
+export function returnBrowseSearchDraft(href: string, value: string) {
+  returnedDraft = { href, value, expires: Date.now() + 10000 };
+}
 
 export function BrowseSearchScope({ href }: { href: string }) {
   const params = new URL(href, "https://zeroloss.local").searchParams;
@@ -62,6 +67,19 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
         ? saved.value as string : null;
     };
     const frame = requestAnimationFrame(() => {
+      if (returnedDraft) {
+        const target = new URL(returnedDraft.href, location.origin);
+        const current = new URL(location.href);
+        target.searchParams.sort();
+        current.searchParams.sort();
+        if (returnedDraft.expires < Date.now()) returnedDraft = null;
+        else if (target.pathname === current.pathname && target.search === current.search) {
+          const value = returnedDraft.value;
+          returnedDraft = null;
+          setDraft(value);
+          return;
+        }
+      }
       const saved = savedDraft();
       if (saved !== null) updateDraft(current => current === searchTerm ? saved : current);
     });
@@ -78,7 +96,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
       cancelAnimationFrame(frame);
       window.removeEventListener("popstate", restore);
     };
-  }, [browseHref, searchTerm]);
+  }, [browseHref, searchTerm, setDraft]);
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results", restoreTop = false, sourceInput?: string) {
     const term = value.trim();

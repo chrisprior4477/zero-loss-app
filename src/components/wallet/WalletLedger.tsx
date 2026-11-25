@@ -2,7 +2,7 @@
 
 import { useAccountLocale } from "@/components/account/TimeZoneProvider";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -17,7 +17,7 @@ import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { ledgerReturnKey, readLedgerReturn, readLedgerSupportReturn, rememberLedgerSupportReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
-import { ledgerSearchMonth, postedAmountQuery, searchLedger } from "@/lib/wallet/ledger-search";
+import { ledgerSearchMonth, ledgerShowsOrderReference, postedAmountQuery, searchLedger } from "@/lib/wallet/ledger-search";
 import { revealBelowHeader } from "@/lib/account/landing-position";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -27,6 +27,7 @@ import { ledgerGroups } from "@/lib/wallet/ledger-groups";
 
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
 const noHiddenIds: string[] = [];
+const paymentMethodsLinks = 'a[href="#payment-methods"]';
 const stackId = (entry: LedgerEntryRow) => `transaction-stack-${entry.id}`;
 
 function category(entry: LedgerEntryRow): LedgerFilter {
@@ -238,6 +239,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
                 link.focus({ preventScroll: true });
                 revealBelowHeader(link);
               }
+            } else if (saved.methodsLink !== undefined) {
+              const link = document.querySelectorAll<HTMLAnchorElement>(paymentMethodsLinks)[saved.methodsLink];
+              if (link?.getClientRects().length) {
+                link.focus({ preventScroll: true });
+                const { top, bottom } = link.getBoundingClientRect();
+                if (top < headerBottom || bottom > window.innerHeight) revealBelowHeader(link);
+              }
             } else if (saved.filterFocus && document.activeElement !== searchInput.current) {
               const control = document.querySelector<HTMLElement>(`#wallet-transaction-list-filters [data-ledger-filter="${saved.filter}"]`);
               control?.focus({ preventScroll: true });
@@ -293,6 +301,21 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     window.history.replaceState({ ...window.history.state, ...bookmark }, "");
     if (bookmarkKey) try { sessionStorage.setItem(bookmarkKey, JSON.stringify(bookmark)); } catch { /* History remains usable. */ }
   }
+
+  const rememberMethodsLink = useEffectEvent((event: globalThis.MouseEvent) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(paymentMethodsLinks) : null;
+    if (link && location.hash !== link.hash && (!link.target || link.target === "_self")) {
+      updateBookmark({ methodsLink: [...document.querySelectorAll(paymentMethodsLinks)].indexOf(link) });
+    }
+  });
+  useEffect(() => {
+    if (compact || !walletId) return;
+    // Capture before the payment panel adds its own hash entry to history.
+    const remember = (event: globalThis.MouseEvent) => rememberMethodsLink(event);
+    window.addEventListener("click", remember, true);
+    return () => window.removeEventListener("click", remember, true);
+  }, [compact, walletId]);
 
   function rememberView(event: MouseEvent<HTMLUListElement>) {
     if (compact || !walletId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -389,7 +412,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
         <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
       </span>
-      <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link data-history-return={preserveView ? "focus" : undefined} className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}{!compact && entry.product?.retailer ? <span>{entry.product.retailer}</span> : null}{!compact && entry.orderNumber && /^(?:(?:order(?: (?:number|reference|ref|no\.?))?|ref(?:erence)?)(?: ending)?\s+)?(?:ord_[a-z0-9_-]+|[a-f0-9]{8,32})$/i.test(query) ? <span>Order ending {entry.orderNumber.slice(-8).toUpperCase()}</span> : null}</div>
+      <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link data-history-return={preserveView ? "focus" : undefined} className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}{!compact && entry.product?.retailer ? <span>{entry.product.retailer}</span> : null}{!compact && entry.orderNumber && ledgerShowsOrderReference(query, entry.orderNumber) ? <span>Order ending {entry.orderNumber.slice(-8).toUpperCase()}</span> : null}</div>
       <div className={styles.transactionValue}>
         <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
         {links.length === 1 && <Link href={links[0].href} className={styles.reportLink} tabIndex={-1} aria-hidden="true" title={links[0].label}><AccountIcon name="chevron" /></Link>}

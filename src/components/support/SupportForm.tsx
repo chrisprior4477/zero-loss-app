@@ -28,12 +28,12 @@ function hasDraftChanges(draft: SupportDraft, initial: SupportDraft) {
   return Boolean(draft.body || draft.record || draft.subjectEdited || draft.categoryEdited || draft.subject !== initial.subject || draft.category !== initial.category || draft.caseStatus !== initial.caseStatus);
 }
 
-type Props = { ownerId?: string; topic?: "email" | "account" | "reward" | "wallet" | "entry"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string };
+type Props = { ownerId?: string; topic?: "email" | "account" | "reward" | "wallet" | "entry"; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string; allowRecordPicker?: boolean; timeZone?: string; reauthReturnTo?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.topic}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
 
-function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York" }: Props) {
+function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "", allowRecordPicker = false, timeZone = "America/New_York", reauthReturnTo }: Props) {
   const router = useRouter();
   const sending = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -198,7 +198,7 @@ function SupportFormSession({ ownerId, topic, requestKey, caseId, transactionId,
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>
     </select></span></label> : <input type="hidden" name="status" value="open" />}
     {feedback.status === "error" && showError ? <p ref={formError} id="support-error" role="alert" tabIndex={-1} className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{feedback.message}</p> : null}
-    {showError && feedback.status === "error" && /sign in again/i.test(feedback.message) ? <Link href={`${authNavigationHref("/login", caseId ? `/support?case=${encodeURIComponent(caseId)}#conversation` : "/support#report-problem")}`} target="_blank" rel="noopener">Sign in again, then return to this draft</Link> : null}
+    {showError && feedback.status === "error" && /sign in again/i.test(feedback.message) ? <Link href={authNavigationHref("/login", reauthReturnTo ?? "/support#report-problem")}>Sign in again, then return to this draft</Link> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
     {uncertain ? <>
       <button ref={recoveryButton} type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {

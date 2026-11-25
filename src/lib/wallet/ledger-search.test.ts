@@ -505,6 +505,16 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("November 5 card charges of $24 at Netflix")).toEqual(["netflix"]);
   expect(search("money out for PlayStation no holds or credits")).toEqual(["entry", "big-entry", "later-entry"]);
   expect(search("order payment ending 1A514C4F")).toEqual(["walmart"]);
+  expect(search("any payment ending 1A514C4F")).toEqual(["walmart"]);
+  expect(search("receipts for Chase deposits of at least $10 on 11/5")).toEqual(["deposit"]);
+  expect(search("receipts for Wells Fargo deposits of at least $10 on 11/3")).toEqual([]);
+  expect(search("Chase deposits before 10 pm November 5")).toEqual(["deposit"]);
+  expect(search("Chase deposits before 9 pm November 5")).toEqual([]);
+  expect(search("which orders paid $24 at Netflix after 7 pm November 5")).toEqual(["netflix"]);
+  expect(search("deposits up to $160 made on Chase on November 5")).toEqual(["deposit"]);
+  expect(search("deposits up to $25 made on Chase on November 5")).toEqual([]);
+  expect(search("Chase deposits November 5 minus the $160 one")).toEqual([]);
+  expect(search("Chase deposits November 5 minus the $25 one")).toEqual(["deposit"]);
   expect(search("deposits made without Wells Fargo")).toEqual(["deposit"]);
   expect(search("entries since Nov 5 but before November 7")).toEqual(["entry", "big-entry"]);
   expect(search("between Nov 2 and 5 funding")).toEqual(["deposit", "wells", "day-four"]);

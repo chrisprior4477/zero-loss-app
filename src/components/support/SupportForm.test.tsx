@@ -10,6 +10,21 @@ const caseId = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
 
+test("reauthenticates in the same tab and returns to the exact unsent transaction report", async () => {
+  const returnTo = `/support?transaction=${caseId}&walletView=1#report-problem`;
+  const props = { ownerId: "account", requestKey: "support_request_001", transactionId: caseId, reauthReturnTo: returnTo };
+  mocks.save.mockResolvedValue({ status: "error", message: "Please sign in again to send this message." });
+  const { unmount } = render(<SupportForm {...props} />);
+  fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "My unsent transaction report." } });
+  fireEvent.submit(screen.getByRole("button", { name: "Send support request" }).closest("form")!);
+  const link = await screen.findByRole("link", { name: "Sign in again, then return to this draft" });
+  expect(link.getAttribute("href")).toBe(`/login?next=${encodeURIComponent(returnTo)}`);
+  expect(link.getAttribute("target")).toBeNull();
+  unmount();
+  render(<SupportForm {...props} />);
+  expect(screen.getByDisplayValue("My unsent transaction report.")).toBeTruthy();
+});
+
 test("restores a draft with an unreadable attachment and checks an uncertain save before enabling edits", async () => {
   const props = { ownerId: "account", requestKey: "support_request_001", allowRecordPicker: true };
   const requestKey = "existing_draft_key";
