@@ -134,13 +134,14 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
   const editorDraftKey = `${storageKey}:card-editor:${returnHref ?? "wallet"}`;
-  function fundingControlBookmark(id: string) {
-    return { fundingControlReturn: window.location.href, fundingControlBookmark: { id, top: window.scrollY } };
-  }
-  function rememberBalanceReturn() {
-    window.history.replaceState({ ...window.history.state, ...fundingControlBookmark("funding-back-to-wallet"), fundingBalanceDraft: {
-      href: window.location.href, walletId, returnHref, amount, customAmount, selectedToken,
-    } }, "");
+  function rememberFundingReturn(id: string) {
+    const href = window.location.href;
+    window.history.replaceState({
+      ...window.history.state,
+      fundingControlReturn: href,
+      fundingControlBookmark: { id, top: window.scrollY },
+      fundingBalanceDraft: { href, walletId, returnHref, amount, customAmount, selectedToken },
+    }, "");
   }
   const restoredBalanceDraft = useRef(false);
   useLayoutEffect(() => {
@@ -202,7 +203,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     setManageCards(true);
     if (location.pathname === "/account/wallet") {
       const id = manageCardsOpener.current?.id;
-      if (id && location.hash !== "#add-card") window.history.replaceState({ ...window.history.state, ...fundingControlBookmark(id) }, "");
+      if (id && location.hash !== "#add-card") rememberFundingReturn(id);
       openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href, fundingSavedCardsOpener: id || undefined });
     }
     else revealWalletSection("add-card", "add-card");
@@ -723,13 +724,13 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
-      <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
+      <div className={styles.savedHeading}><strong>Saved cards</strong><button id="funding-manage-cards" type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
       {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => chooseDepositCard(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}
       <div hidden={!manageCards}>{cardPanel}</div>
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
       {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
-      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link id="funding-back-to-wallet" href={walletBalanceHref} onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link id="funding-back-to-wallet" href={walletBalanceHref} onNavigate={() => rememberFundingReturn("funding-back-to-wallet")} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;
 }

@@ -34,6 +34,7 @@ test.each(["phone", "desktop"])("browser Back closes saved cards and retains the
     await waitFor(() => expect(window.location.hash).toBe("#add-funds"));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Manage saved cards", expanded: false })));
     expect(screen.getByLabelText("Add specific amount (USD)")).toHaveProperty("value", "$42");
+    expect(window.history.state?.fundingBalanceDraft).toMatchObject({ amount: "4200", customAmount: "42" });
     window.history.forward();
     await waitFor(() => expect(screen.getByRole("radio", { name: /ending 5556 for this deposit/ })).toHaveProperty("checked", true));
   } finally {
