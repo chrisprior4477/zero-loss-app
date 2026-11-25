@@ -74,24 +74,28 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   </div>;
   const quantity = parseEntryQuantity(rawQuantity);
   const sharedToken = typeof share === "string" && shareUuid.test(share) ? share : undefined;
-  if (rawQuantity !== undefined && quantity === null) return <div className="mx-auto max-w-3xl p-6 text-white">
-    <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Check your free-entry quantity</h1>
-    <HelpLandingScroll target="free-entry-intro" focusOnArrival />
-    <p role="status" className="mt-3">This link does not contain a valid whole-number entry quantity.</p>
-    <Link href={freeEntryHref(product.slug, browseReturn, 1, sharedToken) + "#free-entry-intro"} className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Continue with one entry</Link>
-    <Link href={productEntryHref(product.slug, 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action")} className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Back to {product.title}</Link>
-  </div>;
+  const recheckPaidQuantity = recheck === "1";
   const backHref = productEntryHref(product.slug, quantity ?? 1, browseReturn, sharedToken).replace(/#enter-entry$/, "#entry-action");
   const returnUrl = new URL(backHref, "https://zeroloss.local");
-  if (recheck === "1") returnUrl.searchParams.set("quantity", "invalid");
+  if (recheckPaidQuantity) returnUrl.searchParams.set("quantity", "invalid");
+  const returnToProduct = returnUrl.pathname + returnUrl.search + returnUrl.hash;
+  if (quantity === null && (rawQuantity !== undefined || recheckPaidQuantity)) return <div className="mx-auto max-w-3xl p-6 text-white">
+    <h1 id="free-entry-intro" tabIndex={-1} className="text-2xl font-black">Check your free-entry quantity</h1>
+    <HelpLandingScroll target="free-entry-intro" focusOnArrival />
+    <p role="status" className="mt-3">{recheckPaidQuantity ? "Your paid-entry quantity needs review. You can continue with one free entry." : "This link does not contain a valid whole-number entry quantity."}</p>
+    <Link href={freeEntryHref(product.slug, browseReturn, 1, sharedToken) + (recheckPaidQuantity ? "&quantity=1&recheck=1" : "") + "#free-entry-intro"} className="mt-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Continue with one entry</Link>
+    <Link href={returnToProduct} className="ml-4 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Back to {product.title}</Link>
+  </div>;
   const account = await getAccountContext();
   const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");
   const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
+  const instructionsHref = freeEntryHref(product.slug, browseReturn, quantity, sharedToken)
+    + (recheckPaidQuantity ? (quantity === 1 ? "&quantity=1&recheck=1" : "&recheck=1") : "") + "#free-entry-intro";
 
   return (
     <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference}
-      signInHref={account ? undefined : authNavigationHref("/login", freeEntryHref(product.slug, browseReturn, quantity, sharedToken) + "#free-entry-intro")} intro={<>
-        <Link href={returnUrl.pathname + returnUrl.search + returnUrl.hash} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
+      signInHref={account ? undefined : authNavigationHref("/login", instructionsHref)} intro={<>
+        <Link href={returnToProduct} scroll={false} className="inline-flex min-h-8 items-center text-sm font-bold text-cyan-300 hover:text-white sm:min-h-0">← Back to {product.title}</Link>
         <AccountSettingsLandingScroll target="free-entry-intro" focusTarget="free-entry-intro" visitKey={product.slug} restrictToTargetHash allScreens settleAfterNavigation skipForHistoryKey="zeroLossPrintInstructions" />
         <FreeEntryInstructions prizeSelected />
       </>} footer={

@@ -9,7 +9,7 @@ import { createContext, useCallback, useContext, useId, useLayoutEffect, useRef,
 import { FilterForm, type BrowseFilterProps, type BrowseFilterDraft } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
-import { browsePrizeValueLabel, parseBrowseFilterState } from "@/lib/catalog/browse-filters";
+import { browseCategoryProductType, browsePrizeValueLabel, parseBrowseFilterState } from "@/lib/catalog/browse-filters";
 import { catalogSearchLimitMessage, catalogSearchTooLong, invalidCatalogSearch, invalidCatalogSearchMessage, maxCatalogSearchLength, searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
@@ -304,7 +304,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
   function prizeCategoryHref(value: string, term = search) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
     if (collection) url.searchParams.set("collection", collection);
-    if (props.filters.type !== "all") url.searchParams.set("type", props.filters.type);
+    const type = browseCategoryProductType(value, props.filters.type);
+    if (type !== "all") url.searchParams.set("type", type);
     if (props.filters.availableOnly) url.searchParams.set("available", "1");
     if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
     if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
@@ -403,7 +404,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     if (collection) fullCategory.searchParams.set("collection", collection);
     const fullCategoryHref = fullCategory.pathname + fullCategory.search + "#search-results";
     const seeAllHref = products.length ? href : fullCategoryHref;
-    const matchesFilters = products.length > 0 && (Boolean(search.trim()) || props.filters.type !== "all" || props.filters.availableOnly
+    const matchesFilters = products.length > 0 && (Boolean(search.trim()) || browseCategoryProductType(category.id, props.filters.type) !== "all" || props.filters.availableOnly
       || props.filters.minValue !== null || props.filters.maxValue !== null || category.id === "ending-soon" && Boolean(props.ticketsLeft));
     const seeAllLabel = matchesFilters ? "See matching prizes" : category.id ? "See all " + category.label : "See all products";
     return <section ref={previewRef} className={styles.preview} aria-label={`${category.label} product preview`}>

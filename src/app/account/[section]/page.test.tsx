@@ -40,6 +40,12 @@ async function openOrderNotification(order: AccountOrder) {
   return url;
 }
 
+test("the sign-out options shortcut survives sign-in", async () => {
+  mocks.account.mockResolvedValue(null);
+  await expect(LiveAccountSection({ params: Promise.resolve({ section: "security" }), searchParams: Promise.resolve({ section: "sessions" }) }))
+    .rejects.toMatchObject({ digest: expect.stringContaining("/login?next=%2Faccount%2Fsecurity%3Fsection%3Dsessions%23sign-out-everywhere") });
+});
+
 test.each([0, 1, 8])("Report a problem resolves exact order %i, including repeated products and later pages", async index => {
   await expect(LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: orders[index].orderNumber, support: "report" }) }))
     .rejects.toMatchObject({ digest: expect.stringContaining("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem") });

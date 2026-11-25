@@ -49,15 +49,7 @@ export function FreeEntryLink({ slug, from, share, className, children }: {
   const context = useContext(EntrySelection);
   const quantity = context && context.selection[2] === null ? Math.min(context.selection[0], context.maximum) : undefined;
   const link = useRef<HTMLAnchorElement>(null);
-  return <Link ref={link} scroll={false} data-history-return onNavigate={event => {
-    if (context?.selection[2] != null) {
-      const input = document.querySelector<HTMLInputElement>('#entry-quantity[aria-invalid="true"]');
-      if (input && !input.disabled) {
-        event.preventDefault();
-        input.focus();
-        return;
-      }
-    }
+  return <Link ref={link} scroll={false} data-history-return onNavigate={() => {
     if (link.current) rememberAccountHistoryReturn(link.current);
   }} href={freeEntryHref(slug, from, quantity, share) + (context?.selection[2] != null ? "&recheck=1" : "") + "#free-entry-intro"} className={className}>{children}</Link>;
 }

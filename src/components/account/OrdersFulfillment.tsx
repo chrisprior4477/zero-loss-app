@@ -21,7 +21,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const transactionHelp = walletTransactionHelpHref.replace("#transactions", `&fromOrders=1${filter === "all" ? "" : `&orderFilter=${filter}`}#transactions`);
   const reportHref = chooseTransaction ? transactionHelp : supportHref;
-  const supportLabel = chooseTransaction ? "Choose a transaction to report" : supportHref.startsWith("/support?rewardId=") ? "Report a problem with this reward" : "Report a problem with this order";
+  const reportReward = supportHref.startsWith("/support?rewardId=");
+  const supportLabel = chooseTransaction ? "Choose a transaction to report" : reportReward ? "Report a problem with this reward" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
   const { records } = fulfillment;
   const complete = overview ? fulfillment.complete : !state.incomplete && state.source !== "unavailable";
@@ -127,7 +128,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", filterReset
         <aside className={styles.sideRail} aria-label="Fulfillment links">
           <section className={styles.helpCard}>
             <span><AccountIcon name="security" /></span><h2>Need help with an order?</h2>
-            <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : reportHref.includes("reward=") ? "Your support request will include this reward." : "Your support request will include this order’s transaction."}</p>
+            <p>{chooseTransaction ? "Open Order details or Reward details, then tap Report a problem to Support. You can also choose a transaction from your wallet below." : reportReward ? "Your support request will include this reward reference." : "Your support request will include this order’s transaction."}</p>
             <Link href={reportHref} data-history-return={chooseTransaction || undefined}>{supportLabel}<AccountIcon name="arrow" /></Link>
           </section>
         </aside>

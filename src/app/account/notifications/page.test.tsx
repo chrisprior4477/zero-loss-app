@@ -34,6 +34,12 @@ test("signed-out visitors return to Notifications after login", async () => {
   expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fnotifications%23notification-tickets-filters&focus=email#login-form");
   expect(mocks.from).not.toHaveBeenCalled();
 });
+test("Favorites watchlist email settings stay selected through login", async () => {
+  mocks.account.mockResolvedValue(null);
+  mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(NotificationsPage({ searchParams: Promise.resolve({ section: "favorite-email" }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fnotifications%23favorite-alert-preference&focus=email#login-form");
+});
 test("repeated identical notification filters keep the selected category", async () => {
   mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
   await expect(NotificationsPage({ searchParams: Promise.resolve({ filter: ["orders", "orders"] }) })).rejects.toThrow("NEXT_REDIRECT");

@@ -14,6 +14,7 @@ const spokenMeasurement = new RegExp(String.raw`\b(${smallNumberWords})[ -]+(inc
 const giftCardValue = String.raw`\$\s*\d+(?:\.\d{1,2})?`;
 const restrictedGiftAlternatives = new RegExp(String.raw`^gift cards?\s+(${giftCardValue}(?:\s+or\s+${giftCardValue})+)\s+(?:but\s+)?only\s+from\s+(.+?)\s*[.!?]?$`, "i");
 const exactGiftCardEach = new RegExp(String.raw`^(.+?)\s+gift cards?\s+at\s+(${giftCardValue})\s+each\s*[.!?]?$`, "i");
+const giftCardOptions = new RegExp(String.raw`^(.+?)\s+(${giftCardValue}(?:\s+(?:and|or)\s+${giftCardValue})+)\s+gift card options?\s*[.!?]?$`, "i");
 
 export function searchCatalogMatches(
   products: readonly DemoProduct[],
@@ -32,6 +33,13 @@ export function searchCatalogMatches(
     .replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
     .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
+    .replace(giftCardOptions, (phrase, retailer: string, values: string) => catalogMerchant(retailer, products)
+      ? retailer + " gift cards " + values.replace(/\s+and\s+/gi, " or ") : phrase)
+    .replace(/^gift cards?\s+(?:at|from)\s+(.+?)\s+rather than\s+(.+?)\s*[.!?]?$/i,
+      (phrase, preferred: string, excluded: string) => catalogMerchant(preferred, products) && catalogMerchant(excluded, products)
+        ? preferred + " gift cards excluding " + excluded : phrase)
+    .replace(/^non[ -]+gift[ -]+cards?\s+(?:prizes?|items?|products?)\s+(?:at|from)\s+/i, "pictured ")
+    .replace(/\s+(?:and\s+)?within\s+(?=\$\s*\d)/gi, " up to ")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/^\s*all\s+(?=electronics\b)/i, "")
     .replace(/^only\s+(\$\s*[\d,.]+?)\s+cards?\s+from\s+(.+?)\s*[.!?]?$/i,
@@ -62,7 +70,7 @@ export function searchCatalogMatches(
     .replace(/\b(?:with (?:tickets? available(?:\s+now)?|(?:tickets?|entries)\s+(?:left|still open))|(?:that|which)\s+(?:(?:still\s+)?have\s+available\s+tickets?|still\s+have\s+(?:tickets?|entries)(?:\s+left)?)|(?:has|have)\s+(?:tickets?|entries)\s+left)\s*[.!?]?$/i, " available")
     .replace(/\b(gift cards?)\s+of\s+(?=\$)/i, "$1 ")
     .replace(/(\bgift cards?\s+(?:from|at|sold by)\s+.+?)\s+worth\s+(?=exactly\s+\$)/i, "$1 ")
-    .replace(/(\bgift cards?\b.*\$\s*\d[\d,.]*)\s+per card\s*[.!?]?$/i, "$1")
+    .replace(/(\bgift cards?\b.*\$\s*\d[\d,.]*)\s+per (?:gift\s+)?card\s*[.!?]?$/i, "$1")
     .replace(/\b(gift cards?)\s+for\s+(?=(?:less than|under|below|at most|up to)\s+\$)/i, "$1 ")
     .replace(/\bstill open\s*[.!?]?$/i, " available")
     .replace(/\bat\s+(\$\s*\d[\d,.]*?)\s+or\s+below\s*[.!?]?$/i, "up to $1")

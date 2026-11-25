@@ -20,7 +20,7 @@ import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls, type BrowsePreviewPr
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowseResultsLink, EndingSoonRangeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
-import { browseRetailers, filterBrowseProducts, isBrowseSort, isBrowseProductType, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
+import { browseCategoryProductType, browseRetailers, filterBrowseProducts, isBrowseSort, isBrowseProductType, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { BrowseProductCard } from "@/components/catalog/BrowseProductCard";
@@ -165,7 +165,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     const matches = (isEnding ? exactEndingMatches : previewMatches)
       .filter(product => !id || productMatchesMarketplaceCategory(product, id));
     const matching = filterBrowseProducts(filterEndingSoonTickets(matches, isEnding ? ticketsLeft : null),
-      { ...filters, retailer: "", sort }, searchTerm, isEnding && query.sort !== "fewest-left");
+      { ...filters, retailer: "", sort, type: browseCategoryProductType(id, filters.type) }, searchTerm, isEnding && query.sort !== "fewest-left");
     const sorted = id === "groceries" && !searchTerm && sort === "featured"
       ? groceryStoreFirst(matching, discoveryGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
       : matching;

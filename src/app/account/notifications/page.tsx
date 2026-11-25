@@ -24,7 +24,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const section = matchingQueryValue(query?.section);
   const notificationDestination = section === "alerts"
     ? listPath + (listPath.includes("?") ? "&" : "?") + "section=alerts#alert-settings"
-    : listPath + (section === "email" ? "#email-choices" : "#notification-tickets-filters");
+    : listPath + (section === "favorite-email" ? "#favorite-alert-preference" : section === "email" ? "#email-choices" : "#notification-tickets-filters");
   const account = await getAccountContext("report");
   if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) {

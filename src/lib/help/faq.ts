@@ -34,7 +34,7 @@ export const faqItems: FaqItem[] = [
     id: "unrecognized-sign-in", category: "account", question: "What should I do about a sign-in I don’t recognize?",
     answer: "Open Account & Security and review your latest recorded sign-in. If you can still sign in, use Change password to secure your account. Use Sign out everywhere to revoke existing sessions. You can report an unfamiliar sign-in through private Support.",
     keywords: "unknown suspicious sign in logout log out devices sessions",
-    action: { label: "Review sign-out options", href: "/account/security#sign-out-everywhere" },
+    action: { label: "Review sign-out options", href: "/account/security?section=sessions#sign-out-everywhere" },
     followUpAction: { label: "Report an account problem", href: "/support?topic=account#report-problem" },
   },
   {
@@ -96,7 +96,7 @@ export const faqItems: FaqItem[] = [
     id: "favorite-watchlist-emails", category: "account", question: "How do I stop emails about my favorites?",
     answer: "Open Email choices in Notifications and use Favorites watchlist emails to change the account preference. To change the choice for a single prize, open Your Favorites and adjust its email setting.",
     keywords: "favorite favourites watchlist email turn off stop",
-    action: { label: "Open Favorites watchlist emails", href: "/account/notifications?section=email#favorite-alert-preference" },
+    action: { label: "Open Favorites watchlist emails", href: "/account/notifications?section=favorite-email#favorite-alert-preference" },
   },
   {
     id: "privacy-requests", category: "account", question: "How do I request my data or close my account?",

@@ -72,3 +72,16 @@ test.each(["0", "-1", "7.5", "2147483648", ["2", "7"]].map(quantity => ({ quanti
   render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", quantity }) }));
   expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")).toBe("/items/airpods-pro#entry-action");
 });
+
+test("an invalid paid selection can continue to one free entry", async () => {
+  const query = { offering: "airpods-pro", recheck: "1" };
+  const warning = render(await FreeEntryPage({ searchParams: Promise.resolve(query) }));
+  expect(screen.getByRole("heading", { name: "Check your free-entry quantity" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Continue with one entry" }).getAttribute("href"))
+    .toBe("/free-entry?offering=airpods-pro&quantity=1&recheck=1#free-entry-intro");
+  warning.unmount();
+  render(await FreeEntryPage({ searchParams: Promise.resolve({ ...query, quantity: "1" }) }));
+  expect(screen.getByRole("button", { name: "Print entry insert" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href"))
+    .toBe("/items/airpods-pro?quantity=invalid#entry-action");
+});

@@ -3,6 +3,33 @@ import { searchLedger } from "./ledger-search";
 import { ledgerDescription } from "./transaction-links";
 import type { LedgerEntryRow } from "./snapshot";
 
+test("filtering deposits and releases retains issuer, date, receipt and strict time boundaries", () => {
+  const entries: LedgerEntryRow[] = [
+    { id: "late-chase", entry_type: "DEPOSIT", amount: 16000, created_at: "2026-11-06T02:05:00Z" },
+    { id: "early-chase", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-05T23:30:00Z" },
+    { id: "in-window-chase", entry_type: "DEPOSIT", amount: 200, created_at: "2026-11-05T23:38:00Z" },
+    { id: "end-window-chase", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-06T00:00:00Z" },
+    { id: "early-other", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-05T22:10:00Z" },
+    { id: "previous-month-chase", entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-29T21:00:00Z" },
+    { id: "released", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at: "2026-11-21T23:38:00Z" },
+    { id: "refund-other-date", entry_type: "REFUND", amount: 100, created_at: "2026-11-20T23:38:00Z" },
+  ];
+  const search = (query: string) => searchLedger(entries, query, row => [
+    ...ledgerDescription(row.entry_type),
+    row.id.endsWith("-chase") ? "Chase ending 1117" : "",
+  ], entries, {
+    timeZone: "America/New_York", locale: "en-US", now: new Date("2026-11-24T23:30:00Z"),
+    hasDepositReceipt: row => row.id === "late-chase" || row.id === "in-window-chase",
+  }).map(row => row.id);
+  expect(search("first Chase deposit on November 5")).toEqual(["early-chase"]);
+  for (const query of ["Chase November deposits under $25", "deposits on Chase in November below $25"]) {
+    expect(search(query), query).toEqual(["early-chase", "in-window-chase", "end-window-chase"]);
+  }
+  expect(search("Chase deposits with a receipt on November 5")).toEqual(["late-chase", "in-window-chase"]);
+  expect(search("deposits after 6:30 pm and before 7 pm on Nov 5")).toEqual(["in-window-chase"]);
+  expect(search("refunds and released holds on November 21")).toEqual(["released"]);
+});
+
 test("matches deposit card metadata, order references, and compound payment searches", () => {
   const date = "2026-11-06T02:05:00Z";
   const netflix = { slug: "netflix-25-gift-card", title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/netflix.png" };
@@ -472,6 +499,12 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("deposits $1 and above on November 5 excluding $160")).toEqual([]);
   expect(search("deposits from one dollar to twenty five dollars on November 4")).toEqual(["day-four"]);
   expect(search("posted amount one dollar debit on November 5")).toEqual(["entry"]);
+  expect(search("which card paid the $160 deposit")).toEqual(["deposit"]);
+  expect(search("Netflix gift card purchases only on 11/5")).toEqual(["netflix"]);
+  expect(search("November 5 posted transactions from Best Buy for -$1")).toEqual(["entry"]);
+  expect(search("November 5 card charges of $24 at Netflix")).toEqual(["netflix"]);
+  expect(search("money out for PlayStation no holds or credits")).toEqual(["entry", "big-entry", "later-entry"]);
+  expect(search("order payment ending 1A514C4F")).toEqual(["walmart"]);
   expect(search("deposits made without Wells Fargo")).toEqual(["deposit"]);
   expect(search("entries since Nov 5 but before November 7")).toEqual(["entry", "big-entry"]);
   expect(search("between Nov 2 and 5 funding")).toEqual(["deposit", "wells", "day-four"]);

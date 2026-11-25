@@ -172,6 +172,14 @@ test("choosing Ending Soon retains its usual near-capacity ordering", () => {
   expect(navigation.replace).toHaveBeenCalledWith("/browse?sort=ending-soon#search-results", { scroll: false });
 });
 
+test("choosing Gift Cards drops the incompatible product type and keeps the other filters", () => {
+  render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} searchTerm="Target"
+    filters={{ ...props.filters, type: "pictured", availableOnly: true, maxValue: 75, sort: "value-high" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Gift Cards.*Browse prizes/ }));
+  expect(navigation.replace).toHaveBeenCalledWith("/browse?category=gift-cards&available=1&maxValue=75&sort=value-high&q=Target#search-results", { scroll: false });
+});
+
 function openPriceFilters() {
   render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} />);
   fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));

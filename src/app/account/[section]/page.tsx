@@ -65,7 +65,7 @@ export default async function LiveAccountSection({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams?: Promise<{ filter?: string | string[]; filterReset?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[]; alerts?: string | string[]; notice?: string | string[] }>;
+  searchParams?: Promise<{ filter?: string | string[]; filterReset?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[]; alerts?: string | string[]; notice?: string | string[]; section?: string | string[] }>;
 }) {
   const { section } = await params;
   if (!Object.hasOwn(liveSections, section)) notFound();
@@ -80,7 +80,8 @@ export default async function LiveAccountSection({
   const account = await getAccountContext("report");
   if (account === "unavailable") return <AccountSessionRetry />;
   if (!account) {
-    const anchor = section === "orders" && query && (query.order || query.rewardId || query.filter)
+    const anchor = section === "security" && query?.section === "sessions" ? "#sign-out-everywhere"
+      : section === "orders" && query && (query.order || query.rewardId || query.filter)
       ? typeof query.order === "string" ? `#order-${query.order}` : "#fulfillment-records" : query?.filterReset === "1" ? "#order-status-filters" : "";
     redirect(authNavigationHref("/login", accountPageReturnPath(`/account/${section}`, query, anchor)));
   }

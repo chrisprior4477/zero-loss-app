@@ -33,6 +33,10 @@ const sortOptions: BrowseSort[] = ["featured", "fewest-left", "price-low", "valu
 export function isBrowseProductType(value: unknown): value is BrowseProductType {
   return productTypes.includes(value as BrowseProductType);
 }
+
+export function browseCategoryProductType(category: string, type: BrowseProductType): BrowseProductType {
+  return category === "gift-cards" && type === "pictured" ? "all" : type;
+}
 export function isBrowseSort(value: string) {
   return value === "ending-soon" || sortOptions.some(sort => sort === value);
 }

@@ -299,12 +299,12 @@ test("copy waits for the newly selected audience link", async () => {
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}?share=${crewToken}`));
 });
 
-test("browser Back leaves the share open at the previous step", () => {
+test.each([["Email", "Email this item"], ["Text", "Send a text"]])("browser Back from %s restores the previous step and trigger", (channel, heading) => {
   window.history.replaceState(null, "", "/items/test-prize");
   const close = vi.fn();
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={close} focusOnOpen />);
-  fireEvent.click(screen.getByRole("button", { name: "Email" }));
-  expect(screen.getByRole("heading", { name: "Email this item" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: channel }));
+  expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
 
   const back = () => act(() => {
     window.history.replaceState(null, "");
@@ -312,6 +312,7 @@ test("browser Back leaves the share open at the previous step", () => {
   });
   back();
   expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: channel }));
   expect(close).not.toHaveBeenCalled();
   back();
   expect(close).toHaveBeenCalledOnce();

@@ -5,6 +5,11 @@ import { searchCatalog, searchCatalogMatches } from "./search";
 import { matchesCatalogMerchant, remainingTicketFilter, searchDenominations } from "./search-denomination";
 
 test.each([
+  ["Target or Walmart gift cards priced between $25 and $50 per gift card", "gift cards between $25 and $50 from Target or Walmart"],
+  ["gift cards at Target rather than Walmart", "Target gift cards"],
+  ["non gift card prizes at Walmart under $75", "pictured Walmart prizes under $75"],
+  ["Target $25 and $50 gift card options", "Target gift cards $25 or $50"],
+  ["Sony or JBL headphones at Best Buy and within $400", "Sony or JBL headphones from Best Buy up to $400"],
   ["gift cards $25 or $50 but only from Walmart", "Walmart gift cards $25 or $50"],
   ["Target or Walmart gift cards at $25 each", "Target or Walmart gift cards exactly $25"],
   ["Gift cards from Best Buy other than the $25 and $50 cards", "Best Buy gift cards excluding $25 and $50"],

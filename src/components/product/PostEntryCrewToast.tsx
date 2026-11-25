@@ -145,9 +145,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     onClose();
   }, busy, true, false, restoreManualHistory ? "manual-product-sharing" : "product-sharing");
   const previousDelivery = useRef<{ step: "messages" | "email"; from: Step } | null>(null);
+  const deliveryFocus = useRef<"messages" | "email" | null>(null);
   useDialogBack(deliveryHistory, () => {
     if (step === "messages" || step === "email") {
       previousDelivery.current = { step, from: history.current.at(-1) ?? "home" };
+      deliveryFocus.current = step;
       back();
     } else { back(); return true; }
   }, busy, true, true, "share-delivery", () => {
@@ -247,7 +249,13 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   useEffect(() => {
     if ((previousStep.current === null && focusOnOpen) || (previousStep.current !== null && previousStep.current !== step)) {
       if (paper.current) paper.current.scrollTop = 0;
-      if (step === "home" && returnToGroupTrigger.current) {
+      const deliveryTrigger = deliveryFocus.current
+        ? dialog.current?.querySelector<HTMLButtonElement>(`[data-share-delivery="${deliveryFocus.current}"]`)
+        : null;
+      deliveryFocus.current = null;
+      if (deliveryTrigger) {
+        restoreDialogTrigger(deliveryTrigger, true);
+      } else if (step === "home" && returnToGroupTrigger.current) {
         returnToGroupTrigger.current = false;
         restoreDialogTrigger(groupShareButton.current, true);
       } else if (step === "copy" && focusManualLink.current) {
@@ -684,8 +692,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     <div><strong>{item.title}</strong>{item.retailer ? <small>{item.retailer}{item.value !== undefined ? ` · $${item.value.toLocaleString()} value` : ""}</small> : null}</div>
   </div>;
   const shortcuts = <div className={styles.shortcuts}>
-    <button type="button" onClick={() => go("messages")}><ShareIcon name="message" />Text</button>
-    <button type="button" onClick={() => go("email")}><ShareIcon name="mail" />Email</button>
+    <button type="button" data-share-delivery="messages" onClick={() => go("messages")}><ShareIcon name="message" />Text</button>
+    <button type="button" data-share-delivery="email" onClick={() => go("email")}><ShareIcon name="mail" />Email</button>
   </div>;
   const pictureLink = url ? <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pictureLink}>
     <Image src={`/items/${item.slug}/opengraph-image`} alt={`${item.title} sharing picture`} width={1200} height={630} unoptimized />
@@ -750,7 +758,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <button type="button" className={styles.primary} onClick={() => void loadAudiences()} disabled={busy}><ShareIcon name="crew" />Share with my Crew</button>
         <button type="button" className={styles.crewButton} onClick={() => void loadAudiences(true)} disabled={busy}><ShareIcon name="crew" />Share with my groups</button>
         <button type="button" onClick={() => go("find")}><ShareIcon name="search" />Find someone on Zero Loss</button>
-        <button type="button" onClick={() => go("messages")}><ShareIcon name="message" />Send to anyone</button>
+        <button type="button" data-share-delivery="messages" onClick={() => go("messages")}><ShareIcon name="message" />Send to anyone</button>
       </div> : null}
 
       {step === "messages" ? <>
