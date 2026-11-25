@@ -581,6 +581,12 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\b(?:charged|debited)\b.*\b(?:closed|left|lost)\b.*\b(?:page|screen|tab)\b.*\bwallet balance\b/, "funding-status"],
+  [/\b(?:payment|checkout)\b.*\b(?:approved|paid|went through)\b.*\b(?:order|gift[ -]?card)\b.*\b(?:processing|pending|issuing)\b/, "order-issuance"],
+  [/\b(?:purchases?|offers?|options?)\b.*\bdeclined\b.*\b(?:restore|recover|reopen|revive)\b/, "decline-and-revive"],
+  [/\bindividual\b.*\b(?:ticket|entry|receipt|record)\b.*\b(?:group|stack)\b.*\b(?:wallet|transaction|payments?)\b/, "transaction-stack"],
+  [/\b(?:transactions?|transaction list|wallet history)\b.*\b(?:blank|empty|gone|missing)\b.*\b(?:demo reset|resetting the demo)\b/, "archived-transactions"],
+  [/\b(?:cannot|can't|cant|unable to)\s+find\b.*\bfavou?rites?\b.*\b(?:sent|shared)\s+(?:me|with me)\b/, "crew-shared-with-you"],
   [/\b(?:deposit|funding|top[ -]?up)\b.*\b(?:shows?|says?|still|is)\s+processing\b/, "funding-status"],
   [/\b(?:end|close|revoke|sign out of)\s+(?:all|every)\s+(?:active\s+)?sessions?\b/, "unrecognized-sign-in"],
   [/\bstop\s+sharing\b.*\b(?:already shared|made before|previously shared|existing|older|past)\b/, "stop-sharing"],

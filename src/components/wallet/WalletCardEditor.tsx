@@ -14,6 +14,7 @@ import styles from "./wallet-payments.module.css";
 export const savedCardEditPrefix = "#wallet-edit-card/";
 export const fundingCardEditorId = "funding-card-editor";
 export const walletBalanceHref = "/account/wallet?view=history&landing=balance#balance";
+export const fundingLandingHistoryKeys = ["fundingAmountReturnFocus", "fundingControlReturn"] as const;
 
 export function openWalletPanel(hash: string, state: object | null = null, replace = false) {
   if (replace) window.history.replaceState(state, "", hash);

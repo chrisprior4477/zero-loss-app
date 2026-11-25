@@ -33,7 +33,7 @@ import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
-import { WalletCardEditor, walletBalanceHref, revealWalletSection, fundingCardEditorId, openWalletPanel } from "./WalletCardEditor";
+import { WalletCardEditor, walletBalanceHref, revealWalletSection, fundingCardEditorId, fundingLandingHistoryKeys, openWalletPanel } from "./WalletCardEditor";
 import paymentStyles from "./wallet-payments.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
@@ -134,8 +134,11 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const fundingEditorHash = `#${fundingCardEditorId}`;
   const returnHref = continueTo?.href ?? null;
   const editorDraftKey = `${storageKey}:card-editor:${returnHref ?? "wallet"}`;
+  function fundingControlBookmark(id: string) {
+    return { fundingControlReturn: window.location.href, fundingControlBookmark: { id, top: window.scrollY } };
+  }
   function rememberBalanceReturn() {
-    window.history.replaceState({ ...window.history.state, fundingBalanceDraft: {
+    window.history.replaceState({ ...window.history.state, ...fundingControlBookmark("funding-back-to-wallet"), fundingBalanceDraft: {
       href: window.location.href, walletId, returnHref, amount, customAmount, selectedToken,
     } }, "");
   }
@@ -154,6 +157,37 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     if (draft.selectedToken === null || visibleTokens.includes(draft.selectedToken)) setSelectedToken(draft.selectedToken);
   }, [ready, recovered, returnHref, visibleTokens, walletId]);
+  useLayoutEffect(() => {
+    let timers: number[] = [];
+    const stop = () => { timers.forEach(window.clearTimeout); timers = []; };
+    function restore() {
+      stop();
+      const { fundingControlReturn: href, fundingControlBookmark: saved, fundingAmountReturnFocus } = window.history.state ?? {};
+      if (href !== location.href || fundingAmountReturnFocus === href || returnToAmount.current || typeof saved?.id !== "string" || !Number.isFinite(saved.top)) return;
+      function align() {
+        if (location.href !== href || window.history.state?.fundingAmountReturnFocus === href || document.querySelector("dialog[open]")) return;
+        const control = document.getElementById(saved.id);
+        if (!control || control.closest("[hidden]")) return;
+        window.scrollTo({ top: saved.top, behavior: "instant" });
+        control.focus({ preventScroll: true });
+        const bounds = control.getBoundingClientRect();
+        if (bounds.top < (document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0) || bounds.bottom > innerHeight) revealBelowHeader(control);
+      }
+      timers = [0, 120, 400, 900].map(delay => window.setTimeout(align, delay));
+    }
+    restore();
+    window.addEventListener("popstate", restore);
+    window.addEventListener("pointerdown", stop);
+    window.addEventListener("keydown", stop);
+    window.addEventListener("wheel", stop, { passive: true });
+    return () => {
+      stop();
+      window.removeEventListener("popstate", restore);
+      window.removeEventListener("pointerdown", stop);
+      window.removeEventListener("keydown", stop);
+      window.removeEventListener("wheel", stop);
+    };
+  }, []);
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
@@ -166,7 +200,11 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     }
     manageCardsOpener.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setManageCards(true);
-    if (location.pathname === "/account/wallet") openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href, fundingSavedCardsOpener: manageCardsOpener.current?.id || undefined });
+    if (location.pathname === "/account/wallet") {
+      const id = manageCardsOpener.current?.id;
+      if (id && location.hash !== "#add-card") window.history.replaceState({ ...window.history.state, ...fundingControlBookmark(id) }, "");
+      openWalletPanel("#add-card", { fundingSavedCardsReturn: window.location.href, fundingSavedCardsOpener: id || undefined });
+    }
     else revealWalletSection("add-card", "add-card");
   }
   function closeSavedCards() {
@@ -363,7 +401,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
         if (returningToFunding) {
           const trigger = manageCardsOpener.current;
           if (returnToAmount.current) { revealWalletSection(amountSection, amountSection); return; }
-          const href = window.location.href;
+          if (window.history.state?.fundingControlReturn === href) return;
           requestAnimationFrame(() => requestAnimationFrame(() => {
             if (window.location.href !== href || document.activeElement !== document.body && document.activeElement !== trigger && !document.activeElement?.closest("#add-card")) return;
             focusFundingControl(trigger?.isConnected ? trigger : document.getElementById("funding-add-card-trigger"));
@@ -629,7 +667,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly && !desktop && cardPanel}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
-    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash skipForHistoryKey="fundingAmountReturnFocus" />}
+    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
     <div id={amountSection} className={styles.fundingAmountSection}>
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
@@ -691,7 +729,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
       {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
-      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link href={walletBalanceHref} onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link id="funding-back-to-wallet" href={walletBalanceHref} onNavigate={rememberBalanceReturn} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;
 }

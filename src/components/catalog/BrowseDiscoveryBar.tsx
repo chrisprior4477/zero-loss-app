@@ -293,7 +293,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       router.replace(destination, { scroll: false });
     }
   }
-  function choose(href: string, preserveSubcategory = false, replacementSearch = props.searchTerm) {
+  const validOuterSearch = invalidCatalogSearch(search) || catalogSearchTooLong(search.trim()) ? props.searchTerm : search.trim();
+  function choose(href: string, preserveSubcategory = false, replacementSearch = validOuterSearch) {
     const url = new URL(href, "https://zeroloss.local");
     if (collection) url.searchParams.set("collection", collection);
     if (replacementSearch) url.searchParams.set("q", replacementSearch);
@@ -432,10 +433,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
         </Link>
         <button type="button" data-refine-preview onClick={() => {
           pickerVoice.cancel();
-          setRefineTarget({ category: category.id || null, href });
-          setRefineVisit(visit => visit + 1);
-          filterDraft.current = undefined;
-          setInitialFilterDraft(undefined);
+          if (refineTarget?.href !== href) {
+            setRefineTarget({ category: category.id || null, href });
+            setRefineVisit(visit => visit + 1);
+            filterDraft.current = undefined;
+            setInitialFilterDraft(undefined);
+          }
           setOpenPanel(current => current && { ...current, panel: "filters" });
         }}>Refine search</button>
       </div>
@@ -446,7 +449,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
     aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined}
     onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory, "", props.ticketsLeft), false,
       query.trim() && !searchTextMatches(group.category, query) && group.options.some(option => searchTextMatches(option.label, query))
-        ? query.trim() : props.searchTerm)}>
+        ? query.trim() : validOuterSearch)}>
     <span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span>
   </button>);
 
@@ -494,7 +497,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & {
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` · ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <BrowseResultsLink target="heading" href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</BrowseResultsLink> : null}
       {!props.filters.retailer && props.selectedRetailerGroup ? <BrowseResultsLink target="heading" href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</BrowseResultsLink> : null}
-      {activeCount > 0 || props.filters.retailer || props.subcategory ? <BrowseResultsLink target="heading" href={`${props.clearHref}#search-results`}>Clear filters</BrowseResultsLink> : null}
+      {activeCount > 0 || props.filters.retailer || props.subcategory ? <BrowseResultsLink returnAnchor="browse-clear-filters" target="heading" href={`${props.clearHref}#search-results`}>Clear filters</BrowseResultsLink> : null}
     </div> : null}
     {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog} ${wideCategories && mode === "categories" ? styles.wideDialog : ""}`} aria-labelledby={`${id}-title`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab} onKeyDownCapture={event => {
       if (event.key === "Escape" && event.target instanceof HTMLInputElement && event.target.type === "search") {

@@ -23,6 +23,14 @@ test("choosing a category transfers focus to the loaded results once", () => {
   expect(document.activeElement).toBe(document.body);
 });
 
+test("browser history returns focus to Clear filters", () => {
+  const url = "/browse?category=electronics&q=Sony&maxValue=2500#browse-clear-filters";
+  window.history.replaceState(null, "", url);
+  render(<><div id="search-results"><a id="browse-clear-filters" href="/browse?category=electronics&q=Sony#search-results">Clear filters</a></div>
+    <SearchResultsAutoScroll searchKey={url} /></>);
+  expect(document.activeElement?.id).toBe("browse-clear-filters");
+});
+
 test.each([
   [true, "#prize-mac-lipstick"], [false, "#prize-mac-lipstick"],
   [true, "#search-results#prize-mac-lipstick"], [false, "#prize-mac-lipstick#search-results"],

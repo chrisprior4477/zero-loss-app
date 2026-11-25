@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["my card was charged but i closed the page before seeing the wallet balance", "funding-status"],
+  ["why is my payment approved but my order code is still processing", "order-issuance"],
+  ["where can i see the purchases i declined to restore one", "decline-and-revive"],
+  ["how do i see one individual ticket in a group of identical wallet payments", "transaction-stack"],
+  ["my transaction list is blank after the demo reset", "archived-transactions"],
+  ["i cannot find a favorite someone sent me", "crew-shared-with-you"],
   ["do i need to fund the wallet again if my deposit shows processing", "funding-status"],
   ["someone got my login and i need to end every active session", "unrecognized-sign-in"],
   ["stop sharing picks made before today, not just future ones", "stop-sharing"],

@@ -5,7 +5,7 @@ import { accountLandingTop } from "@/lib/account/landing-position";
 import { hasAccountHistoryReturn } from "./AccountHistoryReturn";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false, skipForHash, skipForHistoryKey }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean; skipForHash?: string; skipForHistoryKey?: string }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, compactTarget, focusTarget, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false, skipForHash, skipForHistoryKey }: { target: string; initialTarget?: string; landingAlias?: string; compactTarget?: string; focusTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean; skipForHash?: string; skipForHistoryKey?: string | readonly string[] }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -29,13 +29,15 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       scope?.style.setProperty("--settings-header-bottom", `${bottom}px`);
       return bottom;
     };
+    const historyKeys = typeof skipForHistoryKey === "string" ? [skipForHistoryKey] : skipForHistoryKey;
+    const restoringControl = () => historyKeys?.some(key => window.history.state?.[key] === window.location.href);
     const align = () => {
-      if (disposed || interrupted || hasAccountHistoryReturn() || (skipForHistoryKey && window.history.state?.[skipForHistoryKey] === window.location.href)
+      if (disposed || interrupted || hasAccountHistoryReturn() || restoringControl()
         || (!allScreens && !window.matchMedia?.("(max-width: 767px)").matches)) return;
       cancel();
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {
-          if (disposed || interrupted || hasAccountHistoryReturn() || (skipForHistoryKey && window.history.state?.[skipForHistoryKey] === window.location.href)) return;
+          if (disposed || interrupted || hasAccountHistoryReturn() || restoringControl()) return;
           // Older profile shortcuts should retain the four section buttons too.
           const id = requestedId === landingAlias ? target : requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
           const useCompactTarget = compactTarget && (!id || id === target) && window.matchMedia?.("(max-width: 700px)").matches;

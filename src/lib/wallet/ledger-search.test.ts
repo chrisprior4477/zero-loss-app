@@ -26,6 +26,11 @@ test("filtering deposits and releases retains issuer, date, receipt and strict t
     expect(search(query), query).toEqual(["early-chase", "in-window-chase", "end-window-chase"]);
   }
   expect(search("Chase deposits with a receipt on November 5")).toEqual(["late-chase", "in-window-chase"]);
+  expect(search("Chase receipts for deposits on November 5")).toEqual(["late-chase", "in-window-chase"]);
+  expect(search("which deposit receipt shows $160 paid using Chase")).toEqual(["late-chase"]);
+  expect(search("which deposit receipt shows $160 paid using Discover")).toEqual([]);
+  expect(search("deposits on November 5 between $10 and $160 using Chase")).toEqual(["late-chase"]);
+  expect(search("all November 5 Chase deposits from $1 to $25")).toEqual(["early-chase", "in-window-chase", "end-window-chase"]);
   expect(search("deposits after 6:30 pm and before 7 pm on Nov 5")).toEqual(["in-window-chase"]);
   expect(search("refunds and released holds on November 21")).toEqual(["released"]);
 });
@@ -505,6 +510,11 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("November 5 card charges of $24 at Netflix")).toEqual(["netflix"]);
   expect(search("money out for PlayStation no holds or credits")).toEqual(["entry", "big-entry", "later-entry"]);
   expect(search("order payment ending 1A514C4F")).toEqual(["walmart"]);
+  expect(search("Walmart purchases with confirmation 1A514C4F")).toEqual(["walmart"]);
+  expect(search("Netflix purchases with confirmation 1A514C4F")).toEqual([]);
+  expect(search("show only the November 5 card purchases from Netflix")).toEqual(["netflix"]);
+  expect(search("transactions where my balance was debited $1 at Best Buy November 5")).toEqual(["entry"]);
+  expect(search("charges for the PlayStation 5 between 6 pm and 10 pm Nov 5")).toEqual(["entry", "big-entry"]);
   expect(search("any payment ending 1A514C4F")).toEqual(["walmart"]);
   expect(search("receipts for Chase deposits of at least $10 on 11/5")).toEqual(["deposit"]);
   expect(search("receipts for Wells Fargo deposits of at least $10 on 11/3")).toEqual([]);

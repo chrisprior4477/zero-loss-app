@@ -224,8 +224,8 @@ export function SearchResultsAutoScroll({
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
         ? document.getElementById(hashId) : null;
       const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
-      const pager = /^#(browse-more-prizes|ending-first-last|ending-next-prizes|ending-previous-prizes)$/.exec(window.location.hash)?.[1];
-      const target = pager ? pager
+      const control = /^#(browse-clear-filters|browse-more-prizes|ending-first-last|ending-next-prizes|ending-previous-prizes)$/.exec(window.location.hash)?.[1];
+      const target = control ? control
         : window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
         : footerHeading ? footerHeading
@@ -245,14 +245,16 @@ export function SearchResultsAutoScroll({
           requestedFocus = { href: window.location.href, target: "heading", expires: Date.now() + 5000 };
         }
       }
-      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (pager ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
+      const focusTarget = groceryNotice ?? footerField ?? invalidSearchInput ?? (control ? document.getElementById(target) : null) ?? (missingPrize || focusObsoleteBatch && target === "search-results" ? document.getElementById("browse-results-heading") : null) ?? (target.startsWith("prize-")
         ? document.getElementById(target) : null);
       let focused = false;
       const scroll = () => {
         if (cancelled) return;
         if (!focused && window.location.search === renderedSearch) focusResults = takeBrowseFocus() ?? focusResults;
         if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request" && focusResults !== "categories-top" && focusResults !== "categories-bottom"))) {
-          document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "instant" });
+          const element = document.getElementById(target);
+          if (element && target === "browse-clear-filters") revealBelowHeader(element);
+          else element?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }
         if ((focusTarget || focusResults) && !focused) {
           focused = true;

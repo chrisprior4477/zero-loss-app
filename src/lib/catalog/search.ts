@@ -39,6 +39,14 @@ export function searchCatalogMatches(
       (phrase, preferred: string, excluded: string) => catalogMerchant(preferred, products) && catalogMerchant(excluded, products)
         ? preferred + " gift cards excluding " + excluded : phrase)
     .replace(/^non[ -]+gift[ -]+cards?\s+(?:prizes?|items?|products?)\s+(?:at|from)\s+/i, "pictured ")
+    .replace(/^(.+?)\s+gift cards?\s+with denominations of\s+(\$\s*\d[\d,.]*(?:\s+(?:and|or)\s+\$\s*\d[\d,.]*)+)\s*[.!?]?$/i,
+      (phrase, retailers: string, amounts: string) => allKnownRetailers(retailers, products)
+        ? "gift cards from " + retailers + " " + amounts.replace(/\s+and\s+/gi, " or ") : phrase)
+    .replace(/^the\s+(\$\s*\d[\d,.]*?)\s+(.+?)\s+gift card\s+with tickets? left\s*[.!?]?$/i,
+      (phrase, amount: string, retailer: string) => catalogMerchant(retailer, products) ? "available " + retailer + " gift cards exactly " + amount : phrase)
+    .replace(/\s+with\s+(?:a\s+)?(\$\s*\d[\d,.]*?)\s+budget\s*[.!?]?$/i, " up to $1")
+    .replace(/\bwith\s+screens?\s+(\d+(?:\.\d+)?\s+inch(?:es)?)\s+or\s+larger\b/i, "at least $1")
+    .replace(/^(.+?)\s+that\s+cost(?:s)?\s+(no more than|at most|up to|less than|under)\s+(\$\s*\d[\d,.]*)\s+to enter and (?:is|are)\s+worth\s+(.+?)\s*[.!?]?$/i, "$1 $4 $2 $3 per entry")
     .replace(/\s+(?:and\s+)?within\s+(?=\$\s*\d)/gi, " up to ")
     .replace(/^\s*(?:any|all|retailer)\s+(?=.*\bgift\s*cards?\b)/i, "")
     .replace(/^\s*all\s+(?=electronics\b)/i, "")
@@ -242,6 +250,14 @@ export function searchCatalogMatches(
   const standaloneConsole = /^(.*\b(?:p[.\s-]*s|play[\s-]*station)[.\s-]*5\b.*?)\s*,?\s+(?:(?:but\s+)?(?:no|not|without|excluding)\s+(?:(?:a|any)\s+)?(?:game\s+)?bundles?|that\s+is\s+not\s+bundled)\s*[.!?]?$/i.exec(query);
   if (standaloneConsole) {
     return searchCatalogMatches(products.filter(product => !isGiftCardListing(product) && !/\bbundle\b/.test(normalizeSearch(product.title))), standaloneConsole[1], undefined, { includeLowerGiftCards });
+  }
+  const switchHardware = /^(.+?\bswitch\b.*?)\s*,?\s+(?:but\s+)?(?:no|not|without|excluding)\s+(?:games?|accessories)(?:\s+(?:or|and)\s+(?:games?|accessories))?\s*[.!?]?$/i.exec(query);
+  if (switchHardware && /\bnintendo\s+switch\b/i.test(switchHardware[1])) {
+    const hardware = products.filter(product => /\bnintendo switch\b/.test(normalizeSearch(product.title))
+      && /\b(?:model|console|oled|lite)\b/.test(normalizeSearch(product.title))
+      && !/\b(?:case|controller|controllers|dock|bundle|game|accessories)\b/.test(normalizeSearch(product.title))
+      && !isGiftCardListing(product));
+    return searchCatalogMatches(hardware, switchHardware[1], undefined, { includeLowerGiftCards });
   }
   const endingSoon = /^(?:ending soon|almost full|close to selling out)\s+(.+)$/i.exec(query);
   const humanFood = /\bgift\s*cards?\s+for\s+food\b/i;

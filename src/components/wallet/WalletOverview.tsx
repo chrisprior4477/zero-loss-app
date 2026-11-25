@@ -15,6 +15,7 @@ import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { WalletHistoryLandingScroll, WalletTransactionsLink } from "./WalletLandingScroll";
+import { fundingLandingHistoryKeys } from "./WalletCardEditor";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { PurchaseDepositRecovery } from "./PurchaseDepositRecovery";
 import { WeeklyDeposits } from "./WeeklyDeposits";
@@ -82,7 +83,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
   return <div className={styles.page}>
     <AccountSettingsLandingScroll target="balance" initialTarget={landOnBalance ? "balance" : undefined} focusTarget="balance" settleAfterNavigation allScreens restrictToTargetHash />
-    {!returnToProduct && !recoveryKey && <AccountSettingsLandingScroll target="add-funds" focusTarget="funding-heading" settleAfterNavigation allScreens restrictToTargetHash skipForHistoryKey="fundingAmountReturnFocus" />}
+    {!returnToProduct && !recoveryKey && <AccountSettingsLandingScroll target="add-funds" focusTarget="funding-heading" settleAfterNavigation allScreens restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
     <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} fromOrders={Boolean(ordersReturnHref)} enabled={!landOnBalance && !recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
