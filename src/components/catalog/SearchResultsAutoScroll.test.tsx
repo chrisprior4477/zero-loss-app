@@ -31,6 +31,16 @@ test("browser history returns focus to Clear filters", () => {
   expect(document.activeElement?.id).toBe("browse-clear-filters");
 });
 
+test.each(["price", "categories", "any-value"])("browser history returns focus to the %s recovery link", (kind) => {
+  const id = "browse-recovery-" + kind;
+  const url = "/browse?category=groceries&q=sony+headphones&maxValue=75#" + id;
+  window.history.replaceState(null, "", url);
+  render(<><div id="search-results"><a id={id} href="/browse?q=sony+headphones#search-results">Recover search</a></div>
+    <SearchResultsAutoScroll searchKey={url} /></>);
+  expect(document.activeElement?.id).toBe(id);
+  expect(window.location.search).toBe("?category=groceries&q=sony+headphones&maxValue=75");
+});
+
 test.each([
   [true, "#prize-mac-lipstick"], [false, "#prize-mac-lipstick"],
   [true, "#search-results#prize-mac-lipstick"], [false, "#prize-mac-lipstick#search-results"],

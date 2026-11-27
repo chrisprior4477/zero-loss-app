@@ -25,7 +25,7 @@ import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, weeklyDeposit, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, transactionRetryHref, hiddenProducts, notificationReturnHref, ordersReturnHref, ordersFilter, transactionSearch, landOnBalance = false, unavailablePanel = false }:   {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, depositAction, weeklyDeposit, fromDeposits, depositList, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, transactionRetryHref, hiddenProducts, notificationReturnHref, ordersReturnHref, ordersFilter, transactionSearch, landOnBalance = false, unavailablePanel = false }:   {
   timeZone?: string;
   restoreLedgerView?: boolean;
   hiddenProducts?: ReadonlySet<string>;
@@ -40,7 +40,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   fundingEnabled?: boolean;
   requestKey?: string;
   recoveryKey?: string;
-  depositRow?: string;
+  depositRow?: string; depositAction?: "receipt";
   weeklyDeposit?: string;
   transactionSearch?: string;
   notificationReturnHref?: string;
@@ -159,7 +159,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} timeZone={timeZone} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits key={weeklyDeposit ?? "weeks"} restoreReceipt={selected ? undefined : weeklyDeposit} requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} asOf={new Date().toISOString()} timeZone={timeZone} />}
-        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} focusAction={depositAction} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </div>;

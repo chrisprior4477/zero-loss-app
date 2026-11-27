@@ -57,13 +57,18 @@ const twoDateLimits = new RegExp(`^(?:(?:posted\\s+)?transactions?\\s+)?(${dateL
 const writtenDate = String.raw`[\p{L}.]+\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?`;
 const clockWithMeridiem = String.raw`\d{1,2}(?::\d{2})?\s*[ap]m`;
 const namedDay = String.raw`(?:${writtenDate}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)`;
-const orderReference = /^(?:(?:(.+?)\s+)?order(?:\s+(?:number|reference|ref|no\.?|payment(?=\s+ending\b)))?\s+(?:ending\s+|#\s*)?|(?:any\s+)?payment\s+ending\s+|(?:(.+?)\s+)?purchases?\s+with\s+confirmation\s+|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i;
+const orderReference = /^(?:(?:(.+?)\s+)?order(?:\s+(?:number|reference|ref|no\.?|payment(?=\s+ending\b)))?\s+(?:ending(?:\s+in)?\s+|#\s*)?|(?:any\s+)?payment\s+ending\s+|(?:(.+?)\s+)?purchases?\s+with\s+confirmation\s+|(?=ord_))(ord_[a-z0-9_-]{4,76}|[a-f0-9]{8,32})$/i;
 
 export function ledgerShowsOrderReference(query: string, orderNumber: string) {
   const reference = orderReference.exec(query.trim())?.[3] ?? /^(?:ref(?:erence)?(?: ending)?\s+)?([a-f0-9]{8,32})$/i.exec(query.trim())?.[1];
   return reference !== undefined && orderNumber.toLowerCase().endsWith(reference.toLowerCase());
 }
 const spokenDollars = String.raw`(a|${smallNumberWords})\s+(?:dollars?|bucks?)`;
+const ordinalDays = [
+  "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+  "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth",
+  "twenty first", "twenty second", "twenty third", "twenty fourth", "twenty fifth", "twenty sixth", "twenty seventh", "twenty eighth", "twenty ninth", "thirtieth", "thirty first",
+];
 
 function localDateKey(timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -338,6 +343,17 @@ function chronologicalEdge<T extends LedgerEntryRow>(rows: T[], edge: "first" | 
 export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: string, describe: (entry: T) => readonly string[], fullLedger: readonly T[] = entries, calendar: SearchCalendar = { timeZone: "UTC", locale: "en-US" }): T[] {
   const raw = rawQuery.trim()
     .replace(/^(?:please\s+)?show(?: me)?\s+(?:my\s+)?/i, "")
+    .replace(new RegExp(String.raw`^(?:deposits?|funding)\s+with\s+receipt numbers?\s+(?:from|with|using)\s+(.+?)\s+on\s+(${namedDay})[.!?]?$`, "iu"), "$1 deposit receipts on $2")
+    .replace(new RegExp(String.raw`^(?:the\s+)?(${namedDay})\s+(\$\s*${dollars})\s+(?:deposit\s+)?receipt\s+from\s+(.+?)[.!?]?$`, "iu"), "which deposit receipt shows $2 using $3 on $1")
+    .replace(new RegExp(String.raw`^${entryPaymentType}\s+(?:from|at)\s+(.+?)\s+of\s+${spokenDollars}\s+on\s+(${namedDay})[.!?]?$`, "iu"),
+      (_, retailer: string, amount: string, date: string) => "entry payments $" + spokenValue(amount) + " for " + retailer + " on " + date)
+    .replace(new RegExp(String.raw`^(.+?\s+(?:deposits?|funding)\s+between\s+\$\s*${dollars}\s+and\s+\$\s*${dollars})\s+and\s+((?:before|after)\s+${clockWithMeridiem})\s+on\s+(${namedDay})[.!?]?$`, "iu"), "$1 on $3 $2")
+    .replace(/^wallet\s+(?:funding|deposits?)\s+from\s+(.+?)\s+(?:for|on)\s+(?:the\s+)?([a-z-]+(?:\s+[a-z-]+)?)\s+of\s+([\p{L}.]+?)(?:\s+(\d{4}))?[.!?]?$/iu,
+      (phrase, issuer: string, ordinal: string, month: string, year?: string) => {
+        const day = ordinalDays.indexOf(normalizeSearch(ordinal)) + 1;
+        const date = month + " " + day + (year ? " " + year : "");
+        return day && dateBoundary(date, calendar) ? issuer + " deposits on " + date : phrase;
+      })
     .replace(new RegExp(String.raw`^(deposits?|funding)\s+on\s+(${namedDay})\s+(between\s+\$\s*${dollars}\s+and\s+\$\s*${dollars})\s+(?:using|with)\s+(.+?)[.!?]?$`, "iu"), "$4 $1 $3 on $2")
     .replace(new RegExp(String.raw`^(?:all\s+)?(${namedDay})\s+(.+?)\s+(deposits?|funding)\s+from\s+(\$\s*${dollars})\s+to\s+(\$\s*${dollars})[.!?]?$`, "iu"), "$2 $3 between $4 and $5 on $1")
     .replace(/^(.+?)\s+receipts?\s+for\s+(deposits?|funding)\s+(?=on\b|from\b)/i, "$1 $2 receipts ")
@@ -483,12 +499,21 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
     const matches = amountMatch(receiptAmount);
     return entries.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry) && matches(entry.amount));
   }
-  const issuerReceipt = new RegExp(String.raw`^which\s+deposit\s+receipt\s+shows?\s+(\$\s*${dollars})\s+(?:paid\s+)?using\s+(.+?)[.!?]?$`, "i").exec(trimmed);
+  const issuerReceipt = new RegExp(String.raw`^which\s+deposit\s+receipt\s+shows?\s+(\$\s*${dollars})\s+(?:paid\s+)?using\s+(.+?)(?:\s+on\s+(${namedDay}))?[.!?]?$`, "iu").exec(trimmed);
   if (issuerReceipt) {
     const matches = amountMatch(issuerReceipt[1]);
     const issuer = normalizeSearch(issuerReceipt[2]);
-    return entries.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry)
+    const dated = issuerReceipt[3] ? searchLedgerDates(entries, issuerReceipt[3], calendar) ?? [] : entries;
+    return dated.filter(entry => entry.entry_type === "DEPOSIT" && calendar.hasDepositReceipt?.(entry)
       && matches(entry.amount) && sameMerchant(savedIssuer(describe(entry)) ?? "", issuer));
+  }
+  const latestPostedCharge = new RegExp(String.raw`^(?:(?:my|the)\s+)?(?:last|latest|most recent)\s+posted\s+charge\s+(?:from|at)\s+(.+?)\s+on\s+(${namedDay})[.!?]?$`, "iu").exec(trimmed);
+  if (latestPostedCharge) {
+    const retailer = normalizeSearch(latestPostedCharge[1]);
+    const dated = searchLedgerDates(entries, latestPostedCharge[2], calendar);
+    return chronologicalEdge((dated ?? []).filter(entry => entry.amount < 0
+      && (entry.entry_type === "PURCHASE_DEBIT" || entry.entry_type === "ENTRY_DEBIT")
+      && sameMerchant(normalizeSearch(entry.product?.retailer ?? ""), retailer)));
   }
   const latestOrder = /^(?:(?:my|the)\s+)?(?:last|latest|most recent)\s+(?:(.+?)\s+order|(?:purchase|order)\s+(?:from|at)\s+(.+))$/i.exec(trimmed);
   if (latestOrder) {

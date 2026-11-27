@@ -298,15 +298,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3 text-left">
       {priceMatchCount ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{priceMatchCount.toLocaleString("en-US")} {priceMatchCount === 1 ? "match is" : "matches are"} {outsideBudget}{categoryScope ? ` in ${categoryScope}` : ""}.</p>
-        <BrowseResultsLink href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} target="heading" className={recoveryLinkClass}>Remove price filter</BrowseResultsLink>
+        <BrowseResultsLink href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} returnAnchor="browse-recovery-price" target="heading" className={recoveryLinkClass}>Remove price filter</BrowseResultsLink>
       </div> : null}
       {broaderSearch ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{broaderSearch.count.toLocaleString("en-US")} {broaderSearch.count === 1 ? "match" : "matches"} outside {broaderScope}{budgetLabel ? ` · ${budgetLabel}` : ""}.</p>
-        <BrowseResultsLink href={broaderSearch.href} target="heading" className={recoveryLinkClass}>Search all categories</BrowseResultsLink>
+        <BrowseResultsLink href={broaderSearch.href} returnAnchor="browse-recovery-categories" target="heading" className={recoveryLinkClass}>Search all categories</BrowseResultsLink>
       </div> : null}
       {widerRecovery ? <div className="min-w-0">
         <p className="mb-2 text-sm text-white/85">{widerRecovery.count.toLocaleString("en-US")} {widerRecovery.count === 1 ? "match" : "matches"} across all categories without the prize-value filter.</p>
-        <BrowseResultsLink href={widerRecovery.href} target="heading" className={recoveryLinkClass}>Search all categories at any value</BrowseResultsLink>
+        <BrowseResultsLink href={widerRecovery.href} returnAnchor="browse-recovery-any-value" target="heading" className={recoveryLinkClass}>Search all categories at any value</BrowseResultsLink>
       </div> : null}
     </div>
   ) : null;

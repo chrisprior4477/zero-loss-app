@@ -581,6 +581,12 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "find
 
 const normalizeFaq = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replace(/\bcan'?t\b/g, "cannot");
 const faqIntents: readonly [RegExp, string][] = [
+  [/\bclear(?:ing)?\b.*\bdemo (?:history|wallet)\b.*\b(?:entr(?:y|ies)|deposits?|balance)\b/, "clear-demo-history"],
+  [/\b(?:wrong|incorrect)\b.*\b(?:quantity|number of tickets)\b.*\b(?:stopped|closed|left|cancell?ed)\b.*\bcheckout\b.*\b(?:money|charged|paid|balance)\b/, "entry-status"],
+  [/\b(?:added|deposited|loaded)\s+(?:money|funds)\b.*\b(?:open )?entr(?:y|ies)\b.*\b(?:the same|unchanged|did not change|didn't change)\b/, "entry-after-funding"],
+  [/\bclaim date\b.*\b(?:identical|duplicate|matching|two)\b.*\b(?:rewards?|cards?)\b/, "matching-rewards"],
+  [/\b(?:stop|disable|turn off)\s+reminders?\s+(?:for|about)\s+(?:my\s+)?purchases?\b/, "email-alert-preferences"],
+  [/\b(?:sent|submitted)\b.*\b(?:message|case|request)\b.*\bsupport\b.*\b(?:continue|reopen|reply to)\b.*\b(?:conversation|case|message)\b/, "support-case"],
   [/\b(?:charged|debited)\b.*\b(?:closed|left|lost)\b.*\b(?:page|screen|tab)\b.*\bwallet balance\b/, "funding-status"],
   [/\b(?:payment|checkout)\b.*\b(?:approved|paid|went through)\b.*\b(?:order|gift[ -]?card)\b.*\b(?:processing|pending|issuing)\b/, "order-issuance"],
   [/\b(?:purchases?|offers?|options?)\b.*\bdeclined\b.*\b(?:restore|recover|reopen|revive)\b/, "decline-and-revive"],

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { openEntriesAnchorId, type ActivityFilter } from "@/lib/account/activity";
 import { readActivityViewReturn } from "@/lib/account/activity-view-return";
 import { activityHelpReturnKey } from "@/components/layout/FooterHelpLink";
+import { hasAccountHistoryReturn } from "./AccountHistoryReturn";
 
 /** Every mobile activity tab lands at its filters; Open Entries also does so on desktop. */
 export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabled }: { ownerId?: string; filter: ActivityFilter; revealControls: boolean; enabled: boolean }) {
@@ -56,6 +57,7 @@ export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabl
     let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
+        if (hasAccountHistoryReturn() || ownerId && readActivityViewReturn(window.history.state, ownerId, window.location.href, filter)) return;
         const target = document.getElementById(openEntriesAnchorId);
         if (!target) return;
 

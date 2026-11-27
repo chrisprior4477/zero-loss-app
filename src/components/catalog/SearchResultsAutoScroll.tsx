@@ -224,7 +224,7 @@ export function SearchResultsAutoScroll({
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
         ? document.getElementById(hashId) : null;
       const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
-      const control = /^#(browse-clear-filters|browse-more-prizes|ending-first-last|ending-next-prizes|ending-previous-prizes)$/.exec(window.location.hash)?.[1];
+      const control = /^#(browse-clear-filters|browse-recovery-(?:price|categories|any-value)|browse-more-prizes|ending-first-last|ending-next-prizes|ending-previous-prizes)$/.exec(window.location.hash)?.[1];
       const target = control ? control
         : window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
@@ -253,7 +253,7 @@ export function SearchResultsAutoScroll({
         if (!focused && window.location.search === renderedSearch) focusResults = takeBrowseFocus() ?? focusResults;
         if (!groceryNotice && (!focused || (focusResults !== "first-prize" && focusResults !== "product-request" && focusResults !== "categories-top" && focusResults !== "categories-bottom"))) {
           const element = document.getElementById(target);
-          if (element && target === "browse-clear-filters") revealBelowHeader(element);
+          if (element && (target === "browse-clear-filters" || target.startsWith("browse-recovery-"))) revealBelowHeader(element);
           else element?.scrollIntoView?.({ block: "start", behavior: "instant" });
         }
         if ((focusTarget || focusResults) && !focused) {

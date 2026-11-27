@@ -33,6 +33,19 @@ export function searchCatalogMatches(
     .replace(spokenMeasurement, (_, number: string, unit: string) => String(spokenValue(number)) + " " + unit)
     .replace(/^\s*(?:(?:please\s+)?(?:search for|show me|find me|look for))\s+/i, "")
     .replace(/^\s*where\s+(?:are|is)\s+(?:(?:your|the)\s+)?/i, "")
+    .replace(/^(.+?\bgift cards?)\s+(\$\s*\d[\d,.]*?)\s+or more but no more than\s+(\$\s*\d[\d,.]*?)\s*[.!?]?$/i,
+      "$1 between $2 and $3")
+    .replace(/^gift cards?\s+at\s+(.+?),\s*price\s+(\$\s*\d[\d,.]*)\s+or\s+(\$\s*\d[\d,.]*?),?\s+no other amounts\s*[.!?]?$/i,
+      (phrase, retailer: string, first: string, second: string) => catalogMerchant(retailer, products)
+        ? retailer + " gift cards " + first + " or " + second : phrase)
+    .replace(/^(.+?)\s+gift cards?\s+for\s+(\$\s*\d[\d,.]*)\s+(?:and|or)\s+(\$\s*\d[\d,.]*)\s+with open entr(?:y|ies)\s*[.!?]?$/i,
+      (phrase, retailer: string, first: string, second: string) => catalogMerchant(retailer, products)
+        ? "available " + retailer + " gift cards " + first + " or " + second : phrase)
+    .replace(new RegExp(String.raw`^entr(?:y|ies)\s+(under|less than|at most|up to)\s+(${smallNumberWords})\s+dollars?\s+for\s+(?:the\s+)?(.+?)\s*[.!?]?$`, "i"),
+      (_, bound: string, amount: string, product: string) => product + " " + bound + " $" + spokenValue(amount) + " per entry")
+    .replace(/^prizes?\s+worth\s+(under|below|up to|at most)\s+(\$\s*\d[\d,.]*?)\s+with\s+only\s+(\d+)\s+entr(?:y|ies)\s+remaining\s+at\s+(.+?)\s*[.!?]?$/i,
+      (phrase, bound: string, amount: string, count: string, retailer: string) => catalogMerchant(retailer, products)
+        ? retailer + " prizes " + bound + " " + amount + " with " + count + " " + (count === "1" ? "ticket" : "tickets") + " left" : phrase)
     .replace(giftCardOptions, (phrase, retailer: string, values: string) => catalogMerchant(retailer, products)
       ? retailer + " gift cards " + values.replace(/\s+and\s+/gi, " or ") : phrase)
     .replace(/^gift cards?\s+(?:at|from)\s+(.+?)\s+rather than\s+(.+?)\s*[.!?]?$/i,
@@ -217,6 +230,14 @@ export function searchCatalogMatches(
         return searchCatalogMatches(scoped, text, { ...scope, text, merchant: null }, { includeLowerGiftCards });
       }
     }
+  }
+  const budgetAudio = /^(.+?)\s+((?:headphones?|earbuds?|earphones?|headsets?|speakers?)(?:\s+or\s+(?:headphones?|earbuds?|earphones?|headsets?|speakers?))+)\s+at\s+(\$\s*\d[\d,.]*)\s+or less\s*[.!?]?$/i.exec(query);
+  const audioRetailer = budgetAudio && catalogMerchant(budgetAudio[1], products);
+  if (budgetAudio && audioRetailer) {
+    const scoped = products.filter(product => !isGiftCardListing(product) && matchesCatalogMerchant(product.retailer, audioRetailer));
+    const alternatives = budgetAudio[2].split(/\s+or\s+/i)
+      .map(type => searchDenominations(type + " up to " + budgetAudio[3], scoped));
+    return combineCatalogAlternatives(scoped, alternatives, false);
   }
   const audioChoices = /^(.+?)\s+((?:headphones?|earbuds?|earphones?|headsets?)(?:\s+or\s+(?:headphones?|earbuds?|earphones?|headsets?))+)$/i.exec(query.trim());
   if (audioChoices && hasBrand(audioChoices[1])) {

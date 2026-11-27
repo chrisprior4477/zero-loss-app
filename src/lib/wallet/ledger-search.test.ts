@@ -627,4 +627,13 @@ test("keeps wallet searches scoped to their posted record type, card, amount and
   expect(search("Chase deposits earlier than Nov 5")).toEqual([]);
   expect(search("only orders at Netflix that cleared on November 5")).toEqual(["netflix"]);
   expect(search("money added with my Chase card during November 2026")).toEqual(["deposit"]);
+  expect(search("Show deposits with receipt numbers from Chase on November 5")).toEqual(["deposit"]);
+  expect(search("The November 5 $160 receipt from Chase")).toEqual(["deposit"]);
+  expect(search("The November 3 $160 receipt from Chase")).toEqual([]);
+  expect(search("Entry debits from Best Buy of one dollar on November 5")).toEqual(["entry"]);
+  expect(search("Walmart order reference ending in 1A514C4F")).toEqual(["walmart"]);
+  expect(search("Chase deposits between $1 and $200 and before 10 pm on Nov 5")).toEqual(["deposit"]);
+  expect(search("Chase deposits between $1 and $200 and before 9 pm on Nov 5")).toEqual([]);
+  expect(search("Wallet funding from Chase for the fifth of November")).toEqual(["deposit"]);
+  expect(search("Latest posted charge from Netflix on November 5")).toEqual(["netflix"]);
 });

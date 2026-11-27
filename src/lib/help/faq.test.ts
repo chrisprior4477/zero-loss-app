@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { faqCategories, faqItems, filterFaqs } from "./faq";
 
 test.each([
+  ["does clearing the demo history cancel my entries or delete my deposits", "clear-demo-history"],
+  ["i chose the wrong prize quantity and stopped at checkout did it take money", "entry-status"],
+  ["i just added money but my open entry count is the same", "entry-after-funding"],
+  ["how can i find the exact claim date for one of two identical rewards", "matching-rewards"],
+  ["where do notifications let me stop reminders for purchases specifically", "email-alert-preferences"],
+  ["i sent a message to support where can i continue that conversation", "support-case"],
   ["my card was charged but i closed the page before seeing the wallet balance", "funding-status"],
   ["why is my payment approved but my order code is still processing", "order-issuance"],
   ["where can i see the purchases i declined to restore one", "decline-and-revive"],

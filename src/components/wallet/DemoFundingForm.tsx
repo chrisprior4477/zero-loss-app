@@ -730,7 +730,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     </div>}
     <div className={mobile && !recoveryOnly ? styles.mobileFundingActions : undefined}>
       {!recoveryOnly && mobile && <button id="funding-manage-cards" type="button" className={paymentStyles.secondary} aria-expanded={manageCards} aria-controls="add-card" onClick={event => manageCards ? closeSavedCards() : openSavedCards(event.currentTarget)}>Manage saved cards</button>}
-      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link id="funding-back-to-wallet" href={walletBalanceHref} onNavigate={() => rememberFundingReturn("funding-back-to-wallet")} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
+      <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><Link id="funding-back-to-wallet" href={walletBalanceHref} onNavigate={() => rememberFundingReturn("funding-back-to-wallet")} scroll={false} className={paymentStyles.secondary}>Back to wallet</Link><Link id="funding-continue-shopping" href="/" onNavigate={() => rememberFundingReturn("funding-continue-shopping")} className={paymentStyles.confirm}>Continue Shopping</Link></div>
     </div>
   </form>;
 }
@@ -861,7 +861,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   </>;
 }
 
-export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; focusRequest?: string; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
+export function DemoFundingRequests({ walletId, requests, focusRequest, focusAction, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; focusRequest?: string; focusAction?: "receipt"; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
   const locale = useAccountLocale();
   const [showArchived, setShowArchived] = useState(false);
   const desktop = useMenuViewport() === "desktop";
@@ -876,6 +876,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
     const url = new URL(window.location.href);
     if (!url.searchParams.has("depositRow")) return;
     url.searchParams.delete("depositRow");
+    url.searchParams.delete("depositAction");
     url.hash = "payment-deposits";
     window.history.replaceState(window.history.state, "", url);
   }
@@ -898,6 +899,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
       const url = new URL(window.location.href);
       if (url.searchParams.get("depositRow") === focusRequest) {
         url.searchParams.delete("depositRow");
+        url.searchParams.delete("depositAction");
         url.hash = "payment-deposits";
         window.history.replaceState(window.history.state, "", url);
       }
@@ -949,13 +951,13 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
       const row = document.getElementById(`deposit-row-${focusId}`);
       if (!row || focusedRow.current === row) return;
       focusedRow.current = row;
-      const action = row.querySelector<HTMLElement>("[data-deposit-credit]") ?? row;
+      const action = row.querySelector<HTMLElement>(focusAction === "receipt" ? "[data-deposit-receipt]" : "[data-deposit-credit]") ?? row;
       action.focus({ preventScroll: true });
       row.scrollIntoView?.({ block: "nearest", behavior: "instant" });
       revealBelowHeader(action);
     });
     return () => cancelAnimationFrame(frame);
-  }, [end, focusId, focusIndex, receipt]);
+  }, [end, focusAction, focusId, focusIndex, receipt]);
   const nextRow = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (!nextRow.current) return;
@@ -1000,7 +1002,7 @@ export function DemoFundingRequests({ walletId, requests, focusRequest, hiddenId
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
           <p>Request {request.id}</p><div className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"><DepositCreditLink request={request} fromDeposits timeZone={timeZone} />
-          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} data-history-return onNavigate={() => {
+          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} data-deposit-receipt data-history-return onNavigate={() => {
             remember(batches.start, batches.size, allDeposits, request.id, end);
           }} aria-label={"View deposit receipt for " + depositReceiptLabel(request, timeZone, locale)} className="font-bold underline">View deposit receipt</Link></p>}</div>
         </details>
