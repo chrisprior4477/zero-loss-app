@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { readViewMessage } from "@/lib/personal-demo/shared-view";
 import {
   demoCommand,
   demoEnabled,
@@ -23,6 +24,7 @@ const actions = new Set([
   "allow",
   "deny",
   "ack",
+  "present",
 ]);
 const json = (body: unknown, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store", Vary: "Cookie" } });
@@ -36,7 +38,12 @@ export async function POST(request: NextRequest) {
     return json({}, 403);
   try {
     const { action, value = "" } = await request.json();
-    if (!actions.has(action) || typeof value !== "string" || value.length > 160) return json({}, 400);
+    if (
+      !actions.has(action) ||
+      typeof value !== "string" ||
+      value.length > (action === "present" ? 1000 : 160)
+    )
+      return json({}, 400);
     const normal = await createClient();
     const {
       data: { user },
@@ -60,6 +67,11 @@ export async function POST(request: NextRequest) {
       return response;
     }
     let input = value;
+    if (action === "present") {
+      const view = readViewMessage(value);
+      if (!view) return json({}, 400);
+      input = JSON.stringify(view);
+    }
     if (action === "share") input = newSecret();
     if (action === "inspect" || action === "join") {
       const verified = linkGeneration(value);
@@ -83,6 +95,8 @@ export async function POST(request: NextRequest) {
       notice: data.notice,
       balance: data.balance,
       revision: data.revision,
+      activityRevision: data.activityRevision,
+      view: data.view,
       token: action === "share" ? data.generation + "." + sign("share", data.generation) : undefined,
     });
   } catch (error) {

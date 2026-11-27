@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { isAccountRefreshHeld } from "@/lib/account/account-state-events";
+import { ACCOUNT_REFRESH_RELEASED_EVENT, isAccountRefreshHeld } from "@/lib/account/account-state-events";
+import { SharedDemoView } from "./SharedDemoView";
+import type { DemoView, ViewMessage } from "@/lib/personal-demo/shared-view";
 import styles from "./personal-demo.module.css";
 
 type Notice = { kind: "ended" | "connected" | "declined"; code?: string; balance?: number };
@@ -16,6 +18,8 @@ type Demo = {
   waiting: boolean;
   balance: number;
   revision: string | null;
+  activityRevision: string | null;
+  view: DemoView | null;
   notice: Notice | null;
   token?: string;
   sharedCode?: string;
@@ -61,6 +65,9 @@ async function command(
 }
 function linkInAddress() {
   return new URLSearchParams(location.hash.slice(1)).get("demo-invite") ?? "";
+}
+async function sendView(value: ViewMessage) {
+  return (await command("present", JSON.stringify(value))).view;
 }
 function finishLink() {
   if (linkInAddress()) history.replaceState(history.state, "", location.pathname + location.search);
@@ -153,8 +160,14 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
       if (previous && previous.code !== data.code) {
         setCopied(null);
         router.refresh();
-      } else if (previous && (previous.revision !== data.revision || previous.balance !== data.balance))
+      } else if (
+        previous &&
+        (previous.activityRevision !== data.activityRevision ||
+          previous.revision !== data.revision ||
+          previous.balance !== data.balance)
+      )
         pendingRefresh.current = true;
+      else if (!previous && (data.guest || data.paired || data.guests > 0)) pendingRefresh.current = true;
       if (pendingRefresh.current && !isAccountRefreshHeld()) {
         pendingRefresh.current = false;
         router.refresh();
@@ -162,6 +175,16 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
     },
     [router],
   );
+  useEffect(() => {
+    const release = () => {
+      if (pendingRefresh.current && !isAccountRefreshHeld()) {
+        pendingRefresh.current = false;
+        router.refresh();
+      }
+    };
+    window.addEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, release);
+    return () => window.removeEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, release);
+  }, [router]);
 
   useEffect(() => {
     const media = matchMedia("(min-width: 768px)");
@@ -218,8 +241,10 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
             current.current?.guest ||
             current.current?.waiting ||
             current.current?.paired
-            ? 4500
-            : 12000,
+            ? 1100
+            : current.current?.sharing
+              ? 2200
+              : 12000,
         );
     }
     void poll();
@@ -407,7 +432,17 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
     tip: "Your demo code is " + demo?.code,
   }[panel || "menu"];
   return (
-    <div className={styles.dock}>
+    <div className={styles.dock} data-personal-demo-tools>
+      {demo && hasDemoAccount && (demo.guest || demo.paired || demo.sharing || demo.guests > 0) && (
+        <SharedDemoView
+          key={demo.code}
+          code={demo.code}
+          guest={demo.guest}
+          view={demo.view}
+          paused={["join", "entry", "end", "ended", "approve", "wait"].includes(panel)}
+          send={sendView}
+        />
+      )}
       <div className={styles.anchor}>
         <button
           ref={chip}
@@ -466,7 +501,7 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
               (demo.guest ? (
                 <>
                   <p className={styles.status}>
-                    You’re using a shared version of Zero Loss. You and your friend use the same demo wallet.
+                    You and your friend follow the same shopping pages and share this demo wallet.
                   </p>
                   <button disabled={busy} onClick={() => void act("leave")}>
                     Start my own demo
@@ -474,7 +509,7 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
                 </>
               ) : (
                 <>
-                  {demo.guests > 0 && <p>A guest can see and use your demo wallet.</p>}
+                  {demo.guests > 0 && <p>Your guest can follow your taps and use your shared demo wallet.</p>}
                   <div className={styles.choices}>
                     <button disabled={busy} onClick={() => void copy(false)}>
                       Copy website link
@@ -488,7 +523,7 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
                       {desktop ? "Enter code from my phone" : "Use on my desktop"}
                     </button>
                     <button disabled={busy} onClick={() => void copy(true)}>
-                      Share my demo with a friend<small>So we can use it together.</small>
+                      Share my demo with a friend<small>Follow each other’s taps and use the same wallet.</small>
                     </button>
                   </div>
                   {demo.sharing && (
@@ -546,7 +581,7 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
               <>
                 <p>
                   A desktop entered your code. Approve only if you just entered it on your own desktop. It
-                  will use the same demo wallet and prizes.
+                  will follow your shopping pages and use the same demo wallet and prizes.
                 </p>
                 <div className={styles.row}>
                   <button disabled={busy} onClick={() => void act("allow", demo?.pending ?? "")}>
@@ -560,9 +595,12 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
             )}
             {panel === "join" && (
               <>
-                <p>If you join, you and your friend will share a demo wallet and see the same prizes.</p>
+                <p>
+                  You and your friend will see each other’s shopping pages and taps, and share the same demo
+                  funds and prizes.
+                </p>
                 <div className={styles.row}>
-                  <button disabled={busy} onClick={() => void act("join", invite.current)}>
+                  <button disabled={busy} onClick={() => void act("join", invite.current, "")}>
                     Join your friend’s demo
                   </button>
                   <button

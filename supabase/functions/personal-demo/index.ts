@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
   try {
     const { device, action, value, bucket } = await request.json();
     const admin = createClient(url, serviceKey, options);
-    const { data, error } = await admin.rpc("personal_demo_device", {
+    const { data, error } = await admin.rpc(action === "session" ? "personal_demo_device" : "personal_demo_live_device", {
       p_device: device,
       p_action: action,
       p_value: value ?? "",
