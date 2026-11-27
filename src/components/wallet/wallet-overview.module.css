@@ -434,7 +434,7 @@
   .ledger { margin-top: 0; }
 }
 @media (max-width: 767px) {
-  .balanceCard { scroll-margin-top: calc(var(--site-header-height, 163px) + 12px); }
+  .balanceCard, .funding { scroll-margin-top: calc(var(--site-header-height, 163px) + 12px); }
   .fundingAmountSection { scroll-margin-top: calc(var(--site-header-height, 92px) + 12px); }
   .demoCardsPanel[data-collapsed="true"] { display: none; }
 }

@@ -125,7 +125,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
   const viewport = useMenuViewport();
   const desktop = viewport === "desktop";
   const mobile = viewport === "mobile";
-  const amountSection = continueTo ? "add-funds" : "funding-amount";
+  const amountSection = "funding-amount";
   const [manageCards, setManageCards] = useState(false);
   const cardEditorOpener = useRef<string | null>(null);
   const manageCardsOpener = useRef<HTMLElement | null>(null);
@@ -668,7 +668,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly && !desktop && cardPanel}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
-    {mobile && !recoveryOnly && <AccountSettingsLandingScroll target={amountSection} settleAfterNavigation restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
+    {!recoveryOnly && (mobile || (viewport && continueTo)) && <AccountSettingsLandingScroll target={amountSection}
+      landingAlias={!mobile && continueTo ? "add-funds" : undefined} allScreens={!mobile}
+      settleAfterNavigation restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
     <div id={amountSection} className={styles.fundingAmountSection}>
       {mobile && !recoveryOnly && cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="inline-flex min-h-6 max-w-full items-center underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}

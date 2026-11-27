@@ -312,7 +312,7 @@ test.each([390, 1280])("payment-method navigation lands below the header at %i p
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
 });
 
-test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("Add funds lands at the right section at $width px from a link or the URL", ({ width, target }) => {
+test.each([390, 1280])("Add funds opens the top of the ticket at %i px from a link or the URL", width => {
   vi.stubGlobal("innerWidth", width);
   vi.stubGlobal("scrollY", 0);
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { callback(0); return 1; });
@@ -324,11 +324,11 @@ test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("Add fund
   const wallet = render(view);
   fireEvent.click(screen.getByRole("link", { name: "Add funds" }));
   expect(window.location.hash).toBe("#add-funds");
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
   wallet.unmount();
   vi.mocked(window.scrollTo).mockClear();
   render(view);
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "auto" });
 });
 
 test("Manage saved cards jumps above the amount and returns with the deposit draft", async () => {

@@ -52,14 +52,15 @@ test("wallet layout exposes responsive transaction filters without replacing led
   expect(screen.getByText("Entry purchase")).toBeTruthy();
 });
 
-test("enabled preview wallet puts Add Card beside Add funds", () => {
-  render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
+test.each([undefined, { title: "Samsung TV", href: "/items/samsung-m70h-tv#entry-action" }])("the funding link targets the ticket heading with return context %j", returnToProduct => {
+  render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" returnToProduct={returnToProduct} />);
   expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(["#add-funds", "#add-funds"]);
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector<HTMLAnchorElement>('a[href="#wallet-add-card"]')?.textContent).toBe("Add Card");
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("#payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
   expect(document.querySelector("#add-funds h2")?.textContent).toBe("Add funds");
   expect(document.querySelectorAll("#add-funds")).toHaveLength(1);
+  expect(screen.queryByText(/^demo payment$/i)).toBeNull();
   expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector("button")?.textContent).toBe("Delete Funds");
   expect(screen.getByRole("navigation", { name: "Account wallet overview" }).querySelector("button")?.textContent).not.toBe("Delete Funds");

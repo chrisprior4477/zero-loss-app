@@ -83,7 +83,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
   return <div className={styles.page}>
     <AccountSettingsLandingScroll target="balance" initialTarget={landOnBalance ? "balance" : undefined} focusTarget="balance" settleAfterNavigation allScreens restrictToTargetHash />
-    {!returnToProduct && !recoveryKey && <AccountSettingsLandingScroll target="add-funds" focusTarget="funding-heading" settleAfterNavigation allScreens restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
+    {!recoveryKey && <AccountSettingsLandingScroll target="add-funds" focusTarget="funding-heading" settleAfterNavigation allScreens={!canFund || !returnToProduct} restrictToTargetHash skipForHistoryKey={fundingLandingHistoryKeys} />}
     <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} fromOrders={Boolean(ordersReturnHref)} enabled={!landOnBalance && !recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
@@ -142,9 +142,9 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
       <WalletPaymentMethods checkoutReturn={initialSection ? returnToProduct : undefined} walletId={wallet?.walletAccountId ?? undefined} initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
 
-      <section id={canFund && !recoveryKey && returnToProduct ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
+      <section id="add-funds" className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
         <div className={styles.fundingBody}>
-        <div className={styles.sectionHeading}><div><h2 id="funding-heading" tabIndex={-1}>Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
+        <div className={styles.sectionHeading}><div><h2 id="funding-heading" tabIndex={-1}>Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div>{!demo && <span className={styles.fundingBadge}>Funding</span>}</div>
         {returnToProduct && !recoveryKey ? <div className={styles.fundingReturn}><p>{returnToProduct.invalidQuantity
           ? "This link has an invalid entry quantity. Return to the prize or saved entry to choose a quantity before funding it."
           : returnToProduct.selectionUnavailable

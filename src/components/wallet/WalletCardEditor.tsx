@@ -22,7 +22,7 @@ export function openWalletPanel(hash: string, state: object | null = null, repla
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id, moveFocus = false, keepFocusedControl = false) {
+export function revealWalletSection(id: string, mobileId = id, moveFocus = false, keepFocusedControl = false) {
   const href = window.location.href;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (window.location.href !== href) return;
