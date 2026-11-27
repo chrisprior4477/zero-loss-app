@@ -437,7 +437,7 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
         <SharedDemoView
           key={demo.code}
           code={demo.code}
-          guest={demo.guest}
+          canLeadInitially={!demo.guest && demo.notice?.kind !== "connected"}
           view={demo.view}
           paused={["join", "entry", "end", "ended", "approve", "wait"].includes(panel)}
           send={sendView}

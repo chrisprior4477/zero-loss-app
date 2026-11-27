@@ -67,28 +67,29 @@ function paint(view: DemoView) {
 
 export function SharedDemoView({
   code,
-  guest,
+  canLeadInitially,
   view,
   paused,
   send,
 }: {
   code: string;
-  guest: boolean;
+  canLeadInitially: boolean;
   view: DemoView | null;
   paused: boolean;
   send: (value: ViewMessage) => Promise<DemoView | null>;
 }) {
   const router = useRouter();
-  const latest = useRef({ guest, view, paused });
+  const latest = useRef({ canLeadInitially, view, paused });
   useEffect(() => {
-    latest.current = { guest, view, paused };
-  }, [guest, view, paused]);
+    latest.current = { canLeadInitially, view, paused };
+  }, [canLeadInitially, view, paused]);
   useEffect(() => {
     const source = (tabId ??= crypto.randomUUID());
     let live = true,
       sending = false,
       queued: ViewMessage | null = null,
       seen = 0;
+    let lastSharedAt = Date.now();
     let lastUrl = here(),
       lastSurface = surface(),
       initialized = false,
@@ -111,7 +112,10 @@ export function SharedDemoView({
       queued = null;
       try {
         const saved = await send(payload);
-        if (saved) seen = Math.max(seen, saved.seq);
+        if (saved) {
+          seen = Math.max(seen, saved.seq);
+          lastSharedAt = Date.now();
+        }
       } catch {
         // Keep the newest unsent view during a brief connection loss.
         if (live && !queued) queued = payload;
@@ -204,7 +208,20 @@ export function SharedDemoView({
           sessionStorage.removeItem(handoffKey);
           arrived = handoff?.url === url && Date.now() - handoff.at < 30000;
         } catch {}
-        if (arrived || (!remote && !state.guest)) publish(url, panel, null);
+        if (arrived || (!remote && state.canLeadInitially)) publish(url, panel, null);
+      }
+      // Re-establish the current page if a visitor joins after the previous
+      // view expired during a long idle period.
+      if (
+        !remote &&
+        Date.now() - lastSharedAt > 19 * 60_000 &&
+        state.canLeadInitially &&
+        !sending &&
+        !queued &&
+        !state.paused
+      ) {
+        lastSharedAt = Date.now();
+        publish(url, panel, null);
       }
       const moved = lastUrl !== url || lastSurface !== panel;
       if (pendingTap || (localIntent && moved)) {
@@ -219,6 +236,7 @@ export function SharedDemoView({
       }
       if (!sending && !queued && remote && remote.seq > seen) {
         seen = remote.seq;
+        lastSharedAt = Date.now();
         if (remote.source !== source && sharedDestination(remote.url) === remote.url) {
           target = remote;
           navigating = "";
