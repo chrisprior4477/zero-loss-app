@@ -41,7 +41,7 @@ function seenTip() {
     return false;
   }
 }
-function dismissTip() {
+function markTipSeen() {
   try {
     localStorage.setItem(tipKey, "seen");
   } catch {
@@ -115,15 +115,21 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
     tipSeen = useRef(false);
   const chip = useRef<HTMLButtonElement>(null),
     digits = useRef<HTMLElement>(null),
-    tip = useRef<HTMLElement>(null);
+    tip = useRef<HTMLElement>(null),
+    focusTip = useRef(false);
   const invite = useRef(""),
     pendingRefresh = useRef(false);
   const authPage = /^\/(login|signup|auth|reset-password|forgot-password)(\/|$)/.test(pathname);
+  const showTip = useCallback((manual = false) => {
+    tipSeen.current = true;
+    markTipSeen();
+    focusTip.current = manual;
+    setError("");
+    setCopied(null);
+    setMessage("");
+    setPanel("tip");
+  }, []);
   const close = useCallback(() => {
-    if (panel === "tip") {
-      tipSeen.current = true;
-      dismissTip();
-    }
     if (panel === "join") {
       finishLink();
       invite.current = "";
@@ -275,18 +281,18 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
         try {
           sessionStorage.setItem(tipKey, String(seconds));
         } catch {}
-      if (seconds >= 120) {
-        tipSeen.current = true;
-        dismissTip();
-        setPanel("tip");
-      }
+      if (seconds >= 120) showTip();
     }, 2000);
     return () => clearInterval(interval);
-  }, [authPage, hasDemoAccount, Boolean(demo), demo?.guest, panel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authPage, hasDemoAccount, Boolean(demo), demo?.guest, panel, showTip]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (panel !== "tip" || !tip.current || !digits.current) return;
     const box = tip.current,
       number = digits.current;
+    if (focusTip.current) {
+      box.focus({ preventScroll: true });
+      focusTip.current = false;
+    }
     function align() {
       const card = box.getBoundingClientRect(),
         target = number.getBoundingClientRect();
@@ -406,8 +412,6 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
     setPanel(next);
   };
   const openMenu = () => {
-    dismissTip();
-    tipSeen.current = true;
     if (panel) close();
     else
       open(
@@ -472,14 +476,17 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
             id="personal-demo-panel"
             className={panel === "tip" ? styles.tip : styles.panel}
             aria-label={title}
+            tabIndex={panel === "tip" ? -1 : undefined}
           >
             <div className={styles.heading}>
               <h2>{title}</h2>
-              {panel !== "tip" && (
-                <button type="button" aria-label="Close demo tools" onClick={close}>
-                  ×
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label={panel === "tip" ? "Close demo explanation" : "Close demo tools"}
+                onClick={close}
+              >
+                ×
+              </button>
             </div>
             {panel === "tip" && (
               <>
@@ -490,50 +497,62 @@ export function PersonalDemo({ hasDemoAccount }: { hasDemoAccount: boolean }) {
                   </strong>
                 </p>
                 <p>
-                  Your demo funds, prizes, and purchase options are saved automatically. Tap the white{" "}
-                  <b>Demo</b> box to switch devices or share with a friend.
+                  {demo?.guest ? (
+                    "This code belongs to the demo you share with your friend. You both see the same funds and prizes."
+                  ) : (
+                    <>
+                      Your demo funds, prizes, and purchase options are saved automatically. Tap the white{" "}
+                      <b>Demo</b> box to switch devices or share with a friend.
+                    </>
+                  )}
                 </p>
                 <button onClick={close}>Got it</button>
               </>
             )}
-            {panel === "menu" &&
-              demo &&
-              (demo.guest ? (
-                <>
+            {panel === "menu" && demo && (
+              <>
+                {demo.guest ? (
                   <p className={styles.status}>
                     You and your friend follow the same shopping pages and share this demo wallet.
                   </p>
-                  <button disabled={busy} onClick={() => void act("leave")}>
-                    Start my own demo
+                ) : (
+                  demo.guests > 0 && <p>Your guest can follow your taps and use your shared demo wallet.</p>
+                )}
+                <div className={styles.choices}>
+                  <button className={styles.explain} type="button" disabled={busy} onClick={() => showTip(true)}>
+                    Try without signing up<small>See how it works</small>
                   </button>
-                </>
-              ) : (
-                <>
-                  {demo.guests > 0 && <p>Your guest can follow your taps and use your shared demo wallet.</p>}
-                  <div className={styles.choices}>
-                    <button disabled={busy} onClick={() => void copy(false)}>
-                      Copy website link
+                  {demo.guest ? (
+                    <button disabled={busy} onClick={() => void act("leave")}>
+                      Start my own demo
                     </button>
-                    <button
-                      onClick={() => {
-                        setCode("");
-                        open(desktop ? "entry" : "device");
-                      }}
-                    >
-                      {desktop ? "Enter code from my phone" : "Use on my desktop"}
-                    </button>
-                    <button disabled={busy} onClick={() => void copy(true)}>
-                      Share my demo with a friend<small>Follow each other’s taps and use the same wallet.</small>
-                    </button>
-                  </div>
-                  {demo.sharing && (
-                    <div className={styles.manage}>
-                      <span>{demo.guests ? "Guest connected" : "Sharing link active"}</span>
-                      <button onClick={() => open("end")}>End guest sharing</button>
-                    </div>
+                  ) : (
+                    <>
+                      <button disabled={busy} onClick={() => void copy(false)}>
+                        Copy website link
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCode("");
+                          open(desktop ? "entry" : "device");
+                        }}
+                      >
+                        {desktop ? "Enter code from my phone" : "Use on my desktop"}
+                      </button>
+                      <button disabled={busy} onClick={() => void copy(true)}>
+                        Share my demo with a friend<small>Follow each other’s taps and use the same wallet.</small>
+                      </button>
+                    </>
                   )}
-                </>
-              ))}
+                </div>
+                {!demo.guest && demo.sharing && (
+                  <div className={styles.manage}>
+                    <span>{demo.guests ? "Guest connected" : "Sharing link active"}</span>
+                    <button onClick={() => open("end")}>End guest sharing</button>
+                  </div>
+                )}
+              </>
+            )}
             {panel === "device" && (
               <>
                 <p>

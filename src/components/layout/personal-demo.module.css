@@ -54,22 +54,24 @@
   overflow: auto;
 }
 .tip {
-  margin-top: 20px;
+  --pointer-height: 18px;
+  margin-top: calc(var(--pointer-height) + 2px);
   filter: drop-shadow(0 7px 12px #00152d40);
   box-shadow: none;
 }
 .tip::before {
   content: "";
   position: absolute;
-  top: -17px;
+  top: calc(1px - var(--pointer-height));
   left: clamp(17px, var(--pointer-x, calc(100% - 32px)), calc(100% - 17px));
   transform: translateX(-50%);
   border-inline: 14px solid transparent;
-  border-bottom: 18px solid var(--paper);
+  border-bottom: var(--pointer-height) solid var(--paper);
   pointer-events: none;
 }
 @media (max-width: 639px) {
   .tip {
+    --pointer-height: 24px;
     right: auto;
     left: 50%;
     transform: translateX(-50%);
@@ -138,15 +140,21 @@
 .choices button {
   min-height: 44px;
 }
-.choices button:first-child {
+.choices .explain {
+  border: 2px solid #ff630f;
+  background: white;
+  color: #102a46;
+}
+.choices button:nth-child(2) {
   color: #084a73;
   background: #e0f2fe;
 }
-.choices button:nth-child(2) {
+.choices button:nth-child(3) {
   color: #103952;
   background: #a6d7fa;
 }
 .choices button:last-child {
+  color: white;
   background: #1468af;
 }
 .choices small {
