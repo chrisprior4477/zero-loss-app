@@ -5,7 +5,7 @@ import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { getFavoriteSnapshot } from "./reader";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 /** Recheck a conflicting refresh against the current authenticated account. */
 export async function getCurrentFavorites() {

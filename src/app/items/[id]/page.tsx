@@ -23,7 +23,7 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
 import { productBrowseReturnHref, productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 import { transactionOriginHref, transactionOriginParams } from "@/lib/wallet/ledger-return";

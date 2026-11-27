@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 type AlertResult = { ok: boolean; message: string; savedAt?: number };
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

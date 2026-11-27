@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 export type FavoriteSnapshot = { slugs: string[]; available: boolean };
 

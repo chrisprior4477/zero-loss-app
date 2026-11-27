@@ -434,3 +434,7 @@ verify_jwt = true
 
 [functions.send-reward-emails]
 verify_jwt = true
+
+[functions.personal-demo]
+# Private server-to-server endpoint. The handler validates its branch secret.
+verify_jwt = false

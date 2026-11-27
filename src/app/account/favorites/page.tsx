@@ -5,7 +5,7 @@ import { FavoritesView } from "@/components/favorites/FavoritesView";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountRoutes } from "@/lib/account/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { parseSavedProductShareList, shareUuid } from "@/lib/sharing/saved-shares";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 

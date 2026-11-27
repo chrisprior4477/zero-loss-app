@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { NotificationsCenter } from "@/components/account/NotificationsCenter";
 import { getAccountContext } from "@/lib/account/context";
 import { getNotificationSnapshot } from "@/lib/account/notification-snapshot";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { notificationFilter, notificationHref, validNotice } from "@/lib/account/notification-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { matchingQueryValue } from "@/lib/navigation/query-value";

@@ -3,7 +3,7 @@
 import { purchasedRewardHref } from "./activity";
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 

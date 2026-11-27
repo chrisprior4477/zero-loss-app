@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 

@@ -13,7 +13,7 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
 import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";

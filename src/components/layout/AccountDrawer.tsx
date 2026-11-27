@@ -29,6 +29,7 @@ const drawerReturnKey = "zero-loss-account-menu-focus";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
+  personalDemo?: boolean;
   ownerId?: string;
   displayName: string;
   email: string | null;
@@ -72,7 +73,7 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, personalDemo, ownerId, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
@@ -383,9 +384,9 @@ export function AccountDrawer({ isSignedIn, ownerId, displayName, email, avatarU
             {showAccountContent ? (
               <div className={styles.accountFooter}>
                 {fundingEnabled ? <ResetAllDemoActivityButton ownerId={ownerId} /> : null}
-                <SignOutForm>
+                {personalDemo ? <div className="flex justify-around py-2 font-bold text-cyan-100"><Link href="/login" onClick={close}>Sign in</Link><Link href="/signup" onClick={close}>Sign up</Link></div> : <SignOutForm>
                   <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
-                </SignOutForm>
+                </SignOutForm>}
               </div>
             ) : null}
           </aside>

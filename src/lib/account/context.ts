@@ -42,16 +42,18 @@ const readAccountContext = cache(async () => {
     getStoredAccountActivity(supabase).catch(() => drawerState(false)),
     getAccountOrders(supabase).catch(() => ({ source: "unavailable" as const, orders: [] })),
   ]);
-  const displayName = customerDisplayName(profile);
+  const personalDemo = user.app_metadata?.personal_demo === true;
+  const displayName = personalDemo ? "Demo visitor" : customerDisplayName(profile);
   return {
+    personalDemo,
     userId: user.id,
-    email: user.email ?? null,
+    email: personalDemo ? null : user.email ?? null,
     emailConfirmed: Boolean(user.email_confirmed_at),
     memberSince: user.created_at ?? null,
     lastSignInAt: user.last_sign_in_at ?? null,
-    legalFirstName: profile?.legal_first_name ?? null,
-    legalLastName: profile?.legal_last_name ?? null,
-    dateOfBirth: profile?.date_of_birth ?? null,
+    legalFirstName: personalDemo ? null : profile?.legal_first_name ?? null,
+    legalLastName: personalDemo ? null : profile?.legal_last_name ?? null,
+    dateOfBirth: personalDemo ? null : profile?.date_of_birth ?? null,
     preferredLocale: profile?.preferred_locale ?? null,
     timezone: profile && completeMailingAddress({ street: profile.address_line_1 ?? "", city: profile.city ?? "", region: profile.region ?? "", postalCode: profile.postal_code ?? "", country: profile.country ?? "" })
       ? safeTimeZone(addressTimeZone(profile.country, profile.region, profile.postal_code) ?? profile.timezone)
@@ -65,7 +67,7 @@ const readAccountContext = cache(async () => {
     country: profile?.country ?? null,
     extraEntryExplainerAcknowledged: Boolean(profile?.extra_entry_explainer_acknowledged_at),
     displayName,
-    profileSavedFields: profile ? Object.fromEntries(profileFields.map(key => [key, profile[key] ?? null])) as ProfileSavedFields : undefined,
+    profileSavedFields: profile && !personalDemo ? Object.fromEntries(profileFields.map(key => [key, profile[key] ?? null])) as ProfileSavedFields : undefined,
     initials: customerInitials(displayName),
     avatarUrl: profile?.avatar_reference ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl : null,
     showPhotoInMenu: profile?.show_photo_in_menu ?? true,

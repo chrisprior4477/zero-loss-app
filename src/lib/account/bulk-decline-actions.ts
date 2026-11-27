@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAccountContext } from "@/lib/account/context";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 type BulkDeclineResult = { status: "succeeded" | "partial" | "error"; message: string; optionIds: string[] };
 export type DeclineReceipt = { optionId: string; declineEventId: string };

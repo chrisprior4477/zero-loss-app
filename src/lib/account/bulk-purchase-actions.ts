@@ -3,7 +3,7 @@
 import { purchasedRewardHref } from "./activity";
 import { checkoutReceiptId as uuid } from "./checkout-cards";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 export type BulkPurchaseRequest = { slug: string; purchaseIds: string[]; declineIds: string[]; totalCents: number; requestId: string; confirmed: boolean };
 export type BulkPurchaseResult = CompletedCheckout

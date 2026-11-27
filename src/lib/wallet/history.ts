@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import type { LedgerEntryRow, WalletSnapshot } from "./snapshot";
 import type { SupabaseClient } from "@supabase/supabase-js";

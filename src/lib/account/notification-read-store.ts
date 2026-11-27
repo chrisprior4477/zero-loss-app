@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 export async function storeNotificationReads(ids: unknown) {
   if (!Array.isArray(ids) || ids.length < 1 || ids.length > 1000

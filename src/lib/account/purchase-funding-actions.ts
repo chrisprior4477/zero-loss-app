@@ -1,7 +1,7 @@
 "use server";
 
 import { completeDemoFunding } from "@/lib/payments/actions";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 
 /** Funding stays in the Payments domain; only a fresh ledger projection is returned. */

@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseAvailabilityReport } from "./availability";
 

@@ -17,7 +17,7 @@ import { DeclinedOfferCountdown, DeclinedOfferReminder } from "@/components/acco
 import { DeclinedOfferFilterNotice } from "@/components/account/DeclinedOfferFilterNotice";
 import { DeclinedOfferList } from "@/components/account/DeclinedOfferList";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { notificationHref, notificationFilter, validNotice } from "@/lib/account/notification-return";

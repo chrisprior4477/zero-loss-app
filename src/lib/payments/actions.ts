@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { assertFundingAmount, assertIdempotencyKey } from "@/lib/payments/provider";
 import { revalidatePath } from "next/cache";
 import { demoFundingAllowed } from "./demo-access";

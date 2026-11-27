@@ -17,7 +17,7 @@ import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
 import { walletRewardHref, activityHref, completedActivityHref, findActivityItem, isPurchasedReward, isWalletReward, openEntriesAnchorId, openPrizeOptions, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { productBrowseReturnLabel, productBrowseReturnPath } from "@/lib/catalog/product-return";

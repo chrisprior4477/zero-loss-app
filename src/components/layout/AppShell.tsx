@@ -18,6 +18,8 @@ import { MenuLayoutTrialBar } from "./MenuLayoutTrialBar";
 import { MobileLogoSizeProvider } from "./MobileLogoSizeProvider";
 import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { demoEnabled } from "@/lib/personal-demo/server";
+import { PersonalDemo } from "./PersonalDemo";
 import { TimeZoneProvider } from "@/components/account/TimeZoneProvider";
 import { AccountStateSync } from "@/components/account/AccountStateSync";
 import { DemoOutcomeMarksProvider } from "@/components/catalog/DemoOutcomeLetter";
@@ -54,6 +56,7 @@ export async function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
+      {demoEnabled() && (!account || account.personalDemo) && !sessionUnavailable ? <PersonalDemo hasDemoAccount={Boolean(account?.personalDemo)} /> : null}
       <AccountHistoryReturn accountLinks={Boolean(account)} />
       {account ? <AccountStateSync key={account.userId} accountId={account.userId} balanceCents={account.wallet?.balanceCents ?? null} activeCount={account.activity.activeCount}
         offerRevision={JSON.stringify(account.activity.activity.filter(item => item.completionOptionId)

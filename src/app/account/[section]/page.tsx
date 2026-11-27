@@ -9,7 +9,7 @@ import { getAccountContext } from "@/lib/account/context";
 import { fulfillmentFilter } from "@/lib/account/fulfillment";
 import { notificationFilter, validNotice } from "@/lib/account/notification-return";
 import { getOrderSupportHref, walletTransactionHelpHref } from "@/lib/account/order-support";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { walletRewards } from "@/lib/account/activity";
@@ -89,6 +89,7 @@ export default async function LiveAccountSection({
   const content = liveSections[section as LiveSection];
 
   if (section === "security") {
+    if (account.personalDemo) redirect(authNavigationHref("/login", "/account/security"));
     return <AccountSecurityDashboard
       accountId={account.userId}
       timeZone={account.timezone}

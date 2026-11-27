@@ -3,7 +3,7 @@ import { cache } from "react";
 import { getAccountContext } from "./context";
 import { buildAccountNotifications, buildOrderNotifications, parseNotificationPreferences, type AccountNotification } from "./notifications";
 import { getAccountOrders } from "./orders";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { supportNotifications } from "@/lib/support/notifications";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import { getDemoProduct } from "@/lib/catalog/demo-products";

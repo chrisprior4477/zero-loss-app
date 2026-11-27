@@ -27,6 +27,7 @@ export default async function ProfilePage({ searchParams }: { searchParams?: Pro
   const { account, accountUnavailable, hidden, availability } = await getShoppingCatalog();
   if (accountUnavailable) return <AccountSessionRetry />;
   if (!account) redirect(authNavigationHref("/login", "/account/profile" + heading));
+  if (account.personalDemo) redirect(authNavigationHref("/login", "/account/profile" + heading));
   const t = accountLanguage(account.preferredLocale);
   const overview = { balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity };
   if (!account.profileSavedFields) {

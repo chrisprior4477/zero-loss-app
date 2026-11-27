@@ -16,7 +16,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";

@@ -23,7 +23,7 @@ import { ReviewCurrentPurchaseOffers } from "@/components/account/ReviewCurrentP
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
 import { checkoutCards } from "@/lib/account/checkout-cards";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 

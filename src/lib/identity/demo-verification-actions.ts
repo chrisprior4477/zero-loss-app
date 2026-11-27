@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/personal-demo/shopper";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { demoVerificationSteps, parseDemoVerification, type DemoVerificationResult, type DemoVerificationStep } from "./demo-verification";
 
