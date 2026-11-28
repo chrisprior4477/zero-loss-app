@@ -8,7 +8,9 @@ import { exactOrderHref } from "./fulfillment";
 export type NotificationCategory = "action" | "account" | "activity" | "orders" | "crew";
 export const notificationPreferenceKeys = ["purchase_options", "reward_ready", "reward_deadline", "order_updates", "wallet_updates", "crew_updates", "support_replies", "pool_progress"] as const;
 export type NotificationPreferenceKey = typeof notificationPreferenceKeys[number];
-export type NotificationPreferences = Partial<Record<NotificationPreferenceKey, boolean>>;
+export const directAlertKeys = ["direct_wins", "direct_options", "direct_entries", "direct_support"] as const;
+export type DirectAlertKey = typeof directAlertKeys[number];
+export type NotificationPreferences = Partial<Record<NotificationPreferenceKey | DirectAlertKey, boolean>>;
 export type AccountNotification = {
   id: string;
   category: NotificationCategory;
@@ -36,7 +38,7 @@ export type AccountNotification = {
 
 export function parseNotificationPreferences(value: unknown): NotificationPreferences {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return Object.fromEntries(notificationPreferenceKeys.flatMap(key => {
+  return Object.fromEntries([...notificationPreferenceKeys, ...directAlertKeys].flatMap(key => {
     const enabled = (value as Record<string, unknown>)[key];
     return typeof enabled === "boolean" ? [[key, enabled]] : [];
   })) as NotificationPreferences;
@@ -69,9 +71,9 @@ function activityNotification(item: ActivityItem): AccountNotification {
     id: `reward-${item.rewardId ?? item.entryId ?? item.slug}`,
     category: item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed" ? "activity" : "action",
     title: `Your ${formatUsdFromCents(item.priceCents)} reward is ready`,
-    body: `Your ${item.retailer} digital reward for ${item.title} is ready to view.`,
+    body: item.rewardKind === "physical" ? "Open your winning ticket to review your prize." : `Your ${item.retailer} digital reward for ${item.title} is ready to view.`,
     meta: item.availability,
-    href: walletRewardHref(item),
+    href: item.rewardKind === "physical" ? activityHref(item) : walletRewardHref(item),
     action: item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed" ? "View gift card" : "Claim reward",
     image: item.image,
     visualLabel: item.retailer,
@@ -210,7 +212,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
         category: "action", title: `Claim your ${item.retailer} reward soon`,
         body: "Your claim deadline is approaching. Open the reward for the exact date and next step.",
         meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(deadline)),
-        href: walletRewardHref(item), action: "View reward deadline", image: item.image, itemSlug: item.slug, itemTitle: item.title, rewardSource: item.rewardSource,
+        href: item.rewardKind === "physical" ? activityHref(item) : walletRewardHref(item), action: "View reward deadline", image: item.image, itemSlug: item.slug, itemTitle: item.title, rewardSource: item.rewardSource,
         visualLabel: item.retailer, tone: "reward", preferenceKey: "reward_deadline",
       });
     }

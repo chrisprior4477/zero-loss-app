@@ -1,7 +1,17 @@
 import { openEntriesHref } from "./activity";
-import type { AccountNotification } from "./notifications";
+import type { AccountNotification, DirectAlertKey } from "./notifications";
 export type BannerMessage = { label: string; count: number; color: "green" | "orange" | "blue" | "purple" | "teal"; category?: HeaderCategory };
 export type HeaderCategory = "wins" | "options" | "entries" | "support" | "shared" | "saved";
+export type ResultCategory = "wins" | "options" | "entries" | "support";
+export const resultTypes = {
+  wins: { headline: "You won!", action: "Claim your prize", destination: "my prize", pref: "direct_wins" },
+  options: { headline: "Purchase option ready", action: "Review purchase option", destination: "my purchase option", pref: "direct_options" },
+  entries: { headline: "Your open entry", action: "View my entry", destination: "my open entries", pref: "direct_entries" },
+  support: { headline: "Support update", action: "View support ticket", destination: "my support ticket", pref: "direct_support" },
+} as const satisfies Record<ResultCategory, { headline: string; action: string; destination: string; pref: DirectAlertKey }>;
+export function isResultCategory(value: string | null): value is ResultCategory {
+  return value !== null && Object.prototype.hasOwnProperty.call(resultTypes, value);
+}
 export const headerDestinations = {
   wins: "/account/entries?filter=prize#my-activity-filters",
   options: "/account/entries?filter=completion#my-activity-filters",
@@ -79,6 +89,6 @@ export function notificationDestination(href: string, category?: HeaderCategory)
   if (!href.startsWith("/") || href.startsWith("//")) return "/account/notifications";
   const url = new URL(href, "https://local.invalid");
   url.searchParams.set("fromUpdates", "1");
-  if (category && (url.pathname === "/account/entries" || url.pathname === "/support")) url.searchParams.set("updateCategory", category);
+  if (category && isResultCategory(category)) url.searchParams.set("updateCategory", category);
   return `${url.pathname}${url.search}${url.hash}`;
 }

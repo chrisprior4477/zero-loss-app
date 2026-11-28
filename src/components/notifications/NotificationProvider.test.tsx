@@ -10,6 +10,7 @@ import { ENTRY_REQUEST_EVENT } from "@/lib/entries/request";
 const mock = vi.hoisted(() => ({ mark:vi.fn(), restore:vi.fn(), push:vi.fn(),replace:vi.fn(), prefetch:vi.fn() }));
 vi.mock("@/lib/account/restore-banner-action", () => ({ restoreNotificationBanner:mock.restore }));
 vi.mock("next/navigation", () => ({ usePathname:()=>"/account/profile", useRouter:()=>({push:mock.push,replace:mock.replace,prefetch:mock.prefetch}), useSearchParams:()=>new URLSearchParams() }));
+vi.mock("@/lib/account/notification-preference-actions", () => ({ setInAppAlertPreference: vi.fn() }));
 const make=(id:string,tone:AccountNotification["tone"]):AccountNotification=>({id,tone,category:"activity",title:id,itemTitle:id,body:"",meta:"",href:`/account/entries/${id}`,action:"View"});
 const notifications=[make("win","reward"),make("option","completion"),make("support-case","account"),make("shared-pick","crew")];
 const snapshot={notifications,readIds:[] as string[],readAvailable:true,preferences:{}};
@@ -43,8 +44,8 @@ test("navigation and local read state update before storage finishes, with rollb
  mock.mark.mockReturnValue(new Promise(resolve=>{finishRead=resolve;}));
  render(<App/>);
  fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
- fireEvent.click(within(screen.getByRole("region",{name:"You won"})).getByRole("button",{name:/View my wins/}));
- expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("filter=prize"));
+ fireEvent.click(screen.getByRole("button",{name:/Claim your prize/}));
+ expect(mock.replace).toHaveBeenCalledWith(expect.stringContaining("/account/entries/win?fromUpdates=1"));
  expect(screen.getByRole("button",{name:/3 unread updates/})).toBeTruthy();
  await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(["win"]));
  await act(async()=>finishRead({ok:false,message:"Offline"}));
@@ -56,7 +57,7 @@ function App({readIds=[]}:{readIds?:string[]}) {return <NotificationProvider ini
 test("viewing wins leaves the purchase-options banner clickable, including after stale account refresh",async()=>{
  const rendered=render(<App/>);
  fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
- fireEvent.click(within(screen.getByRole("region",{name:"You won"})).getByRole("button",{name:/View my wins/}));
+ fireEvent.click(screen.getByRole("button",{name:/Claim your prize/}));
  await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(["win"]));
  await screen.findByRole("button",{name:/3 unread updates/});
  rendered.rerender(<App readIds={[]}/>);
@@ -64,20 +65,20 @@ test("viewing wins leaves the purchase-options banner clickable, including after
  const categories=screen.getByRole("navigation",{name:"Update categories"});
  expect(within(categories).getByRole("button",{name:/Purchase options/}).textContent).toContain("1");
  fireEvent.click(within(categories).getByRole("button",{name:/Purchase options/}));
- fireEvent.click(within(screen.getByRole("region",{name:"Purchase options"})).getByRole("button",{name:/View purchase options/}));
+
  await waitFor(()=>expect(mock.mark).toHaveBeenLastCalledWith(["option"]));
  expect(await screen.findByRole("button",{name:/2 unread updates/})).toBeTruthy();
 });
 test("restoring restores read alerts and reveals a hidden banner without saving style",async()=>{
- mock.restore.mockResolvedValue({ok:true,ids:["win","option"],snapshot:{...snapshot,readIds:[]},message:"Restored"});
+ mock.restore.mockResolvedValue({ok:true,ids:["win","option","shared-pick","support-case"],snapshot:{...snapshot,readIds:[]},message:"Restored"});
  render(<App readIds={["win","option"]}/>);
  fireEvent.click(screen.getByRole("button",{name:/unread updates/}));
- fireEvent.click(screen.getByRole("button",{name:"Show tickets & balance"}));
+ fireEvent.click(screen.getByRole("button",{name:"Close updates"}));
  expect(screen.getByRole("link",{name:"Balance"}).parentElement?.hasAttribute("inert")).toBe(false);
  await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"Restore"}));});
  expect(await screen.findByRole("button",{name:/4 unread updates/})).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
- expect(screen.getByRole("button",{name:"Show tickets & balance"})).toBeTruthy();
+ expect(screen.getByRole("dialog",{name:"You won!"})).toBeTruthy();
 });
 
 function ClearDemo(){const value=useNotifications()!;return <button onClick={value.clearAfterDemoReset}>Clear demo</button>;}
@@ -100,17 +101,13 @@ test("a deployment with support explicitly disabled retains the Saved items shor
  expect(within(nav).queryByRole("button",{name:/Support/})).toBeNull();
 });
 
-test("choosing a category keeps its badge until an item or all results are opened",async()=>{
+test("opening an outstanding purchase option leaves the support reply and share unread",async()=>{
  render(<App/>);
- fireEvent.click(screen.getByRole('button',{name:/4 unread updates/}));
- fireEvent.click(within(screen.getByRole('navigation',{name:'Update categories'})).getByRole('button',{name:/Purchase options/}));
- expect(mock.mark).not.toHaveBeenCalled();
- expect(screen.getByRole('dialog',{name:'Your updates'}).hasAttribute('open')).toBe(true);
- const options=within(screen.getByRole('region',{name:'Purchase options'}));
- expect(options.getByRole('button',{name:/View purchase options/})).toBeTruthy();
- expect(screen.getByRole('button',{name:/4 unread updates/})).toBeTruthy();
- fireEvent.click(options.getByRole('button',{name:/View all/}));
- await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(['option']));
+ fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
+ fireEvent.click(within(screen.getByRole("navigation",{name:"Update categories"})).getByRole("button",{name:/Purchase options/}));
+ await waitFor(()=>expect(mock.mark).toHaveBeenLastCalledWith(["option"]));
+ expect(mock.mark.mock.calls.map(call=>call[0])).toEqual([["win"],["option"]]);
+ expect(screen.getByRole("button",{name:/2 unread updates/})).toBeTruthy();
 });
 
 function LivePopupTrial(){
